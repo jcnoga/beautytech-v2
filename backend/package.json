@@ -7,7 +7,7 @@
   "engines": { "node": ">=20.0.0" },
   "scripts": {
     "dev":         "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
+    "start":       "tsx src/server.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate":  "drizzle-kit migrate",
     "db:push":     "drizzle-kit push",
