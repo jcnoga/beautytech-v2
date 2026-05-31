@@ -1,5 +1,5 @@
 ﻿// BEAUTYTECH v2 â€” Database Connection
-// âš ï¸ SEMPRE env.DATABASE_URL â€” NUNCA hardcode
+// âš ï¸ SEMPRE env.POSTGRES_URL â€” NUNCA hardcode
 // âš ï¸ SEMPRE Session Pooler Supabase (IPv4)
 // âš ï¸ prepare: false â€” obrigatÃ³rio com PgBouncer
  
@@ -8,7 +8,7 @@ import postgres     from "postgres";
 import { env }      from "../config/env.js";
 import * as schema  from "./schema/index";
  
-const queryClient = postgres(env.DATABASE_URL, {
+const queryClient = postgres(env.POSTGRES_URL, {
   max:             10,
   idle_timeout:    30,
   connect_timeout: 10,
@@ -33,6 +33,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
 export async function closeDatabaseConnection(): Promise<void> {
   await queryClient.end();
 }
+
 
 
 
