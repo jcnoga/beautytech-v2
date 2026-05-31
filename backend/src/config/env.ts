@@ -10,7 +10,7 @@ const envSchema = z.object({
   SUPABASE_URL:              z.string().url(),
   SUPABASE_ANON_KEY:         z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  DB_URL: z.string().url(),
+  DATABASE_URL: z.string().url(),
   CORS_ORIGINS: z.string().default("http://localhost:5173")
     .transform((v) => v.split(",").map((s) => s.trim())),
   RATE_LIMIT_MAX:    z.coerce.number().default(200),
@@ -37,4 +37,5 @@ function parseEnv() {
  
 export const env = parseEnv();
 export type Env = typeof env;
+
 
