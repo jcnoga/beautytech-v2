@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import "dotenv/config";
  
 const envSchema = z.object({
@@ -10,7 +10,7 @@ const envSchema = z.object({
   SUPABASE_URL:              z.string().url(),
   SUPABASE_ANON_KEY:         z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  DATABASE_URL: z.string().url(),
+  DB_URL: z.string().url(),
   CORS_ORIGINS: z.string().default("http://localhost:5173")
     .transform((v) => v.split(",").map((s) => s.trim())),
   RATE_LIMIT_MAX:    z.coerce.number().default(200),
@@ -26,9 +26,9 @@ const envSchema = z.object({
 function parseEnv() {
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
-    console.error("\n❌ Variáveis de ambiente inválidas:\n");
+    console.error("\nâŒ VariÃ¡veis de ambiente invÃ¡lidas:\n");
     result.error.errors.forEach((e) => {
-      console.error(`  • ${e.path.join(".")}: ${e.message}`);
+      console.error(`  â€¢ ${e.path.join(".")}: ${e.message}`);
     });
     process.exit(1);
   }
@@ -37,3 +37,4 @@ function parseEnv() {
  
 export const env = parseEnv();
 export type Env = typeof env;
+
