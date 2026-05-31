@@ -1,3 +1,4 @@
+// BeautyTech v2 - 2026-05-31 05:44
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
