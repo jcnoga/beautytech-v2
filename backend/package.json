@@ -8,9 +8,9 @@
   "scripts": {
     "dev":         "tsx watch src/server.ts",
     "start":       "tsx src/server.ts",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "drizzle-kit generate:pg",
     "db:migrate":  "drizzle-kit migrate",
-    "db:push":     "drizzle-kit push",
+    "db:push":     "drizzle-kit push:pg",
     "db:studio":   "drizzle-kit studio"
   },
   "dependencies": {
