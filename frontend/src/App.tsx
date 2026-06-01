@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -715,24 +715,63 @@ function ProfessionalsPage() {
 
 // ─── SERVIÇOS ─────────────────────────────────────────────────
 function ServicesPage() {
-  const [data, setData] = useState(MOCK.services);
+  const [data, setData] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name:"", categoryName:"Cabelo", durationMinutes:"60", price:"" });
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true });
   const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]:v }));
+
+  useEffect(() => {
+    Promise.all([
+      servicesApi.list(),
+      servicesApi.categories(),
+    ]).then(([s, c]: any) => {
+      setData(s.data ?? []);
+      setCategories(c.data ?? []);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const r: any = await servicesApi.create(form);
+      setData(d => [...d, r.data]);
+      setShowForm(false);
+    } catch(e: any) {
+      alert("Erro: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleActive = async (s: any) => {
+    try {
+      const r: any = await servicesApi.update(s.id, { isActive: !s.isActive });
+      setData(d => d.map((x: any) => x.id === s.id ? r.data : x));
+    } catch(e) { console.error(e); }
+  };
 
   const cols = [
     { key:"name", label:"Serviço", render: (s: any) => <span style={{ fontWeight:600, color: C.text }}>{s.name}</span> },
-    { key:"categoryName", label:"Categoria", render: (s: any) => <Badge label={s.categoryName} color={C.rose} /> },
+    { key:"categoryName", label:"Categoria", render: (s: any) => <Badge label={s.categoryName ?? s.category?.name ?? "—"} color={C.rose} /> },
     { key:"durationMinutes", label:"Duração", render: (s: any) => <span style={{ color: C.textSec }}>{s.durationMinutes}min</span> },
     { key:"price", label:"Preço", render: (s: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(s.price)}</span> },
     { key:"isOnlineBookable", label:"Online", render: (s: any) => <Badge label={s.isOnlineBookable ? "Sim" : "Não"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
     { key:"isActive", label:"Status", render: (s: any) => <Badge label={s.isActive ? "Ativo" : "Inativo"} color={s.isActive ? C.sage : C.textMuted} /> },
     { key:"action", label:"", render: (s: any) => (
-      <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); setData(d => d.map((x: any) => x.id === s.id ? { ...x, isActive: !x.isActive } : x)); }}>
+      <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(s); }}>
         {s.isActive ? "Desativar" : "Ativar"}
       </Btn>
     )},
   ];
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando serviços...</div>
+    </div>
+  );
 
   return (
     <div>
@@ -741,13 +780,13 @@ function ServicesPage() {
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Serviço">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="Coloração Completa" grid="1/-1" />
-          <Sel label="Categoria" value={form.categoryName} onChange={f("categoryName")} options={["Cabelo","Unhas","Estética","Beleza","Massagem"].map(c => ({ value:c, label:c }))} />
+          <Sel label="Categoria" value={form.categoryId} onChange={f("categoryId")} options={categories.map((c: any) => ({ value:c.id, label:c.name }))} />
           <Inp label="Duração (min)" value={form.durationMinutes} onChange={f("durationMinutes")} type="number" placeholder="60" />
           <Inp label="Preço (R$)" value={form.price} onChange={f("price")} type="number" placeholder="180.00" grid="1/-1" />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={() => { setData((d: any) => [...d, { id:Date.now().toString(), ...form, isActive:true, isOnlineBookable:true }]); setShowForm(false); }}>Criar Serviço</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Criar Serviço"}</Btn>
         </div>
       </Modal>
     </div>
