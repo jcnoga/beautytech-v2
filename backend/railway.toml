@@ -7,16 +7,3 @@ healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
-
-
-
-
-
-
-
-
-
-
-
->> Invoke-RestMethod -Uri "https://beautytech-v2-production.up.railway.app/health"
->>
