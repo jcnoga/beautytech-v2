@@ -52,6 +52,7 @@ async function bootstrap() {
   await server.register(financialModule,     { prefix });
   await server.register(commissionsModule,   { prefix });
   await server.register(dashboardModule,     { prefix });
+  console.log("Rotas registradas:", server.printRoutes());
   await server.register(crmModule,           { prefix });
   await server.register(loyaltyModule,       { prefix });
   await server.register(campaignsModule,     { prefix });
