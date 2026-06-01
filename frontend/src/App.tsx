@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -875,24 +875,49 @@ function FinancialPage() {
 
 // ─── COMISSÕES ────────────────────────────────────────────────
 function CommissionsPage() {
+  const [data, setData] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
-  const data = MOCK.commissions;
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    commissionsApi.list({ limit: 100 })
+      .then((r: any) => setData(r.data ?? []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const pay = async (id: string) => {
+    try {
+      const r: any = await commissionsApi.pay(id);
+      setData(d => d.map((c: any) => c.id === id ? r.data : c));
+    } catch(e) { console.error(e); }
+  };
+
   const filtered = filter === "all" ? data : data.filter((c: any) => c.isPaid === (filter === "paid"));
-  const totalPending = data.filter((c: any) => !c.isPaid).reduce((s,c: any) => s+Number(c.commissionAmt), 0);
-  const totalPaid    = data.filter((c: any) =>  c.isPaid).reduce((s,c: any) => s+Number(c.commissionAmt), 0);
+  const totalPending = data.filter((c: any) => !c.isPaid).reduce((s, c: any) => s + Number(c.commissionAmt), 0);
+  const totalPaid    = data.filter((c: any) =>  c.isPaid).reduce((s, c: any) => s + Number(c.commissionAmt), 0);
+
   const cols = [
-    { key:"professionalName", label:"Profissional", render: (c: any) => <span style={{ fontWeight:600, color: C.text }}>{c.professionalName}</span> },
-    { key:"serviceName", label:"Serviço", render: (c: any) => <span style={{ color: C.textSec, fontSize:12 }}>{c.serviceName}</span> },
+    { key:"professionalId", label:"Profissional", render: (c: any) => <span style={{ fontWeight:600, color: C.text }}>{c.professional?.fullName ?? c.professionalId}</span> },
     { key:"baseAmount", label:"Base", render: (c: any) => <span style={{ color: C.textMuted }}>{brl(c.baseAmount)}</span> },
     { key:"commissionPct", label:"Comissão %", render: (c: any) => <Badge label={`${c.commissionPct}%`} color={C.rose} /> },
     { key:"commissionAmt", label:"Valor", render: (c: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.commissionAmt)}</span> },
     { key:"referenceMonth", label:"Mês Ref.", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{c.referenceMonth}</span> },
     { key:"isPaid", label:"Status", render: (c: any) => <Badge label={c.isPaid?"Pago":"A Pagar"} color={c.isPaid?C.sage:C.gold} /> },
-    { key:"createdAt", label:"Data", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.createdAt)}</span> },
+    { key:"action", label:"", render: (c: any) => !c.isPaid && (
+      <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); pay(c.id); }}>Pagar</Btn>
+    )},
   ];
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando comissões...</div>
+    </div>
+  );
+
   return (
     <div>
-      <PageHeader title="Comissões" sub="Controle de comissões por profissional" action={<Btn variant="gold">Pagar Selecionadas</Btn>} />
+      <PageHeader title="Comissões" sub="Controle de comissões por profissional" />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:24 }}>
         <KpiCard icon="⏳" label="A Pagar" value={brl(totalPending)} color={C.gold} />
         <KpiCard icon="✅" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
@@ -903,7 +928,7 @@ function CommissionsPage() {
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background:filter===f2.v?`${C.rose}15`:C.card, color:filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f2.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma comissão encontrada." />
     </div>
   );
 }
