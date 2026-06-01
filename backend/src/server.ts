@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 import { env } from "./config/env.js";
 import { checkDatabaseHealth, closeDatabaseConnection } from "./db/connection.js";
 import { authenticate } from "./middleware/auth.js";
+
 import {
   clientsModule,
   professionalsModule,
@@ -19,6 +20,7 @@ import {
   loyaltyModule,
   campaignsModule,
   productsModule,
+  authModule,
 } from "./modules/all-modules.js";
 
 const server = Fastify({ logger: { level: env.LOG_LEVEL } });
@@ -43,8 +45,10 @@ async function bootstrap() {
   });
 
   // Registrar todos os módulos com prefixo /api/v1
-  const prefix = env.API_PREFIX;
+const prefix = env.API_PREFIX;
+  await server.register(authModule,          { prefix });
   await server.register(clientsModule,       { prefix });
+
   await server.register(professionalsModule, { prefix });
   await server.register(appointmentsModule,  { prefix });
   await server.register(servicesModule,      { prefix });

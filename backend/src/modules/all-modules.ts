@@ -716,3 +716,189 @@ export async function productsModule(fastify: FastifyInstance) {
     return reply.status(201).send({ success: true, data: movement });
   });
 }
+
+// ─────────────────────────────────────────────────────────────
+// AUTH MODULE — Registro de novo tenant (salão)
+// ─────────────────────────────────────────────────────────────
+export async function authModule(fastify: FastifyInstance) {
+  // Rota pública — sem authenticate
+  fastify.post("/auth/register", async (req: any, reply) => {
+    const { salonName, ownerName, email, password } = req.body as any;
+
+    if (!salonName || !ownerName || !email || !password) {
+      return reply.status(400).send({ success: false, error: "Todos os campos são obrigatórios" });
+    }
+
+    if (password.length < 6) {
+      return reply.status(400).send({ success: false, error: "Senha deve ter no mínimo 6 caracteres" });
+    }
+
+    // 1. Importar cliente admin do Supabase
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabaseAdmin = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // 2. Criar usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+    if (authError) {
+      return reply.status(400).send({ success: false, error: authError.message });
+    }
+
+    const authUserId = authData.user.id;
+
+    try {
+      // 3. Criar tenant (salão)
+      const { tenants, userProfiles, financialAccounts, serviceCategories } = await import("@db/schema/index");
+
+      const [tenant] = await db.insert(tenants).values({
+        name: salonName,
+        slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
+        planType: "trial",
+        isActive: true,
+      }).returning();
+
+      // 4. Criar perfil do usuário admin
+      await db.insert(userProfiles).values({
+        tenantId: tenant.id,
+        authUserId,
+        fullName: ownerName,
+        email,
+        role: "owner",
+        isActive: true,
+      });
+
+      // 5. Criar conta financeira padrão
+      await db.insert(financialAccounts).values({
+        tenantId: tenant.id,
+        name: "Caixa Principal",
+        type: "cash",
+        balance: "0",
+        isDefault: true,
+        isActive: true,
+      });
+
+      // 6. Criar categorias de serviço padrão
+      const defaultCategories = ["Cabelo", "Unhas", "Estética", "Maquiagem", "Massagem"];
+      await db.insert(serviceCategories).values(
+        defaultCategories.map((name, i) => ({
+          tenantId: tenant.id,
+          name,
+          isActive: true,
+          sortOrder: i + 1,
+        }))
+      );
+
+      return reply.status(201).send({
+        success: true,
+        data: {
+          tenantId: tenant.id,
+          salonName: tenant.name,
+          email,
+          message: "Salão cadastrado com sucesso! Faça login para continuar.",
+        },
+      });
+
+    } catch (err: any) {
+      // Se falhou depois de criar o usuário no Supabase, remove ele
+      await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      return reply.status(500).send({ success: false, error: "Erro ao criar salão. Tente novamente." });
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTH MODULE — Registro de novo tenant (salão)
+// ─────────────────────────────────────────────────────────────
+export async function authModule(fastify: FastifyInstance) {
+  fastify.post("/auth/register", async (req: any, reply) => {
+    const { salonName, ownerName, email, password } = req.body as any;
+
+    if (!salonName || !ownerName || !email || !password) {
+      return reply.status(400).send({ success: false, error: "Todos os campos são obrigatórios" });
+    }
+
+    if (password.length < 6) {
+      return reply.status(400).send({ success: false, error: "Senha deve ter no mínimo 6 caracteres" });
+    }
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabaseAdmin = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+    if (authError) {
+      return reply.status(400).send({ success: false, error: authError.message });
+    }
+
+    const authUserId = authData.user.id;
+
+    try {
+      const { tenants, userProfiles, financialAccounts, serviceCategories } = await import("@db/schema/index");
+
+      const [tenant] = await db.insert(tenants).values({
+        name: salonName,
+        slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
+        planType: "trial",
+        isActive: true,
+      }).returning();
+
+      await db.insert(userProfiles).values({
+        tenantId: tenant.id,
+        authUserId,
+        fullName: ownerName,
+        email,
+        role: "owner",
+        isActive: true,
+      });
+
+      await db.insert(financialAccounts).values({
+        tenantId: tenant.id,
+        name: "Caixa Principal",
+        type: "cash",
+        balance: "0",
+        isDefault: true,
+        isActive: true,
+      });
+
+      const defaultCategories = ["Cabelo", "Unhas", "Estética", "Maquiagem", "Massagem"];
+      await db.insert(serviceCategories).values(
+        defaultCategories.map((name, i) => ({
+          tenantId: tenant.id,
+          name,
+          isActive: true,
+          sortOrder: i + 1,
+        }))
+      );
+
+      return reply.status(201).send({
+        success: true,
+        data: {
+          tenantId: tenant.id,
+          salonName: tenant.name,
+          email,
+          message: "Salão cadastrado com sucesso! Faça login para continuar.",
+        },
+      });
+
+    } catch (err: any) {
+      await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      return reply.status(500).send({ success: false, error: "Erro ao criar salão. Tente novamente." });
+    }
+  });
+}
