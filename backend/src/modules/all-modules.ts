@@ -813,3 +813,4 @@ export async function authModule(fastify: FastifyInstance) {
   });
 }
 // ─────────────────────────────────────────────────────────────
+
