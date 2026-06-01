@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -659,43 +659,52 @@ function AgendaPage() {
 
 // ─── PROFISSIONAIS ────────────────────────────────────────────
 function ProfessionalsPage() {
-  const [data] = useState(MOCK.professionals);
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    professionalsApi.list({ isActive: "true" })
+      .then((r: any) => setData(r.data ?? []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando profissionais...</div>
+    </div>
+  );
+
   return (
     <div>
       <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn>+ Nova Profissional</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
-        {data.map((p, i) => (
+        {data.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB }}>Nenhum profissional cadastrado.</div>}
+        {data.map((p: any, i: number) => (
           <div key={i} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24, position:"relative", overflow:"hidden" }}>
-            <div style={{ position:"absolute", top:0, left:0, right:0, height:4, background:`linear-gradient(90deg, ${p.color}, ${p.color}80)` }} />
+            <div style={{ position:"absolute", top:0, left:0, right:0, height:4, background:`linear-gradient(90deg, ${p.color ?? C.rose}, ${p.color ?? C.rose}80)` }} />
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:18 }}>
-              <div style={{ width:48, height:48, borderRadius:"50%", background:`${p.color}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, border:`2px solid ${p.color}40` }}>
-                {p.fullName[0]}
+              <div style={{ width:48, height:48, borderRadius:"50%", background:`${p.color ?? C.rose}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, border:`2px solid ${p.color ?? C.rose}40` }}>
+                {(p.fullName ?? "?")[0]}
               </div>
               <div>
                 <div style={{ fontWeight:700, color: C.text, fontSize:15, fontFamily: FD }}>{p.fullName}</div>
-                <div style={{ fontSize:11, color: C.textMuted, marginTop:2 }}>{p.specialties.slice(0,2).join(" · ")}</div>
+                <div style={{ fontSize:11, color: C.textMuted, marginTop:2 }}>{(p.specialties ?? []).slice(0,2).join(" · ")}</div>
               </div>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
               <div style={{ background: C.surface, borderRadius:10, padding:"10px 12px" }}>
-                <div style={{ fontSize:10, color: C.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>Receita Mês</div>
-                <div style={{ fontSize:16, fontWeight:700, color: C.gold, fontFamily: FD }}>{brl(p.revenueMonth)}</div>
+                <div style={{ fontSize:10, color: C.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>Meta Mensal</div>
+                <div style={{ fontSize:16, fontWeight:700, color: C.gold, fontFamily: FD }}>{brl(p.monthlyGoal)}</div>
               </div>
               <div style={{ background: C.surface, borderRadius:10, padding:"10px 12px" }}>
-                <div style={{ fontSize:10, color: C.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>Atendimentos</div>
-                <div style={{ fontSize:16, fontWeight:700, color: C.rose, fontFamily: FD }}>{p.appointmentsMonth}</div>
+                <div style={{ fontSize:10, color: C.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>Comissão</div>
+                <div style={{ fontSize:16, fontWeight:700, color: C.rose, fontFamily: FD }}>{p.commissionPct}%</div>
               </div>
-            </div>
-            <div style={{ marginBottom:12 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color: C.textMuted, marginBottom:6 }}>
-                <span>Meta: {brl(p.monthlyGoal)}</span>
-                <span style={{ color: p.revenueMonth >= Number(p.monthlyGoal) ? C.sage : C.gold }}>{fmtPct((p.revenueMonth / Number(p.monthlyGoal)) * 100)}</span>
-              </div>
-              <ProgressBar value={p.revenueMonth} max={Number(p.monthlyGoal)} color={p.color} />
             </div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <div style={{ fontSize:12, color: C.textMuted }}>Comissão: <span style={{ color: C.text, fontWeight:600 }}>{p.commissionPct}%</span></div>
-              <div style={{ fontSize:12, color: C.gold }}>⭐ {p.rating}</div>
+              <Badge label={p.isActive ? "Ativo" : "Inativo"} color={p.isActive ? C.sage : C.textMuted} />
+              <Badge label={p.acceptsOnlineBooking ? "Agendamento Online" : "Presencial"} color={p.acceptsOnlineBooking ? C.sapphire : C.textMuted} />
             </div>
           </div>
         ))}
