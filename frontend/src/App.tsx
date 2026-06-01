@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "./api/client";
+import { supabase, dashboardApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -341,9 +341,38 @@ function LoginPage({ onLogin }) {
   );
 }
 
+
 function DashboardPage() {
-  const k = MOCK.kpis;
-  const agenda = MOCK.agenda;
+  const [kpis, setKpis] = useState<any>(null);
+  const [agenda, setAgenda] = useState<any[]>([]);
+  const [birthdays, setBirthdays] = useState<any[]>([]);
+  const [atRisk, setAtRisk] = useState<any[]>([]);
+  const [performance, setPerformance] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      dashboardApi.kpis(),
+      dashboardApi.agenda(),
+      dashboardApi.birthdays(),
+      dashboardApi.churnRisk(),
+      dashboardApi.performance(),
+    ]).then(([k, a, b, r, p]) => {
+      setKpis(k.data);
+      setAgenda(a.data ?? []);
+      setBirthdays(b.data ?? []);
+      setAtRisk(r.data ?? []);
+      setPerformance(p.data ?? []);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando...</div>
+    </div>
+  );
+
+  const k = kpis ?? MOCK.kpis;
 
   return (
     <div>
@@ -357,27 +386,27 @@ function DashboardPage() {
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:20, marginBottom:20 }}>
-        {/* Agenda do dia */}
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Agenda de Hoje</div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {agenda.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum agendamento hoje.</div>}
             {agenda.map((item, i) => {
-              const st = STATUS_APPT[item.appointment.status] ?? STATUS_APPT.pending;
+              const st = STATUS_APPT[item.appointment?.status] ?? STATUS_APPT.pending;
               return (
                 <div key={i} style={{ background: C.surface, borderRadius:12, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", border:`1px solid ${C.border}` }}>
                   <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <div style={{ width:3, height:36, borderRadius:2, background: item.professional.color, flexShrink:0 }} />
+                    <div style={{ width:3, height:36, borderRadius:2, background: item.professional?.color ?? C.rose, flexShrink:0 }} />
                     <div>
                       <div style={{ fontWeight:600, color: C.text, fontSize:13, fontFamily: FB, display:"flex", alignItems:"center", gap:6 }}>
-                        {item.client.fullName}
-                        {item.client.isVip && <Badge label="VIP" color={C.gold} small />}
+                        {item.client?.fullName}
+                        {item.client?.isVip && <Badge label="VIP" color={C.gold} small />}
                       </div>
-                      <div style={{ fontSize:11, color: C.textMuted }}>{fmtTime(item.appointment.scheduledAt)} · {item.professional.fullName}</div>
+                      <div style={{ fontSize:11, color: C.textMuted }}>{fmtTime(item.appointment?.scheduledAt)} · {item.professional?.fullName}</div>
                     </div>
                   </div>
                   <div style={{ textAlign:"right" }}>
                     <Badge label={st.label} color={st.color} />
-                    <div style={{ fontSize:11, color: C.textMuted, marginTop:4 }}>{brl(item.appointment.totalPrice)}</div>
+                    <div style={{ fontSize:11, color: C.textMuted, marginTop:4 }}>{brl(item.appointment?.totalPrice)}</div>
                   </div>
                 </div>
               );
@@ -385,22 +414,24 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Performance profissionais */}
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Performance do Mês</div>
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            {MOCK.professionals.map((p, i) => {
-              const pct = Math.min((p.revenueMonth / Number(p.monthlyGoal)) * 100, 100);
+            {performance.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum dado disponível.</div>}
+            {performance.map((p, i) => {
+              const goal = Number(p.professional?.monthlyGoal ?? 1);
+              const rev = Number(p.revenueMonth ?? 0);
+              const pct = Math.min((rev / goal) * 100, 100);
               return (
                 <div key={i}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <div style={{ width:8, height:8, borderRadius:"50%", background: p.color }} />
-                      <span style={{ fontSize:13, color: C.text, fontFamily: FB }}>{p.displayName}</span>
+                      <div style={{ width:8, height:8, borderRadius:"50%", background: p.professional?.color ?? C.rose }} />
+                      <span style={{ fontSize:13, color: C.text, fontFamily: FB }}>{p.professional?.fullName}</span>
                     </div>
-                    <div style={{ fontSize:12, color: C.textMuted, fontFamily: FB }}>{brl(p.revenueMonth)} <span style={{ color: pct >= 100 ? C.sage : C.gold }}>({fmtPct(pct)})</span></div>
+                    <div style={{ fontSize:12, color: C.textMuted, fontFamily: FB }}>{brl(rev)} <span style={{ color: pct >= 100 ? C.sage : C.gold }}>({fmtPct(pct)})</span></div>
                   </div>
-                  <ProgressBar value={p.revenueMonth} max={Number(p.monthlyGoal)} color={p.color} />
+                  <ProgressBar value={rev} max={goal} color={p.professional?.color ?? C.rose} />
                 </div>
               );
             })}
@@ -408,15 +439,15 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Aniversariantes + Em risco */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>🎂 Aniversariantes do Mês</div>
-          {MOCK.clients.filter(c => c.birthDate).slice(0,4).map((c, i) => (
+          {birthdays.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum aniversariante este mês.</div>}
+          {birthdays.slice(0,4).map((c, i) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ fontSize:11, color: C.textMuted }}>{new Date(c.birthDate).toLocaleDateString("pt-BR", { day:"2-digit", month:"short" })}</span>
+                <span style={{ fontSize:11, color: C.textMuted }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR", { day:"2-digit", month:"short" }) : ""}</span>
                 <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.rose, textDecoration:"none", fontWeight:600 }}>WhatsApp</a>
               </div>
             </div>
@@ -425,7 +456,8 @@ function DashboardPage() {
 
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>⚠️ Clientes em Risco</div>
-          {MOCK.clients.filter(c => c.segment === "at_risk").map((c, i) => (
+          {atRisk.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum cliente em risco.</div>}
+          {atRisk.map((c, i) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div>
                 <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
@@ -439,7 +471,6 @@ function DashboardPage() {
     </div>
   );
 }
-
 function ClientsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");

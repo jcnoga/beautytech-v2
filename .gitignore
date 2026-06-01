@@ -9,3 +9,7 @@ build/
 Thumbs.db
 *.tsbuildinfo
 drizzle/
+# Documentos locais
+*.rtf
+*.docx
+*.doc
