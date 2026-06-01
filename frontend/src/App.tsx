@@ -6,7 +6,7 @@
 //             Serviços, Pacotes, Financeiro, Comissões, CRM, Fidelidade
 // ============================================================
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase, dashboardApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
@@ -35,24 +35,14 @@ const C = {
 const FD = "'Playfair Display', serif";
 const FB = "'Outfit', sans-serif";
 
-// ─── MOCK AUTH ────────────────────────────────────────────────
-// --- SUPABASE AUTH ---
-
 // ─── MOCK DATA ────────────────────────────────────────────────
 const NOW = new Date();
 const D = (h, m = 0) => { const d = new Date(NOW); d.setHours(h, m, 0, 0); return d.toISOString(); };
 
 const MOCK = {
-  kpis: { appointmentsToday: 14, appointmentsMonth: 127, activeClients: 438, revenueMonth: 32480, revenuePrevMonth: 28200, averageTicket: 145, revenueGrowth: 15.2 },
+  kpis: { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0, revenueMonth: 0, revenuePrevMonth: 0, averageTicket: 0, revenueGrowth: 0 },
 
-  agenda: [
-    { appointment: { id:"a1", status:"completed",  scheduledAt: D(8,30),  endsAt: D(9,30),  totalPrice:"180.00", paymentStatus:"confirmed", paymentMethod:"pix" }, client: { fullName:"Isabela Carvalho", whatsapp:"(34) 99111-1111", isVip:true,  loyaltyTier:"gold"     }, professional: { fullName:"Marina Santos", color:"#E8A598" } },
-    { appointment: { id:"a2", status:"in_progress", scheduledAt: D(9,0),   endsAt: D(10,30), totalPrice:"220.00", paymentStatus:"pending",   paymentMethod:null },   client: { fullName:"Renata Oliveira",  whatsapp:"(34) 99222-2222", isVip:false, loyaltyTier:"silver"   }, professional: { fullName:"Camila Costa",  color:"#D4AF7A" } },
-    { appointment: { id:"a3", status:"confirmed",   scheduledAt: D(10,0),  endsAt: D(11,0),  totalPrice:"95.00",  paymentStatus:"pending",   paymentMethod:null },   client: { fullName:"Juliana Ferreira", whatsapp:"(34) 99333-3333", isVip:false, loyaltyTier:"bronze"   }, professional: { fullName:"Marina Santos", color:"#E8A598" } },
-    { appointment: { id:"a4", status:"confirmed",   scheduledAt: D(11,0),  endsAt: D(12,30), totalPrice:"310.00", paymentStatus:"pending",   paymentMethod:null },   client: { fullName:"Patricia Mendes",  whatsapp:"(34) 99444-4444", isVip:true,  loyaltyTier:"platinum" }, professional: { fullName:"Ana Lucia",     color:"#8FAF8A" } },
-    { appointment: { id:"a5", status:"pending",     scheduledAt: D(14,0),  endsAt: D(15,0),  totalPrice:"120.00", paymentStatus:"pending",   paymentMethod:null },   client: { fullName:"Fernanda Lima",    whatsapp:"(34) 99555-5555", isVip:false, loyaltyTier:"bronze"   }, professional: { fullName:"Camila Costa",  color:"#D4AF7A" } },
-    { appointment: { id:"a6", status:"pending",     scheduledAt: D(15,30), endsAt: D(16,30), totalPrice:"85.00",  paymentStatus:"pending",   paymentMethod:null },   client: { fullName:"Luciana Rocha",    whatsapp:"(34) 99666-6666", isVip:false, loyaltyTier:"silver"   }, professional: { fullName:"Ana Lucia",     color:"#8FAF8A" } },
-  ],
+  agenda: [],
 
   clients: [
     { id:"c1", fullName:"Isabela Carvalho",  whatsapp:"(34) 99111-1111", email:"isabela@email.com",  segment:"vip",     loyaltyTier:"gold",     totalVisits:42, totalSpent:"5840.00", averageTicket:"139.00", lastVisitAt: D(8,30),  isVip:true,  isActive:true, loyaltyPoints:580, birthDate:"1990-03-15", gender:"female" },
@@ -119,21 +109,12 @@ const fmtTime = (d) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-dig
 const fmtPct = (v) => `${Number(v || 0).toFixed(1)}%`;
 
 const STATUS_APPT = {
-  pending:     { label:"Pendente",     color: C.gold },
-  confirmed:   { label:"Confirmado",   color: C.sapphire },
-  in_progress: { label:"Atendendo",    color: C.rose },
-  completed:   { label:"Concluído",    color: C.sage },
-  cancelled:   { label:"Cancelado",    color: C.ruby },
-  no_show:     { label:"Não compareceu",color: C.textMuted },
-};
-
-const STATUS_LEAD = {
-  new:        { label:"Novo",        color: C.sapphire },
-  contacted:  { label:"Contatado",   color: C.gold },
-  interested: { label:"Interessado", color: C.rose },
-  scheduled:  { label:"Agendado",    color: C.sage },
-  converted:  { label:"Convertido",  color: C.sage },
-  lost:       { label:"Perdido",     color: C.textMuted },
+  pending:     { label:"Pendente",       color: C.gold },
+  confirmed:   { label:"Confirmado",     color: C.sapphire },
+  in_progress: { label:"Atendendo",      color: C.rose },
+  completed:   { label:"Concluído",      color: C.sage },
+  cancelled:   { label:"Cancelado",      color: C.ruby },
+  no_show:     { label:"Não compareceu", color: C.textMuted },
 };
 
 const SEGMENT = {
@@ -147,11 +128,11 @@ const SEGMENT = {
 };
 
 const LOYALTY = {
-  bronze:   { label:"Bronze",   color:"#CD7F32" },
-  silver:   { label:"Prata",    color:"#9CA3AF" },
-  gold:     { label:"Ouro",     color: C.gold },
-  platinum: { label:"Platina",  color: C.sapphire },
-  diamond:  { label:"Diamante", color: C.rose },
+  bronze:   { label:"Bronze",  color:"#CD7F32" },
+  silver:   { label:"Prata",   color:"#9CA3AF" },
+  gold:     { label:"Ouro",    color: C.gold },
+  platinum: { label:"Platina", color: C.sapphire },
+  diamond:  { label:"Diamante",color: C.rose },
 };
 
 const PKG_STATUS = {
@@ -167,7 +148,7 @@ const PAYMENT_LABEL = { cash:"Dinheiro", credit_card:"Cartão Crédito", debit_c
 
 // ─── COMPONENTS ──────────────────────────────────────────────
 
-function Badge({ label, color, small }) {
+function Badge({ label, color, small }: any) {
   return (
     <span style={{ fontSize: small ? 10 : 11, padding: small ? "1px 7px" : "2px 10px", borderRadius: 20, fontWeight: 700, background:`${color}18`, color, border:`1px solid ${color}28`, fontFamily: FB, whiteSpace:"nowrap" }}>
       {label}
@@ -175,7 +156,7 @@ function Badge({ label, color, small }) {
   );
 }
 
-function KpiCard({ icon, label, value, sub, color = C.rose, trend }) {
+function KpiCard({ icon, label, value, sub, color = C.rose, trend }: any) {
   return (
     <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius: 20, padding:"22px 24px", position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", top:-24, right:-16, fontSize:90, opacity:0.04 }}>{icon}</div>
@@ -196,7 +177,7 @@ function KpiCard({ icon, label, value, sub, color = C.rose, trend }) {
   );
 }
 
-function Modal({ open, onClose, title, children, width = 540 }) {
+function Modal({ open, onClose, title, children, width = 540 }: any) {
   if (!open) return null;
   return (
     <div style={{ position:"fixed", inset:0, background: C.overlay, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }} onClick={onClose}>
@@ -211,8 +192,8 @@ function Modal({ open, onClose, title, children, width = 540 }) {
   );
 }
 
-function Inp({ label, value, onChange, type="text", placeholder, required, grid }) {
-  const s = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
+function Inp({ label, value, onChange, type="text", placeholder, required, grid }: any) {
+  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
   return (
     <div style={{ marginBottom:14, gridColumn: grid }}>
       {label && <label style={{ fontSize:11, fontWeight:700, color: C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" }}>{label}{required&&" *"}</label>}
@@ -221,21 +202,21 @@ function Inp({ label, value, onChange, type="text", placeholder, required, grid 
   );
 }
 
-function Sel({ label, value, onChange, options, grid }) {
-  const s = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
+function Sel({ label, value, onChange, options, grid }: any) {
+  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
   return (
     <div style={{ marginBottom:14, gridColumn: grid }}>
       {label && <label style={{ fontSize:11, fontWeight:700, color: C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" }}>{label}</label>}
       <select value={value} onChange={e => onChange(e.target.value)} style={s}>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </div>
   );
 }
 
-function Btn({ children, onClick, variant="primary", disabled, small, full }) {
-  const base = { border:"none", cursor: disabled ? "not-allowed" : "pointer", fontWeight:700, fontFamily: FB, borderRadius:10, transition:"all .15s", opacity: disabled ? 0.5 : 1, whiteSpace:"nowrap", width: full ? "100%" : "auto" };
-  const v = {
+function Btn({ children, onClick, variant="primary", disabled, small, full }: any) {
+  const base: any = { border:"none", cursor: disabled ? "not-allowed" : "pointer", fontWeight:700, fontFamily: FB, borderRadius:10, transition:"all .15s", opacity: disabled ? 0.5 : 1, whiteSpace:"nowrap", width: full ? "100%" : "auto" };
+  const v: any = {
     primary:   { ...base, background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, color:"#fff", padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
     gold:      { ...base, background:`linear-gradient(135deg, ${C.gold}, ${C.goldDeep})`, color:"#111", padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
     secondary: { ...base, background: C.surface, border:`1px solid ${C.border}`, color: C.textSec, padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
@@ -245,24 +226,24 @@ function Btn({ children, onClick, variant="primary", disabled, small, full }) {
   return <button onClick={onClick} disabled={disabled} style={v[variant]}>{children}</button>;
 }
 
-function Table({ cols, rows, onRow, emptyMsg = "Nenhum registro" }) {
+function Table({ cols, rows, onRow, emptyMsg = "Nenhum registro" }: any) {
   return (
     <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
       <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
         <thead>
           <tr style={{ background: C.surface }}>
-            {cols.map(c => <th key={c.key} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{c.label}</th>)}
+            {cols.map((c: any) => <th key={c.key} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{c.label}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.length === 0
             ? <tr><td colSpan={cols.length} style={{ padding:40, textAlign:"center", color: C.textMuted, fontFamily: FB }}>{emptyMsg}</td></tr>
-            : rows.map((r, i) => (
+            : rows.map((r: any, i: number) => (
               <tr key={r.id ?? i} onClick={() => onRow?.(r)}
                 style={{ borderBottom:`1px solid ${C.border}`, cursor: onRow ? "pointer" : "default" }}
-                onMouseEnter={e => onRow && (e.currentTarget.style.background = C.surface)}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                {cols.map(c => <td key={c.key} style={{ padding:"12px 16px", color: C.text, fontFamily: FB, verticalAlign:"middle" }}>{c.render ? c.render(r) : r[c.key]}</td>)}
+                onMouseEnter={e => onRow && ((e.currentTarget as HTMLElement).style.background = C.surface)}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "transparent")}>
+                {cols.map((c: any) => <td key={c.key} style={{ padding:"12px 16px", color: C.text, fontFamily: FB, verticalAlign:"middle" }}>{c.render ? c.render(r) : r[c.key]}</td>)}
               </tr>
             ))}
         </tbody>
@@ -271,7 +252,7 @@ function Table({ cols, rows, onRow, emptyMsg = "Nenhum registro" }) {
   );
 }
 
-function Search({ value, onChange, placeholder }) {
+function Search({ value, onChange, placeholder }: any) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:8, background: C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 14px", minWidth:260 }}>
       <span style={{ color: C.textMuted, fontSize:14 }}>✦</span>
@@ -281,7 +262,7 @@ function Search({ value, onChange, placeholder }) {
   );
 }
 
-function PageHeader({ title, sub, action }) {
+function PageHeader({ title, sub, action }: any) {
   return (
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
       <div>
@@ -293,7 +274,7 @@ function PageHeader({ title, sub, action }) {
   );
 }
 
-function ProgressBar({ value, max, color = C.rose }) {
+function ProgressBar({ value, max, color = C.rose }: any) {
   const pct = Math.min((value / max) * 100, 100);
   return (
     <div style={{ height:6, background: C.border, borderRadius:3, overflow:"hidden" }}>
@@ -304,9 +285,9 @@ function ProgressBar({ value, max, color = C.rose }) {
 
 // ─── PAGES ───────────────────────────────────────────────────
 
-function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState("dono@beautytech.com.br");
-  const [password, setPassword] = useState("beauty2024");
+function LoginPage({ onLogin }: any) {
+  const [email, setEmail] = useState("admin@beautytech.com.br");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -334,13 +315,11 @@ function LoginPage({ onLogin }) {
           <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, letterSpacing:"0.02em" }}>
             {loading ? "Entrando..." : "Entrar"}
           </button>
-          <div style={{ textAlign:"center", marginTop:20, fontSize:12, color: C.textMuted }}>Demo: dono@beautytech.com.br / beauty2024</div>
         </div>
       </div>
     </div>
   );
 }
-
 
 function DashboardPage() {
   const [kpis, setKpis] = useState<any>(null);
@@ -350,10 +329,8 @@ function DashboardPage() {
   const [performance, setPerformance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
     const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
       try {
         const [k, a, b, r, p] = await Promise.all([
           dashboardApi.kpis(),
@@ -367,8 +344,11 @@ useEffect(() => {
         setBirthdays(b.data ?? []);
         setAtRisk(r.data ?? []);
         setPerformance(p.data ?? []);
-      } catch(e) { console.error(e); }
-      finally { setLoading(false); }
+      } catch(e) {
+        console.error("Dashboard error:", e);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
@@ -397,7 +377,7 @@ useEffect(() => {
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Agenda de Hoje</div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {agenda.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum agendamento hoje.</div>}
-            {agenda.map((item, i) => {
+            {agenda.map((item: any, i: number) => {
               const st = STATUS_APPT[item.appointment?.status] ?? STATUS_APPT.pending;
               return (
                 <div key={i} style={{ background: C.surface, borderRadius:12, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", border:`1px solid ${C.border}` }}>
@@ -425,7 +405,7 @@ useEffect(() => {
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Performance do Mês</div>
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             {performance.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum dado disponível.</div>}
-            {performance.map((p, i) => {
+            {performance.map((p: any, i: number) => {
               const goal = Number(p.professional?.monthlyGoal ?? 1);
               const rev = Number(p.revenueMonth ?? 0);
               const pct = Math.min((rev / goal) * 100, 100);
@@ -450,7 +430,7 @@ useEffect(() => {
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>🎂 Aniversariantes do Mês</div>
           {birthdays.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum aniversariante este mês.</div>}
-          {birthdays.slice(0,4).map((c, i) => (
+          {birthdays.slice(0,4).map((c: any, i: number) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -464,7 +444,7 @@ useEffect(() => {
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>⚠️ Clientes em Risco</div>
           {atRisk.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum cliente em risco.</div>}
-          {atRisk.map((c, i) => (
+          {atRisk.map((c: any, i: number) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div>
                 <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
@@ -478,14 +458,15 @@ useEffect(() => {
     </div>
   );
 }
+
 function ClientsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState<any>(null);
   const [data, setData] = useState(MOCK.clients);
   const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", gender:"female", birthDate:"" });
-  const f = k => v => setForm(p => ({ ...p, [k]:v }));
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
   const filtered = data.filter(c => {
     const s = c.fullName.toLowerCase().includes(search.toLowerCase()) || c.whatsapp?.includes(search);
@@ -493,7 +474,7 @@ function ClientsPage() {
     return s && seg;
   });
 
-  const openEdit = (c) => { setSelected(c); setForm({ fullName:c.fullName, whatsapp:c.whatsapp??"", email:c.email??"", gender:c.gender??"female", birthDate:c.birthDate??"" }); setShowForm(true); };
+  const openEdit = (c: any) => { setSelected(c); setForm({ fullName:c.fullName, whatsapp:c.whatsapp??"", email:c.email??"", gender:c.gender??"female", birthDate:c.birthDate??"" }); setShowForm(true); };
   const save = () => {
     if (selected) setData(d => d.map(c => c.id === selected.id ? { ...c, ...form } : c));
     else setData(d => [...d, { id:Date.now().toString(), ...form, segment:"new", loyaltyTier:"bronze", totalVisits:0, totalSpent:"0.00", averageTicket:"0.00", isVip:false, isActive:true, loyaltyPoints:0, lastVisitAt:null }]);
@@ -503,7 +484,7 @@ function ClientsPage() {
   const segs = [{ v:"all", l:"Todos" },{ v:"vip", l:"VIP" },{ v:"active", l:"Ativos" },{ v:"loyal", l:"Fiéis" },{ v:"at_risk", l:"Em Risco" },{ v:"new", l:"Novos" }];
 
   const cols = [
-    { key:"fullName", label:"Cliente", render: c => (
+    { key:"fullName", label:"Cliente", render: (c: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
         <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg, ${C.rose}40, ${C.gold}40)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>
           {c.fullName[0]}
@@ -516,13 +497,13 @@ function ClientsPage() {
         </div>
       </div>
     )},
-    { key:"segment", label:"Segmento", render: c => { const s = SEGMENT[c.segment]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
-    { key:"loyaltyTier", label:"Fidelidade", render: c => { const l = LOYALTY[c.loyaltyTier]; return <Badge label={l?.label} color={l?.color ?? C.textMuted} />; } },
-    { key:"totalVisits", label:"Visitas", render: c => <span style={{ color: C.textSec }}>{c.totalVisits}</span> },
-    { key:"totalSpent", label:"LTV", render: c => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.totalSpent)}</span> },
-    { key:"averageTicket", label:"Ticket", render: c => <span style={{ color: C.textMuted }}>{brl(c.averageTicket)}</span> },
-    { key:"lastVisitAt", label:"Última Visita", render: c => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
-    { key:"action", label:"", render: c => <Btn small variant="secondary" onClick={e => { e.stopPropagation(); openEdit(c); }}>Editar</Btn> },
+    { key:"segment", label:"Segmento", render: (c: any) => { const s = SEGMENT[c.segment]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
+    { key:"loyaltyTier", label:"Fidelidade", render: (c: any) => { const l = LOYALTY[c.loyaltyTier]; return <Badge label={l?.label} color={l?.color ?? C.textMuted} />; } },
+    { key:"totalVisits", label:"Visitas", render: (c: any) => <span style={{ color: C.textSec }}>{c.totalVisits}</span> },
+    { key:"totalSpent", label:"LTV", render: (c: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.totalSpent)}</span> },
+    { key:"averageTicket", label:"Ticket", render: (c: any) => <span style={{ color: C.textMuted }}>{brl(c.averageTicket)}</span> },
+    { key:"lastVisitAt", label:"Última Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
+    { key:"action", label:"", render: (c: any) => <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn> },
   ];
 
   return (
@@ -559,21 +540,21 @@ function AgendaPage() {
   const [showForm, setShowForm] = useState(false);
   const [data, setData] = useState(MOCK.agenda);
   const [form, setForm] = useState({ clientName:"", professionalId:"p1", serviceId:"s1", scheduledAt:"", totalPrice:"" });
-  const f = k => v => setForm(p => ({ ...p, [k]:v }));
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
-  const filtered = filter === "all" ? data : data.filter(a => a.appointment.status === filter);
-  const changeStatus = (id, status) => setData(d => d.map(a => a.appointment.id === id ? { ...a, appointment: { ...a.appointment, status } } : a));
+  const filtered = filter === "all" ? data : data.filter((a: any) => a.appointment.status === filter);
+  const changeStatus = (id: string, status: string) => setData((d: any) => d.map((a: any) => a.appointment.id === id ? { ...a, appointment: { ...a.appointment, status } } : a));
 
   const statuses = [{ v:"all", l:"Todos" },{ v:"pending", l:"Pendentes" },{ v:"confirmed", l:"Confirmados" },{ v:"in_progress", l:"Atendendo" },{ v:"completed", l:"Concluídos" }];
 
   const cols = [
-    { key:"horario", label:"Horário", render: a => (
+    { key:"horario", label:"Horário", render: (a: any) => (
       <div>
         <div style={{ fontWeight:600, color: C.text, fontFamily: FB }}>{fmtTime(a.appointment.scheduledAt)}</div>
         <div style={{ fontSize:11, color: C.textMuted }}>até {fmtTime(a.appointment.endsAt)}</div>
       </div>
     )},
-    { key:"client", label:"Cliente", render: a => (
+    { key:"client", label:"Cliente", render: (a: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
         <div style={{ width:28, height:28, borderRadius:"50%", background:`linear-gradient(135deg, ${C.rose}40, ${C.gold}40)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12 }}>
           {a.client.fullName[0]}
@@ -586,20 +567,20 @@ function AgendaPage() {
         </div>
       </div>
     )},
-    { key:"professional", label:"Profissional", render: a => (
+    { key:"professional", label:"Profissional", render: (a: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
         <div style={{ width:8, height:8, borderRadius:"50%", background: a.professional.color }} />
         <span style={{ color: C.textSec, fontSize:13 }}>{a.professional.fullName}</span>
       </div>
     )},
-    { key:"status", label:"Status", render: a => { const s = STATUS_APPT[a.appointment.status]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
-    { key:"total", label:"Valor", render: a => <span style={{ fontWeight:700, color: C.gold }}>{brl(a.appointment.totalPrice)}</span> },
-    { key:"action", label:"Ações", render: a => (
+    { key:"status", label:"Status", render: (a: any) => { const s = STATUS_APPT[a.appointment.status]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
+    { key:"total", label:"Valor", render: (a: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(a.appointment.totalPrice)}</span> },
+    { key:"action", label:"Ações", render: (a: any) => (
       <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-        {a.appointment.status === "pending"     && <Btn small onClick={e => { e.stopPropagation(); changeStatus(a.appointment.id, "confirmed"); }}>Confirmar</Btn>}
-        {a.appointment.status === "confirmed"   && <Btn small onClick={e => { e.stopPropagation(); changeStatus(a.appointment.id, "in_progress"); }}>Check-in</Btn>}
-        {a.appointment.status === "in_progress" && <Btn small variant="gold" onClick={e => { e.stopPropagation(); changeStatus(a.appointment.id, "completed"); }}>Concluir</Btn>}
-        {["pending","confirmed"].includes(a.appointment.status) && <Btn small variant="danger" onClick={e => { e.stopPropagation(); changeStatus(a.appointment.id, "cancelled"); }}>✕</Btn>}
+        {a.appointment.status === "pending"     && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "confirmed"); }}>Confirmar</Btn>}
+        {a.appointment.status === "confirmed"   && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "in_progress"); }}>Check-in</Btn>}
+        {a.appointment.status === "in_progress" && <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "completed"); }}>Concluir</Btn>}
+        {["pending","confirmed"].includes(a.appointment.status) && <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "cancelled"); }}>✕</Btn>}
         <a href={`https://wa.me/55${a.client.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>WA</a>
       </div>
     )},
@@ -607,7 +588,7 @@ function AgendaPage() {
 
   return (
     <div>
-      <PageHeader title="Agenda" sub={`${filtered.length} agendamentos hoje`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Agendamento</Btn>} />
+      <PageHeader title="Agenda" sub={`${filtered.length} agendamentos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Agendamento</Btn>} />
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {statuses.map(s => (
           <button key={s.v} onClick={() => setFilter(s.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===s.v ? C.rose : C.border}`, background: filter===s.v ? `${C.rose}15` : C.card, color: filter===s.v ? C.rose : C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{s.l}</button>
@@ -624,7 +605,7 @@ function AgendaPage() {
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={() => { setData(d => [...d, { appointment:{ id:Date.now().toString(), status:"pending", scheduledAt: form.scheduledAt, endsAt: form.scheduledAt, totalPrice: form.totalPrice, paymentStatus:"pending", paymentMethod:null }, client:{ fullName:form.clientName, whatsapp:"", isVip:false, loyaltyTier:"bronze" }, professional: MOCK.professionals.find(p => p.id === form.professionalId) || MOCK.professionals[0] }]); setShowForm(false); }}>Agendar</Btn>
+          <Btn onClick={() => { setData((d: any) => [...d, { appointment:{ id:Date.now().toString(), status:"pending", scheduledAt: form.scheduledAt, endsAt: form.scheduledAt, totalPrice: form.totalPrice, paymentStatus:"pending", paymentMethod:null }, client:{ fullName:form.clientName, whatsapp:"", isVip:false, loyaltyTier:"bronze" }, professional: MOCK.professionals.find(p => p.id === form.professionalId) || MOCK.professionals[0] }]); setShowForm(false); }}>Agendar</Btn>
         </div>
       </Modal>
     </div>
@@ -681,19 +662,19 @@ function ServicesPage() {
   const [data, setData] = useState(MOCK.services);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name:"", categoryName:"Cabelo", durationMinutes:"60", price:"", isActive:true });
-  const f = k => v => setForm(p => ({ ...p, [k]:v }));
+  const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]:v }));
 
   const cols = [
-    { key:"name", label:"Serviço", render: s => <span style={{ fontWeight:600, color: C.text }}>{s.name}</span> },
-    { key:"categoryName", label:"Categoria", render: s => <Badge label={s.categoryName} color={C.rose} /> },
-    { key:"durationMinutes", label:"Duração", render: s => <span style={{ color: C.textSec }}>{s.durationMinutes}min</span> },
-    { key:"price", label:"Preço", render: s => <span style={{ fontWeight:700, color: C.gold }}>{brl(s.price)}</span> },
-    { key:"isOnlineBookable", label:"Online", render: s => <Badge label={s.isOnlineBookable ? "Sim" : "Não"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
-    { key:"isActive", label:"Status", render: s => <Badge label={s.isActive ? "Ativo" : "Inativo"} color={s.isActive ? C.sage : C.textMuted} /> },
-    { key:"action", label:"", render: s => (
+    { key:"name", label:"Serviço", render: (s: any) => <span style={{ fontWeight:600, color: C.text }}>{s.name}</span> },
+    { key:"categoryName", label:"Categoria", render: (s: any) => <Badge label={s.categoryName} color={C.rose} /> },
+    { key:"durationMinutes", label:"Duração", render: (s: any) => <span style={{ color: C.textSec }}>{s.durationMinutes}min</span> },
+    { key:"price", label:"Preço", render: (s: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(s.price)}</span> },
+    { key:"isOnlineBookable", label:"Online", render: (s: any) => <Badge label={s.isOnlineBookable ? "Sim" : "Não"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
+    { key:"isActive", label:"Status", render: (s: any) => <Badge label={s.isActive ? "Ativo" : "Inativo"} color={s.isActive ? C.sage : C.textMuted} /> },
+    { key:"action", label:"", render: (s: any) => (
       <div style={{ display:"flex", gap:6 }}>
         <Btn small variant="secondary">Editar</Btn>
-        <Btn small variant="danger" onClick={e => { e.stopPropagation(); setData(d => d.map(x => x.id === s.id ? { ...x, isActive: !x.isActive } : x)); }}>
+        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); setData(d => d.map(x => x.id === s.id ? { ...x, isActive: !x.isActive } : x)); }}>
           {s.isActive ? "Desativar" : "Ativar"}
         </Btn>
       </div>
@@ -723,20 +704,20 @@ function ServicesPage() {
 function PackagesPage() {
   const [data, setData] = useState(MOCK.packages);
   const cols = [
-    { key:"clientName", label:"Cliente", render: p => <span style={{ fontWeight:600, color: C.text }}>{p.clientName}</span> },
-    { key:"name", label:"Pacote", render: p => <span style={{ color: C.textSec }}>{p.name}</span> },
-    { key:"sessions", label:"Sessões", render: p => (
+    { key:"clientName", label:"Cliente", render: (p: any) => <span style={{ fontWeight:600, color: C.text }}>{p.clientName}</span> },
+    { key:"name", label:"Pacote", render: (p: any) => <span style={{ color: C.textSec }}>{p.name}</span> },
+    { key:"sessions", label:"Sessões", render: (p: any) => (
       <div>
         <div style={{ fontWeight:700, color: C.text }}>{p.usedSessions} / {p.totalSessions}</div>
         <ProgressBar value={p.usedSessions} max={p.totalSessions} color={C.rose} />
       </div>
     )},
-    { key:"remaining", label:"Restantes", render: p => <Badge label={`${p.remainingSessions} sessões`} color={p.remainingSessions > 0 ? C.sage : C.textMuted} /> },
-    { key:"totalValue", label:"Valor Total", render: p => <span style={{ fontWeight:700, color: C.gold }}>{brl(p.totalValue)}</span> },
-    { key:"status", label:"Status", render: p => { const s = PKG_STATUS[p.status]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
-    { key:"expiresAt", label:"Vencimento", render: p => <span style={{ fontSize:12, color: C.textMuted }}>{fmtDate(p.expiresAt)}</span> },
-    { key:"action", label:"", render: p => p.remainingSessions > 0 && p.status === "active" && (
-      <Btn small onClick={e => { e.stopPropagation(); setData(d => d.map(x => x.id === p.id ? { ...x, usedSessions: x.usedSessions+1, remainingSessions: x.remainingSessions-1, status: x.remainingSessions-1 === 0 ? "completed" : "active" } : x)); }}>Usar Sessão</Btn>
+    { key:"remaining", label:"Restantes", render: (p: any) => <Badge label={`${p.remainingSessions} sessões`} color={p.remainingSessions > 0 ? C.sage : C.textMuted} /> },
+    { key:"totalValue", label:"Valor Total", render: (p: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(p.totalValue)}</span> },
+    { key:"status", label:"Status", render: (p: any) => { const s = PKG_STATUS[p.status]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
+    { key:"expiresAt", label:"Vencimento", render: (p: any) => <span style={{ fontSize:12, color: C.textMuted }}>{fmtDate(p.expiresAt)}</span> },
+    { key:"action", label:"", render: (p: any) => p.remainingSessions > 0 && p.status === "active" && (
+      <Btn small onClick={(e: any) => { e.stopPropagation(); setData(d => d.map(x => x.id === p.id ? { ...x, usedSessions: x.usedSessions+1, remainingSessions: x.remainingSessions-1, status: x.remainingSessions-1 === 0 ? "completed" : "active" } : x)); }}>Usar Sessão</Btn>
     )},
   ];
 
@@ -756,13 +737,13 @@ function FinancialPage() {
   const expenses = data.filter(t => t.type==="expense" && t.status==="confirmed").reduce((s,t) => s+Number(t.amount), 0);
 
   const cols = [
-    { key:"description", label:"Descrição", render: t => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
-    { key:"categoryName", label:"Categoria", render: t => <Badge label={t.categoryName} color={C.rose} /> },
-    { key:"type", label:"Tipo", render: t => <Badge label={t.type==="revenue"?"Receita":"Despesa"} color={t.type==="revenue"?C.sage:C.ruby} /> },
-    { key:"status", label:"Status", render: t => <Badge label={t.status==="confirmed"?"Pago":"Pendente"} color={t.status==="confirmed"?C.sage:C.gold} /> },
-    { key:"paymentMethod", label:"Forma", render: t => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "—"}</span> },
-    { key:"dueDate", label:"Vencimento", render: t => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
-    { key:"amount", label:"Valor", render: t => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
+    { key:"description", label:"Descrição", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
+    { key:"categoryName", label:"Categoria", render: (t: any) => <Badge label={t.categoryName} color={C.rose} /> },
+    { key:"type", label:"Tipo", render: (t: any) => <Badge label={t.type==="revenue"?"Receita":"Despesa"} color={t.type==="revenue"?C.sage:C.ruby} /> },
+    { key:"status", label:"Status", render: (t: any) => <Badge label={t.status==="confirmed"?"Pago":"Pendente"} color={t.status==="confirmed"?C.sage:C.gold} /> },
+    { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "—"}</span> },
+    { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
+    { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
   ];
 
   return (
@@ -791,14 +772,14 @@ function CommissionsPage() {
   const totalPaid    = data.filter(c =>  c.isPaid).reduce((s,c) => s+Number(c.commissionAmt), 0);
 
   const cols = [
-    { key:"professionalName", label:"Profissional", render: c => <span style={{ fontWeight:600, color: C.text }}>{c.professionalName}</span> },
-    { key:"serviceName", label:"Serviço", render: c => <span style={{ color: C.textSec, fontSize:12 }}>{c.serviceName}</span> },
-    { key:"baseAmount", label:"Base", render: c => <span style={{ color: C.textMuted }}>{brl(c.baseAmount)}</span> },
-    { key:"commissionPct", label:"Comissão %", render: c => <Badge label={`${c.commissionPct}%`} color={C.rose} /> },
-    { key:"commissionAmt", label:"Valor", render: c => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.commissionAmt)}</span> },
-    { key:"referenceMonth", label:"Mês Ref.", render: c => <span style={{ color: C.textMuted, fontSize:12 }}>{c.referenceMonth}</span> },
-    { key:"isPaid", label:"Status", render: c => <Badge label={c.isPaid?"Pago":"A Pagar"} color={c.isPaid?C.sage:C.gold} /> },
-    { key:"createdAt", label:"Data", render: c => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.createdAt)}</span> },
+    { key:"professionalName", label:"Profissional", render: (c: any) => <span style={{ fontWeight:600, color: C.text }}>{c.professionalName}</span> },
+    { key:"serviceName", label:"Serviço", render: (c: any) => <span style={{ color: C.textSec, fontSize:12 }}>{c.serviceName}</span> },
+    { key:"baseAmount", label:"Base", render: (c: any) => <span style={{ color: C.textMuted }}>{brl(c.baseAmount)}</span> },
+    { key:"commissionPct", label:"Comissão %", render: (c: any) => <Badge label={`${c.commissionPct}%`} color={C.rose} /> },
+    { key:"commissionAmt", label:"Valor", render: (c: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.commissionAmt)}</span> },
+    { key:"referenceMonth", label:"Mês Ref.", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{c.referenceMonth}</span> },
+    { key:"isPaid", label:"Status", render: (c: any) => <Badge label={c.isPaid?"Pago":"A Pagar"} color={c.isPaid?C.sage:C.gold} /> },
+    { key:"createdAt", label:"Data", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.createdAt)}</span> },
   ];
 
   return (
@@ -823,10 +804,9 @@ function CRMPage() {
   const [data, setData] = useState(MOCK.leads);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name:"", whatsapp:"", source:"instagram", serviceInterest:"", estimatedValue:"" });
-  const f = k => v => setForm(p => ({ ...p, [k]:v }));
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
-  const changeStatus = (id, status) => setData(d => d.map(l => l.id === id ? { ...l, status } : l));
-  const byStatus = (s) => data.filter(l => l.status === s);
+  const byStatus = (s: string) => data.filter(l => l.status === s);
 
   const PIPELINE = [
     { key:"new",        label:"Novos",        color: C.sapphire },
@@ -839,8 +819,6 @@ function CRMPage() {
   return (
     <div>
       <PageHeader title="CRM — Pipeline" sub={`${data.length} leads · ${data.filter(l => l.status==="converted").length} convertidos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Lead</Btn>} />
-
-      {/* Kanban */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:12, overflowX:"auto", minWidth:800 }}>
         {PIPELINE.map(col => (
           <div key={col.key} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:16, minHeight:300 }}>
@@ -863,7 +841,6 @@ function CRMPage() {
           </div>
         ))}
       </div>
-
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Lead">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="Maria da Silva" grid="1/-1" />
@@ -902,7 +879,6 @@ function FidelityPage() {
           );
         })}
       </div>
-
       <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, overflow:"hidden" }}>
         <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, fontSize:15, fontWeight:700, color: C.text, fontFamily: FD }}>Ranking de Clientes</div>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
@@ -943,19 +919,19 @@ function FidelityPage() {
 
 // ─── SIDEBAR ─────────────────────────────────────────────────
 const MENU = [
-  { id:"dashboard",     label:"Dashboard",      icon:"◈" },
-  { id:"agenda",        label:"Agenda",          icon:"◷" },
-  { id:"clients",       label:"Clientes",        icon:"◯" },
-  { id:"professionals", label:"Profissionais",   icon:"◈" },
-  { id:"services",      label:"Serviços",        icon:"◆" },
-  { id:"packages",      label:"Pacotes",         icon:"◉" },
-  { id:"financial",     label:"Financeiro",      icon:"◎" },
-  { id:"commissions",   label:"Comissões",       icon:"◐" },
-  { id:"crm",           label:"CRM",             icon:"◑" },
-  { id:"fidelity",      label:"Fidelidade",      icon:"◒" },
+  { id:"dashboard",     label:"Dashboard",    icon:"◈" },
+  { id:"agenda",        label:"Agenda",        icon:"◷" },
+  { id:"clients",       label:"Clientes",      icon:"◯" },
+  { id:"professionals", label:"Profissionais", icon:"◈" },
+  { id:"services",      label:"Serviços",      icon:"◆" },
+  { id:"packages",      label:"Pacotes",       icon:"◉" },
+  { id:"financial",     label:"Financeiro",    icon:"◎" },
+  { id:"commissions",   label:"Comissões",     icon:"◐" },
+  { id:"crm",           label:"CRM",           icon:"◑" },
+  { id:"fidelity",      label:"Fidelidade",    icon:"◒" },
 ];
 
-function Sidebar({ page, setPage, user, onLogout }) {
+function Sidebar({ page, setPage, user, onLogout }: any) {
   return (
     <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB }}>
       <div style={{ padding:"28px 20px 24px", borderBottom:`1px solid ${C.border}` }}>
@@ -963,7 +939,6 @@ function Sidebar({ page, setPage, user, onLogout }) {
         <div style={{ fontSize:22, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.02em" }}>BeautyTech</div>
         <div style={{ fontSize:10, color: C.textMuted, marginTop:2, letterSpacing:"0.1em" }}>ENTERPRISE v2</div>
       </div>
-
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
         {MENU.map(m => {
           const active = page === m.id;
@@ -977,7 +952,6 @@ function Sidebar({ page, setPage, user, onLogout }) {
           );
         })}
       </nav>
-
       <div style={{ padding:"16px 20px", borderTop:`1px solid ${C.border}` }}>
         <div style={{ fontSize:11, color: C.textMuted, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.email}</div>
         <button onClick={onLogout} style={{ background:"none", border:"none", color: C.ruby, fontSize:12, cursor:"pointer", padding:0, fontFamily: FB }}>Sair</button>
@@ -988,19 +962,28 @@ function Sidebar({ page, setPage, user, onLogout }) {
 
 // ─── APP ─────────────────────────────────────────────────────
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [page, setPage] = useState("dashboard");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-     const { data: { subscription } } = supabase.auth.onAuthStateChange((ev, session) => {
-      if (session?.user) setUser(session.user); else setUser(null);
+    // Aguarda sessão inicial antes de renderizar
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
+      setUser(session?.user ?? null);
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
-  const logout = async () => { await mockAuth.signOut(); setUser(null); };
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -1008,9 +991,20 @@ export default function App() {
     </div>
   );
 
-  if (!user) return <LoginPage onLogin={(d) => setUser(d.user)} />;
+  if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
 
-  const PAGES = { dashboard: DashboardPage, agenda: AgendaPage, clients: ClientsPage, professionals: ProfessionalsPage, services: ServicesPage, packages: PackagesPage, financial: FinancialPage, commissions: CommissionsPage, crm: CRMPage, fidelity: FidelityPage };
+  const PAGES: any = {
+    dashboard:     DashboardPage,
+    agenda:        AgendaPage,
+    clients:       ClientsPage,
+    professionals: ProfessionalsPage,
+    services:      ServicesPage,
+    packages:      PackagesPage,
+    financial:     FinancialPage,
+    commissions:   CommissionsPage,
+    crm:           CRMPage,
+    fidelity:      FidelityPage,
+  };
   const PageComponent = PAGES[page] ?? DashboardPage;
 
   return (
