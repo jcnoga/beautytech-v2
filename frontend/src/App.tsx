@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -823,34 +823,52 @@ function PackagesPage() {
 
 // ─── FINANCEIRO ───────────────────────────────────────────────
 function FinancialPage() {
+  const [data, setData] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
   const [filter, setFilter] = useState("all");
-  const data = MOCK.financial;
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      financialApi.list({ limit: 100 }),
+      financialApi.summary(),
+    ]).then(([t, s]: any) => {
+      setData(t.data ?? []);
+      setSummary(s.data ?? { revenue:0, expenses:0, profit:0 });
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
   const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
-  const revenue  = data.filter((t: any) => t.type==="revenue" && t.status==="confirmed").reduce((s,t: any) => s+Number(t.amount), 0);
-  const expenses = data.filter((t: any) => t.type==="expense" && t.status==="confirmed").reduce((s,t: any) => s+Number(t.amount), 0);
+
   const cols = [
     { key:"description", label:"Descrição", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
-    { key:"categoryName", label:"Categoria", render: (t: any) => <Badge label={t.categoryName} color={C.rose} /> },
     { key:"type", label:"Tipo", render: (t: any) => <Badge label={t.type==="revenue"?"Receita":"Despesa"} color={t.type==="revenue"?C.sage:C.ruby} /> },
     { key:"status", label:"Status", render: (t: any) => <Badge label={t.status==="confirmed"?"Pago":"Pendente"} color={t.status==="confirmed"?C.sage:C.gold} /> },
     { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "—"}</span> },
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
   ];
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando financeiro...</div>
+    </div>
+  );
+
   return (
     <div>
       <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transação</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
-        <KpiCard icon="💚" label="Receitas Confirmadas" value={brl(revenue)}          color={C.sage} />
-        <KpiCard icon="🔴" label="Despesas Confirmadas" value={brl(expenses)}         color={C.ruby} />
-        <KpiCard icon="✨" label="Lucro Líquido"        value={brl(revenue-expenses)} color={revenue-expenses >= 0 ? C.gold : C.ruby} />
+        <KpiCard icon="💚" label="Receitas"     value={brl(summary.revenue)}  color={C.sage} />
+        <KpiCard icon="🔴" label="Despesas"     value={brl(summary.expenses)} color={C.ruby} />
+        <KpiCard icon="✨" label="Lucro Líquido" value={brl(summary.profit)}  color={summary.profit >= 0 ? C.gold : C.ruby} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background: filter===f2.v?`${C.rose}15`:C.card, color: filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{f2.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transação encontrada." />
     </div>
   );
 }
