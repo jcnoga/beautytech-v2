@@ -36,7 +36,10 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
   try {
     const { payload } = await jwtVerify(token, JWKS);
     const userId = payload.sub;
-    if (!userId) { reply.status(401).send({ success: false, error: "Token invÃ¡lido", code: "UNAUTHORIZED" }); return; }
+    } catch (err) {
+    console.error("JWT error:", err);
+    reply.status(401).send({ success: false, error: "Token inválido", code: "UNAUTHORIZED" });
+  }
     const cached = cache.get(userId);
     if (cached && cached.exp > Date.now()) { req.tenantContext = cached.data; return; }
     const [profile] = await db
