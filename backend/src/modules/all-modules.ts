@@ -15,7 +15,7 @@ import {
   commissions, goals, loyaltyTransactions, referrals,
   leads, campaigns, messageTemplates, notifications,
   products, productCategories, suppliers, stockMovements,
-  reviews, auditLogs,
+  reviews, auditLogs, tenants, userProfiles,
 } from "@db/schema/index";
 import { authenticate, requireOwner, requireManager, requireFinancial } from "@middleware/auth";
 
