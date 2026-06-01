@@ -350,20 +350,27 @@ function DashboardPage() {
   const [performance, setPerformance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      dashboardApi.kpis(),
-      dashboardApi.agenda(),
-      dashboardApi.birthdays(),
-      dashboardApi.churnRisk(),
-      dashboardApi.performance(),
-    ]).then(([k, a, b, r, p]) => {
-      setKpis(k.data);
-      setAgenda(a.data ?? []);
-      setBirthdays(b.data ?? []);
-      setAtRisk(r.data ?? []);
-      setPerformance(p.data ?? []);
-    }).catch(console.error).finally(() => setLoading(false));
+useEffect(() => {
+    const load = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setLoading(false); return; }
+      try {
+        const [k, a, b, r, p] = await Promise.all([
+          dashboardApi.kpis(),
+          dashboardApi.agenda(),
+          dashboardApi.birthdays(),
+          dashboardApi.churnRisk(),
+          dashboardApi.performance(),
+        ]);
+        setKpis(k.data);
+        setAgenda(a.data ?? []);
+        setBirthdays(b.data ?? []);
+        setAtRisk(r.data ?? []);
+        setPerformance(p.data ?? []);
+      } catch(e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    load();
   }, []);
 
   if (loading) return (

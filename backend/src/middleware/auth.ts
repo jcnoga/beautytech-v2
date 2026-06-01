@@ -36,8 +36,8 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
   try {
     const { payload } = await jwtVerify(token, JWKS);
     const userId = payload.sub;
-    } catch (err) {
-    console.error("JWT error:", err);
+   } catch(err: unknown) {
+    console.error("JWT error:", String(err));
     reply.status(401).send({ success: false, error: "Token inválido", code: "UNAUTHORIZED" });
   }
     const cached = cache.get(userId);

@@ -13,8 +13,9 @@ class ApiClient {
   // /api/v1 é adicionado AQUI — não no .env
   private readonly baseUrl = `${import.meta.env["VITE_API_URL"] ?? "http://localhost:3000"}/api/v1`;
  
-  private async getToken(): Promise<string> {
+private async getToken(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
+    console.log("Session:", session ? "OK" : "NULL", session?.access_token?.substring(0, 30));
     if (!session?.access_token) throw new Error("Sessão expirada");
     return session.access_token;
   }
