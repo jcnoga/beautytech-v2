@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi } from "./api/client";
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
   bg:        "#0C0A09",
@@ -794,9 +794,27 @@ function ServicesPage() {
 
 // ─── PACOTES ──────────────────────────────────────────────────
 function PackagesPage() {
-  const [data, setData] = useState(MOCK.packages);
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    packagesApi.list({ limit: 100 })
+      .then((r: any) => setData(r.data ?? []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const useSession = async (id: string) => {
+    try {
+      const r: any = await packagesApi.useSession(id);
+      setData(d => d.map((p: any) => p.id === id ? r.data : p));
+    } catch(e: any) {
+      alert("Erro: " + e.message);
+    }
+  };
+
   const cols = [
-    { key:"clientName", label:"Cliente", render: (p: any) => <span style={{ fontWeight:600, color: C.text }}>{p.clientName}</span> },
+    { key:"clientId", label:"Cliente", render: (p: any) => <span style={{ fontWeight:600, color: C.text }}>{p.client?.fullName ?? p.clientId}</span> },
     { key:"name", label:"Pacote", render: (p: any) => <span style={{ color: C.textSec }}>{p.name}</span> },
     { key:"sessions", label:"Sessões", render: (p: any) => (
       <div>
@@ -806,16 +824,23 @@ function PackagesPage() {
     )},
     { key:"remaining", label:"Restantes", render: (p: any) => <Badge label={`${p.remainingSessions} sessões`} color={p.remainingSessions > 0 ? C.sage : C.textMuted} /> },
     { key:"totalValue", label:"Valor Total", render: (p: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(p.totalValue)}</span> },
-    { key:"status", label:"Status", render: (p: any) => { const s = PKG_STATUS[p.status]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
+    { key:"status", label:"Status", render: (p: any) => { const s = PKG_STATUS[p.status]; return <Badge label={s?.label ?? p.status} color={s?.color ?? C.textMuted} />; } },
     { key:"expiresAt", label:"Vencimento", render: (p: any) => <span style={{ fontSize:12, color: C.textMuted }}>{fmtDate(p.expiresAt)}</span> },
     { key:"action", label:"", render: (p: any) => p.remainingSessions > 0 && p.status === "active" && (
-      <Btn small onClick={(e: any) => { e.stopPropagation(); setData((d: any) => d.map((x: any) => x.id === p.id ? { ...x, usedSessions: x.usedSessions+1, remainingSessions: x.remainingSessions-1, status: x.remainingSessions-1 === 0 ? "completed" : "active" } : x)); }}>Usar Sessão</Btn>
+      <Btn small onClick={(e: any) => { e.stopPropagation(); useSession(p.id); }}>Usar Sessão</Btn>
     )},
   ];
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando pacotes...</div>
+    </div>
+  );
+
   return (
     <div>
       <PageHeader title="Pacotes" sub={`${data.filter((p: any) => p.status === "active").length} pacotes ativos`} action={<Btn>+ Novo Pacote</Btn>} />
-      <Table cols={cols} rows={data} />
+      <Table cols={cols} rows={data} emptyMsg="Nenhum pacote encontrado." />
     </div>
   );
 }
