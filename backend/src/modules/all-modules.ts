@@ -721,43 +721,39 @@ export async function productsModule(fastify: FastifyInstance) {
 // AUTH MODULE — Registro de novo tenant (salão)
 // ─────────────────────────────────────────────────────────────
 export async function authModule(fastify: FastifyInstance) {
-  // Rota pública — sem authenticate
   fastify.post("/auth/register", async (req: any, reply) => {
     const { salonName, ownerName, email, password } = req.body as any;
 
     if (!salonName || !ownerName || !email || !password) {
       return reply.status(400).send({ success: false, error: "Todos os campos são obrigatórios" });
     }
-
     if (password.length < 6) {
       return reply.status(400).send({ success: false, error: "Senha deve ter no mínimo 6 caracteres" });
     }
 
-    // 1. Importar cliente admin do Supabase
-    const { createClient } = await import("@supabase/supabase-js");
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+    // Criar usuário via API REST do Supabase (sem SDK)
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-    // 2. Criar usuário no Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
+    const authRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({ email, password, email_confirm: true }),
     });
 
-    if (authError) {
-      return reply.status(400).send({ success: false, error: authError.message });
+    const authData = await authRes.json() as any;
+
+    if (!authRes.ok) {
+      return reply.status(400).send({ success: false, error: authData.message ?? "Erro ao criar usuário" });
     }
 
-    const authUserId = authData.user.id;
+    const authUserId = authData.id;
 
     try {
-      // 3. Criar tenant (salão)
-      const { tenants, userProfiles, financialAccounts, serviceCategories } = await import("@db/schema/index");
-
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
@@ -765,7 +761,6 @@ const supabaseAdmin = createClient(
         isActive: true,
       }).returning();
 
-      // 4. Criar perfil do usuário admin
       await db.insert(userProfiles).values({
         tenantId: tenant.id,
         authUserId,
@@ -775,7 +770,6 @@ const supabaseAdmin = createClient(
         isActive: true,
       });
 
-      // 5. Criar conta financeira padrão
       await db.insert(financialAccounts).values({
         tenantId: tenant.id,
         name: "Caixa Principal",
@@ -785,7 +779,6 @@ const supabaseAdmin = createClient(
         isActive: true,
       });
 
-      // 6. Criar categorias de serviço padrão
       const defaultCategories = ["Cabelo", "Unhas", "Estética", "Maquiagem", "Massagem"];
       await db.insert(serviceCategories).values(
         defaultCategories.map((name, i) => ({
@@ -807,11 +800,16 @@ const supabaseAdmin = createClient(
       });
 
     } catch (err: any) {
-      // Se falhou depois de criar o usuário no Supabase, remove ele
-      await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      // Remover usuário do Supabase se falhou
+      await fetch(`${supabaseUrl}/auth/v1/admin/users/${authUserId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "apikey": serviceKey,
+        },
+      });
       return reply.status(500).send({ success: false, error: "Erro ao criar salão. Tente novamente." });
     }
   });
 }
-
 // ─────────────────────────────────────────────────────────────
