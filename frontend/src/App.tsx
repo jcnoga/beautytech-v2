@@ -282,7 +282,7 @@ function RegisterPage({ onBack }: any) {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setSuccess("Salão cadastrado com sucesso! Faça login para continuar.");
+      setSuccess("Salï¿½o cadastrado com sucesso! Faï¿½a login para continuar.");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -294,9 +294,9 @@ function RegisterPage({ onBack }: any) {
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily: FB, padding:20 }}>
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
-          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo Salão</div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo Salï¿½o</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salão gratuitamente</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salï¿½o gratuitamente</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           {success ? (
@@ -306,16 +306,16 @@ function RegisterPage({ onBack }: any) {
             </div>
           ) : (
             <>
-              <Inp label="Nome do Salão" value={salonName} onChange={setSalonName} placeholder="Salão Bella Arte" required />
+              <Inp label="Nome do Salï¿½o" value={salonName} onChange={setSalonName} placeholder="Salï¿½o Bella Arte" required />
               <Inp label="Seu Nome" value={ownerName} onChange={setOwnerName} placeholder="Maria da Silva" required />
               <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
-              <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="mínimo 6 caracteres" required />
+              <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="mï¿½nimo 6 caracteres" required />
               {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
               <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, marginBottom:16 }}>
-                {loading ? "Cadastrando..." : "Criar Conta Grátis"}
+                {loading ? "Cadastrando..." : "Criar Conta Grï¿½tis"}
               </button>
               <div style={{ textAlign:"center" }}>
-                <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB }}>Já tenho conta ? Fazer login</button>
+                <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB }}>Jï¿½ tenho conta ? Fazer login</button>
               </div>
             </>
           )}
@@ -355,6 +355,11 @@ function LoginPage({ onLogin }: any) {
           <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, letterSpacing:"0.02em" }}>
             {loading ? "Entrando..." : "Entrar"}
           </button>
+          <div style={{ textAlign:"center", marginTop:16 }}>
+            <button onClick={() => setShowRegister(true)} style={{ background:"none", border:"none", color: C.rose, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>
+              Nao tem conta? Cadastre seu salao gratis
+            </button>
+          </div>
         </div>
       </div>
     </div>
