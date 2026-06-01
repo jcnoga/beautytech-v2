@@ -7,6 +7,7 @@
 // ============================================================
 
 import { useState, useEffect, useCallback } from "react";
+import { supabase } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -35,17 +36,7 @@ const FD = "'Playfair Display', serif";
 const FB = "'Outfit', sans-serif";
 
 // ─── MOCK AUTH ────────────────────────────────────────────────
-const mockAuth = {
-  onAuthStateChange: (cb) => {
-    setTimeout(() => cb("SIGNED_IN", { user: { id: "u1", email: "dono@beautytech.com.br" }, access_token: "tok" }), 200);
-    return { data: { subscription: { unsubscribe: () => {} } } };
-  },
-  signInWithPassword: async ({ email, password }) => {
-    if (email && password) return { data: { user: { id: "u1", email }, session: { access_token: "tok" } }, error: null };
-    return { data: null, error: { message: "Credenciais inválidas" } };
-  },
-  signOut: async () => ({ error: null }),
-};
+// --- SUPABASE AUTH ---
 
 // ─── MOCK DATA ────────────────────────────────────────────────
 const NOW = new Date();
@@ -321,7 +312,7 @@ function LoginPage({ onLogin }) {
 
   const submit = async () => {
     setLoading(true); setError("");
-    const { data, error: e } = await mockAuth.signInWithPassword({ email, password });
+    const { data, error: e } = await supabase.auth.signInWithPassword({ email, password });
     if (e) setError(e.message);
     else onLogin(data);
     setLoading(false);
@@ -964,7 +955,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = mockAuth.onAuthStateChange((ev, session) => {
+     const { data: { subscription } } = supabase.auth.onAuthStateChange((ev, session) => {
       if (session?.user) setUser(session.user); else setUser(null);
       setLoading(false);
     });
