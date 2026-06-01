@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -35,80 +35,59 @@ const C = {
 const FD = "'Playfair Display', serif";
 const FB = "'Outfit', sans-serif";
 
-// ─── MOCK DATA ────────────────────────────────────────────────
+// ─── MOCK DATA (fallback) ─────────────────────────────────────
 const NOW = new Date();
-const D = (h, m = 0) => { const d = new Date(NOW); d.setHours(h, m, 0, 0); return d.toISOString(); };
+const D = (h: number, m = 0) => { const d = new Date(NOW); d.setHours(h, m, 0, 0); return d.toISOString(); };
+
+const MOCK_KPIS = { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0, revenueMonth: 0, revenuePrevMonth: 0, averageTicket: 0, revenueGrowth: 0 };
 
 const MOCK = {
-  kpis: { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0, revenueMonth: 0, revenuePrevMonth: 0, averageTicket: 0, revenueGrowth: 0 },
-
-  agenda: [],
-
-  clients: [
-    { id:"c1", fullName:"Isabela Carvalho",  whatsapp:"(34) 99111-1111", email:"isabela@email.com",  segment:"vip",     loyaltyTier:"gold",     totalVisits:42, totalSpent:"5840.00", averageTicket:"139.00", lastVisitAt: D(8,30),  isVip:true,  isActive:true, loyaltyPoints:580, birthDate:"1990-03-15", gender:"female" },
-    { id:"c2", fullName:"Renata Oliveira",   whatsapp:"(34) 99222-2222", email:"renata@email.com",   segment:"active",  loyaltyTier:"silver",   totalVisits:18, totalSpent:"2160.00", averageTicket:"120.00", lastVisitAt: D(9,0),   isVip:false, isActive:true, loyaltyPoints:216, birthDate:"1985-07-22", gender:"female" },
-    { id:"c3", fullName:"Juliana Ferreira",  whatsapp:"(34) 99333-3333", email:"juliana@email.com",  segment:"active",  loyaltyTier:"bronze",   totalVisits:6,  totalSpent:"570.00",  averageTicket:"95.00",  lastVisitAt: D(10,0),  isVip:false, isActive:true, loyaltyPoints:57,  birthDate:"1995-11-08", gender:"female" },
-    { id:"c4", fullName:"Patricia Mendes",   whatsapp:"(34) 99444-4444", email:"patricia@email.com", segment:"vip",     loyaltyTier:"platinum", totalVisits:89, totalSpent:"12450.00",averageTicket:"140.00", lastVisitAt: D(11,0),  isVip:true,  isActive:true, loyaltyPoints:1245,birthDate:"1978-05-30", gender:"female" },
-    { id:"c5", fullName:"Fernanda Lima",     whatsapp:"(34) 99555-5555", email:"fernanda@email.com", segment:"at_risk", loyaltyTier:"bronze",   totalVisits:4,  totalSpent:"340.00",  averageTicket:"85.00",  lastVisitAt:"2026-03-10T10:00:00Z", isVip:false, isActive:true, loyaltyPoints:34, birthDate:"1992-09-14", gender:"female" },
-    { id:"c6", fullName:"Luciana Rocha",     whatsapp:"(34) 99666-6666", email:"luciana@email.com",  segment:"loyal",   loyaltyTier:"gold",     totalVisits:31, totalSpent:"4180.00", averageTicket:"135.00", lastVisitAt: D(15,30), isVip:false, isActive:true, loyaltyPoints:418, birthDate:"1988-12-03", gender:"female" },
-  ],
-
   professionals: [
     { id:"p1", fullName:"Marina Santos",  displayName:"Marina",  specialties:["Coloração","Mechas","Progressiva"], commissionPct:"40", color:"#E8A598", isActive:true, acceptsOnlineBooking:true, monthlyGoal:"8000", revenueMonth: 7240, appointmentsMonth: 48, rating: 4.9 },
     { id:"p2", fullName:"Camila Costa",   displayName:"Camila",  specialties:["Corte","Escova","Hidratação"],       commissionPct:"38", color:"#D4AF7A", isActive:true, acceptsOnlineBooking:true, monthlyGoal:"6000", revenueMonth: 5800, appointmentsMonth: 52, rating: 4.8 },
     { id:"p3", fullName:"Ana Lucia",      displayName:"Ana",     specialties:["Manicure","Pedicure","Nail Art"],    commissionPct:"45", color:"#8FAF8A", isActive:true, acceptsOnlineBooking:true, monthlyGoal:"4000", revenueMonth: 4120, appointmentsMonth: 67, rating: 4.7 },
-    { id:"p4", fullName:"Sofia Barbosa",  displayName:"Sofia",   specialties:["Estética","Limpeza de Pele","Botox"],commissionPct:"42", color:"#6B8CAE", isActive:true, acceptsOnlineBooking:false,monthlyGoal:"5000", revenueMonth: 3980, appointmentsMonth: 29, rating: 4.9 },
+    { id:"p4", fullName:"Sofia Barbosa",  displayName:"Sofia",   specialties:["Estética","Limpeza de Pele"],        commissionPct:"42", color:"#6B8CAE", isActive:true, acceptsOnlineBooking:false,monthlyGoal:"5000", revenueMonth: 3980, appointmentsMonth: 29, rating: 4.9 },
   ],
-
   services: [
-    { id:"s1", name:"Coloração Completa",    categoryName:"Cabelo",  durationMinutes:180, price:"280.00", isActive:true, isOnlineBookable:true },
-    { id:"s2", name:"Mechas Balayage",        categoryName:"Cabelo",  durationMinutes:240, price:"380.00", isActive:true, isOnlineBookable:true },
-    { id:"s3", name:"Escova Progressiva",     categoryName:"Cabelo",  durationMinutes:180, price:"220.00", isActive:true, isOnlineBookable:true },
-    { id:"s4", name:"Corte Feminino",         categoryName:"Cabelo",  durationMinutes:60,  price:"95.00",  isActive:true, isOnlineBookable:true },
-    { id:"s5", name:"Manicure + Pedicure",    categoryName:"Unhas",   durationMinutes:90,  price:"75.00",  isActive:true, isOnlineBookable:true },
-    { id:"s6", name:"Nail Art Completo",      categoryName:"Unhas",   durationMinutes:120, price:"120.00", isActive:true, isOnlineBookable:true },
-    { id:"s7", name:"Limpeza de Pele",        categoryName:"Estética",durationMinutes:90,  price:"180.00", isActive:true, isOnlineBookable:false },
-    { id:"s8", name:"Hidratação Capilar",     categoryName:"Cabelo",  durationMinutes:60,  price:"85.00",  isActive:true, isOnlineBookable:true },
+    { id:"s1", name:"Coloração Completa",  categoryName:"Cabelo",  durationMinutes:180, price:"280.00", isActive:true, isOnlineBookable:true },
+    { id:"s2", name:"Mechas Balayage",      categoryName:"Cabelo",  durationMinutes:240, price:"380.00", isActive:true, isOnlineBookable:true },
+    { id:"s3", name:"Escova Progressiva",   categoryName:"Cabelo",  durationMinutes:180, price:"220.00", isActive:true, isOnlineBookable:true },
+    { id:"s4", name:"Corte Feminino",       categoryName:"Cabelo",  durationMinutes:60,  price:"95.00",  isActive:true, isOnlineBookable:true },
+    { id:"s5", name:"Manicure + Pedicure",  categoryName:"Unhas",   durationMinutes:90,  price:"75.00",  isActive:true, isOnlineBookable:true },
+    { id:"s6", name:"Limpeza de Pele",      categoryName:"Estética",durationMinutes:90,  price:"180.00", isActive:true, isOnlineBookable:false },
   ],
-
   packages: [
-    { id:"pk1", clientName:"Isabela Carvalho",  name:"Pacote Beleza Total",    totalSessions:10, usedSessions:6,  remainingSessions:4,  totalValue:"1200.00", status:"active",    expiresAt:"2026-12-31T23:59:00Z" },
-    { id:"pk2", clientName:"Patricia Mendes",   name:"Pacote Coloração VIP",   totalSessions:6,  usedSessions:6,  remainingSessions:0,  totalValue:"1500.00", status:"completed", expiresAt:"2026-08-31T23:59:00Z" },
-    { id:"pk3", clientName:"Luciana Rocha",     name:"Pacote Unhas Premium",   totalSessions:8,  usedSessions:2,  remainingSessions:6,  totalValue:"480.00",  status:"active",    expiresAt:"2026-10-31T23:59:00Z" },
+    { id:"pk1", clientName:"Isabela Carvalho", name:"Pacote Beleza Total",  totalSessions:10, usedSessions:6, remainingSessions:4,  totalValue:"1200.00", status:"active",    expiresAt:"2026-12-31T23:59:00Z" },
+    { id:"pk2", clientName:"Patricia Mendes",  name:"Pacote Coloração VIP", totalSessions:6,  usedSessions:6, remainingSessions:0,  totalValue:"1500.00", status:"completed", expiresAt:"2026-08-31T23:59:00Z" },
+    { id:"pk3", clientName:"Luciana Rocha",    name:"Pacote Unhas Premium", totalSessions:8,  usedSessions:2, remainingSessions:6,  totalValue:"480.00",  status:"active",    expiresAt:"2026-10-31T23:59:00Z" },
   ],
-
   financial: [
-    { id:"f1", description:"Coloração — Isabela Carvalho",  type:"revenue", status:"confirmed", amount:"280.00", dueDate:"2026-05-30", paymentMethod:"pix",          categoryName:"Serviços" },
-    { id:"f2", description:"Mechas — Renata Oliveira",       type:"revenue", status:"pending",   amount:"380.00", dueDate:"2026-05-30", paymentMethod:null,            categoryName:"Serviços" },
-    { id:"f3", description:"Produtos L'Oréal — Fornecedor",  type:"expense", status:"confirmed", amount:"890.00", dueDate:"2026-05-28", paymentMethod:"bank_transfer", categoryName:"Fornecedores" },
-    { id:"f4", description:"Aluguel — Junho",                type:"expense", status:"pending",   amount:"3200.00",dueDate:"2026-06-05", paymentMethod:null,            categoryName:"Fixo" },
-    { id:"f5", description:"Pacote VIP — Patricia Mendes",   type:"revenue", status:"confirmed", amount:"1500.00",dueDate:"2026-05-15", paymentMethod:"credit_card",   categoryName:"Pacotes" },
-    { id:"f6", description:"Manicure — Juliana Ferreira",    type:"revenue", status:"confirmed", amount:"75.00",  dueDate:"2026-05-30", paymentMethod:"cash",          categoryName:"Serviços" },
+    { id:"f1", description:"Coloração — Isabela Carvalho", type:"revenue", status:"confirmed", amount:"280.00", dueDate:"2026-05-30", paymentMethod:"pix",          categoryName:"Serviços" },
+    { id:"f2", description:"Mechas — Renata Oliveira",     type:"revenue", status:"pending",   amount:"380.00", dueDate:"2026-05-30", paymentMethod:null,            categoryName:"Serviços" },
+    { id:"f3", description:"Produtos L'Oréal",             type:"expense", status:"confirmed", amount:"890.00", dueDate:"2026-05-28", paymentMethod:"bank_transfer", categoryName:"Fornecedores" },
+    { id:"f4", description:"Aluguel — Junho",              type:"expense", status:"pending",   amount:"3200.00",dueDate:"2026-06-05", paymentMethod:null,            categoryName:"Fixo" },
   ],
-
   commissions: [
-    { id:"cm1", professionalName:"Marina Santos",  serviceName:"Coloração Completa", baseAmount:"280.00", commissionPct:"40", commissionAmt:"112.00", isPaid:false, referenceMonth:"2026-05", createdAt: D(8,30) },
-    { id:"cm2", professionalName:"Camila Costa",   serviceName:"Mechas Balayage",    baseAmount:"380.00", commissionPct:"38", commissionAmt:"144.40", isPaid:false, referenceMonth:"2026-05", createdAt: D(9,0) },
-    { id:"cm3", professionalName:"Ana Lucia",      serviceName:"Manicure+Pedicure",  baseAmount:"75.00",  commissionPct:"45", commissionAmt:"33.75",  isPaid:true,  referenceMonth:"2026-04", createdAt:"2026-04-30T16:00:00Z" },
-    { id:"cm4", professionalName:"Marina Santos",  serviceName:"Progressiva",        baseAmount:"220.00", commissionPct:"40", commissionAmt:"88.00",  isPaid:true,  referenceMonth:"2026-04", createdAt:"2026-04-28T14:00:00Z" },
+    { id:"cm1", professionalName:"Marina Santos", serviceName:"Coloração Completa", baseAmount:"280.00", commissionPct:"40", commissionAmt:"112.00", isPaid:false, referenceMonth:"2026-05", createdAt: D(8,30) },
+    { id:"cm2", professionalName:"Camila Costa",  serviceName:"Mechas Balayage",    baseAmount:"380.00", commissionPct:"38", commissionAmt:"144.40", isPaid:false, referenceMonth:"2026-05", createdAt: D(9,0) },
+    { id:"cm3", professionalName:"Ana Lucia",     serviceName:"Manicure+Pedicure",  baseAmount:"75.00",  commissionPct:"45", commissionAmt:"33.75",  isPaid:true,  referenceMonth:"2026-04", createdAt:"2026-04-30T16:00:00Z" },
   ],
-
   leads: [
-    { id:"l1", name:"Bianca Souza",    whatsapp:"(34) 98111-0001", source:"instagram", status:"new",        serviceInterest:"Mechas",      estimatedValue:"380.00", createdAt: D(8,0),  followUpAt: D(14,0) },
-    { id:"l2", name:"Camila Nunes",    whatsapp:"(34) 98111-0002", source:"whatsapp",  status:"contacted",  serviceInterest:"Coloração",   estimatedValue:"280.00", createdAt: D(9,0),  followUpAt: D(16,0) },
-    { id:"l3", name:"Debora Castro",   whatsapp:"(34) 98111-0003", source:"indicacao", status:"scheduled",  serviceInterest:"Estética",    estimatedValue:"180.00", createdAt: D(10,0), followUpAt: null },
-    { id:"l4", name:"Elaine Martins",  whatsapp:"(34) 98111-0004", source:"google",    status:"interested", serviceInterest:"Manicure",    estimatedValue:"75.00",  createdAt: D(11,0), followUpAt: D(15,0) },
-    { id:"l5", name:"Fabiana Reis",    whatsapp:"(34) 98111-0005", source:"facebook",  status:"converted",  serviceInterest:"Corte",       estimatedValue:"95.00",  createdAt:"2026-05-28T10:00:00Z", followUpAt: null },
+    { id:"l1", name:"Bianca Souza",   whatsapp:"(34) 98111-0001", source:"instagram", status:"new",       serviceInterest:"Mechas",    estimatedValue:"380.00", createdAt: D(8,0),  followUpAt: D(14,0) },
+    { id:"l2", name:"Camila Nunes",   whatsapp:"(34) 98111-0002", source:"whatsapp",  status:"contacted", serviceInterest:"Coloração", estimatedValue:"280.00", createdAt: D(9,0),  followUpAt: D(16,0) },
+    { id:"l3", name:"Debora Castro",  whatsapp:"(34) 98111-0003", source:"indicacao", status:"scheduled", serviceInterest:"Estética",  estimatedValue:"180.00", createdAt: D(10,0), followUpAt: null },
+    { id:"l4", name:"Elaine Martins", whatsapp:"(34) 98111-0004", source:"google",    status:"interested",serviceInterest:"Manicure",  estimatedValue:"75.00",  createdAt: D(11,0), followUpAt: D(15,0) },
+    { id:"l5", name:"Fabiana Reis",   whatsapp:"(34) 98111-0005", source:"facebook",  status:"converted", serviceInterest:"Corte",     estimatedValue:"95.00",  createdAt:"2026-05-28T10:00:00Z", followUpAt: null },
   ],
 };
 
 // ─── HELPERS ─────────────────────────────────────────────────
-const brl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
-const fmtTime = (d) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "—";
-const fmtPct = (v) => `${Number(v || 0).toFixed(1)}%`;
+const brl = (v: any) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
+const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "—";
+const fmtPct = (v: any) => `${Number(v || 0).toFixed(1)}%`;
 
-const STATUS_APPT = {
+const STATUS_APPT: any = {
   pending:     { label:"Pendente",       color: C.gold },
   confirmed:   { label:"Confirmado",     color: C.sapphire },
   in_progress: { label:"Atendendo",      color: C.rose },
@@ -117,7 +96,7 @@ const STATUS_APPT = {
   no_show:     { label:"Não compareceu", color: C.textMuted },
 };
 
-const SEGMENT = {
+const SEGMENT: any = {
   new:        { label:"Novo",      color: C.sapphire },
   active:     { label:"Ativo",     color: C.sage },
   vip:        { label:"VIP",       color: C.gold },
@@ -127,7 +106,7 @@ const SEGMENT = {
   reactivated:{ label:"Reativado", color: C.sage },
 };
 
-const LOYALTY = {
+const LOYALTY: any = {
   bronze:   { label:"Bronze",  color:"#CD7F32" },
   silver:   { label:"Prata",   color:"#9CA3AF" },
   gold:     { label:"Ouro",    color: C.gold },
@@ -135,7 +114,7 @@ const LOYALTY = {
   diamond:  { label:"Diamante",color: C.rose },
 };
 
-const PKG_STATUS = {
+const PKG_STATUS: any = {
   active:    { label:"Ativo",     color: C.sage },
   completed: { label:"Concluído", color: C.textMuted },
   paused:    { label:"Pausado",   color: C.gold },
@@ -143,8 +122,8 @@ const PKG_STATUS = {
   cancelled: { label:"Cancelado", color: C.ruby },
 };
 
-const SOURCE_LABEL = { instagram:"Instagram", whatsapp:"WhatsApp", facebook:"Facebook", google:"Google", indicacao:"Indicação" };
-const PAYMENT_LABEL = { cash:"Dinheiro", credit_card:"Cartão Crédito", debit_card:"Cartão Débito", pix:"Pix", bank_transfer:"Transferência", voucher:"Voucher", gift_card:"Vale-Presente" };
+const SOURCE_LABEL: any = { instagram:"Instagram", whatsapp:"WhatsApp", facebook:"Facebook", google:"Google", indicacao:"Indicação" };
+const PAYMENT_LABEL: any = { cash:"Dinheiro", credit_card:"Cartão Crédito", debit_card:"Cartão Débito", pix:"Pix", bank_transfer:"Transferência", voucher:"Voucher", gift_card:"Vale-Presente" };
 
 // ─── COMPONENTS ──────────────────────────────────────────────
 
@@ -275,7 +254,7 @@ function PageHeader({ title, sub, action }: any) {
 }
 
 function ProgressBar({ value, max, color = C.rose }: any) {
-  const pct = Math.min((value / max) * 100, 100);
+  const pct = Math.min((value / (max || 1)) * 100, 100);
   return (
     <div style={{ height:6, background: C.border, borderRadius:3, overflow:"hidden" }}>
       <div style={{ height:"100%", width:`${pct}%`, background:`linear-gradient(90deg, ${color}, ${color}CC)`, borderRadius:3, transition:"width .3s" }} />
@@ -321,6 +300,7 @@ function LoginPage({ onLogin }: any) {
   );
 }
 
+// ─── DASHBOARD ───────────────────────────────────────────────
 function DashboardPage() {
   const [kpis, setKpis] = useState<any>(null);
   const [agenda, setAgenda] = useState<any[]>([]);
@@ -359,19 +339,17 @@ function DashboardPage() {
     </div>
   );
 
-  const k = kpis ?? MOCK.kpis;
+  const k = kpis ?? MOCK_KPIS;
 
   return (
     <div>
       <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />
-
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))", gap:16, marginBottom:28 }}>
         <KpiCard icon="📅" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mês`} color={C.rose} />
         <KpiCard icon="👥" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
         <KpiCard icon="💰" label="Receita do Mês"     value={brl(k.revenueMonth)} sub={brl(k.revenuePrevMonth)+" mês ant."} color={C.sage} trend={k.revenueGrowth} />
         <KpiCard icon="🎯" label="Ticket Médio"       value={brl(k.averageTicket)} sub="por atendimento"   color={C.sapphire} />
       </div>
-
       <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:20, marginBottom:20 }}>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Agenda de Hoje</div>
@@ -400,7 +378,6 @@ function DashboardPage() {
             })}
           </div>
         </div>
-
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Performance do Mês</div>
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -425,7 +402,6 @@ function DashboardPage() {
           </div>
         </div>
       </div>
-
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>🎂 Aniversariantes do Mês</div>
@@ -440,7 +416,6 @@ function DashboardPage() {
             </div>
           ))}
         </div>
-
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
           <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>⚠️ Clientes em Risco</div>
           {atRisk.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum cliente em risco.</div>}
@@ -459,35 +434,73 @@ function DashboardPage() {
   );
 }
 
+// ─── CLIENTES ────────────────────────────────────────────────
 function ClientsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<any>(null);
-  const [data, setData] = useState(MOCK.clients);
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", gender:"female", birthDate:"" });
   const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
-  const filtered = data.filter(c => {
-    const s = c.fullName.toLowerCase().includes(search.toLowerCase()) || c.whatsapp?.includes(search);
-    const seg = filter === "all" || c.segment === filter;
-    return s && seg;
-  });
+  useEffect(() => {
+    clientsApi.list({ limit: 200 })
+      .then((r: any) => setData(r.data ?? []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const openEdit = (c: any) => { setSelected(c); setForm({ fullName:c.fullName, whatsapp:c.whatsapp??"", email:c.email??"", gender:c.gender??"female", birthDate:c.birthDate??"" }); setShowForm(true); };
-  const save = () => {
-    if (selected) setData(d => d.map(c => c.id === selected.id ? { ...c, ...form } : c));
-    else setData(d => [...d, { id:Date.now().toString(), ...form, segment:"new", loyaltyTier:"bronze", totalVisits:0, totalSpent:"0.00", averageTicket:"0.00", isVip:false, isActive:true, loyaltyPoints:0, lastVisitAt:null }]);
-    setShowForm(false); setSelected(null);
+  const openNew = () => {
+    setSelected(null);
+    setForm({ fullName:"", whatsapp:"", email:"", gender:"female", birthDate:"" });
+    setShowForm(true);
   };
 
-  const segs = [{ v:"all", l:"Todos" },{ v:"vip", l:"VIP" },{ v:"active", l:"Ativos" },{ v:"loyal", l:"Fiéis" },{ v:"at_risk", l:"Em Risco" },{ v:"new", l:"Novos" }];
+  const openEdit = (c: any) => {
+    setSelected(c);
+    setForm({ fullName:c.fullName ?? "", whatsapp:c.whatsapp ?? "", email:c.email ?? "", gender:c.gender ?? "female", birthDate:c.birthDate ?? "" });
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (selected) {
+        const r: any = await clientsApi.update(selected.id, form);
+        setData(d => d.map(c => c.id === selected.id ? r.data : c));
+      } else {
+        const r: any = await clientsApi.create(form);
+        setData(d => [...d, r.data]);
+      }
+      setShowForm(false);
+      setSelected(null);
+    } catch(e: any) {
+      console.error("Erro ao salvar cliente:", e);
+      alert("Erro ao salvar: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filtered = data.filter((c: any) => {
+    const matchSearch = !search || c.fullName?.toLowerCase().includes(search.toLowerCase()) || c.whatsapp?.includes(search);
+    const matchSeg = filter === "all" || c.segment === filter;
+    return matchSearch && matchSeg;
+  });
+
+  const segs = [
+    { v:"all", l:"Todos" },{ v:"vip", l:"VIP" },{ v:"active", l:"Ativos" },
+    { v:"loyal", l:"Fiéis" },{ v:"at_risk", l:"Em Risco" },{ v:"new", l:"Novos" },
+  ];
 
   const cols = [
     { key:"fullName", label:"Cliente", render: (c: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
         <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg, ${C.rose}40, ${C.gold}40)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>
-          {c.fullName[0]}
+          {(c.fullName ?? "?")[0].toUpperCase()}
         </div>
         <div>
           <div style={{ fontWeight:600, color: C.text, display:"flex", alignItems:"center", gap:6 }}>
@@ -497,18 +510,26 @@ function ClientsPage() {
         </div>
       </div>
     )},
-    { key:"segment", label:"Segmento", render: (c: any) => { const s = SEGMENT[c.segment]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
-    { key:"loyaltyTier", label:"Fidelidade", render: (c: any) => { const l = LOYALTY[c.loyaltyTier]; return <Badge label={l?.label} color={l?.color ?? C.textMuted} />; } },
-    { key:"totalVisits", label:"Visitas", render: (c: any) => <span style={{ color: C.textSec }}>{c.totalVisits}</span> },
+    { key:"segment", label:"Segmento", render: (c: any) => { const s = SEGMENT[c.segment]; return <Badge label={s?.label ?? c.segment} color={s?.color ?? C.textMuted} />; } },
+    { key:"loyaltyTier", label:"Fidelidade", render: (c: any) => { const l = LOYALTY[c.loyaltyTier]; return <Badge label={l?.label ?? c.loyaltyTier ?? "—"} color={l?.color ?? C.textMuted} />; } },
+    { key:"totalVisits", label:"Visitas", render: (c: any) => <span style={{ color: C.textSec }}>{c.totalVisits ?? 0}</span> },
     { key:"totalSpent", label:"LTV", render: (c: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.totalSpent)}</span> },
     { key:"averageTicket", label:"Ticket", render: (c: any) => <span style={{ color: C.textMuted }}>{brl(c.averageTicket)}</span> },
     { key:"lastVisitAt", label:"Última Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
-    { key:"action", label:"", render: (c: any) => <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn> },
+    { key:"action", label:"", render: (c: any) => (
+      <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn>
+    )},
   ];
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando clientes...</div>
+    </div>
+  );
 
   return (
     <div>
-      <PageHeader title="Clientes" sub={`${filtered.length} clientes`} action={<Btn onClick={() => { setSelected(null); setForm({ fullName:"", whatsapp:"", email:"", gender:"female", birthDate:"" }); setShowForm(true); }}>+ Nova Cliente</Btn>} />
+      <PageHeader title="Clientes" sub={`${filtered.length} clientes`} action={<Btn onClick={openNew}>+ Nova Cliente</Btn>} />
       <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
         <Search value={search} onChange={setSearch} placeholder="Buscar por nome ou WhatsApp..." />
         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
@@ -528,67 +549,93 @@ function ClientsPage() {
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={save}>{selected ? "Salvar" : "Cadastrar"}</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : selected ? "Salvar" : "Cadastrar"}</Btn>
         </div>
       </Modal>
     </div>
   );
 }
 
+// ─── AGENDA ──────────────────────────────────────────────────
 function AgendaPage() {
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
-  const [data, setData] = useState(MOCK.agenda);
-  const [form, setForm] = useState({ clientName:"", professionalId:"p1", serviceId:"s1", scheduledAt:"", totalPrice:"" });
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ clientName:"", professionalId:"", serviceId:"", scheduledAt:"", totalPrice:"" });
   const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
-  const filtered = filter === "all" ? data : data.filter((a: any) => a.appointment.status === filter);
-  const changeStatus = (id: string, status: string) => setData((d: any) => d.map((a: any) => a.appointment.id === id ? { ...a, appointment: { ...a.appointment, status } } : a));
+  useEffect(() => {
+    // Por enquanto usa dados do banco via appointments/today
+    import("./api/client").then(({ appointmentsApi }) => {
+      appointmentsApi.today()
+        .then((r: any) => setData(r.data ?? []))
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    });
+  }, []);
 
+  const filtered = filter === "all" ? data : data.filter((a: any) => a.appointment?.status === filter);
   const statuses = [{ v:"all", l:"Todos" },{ v:"pending", l:"Pendentes" },{ v:"confirmed", l:"Confirmados" },{ v:"in_progress", l:"Atendendo" },{ v:"completed", l:"Concluídos" }];
+
+  const changeStatus = async (id: string, status: string) => {
+    try {
+      const { appointmentsApi } = await import("./api/client");
+      if (status === "confirmed") await appointmentsApi.confirm(id);
+      else if (status === "in_progress") await appointmentsApi.checkin(id);
+      else if (status === "cancelled") await appointmentsApi.cancel(id);
+      setData(d => d.map((a: any) => a.appointment?.id === id ? { ...a, appointment: { ...a.appointment, status } } : a));
+    } catch(e) { console.error(e); }
+  };
 
   const cols = [
     { key:"horario", label:"Horário", render: (a: any) => (
       <div>
-        <div style={{ fontWeight:600, color: C.text, fontFamily: FB }}>{fmtTime(a.appointment.scheduledAt)}</div>
-        <div style={{ fontSize:11, color: C.textMuted }}>até {fmtTime(a.appointment.endsAt)}</div>
+        <div style={{ fontWeight:600, color: C.text, fontFamily: FB }}>{fmtTime(a.appointment?.scheduledAt)}</div>
+        <div style={{ fontSize:11, color: C.textMuted }}>até {fmtTime(a.appointment?.endsAt)}</div>
       </div>
     )},
     { key:"client", label:"Cliente", render: (a: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
         <div style={{ width:28, height:28, borderRadius:"50%", background:`linear-gradient(135deg, ${C.rose}40, ${C.gold}40)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12 }}>
-          {a.client.fullName[0]}
+          {(a.client?.fullName ?? "?")[0]}
         </div>
         <div>
           <div style={{ fontWeight:600, color: C.text, display:"flex", gap:6 }}>
-            {a.client.fullName} {a.client.isVip && <Badge label="VIP" color={C.gold} small />}
+            {a.client?.fullName} {a.client?.isVip && <Badge label="VIP" color={C.gold} small />}
           </div>
-          <div style={{ fontSize:11, color: C.textMuted }}>{a.client.whatsapp}</div>
+          <div style={{ fontSize:11, color: C.textMuted }}>{a.client?.whatsapp}</div>
         </div>
       </div>
     )},
     { key:"professional", label:"Profissional", render: (a: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-        <div style={{ width:8, height:8, borderRadius:"50%", background: a.professional.color }} />
-        <span style={{ color: C.textSec, fontSize:13 }}>{a.professional.fullName}</span>
+        <div style={{ width:8, height:8, borderRadius:"50%", background: a.professional?.color ?? C.rose }} />
+        <span style={{ color: C.textSec, fontSize:13 }}>{a.professional?.fullName}</span>
       </div>
     )},
-    { key:"status", label:"Status", render: (a: any) => { const s = STATUS_APPT[a.appointment.status]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
-    { key:"total", label:"Valor", render: (a: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(a.appointment.totalPrice)}</span> },
+    { key:"status", label:"Status", render: (a: any) => { const s = STATUS_APPT[a.appointment?.status]; return <Badge label={s?.label ?? a.appointment?.status} color={s?.color ?? C.textMuted} />; } },
+    { key:"total", label:"Valor", render: (a: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(a.appointment?.totalPrice)}</span> },
     { key:"action", label:"Ações", render: (a: any) => (
       <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-        {a.appointment.status === "pending"     && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "confirmed"); }}>Confirmar</Btn>}
-        {a.appointment.status === "confirmed"   && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "in_progress"); }}>Check-in</Btn>}
-        {a.appointment.status === "in_progress" && <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "completed"); }}>Concluir</Btn>}
-        {["pending","confirmed"].includes(a.appointment.status) && <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "cancelled"); }}>✕</Btn>}
-        <a href={`https://wa.me/55${a.client.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>WA</a>
+        {a.appointment?.status === "pending"     && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "confirmed"); }}>Confirmar</Btn>}
+        {a.appointment?.status === "confirmed"   && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "in_progress"); }}>Check-in</Btn>}
+        {a.appointment?.status === "in_progress" && <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "completed"); }}>Concluir</Btn>}
+        {["pending","confirmed"].includes(a.appointment?.status) && <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "cancelled"); }}>✕</Btn>}
+        <a href={`https://wa.me/55${a.client?.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>WA</a>
       </div>
     )},
   ];
 
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando agenda...</div>
+    </div>
+  );
+
   return (
     <div>
-      <PageHeader title="Agenda" sub={`${filtered.length} agendamentos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Agendamento</Btn>} />
+      <PageHeader title="Agenda" sub={`${filtered.length} agendamentos hoje`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Agendamento</Btn>} />
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {statuses.map(s => (
           <button key={s.v} onClick={() => setFilter(s.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===s.v ? C.rose : C.border}`, background: filter===s.v ? `${C.rose}15` : C.card, color: filter===s.v ? C.rose : C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{s.l}</button>
@@ -598,20 +645,19 @@ function AgendaPage() {
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Agendamento">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Cliente" value={form.clientName} onChange={f("clientName")} required placeholder="Nome da cliente" grid="1/-1" />
-          <Sel label="Profissional" value={form.professionalId} onChange={f("professionalId")} options={MOCK.professionals.map(p => ({ value:p.id, label:p.fullName }))} />
-          <Sel label="Serviço" value={form.serviceId} onChange={f("serviceId")} options={MOCK.services.map(s => ({ value:s.id, label:s.name }))} />
           <Inp label="Data e Hora" value={form.scheduledAt} onChange={f("scheduledAt")} type="datetime-local" />
           <Inp label="Valor (R$)" value={form.totalPrice} onChange={f("totalPrice")} type="number" placeholder="180.00" />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={() => { setData((d: any) => [...d, { appointment:{ id:Date.now().toString(), status:"pending", scheduledAt: form.scheduledAt, endsAt: form.scheduledAt, totalPrice: form.totalPrice, paymentStatus:"pending", paymentMethod:null }, client:{ fullName:form.clientName, whatsapp:"", isVip:false, loyaltyTier:"bronze" }, professional: MOCK.professionals.find(p => p.id === form.professionalId) || MOCK.professionals[0] }]); setShowForm(false); }}>Agendar</Btn>
+          <Btn onClick={() => setShowForm(false)}>Agendar</Btn>
         </div>
       </Modal>
     </div>
   );
 }
 
+// ─── PROFISSIONAIS ────────────────────────────────────────────
 function ProfessionalsPage() {
   const [data] = useState(MOCK.professionals);
   return (
@@ -658,10 +704,11 @@ function ProfessionalsPage() {
   );
 }
 
+// ─── SERVIÇOS ─────────────────────────────────────────────────
 function ServicesPage() {
   const [data, setData] = useState(MOCK.services);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name:"", categoryName:"Cabelo", durationMinutes:"60", price:"", isActive:true });
+  const [form, setForm] = useState({ name:"", categoryName:"Cabelo", durationMinutes:"60", price:"" });
   const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]:v }));
 
   const cols = [
@@ -672,18 +719,15 @@ function ServicesPage() {
     { key:"isOnlineBookable", label:"Online", render: (s: any) => <Badge label={s.isOnlineBookable ? "Sim" : "Não"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
     { key:"isActive", label:"Status", render: (s: any) => <Badge label={s.isActive ? "Ativo" : "Inativo"} color={s.isActive ? C.sage : C.textMuted} /> },
     { key:"action", label:"", render: (s: any) => (
-      <div style={{ display:"flex", gap:6 }}>
-        <Btn small variant="secondary">Editar</Btn>
-        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); setData(d => d.map(x => x.id === s.id ? { ...x, isActive: !x.isActive } : x)); }}>
-          {s.isActive ? "Desativar" : "Ativar"}
-        </Btn>
-      </div>
+      <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); setData(d => d.map((x: any) => x.id === s.id ? { ...x, isActive: !x.isActive } : x)); }}>
+        {s.isActive ? "Desativar" : "Ativar"}
+      </Btn>
     )},
   ];
 
   return (
     <div>
-      <PageHeader title="Serviços" sub={`${data.filter(s => s.isActive).length} serviços ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Serviço</Btn>} />
+      <PageHeader title="Serviços" sub={`${data.filter((s: any) => s.isActive).length} serviços ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Serviço</Btn>} />
       <Table cols={cols} rows={data} />
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Serviço">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
@@ -694,13 +738,14 @@ function ServicesPage() {
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={() => { setData(d => [...d, { id:Date.now().toString(), ...form, isActive:true, isOnlineBookable:true }]); setShowForm(false); }}>Criar Serviço</Btn>
+          <Btn onClick={() => { setData((d: any) => [...d, { id:Date.now().toString(), ...form, isActive:true, isOnlineBookable:true }]); setShowForm(false); }}>Criar Serviço</Btn>
         </div>
       </Modal>
     </div>
   );
 }
 
+// ─── PACOTES ──────────────────────────────────────────────────
 function PackagesPage() {
   const [data, setData] = useState(MOCK.packages);
   const cols = [
@@ -717,25 +762,24 @@ function PackagesPage() {
     { key:"status", label:"Status", render: (p: any) => { const s = PKG_STATUS[p.status]; return <Badge label={s?.label} color={s?.color ?? C.textMuted} />; } },
     { key:"expiresAt", label:"Vencimento", render: (p: any) => <span style={{ fontSize:12, color: C.textMuted }}>{fmtDate(p.expiresAt)}</span> },
     { key:"action", label:"", render: (p: any) => p.remainingSessions > 0 && p.status === "active" && (
-      <Btn small onClick={(e: any) => { e.stopPropagation(); setData(d => d.map(x => x.id === p.id ? { ...x, usedSessions: x.usedSessions+1, remainingSessions: x.remainingSessions-1, status: x.remainingSessions-1 === 0 ? "completed" : "active" } : x)); }}>Usar Sessão</Btn>
+      <Btn small onClick={(e: any) => { e.stopPropagation(); setData((d: any) => d.map((x: any) => x.id === p.id ? { ...x, usedSessions: x.usedSessions+1, remainingSessions: x.remainingSessions-1, status: x.remainingSessions-1 === 0 ? "completed" : "active" } : x)); }}>Usar Sessão</Btn>
     )},
   ];
-
   return (
     <div>
-      <PageHeader title="Pacotes" sub={`${data.filter(p => p.status === "active").length} pacotes ativos`} action={<Btn>+ Novo Pacote</Btn>} />
+      <PageHeader title="Pacotes" sub={`${data.filter((p: any) => p.status === "active").length} pacotes ativos`} action={<Btn>+ Novo Pacote</Btn>} />
       <Table cols={cols} rows={data} />
     </div>
   );
 }
 
+// ─── FINANCEIRO ───────────────────────────────────────────────
 function FinancialPage() {
   const [filter, setFilter] = useState("all");
   const data = MOCK.financial;
-  const filtered = filter === "all" ? data : data.filter(t => t.type === filter);
-  const revenue  = data.filter(t => t.type==="revenue" && t.status==="confirmed").reduce((s,t) => s+Number(t.amount), 0);
-  const expenses = data.filter(t => t.type==="expense" && t.status==="confirmed").reduce((s,t) => s+Number(t.amount), 0);
-
+  const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
+  const revenue  = data.filter((t: any) => t.type==="revenue" && t.status==="confirmed").reduce((s,t: any) => s+Number(t.amount), 0);
+  const expenses = data.filter((t: any) => t.type==="expense" && t.status==="confirmed").reduce((s,t: any) => s+Number(t.amount), 0);
   const cols = [
     { key:"description", label:"Descrição", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
     { key:"categoryName", label:"Categoria", render: (t: any) => <Badge label={t.categoryName} color={C.rose} /> },
@@ -745,14 +789,13 @@ function FinancialPage() {
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
   ];
-
   return (
     <div>
       <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transação</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
-        <KpiCard icon="💚" label="Receitas Confirmadas"  value={brl(revenue)}           color={C.sage} />
-        <KpiCard icon="🔴" label="Despesas Confirmadas"  value={brl(expenses)}          color={C.ruby} />
-        <KpiCard icon="✨" label="Lucro Líquido"         value={brl(revenue-expenses)}  color={revenue-expenses >= 0 ? C.gold : C.ruby} />
+        <KpiCard icon="💚" label="Receitas Confirmadas" value={brl(revenue)}          color={C.sage} />
+        <KpiCard icon="🔴" label="Despesas Confirmadas" value={brl(expenses)}         color={C.ruby} />
+        <KpiCard icon="✨" label="Lucro Líquido"        value={brl(revenue-expenses)} color={revenue-expenses >= 0 ? C.gold : C.ruby} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
@@ -764,13 +807,13 @@ function FinancialPage() {
   );
 }
 
+// ─── COMISSÕES ────────────────────────────────────────────────
 function CommissionsPage() {
   const [filter, setFilter] = useState("all");
   const data = MOCK.commissions;
-  const filtered = filter === "all" ? data : data.filter(c => c.isPaid === (filter === "paid"));
-  const totalPending = data.filter(c => !c.isPaid).reduce((s,c) => s+Number(c.commissionAmt), 0);
-  const totalPaid    = data.filter(c =>  c.isPaid).reduce((s,c) => s+Number(c.commissionAmt), 0);
-
+  const filtered = filter === "all" ? data : data.filter((c: any) => c.isPaid === (filter === "paid"));
+  const totalPending = data.filter((c: any) => !c.isPaid).reduce((s,c: any) => s+Number(c.commissionAmt), 0);
+  const totalPaid    = data.filter((c: any) =>  c.isPaid).reduce((s,c: any) => s+Number(c.commissionAmt), 0);
   const cols = [
     { key:"professionalName", label:"Profissional", render: (c: any) => <span style={{ fontWeight:600, color: C.text }}>{c.professionalName}</span> },
     { key:"serviceName", label:"Serviço", render: (c: any) => <span style={{ color: C.textSec, fontSize:12 }}>{c.serviceName}</span> },
@@ -781,7 +824,6 @@ function CommissionsPage() {
     { key:"isPaid", label:"Status", render: (c: any) => <Badge label={c.isPaid?"Pago":"A Pagar"} color={c.isPaid?C.sage:C.gold} /> },
     { key:"createdAt", label:"Data", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.createdAt)}</span> },
   ];
-
   return (
     <div>
       <PageHeader title="Comissões" sub="Controle de comissões por profissional" action={<Btn variant="gold">Pagar Selecionadas</Btn>} />
@@ -800,14 +842,13 @@ function CommissionsPage() {
   );
 }
 
+// ─── CRM ──────────────────────────────────────────────────────
 function CRMPage() {
   const [data, setData] = useState(MOCK.leads);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name:"", whatsapp:"", source:"instagram", serviceInterest:"", estimatedValue:"" });
   const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
-
-  const byStatus = (s: string) => data.filter(l => l.status === s);
-
+  const byStatus = (s: string) => data.filter((l: any) => l.status === s);
   const PIPELINE = [
     { key:"new",        label:"Novos",        color: C.sapphire },
     { key:"contacted",  label:"Contatados",   color: C.gold },
@@ -815,10 +856,9 @@ function CRMPage() {
     { key:"scheduled",  label:"Agendados",    color: C.sage },
     { key:"converted",  label:"Convertidos",  color: C.sage },
   ];
-
   return (
     <div>
-      <PageHeader title="CRM — Pipeline" sub={`${data.length} leads · ${data.filter(l => l.status==="converted").length} convertidos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Lead</Btn>} />
+      <PageHeader title="CRM — Pipeline" sub={`${data.length} leads · ${data.filter((l: any) => l.status==="converted").length} convertidos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Lead</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:12, overflowX:"auto", minWidth:800 }}>
         {PIPELINE.map(col => (
           <div key={col.key} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:16, minHeight:300 }}>
@@ -827,7 +867,7 @@ function CRMPage() {
               <div style={{ fontSize:11, background:`${col.color}20`, color: col.color, padding:"1px 8px", borderRadius:20, fontWeight:700 }}>{byStatus(col.key).length}</div>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {byStatus(col.key).map((lead, i) => (
+              {byStatus(col.key).map((lead: any, i: number) => (
                 <div key={i} style={{ background: C.surface, borderRadius:10, padding:12, border:`1px solid ${C.border}` }}>
                   <div style={{ fontWeight:600, color: C.text, fontSize:12, marginBottom:4 }}>{lead.name}</div>
                   <div style={{ fontSize:11, color: C.textMuted, marginBottom:6 }}>{lead.serviceInterest} · {brl(lead.estimatedValue)}</div>
@@ -851,16 +891,23 @@ function CRMPage() {
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={() => { setData(d => [...d, { id:Date.now().toString(), ...form, status:"new", createdAt: new Date().toISOString(), followUpAt:null }]); setShowForm(false); }}>Adicionar Lead</Btn>
+          <Btn onClick={() => { setData((d: any) => [...d, { id:Date.now().toString(), ...form, status:"new", createdAt: new Date().toISOString(), followUpAt:null }]); setShowForm(false); }}>Adicionar Lead</Btn>
         </div>
       </Modal>
     </div>
   );
 }
 
+// ─── FIDELIDADE ───────────────────────────────────────────────
 function FidelityPage() {
-  const clients = MOCK.clients;
+  const [clients, setClients] = useState<any[]>([]);
   const tiers = ["bronze","silver","gold","platinum","diamond"];
+
+  useEffect(() => {
+    clientsApi.list({ limit: 200 })
+      .then((r: any) => setClients(r.data ?? []))
+      .catch(console.error);
+  }, []);
 
   return (
     <div>
@@ -868,7 +915,7 @@ function FidelityPage() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:28 }}>
         {tiers.map(t => {
           const l = LOYALTY[t];
-          const count = clients.filter(c => c.loyaltyTier === t).length;
+          const count = clients.filter((c: any) => c.loyaltyTier === t).length;
           return (
             <div key={t} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:20, textAlign:"center" }}>
               <div style={{ fontSize:28, marginBottom:8 }}>{t==="diamond"?"💎":t==="platinum"?"🔷":t==="gold"?"🌟":t==="silver"?"⭐":"🔶"}</div>
@@ -890,7 +937,7 @@ function FidelityPage() {
             </tr>
           </thead>
           <tbody>
-            {[...clients].sort((a,b) => b.loyaltyPoints - a.loyaltyPoints).map((c, i) => {
+            {[...clients].sort((a,b) => (b.loyaltyPoints ?? 0) - (a.loyaltyPoints ?? 0)).map((c: any, i: number) => {
               const l = LOYALTY[c.loyaltyTier];
               return (
                 <tr key={c.id} style={{ borderBottom:`1px solid ${C.border}` }}>
@@ -900,10 +947,10 @@ function FidelityPage() {
                       {c.fullName} {c.isVip && <Badge label="VIP" color={C.gold} small />}
                     </div>
                   </td>
-                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label} color={l?.color ?? C.textMuted} /></td>
-                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.rose, fontFamily: FB }}>{c.loyaltyPoints.toLocaleString("pt-BR")} pts</td>
+                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label ?? c.loyaltyTier ?? "—"} color={l?.color ?? C.textMuted} /></td>
+                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.rose, fontFamily: FB }}>{(c.loyaltyPoints ?? 0).toLocaleString("pt-BR")} pts</td>
                   <td style={{ padding:"12px 16px", fontWeight:700, color: C.gold, fontFamily: FB }}>{brl(c.totalSpent)}</td>
-                  <td style={{ padding:"12px 16px", color: C.textSec, fontFamily: FB }}>{c.totalVisits}</td>
+                  <td style={{ padding:"12px 16px", color: C.textSec, fontFamily: FB }}>{c.totalVisits ?? 0}</td>
                   <td style={{ padding:"12px 16px" }}>
                     <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>Contatar</a>
                   </td>
@@ -967,16 +1014,13 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Aguarda sessão inicial antes de renderizar
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
