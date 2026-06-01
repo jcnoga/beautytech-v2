@@ -7,8 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi } from "./api/client";
-
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi } from "./api/client";
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
   bg:        "#0C0A09",
@@ -935,11 +934,43 @@ function CommissionsPage() {
 
 // ─── CRM ──────────────────────────────────────────────────────
 function CRMPage() {
-  const [data, setData] = useState(MOCK.leads);
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name:"", whatsapp:"", source:"instagram", serviceInterest:"", estimatedValue:"" });
   const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+
+  useEffect(() => {
+    crmApi.leads()
+      .then((r: any) => setData(r.data ?? []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const saveLead = async () => {
+    setSaving(true);
+    try {
+      const r: any = await crmApi.create(form);
+      setData(d => [...d, r.data]);
+      setShowForm(false);
+      setForm({ name:"", whatsapp:"", source:"instagram", serviceInterest:"", estimatedValue:"" });
+    } catch(e: any) {
+      alert("Erro: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      const r: any = await crmApi.update(id, { status });
+      setData(d => d.map((l: any) => l.id === id ? r.data : l));
+    } catch(e) { console.error(e); }
+  };
+
   const byStatus = (s: string) => data.filter((l: any) => l.status === s);
+
   const PIPELINE = [
     { key:"new",        label:"Novos",        color: C.sapphire },
     { key:"contacted",  label:"Contatados",   color: C.gold },
@@ -947,6 +978,13 @@ function CRMPage() {
     { key:"scheduled",  label:"Agendados",    color: C.sage },
     { key:"converted",  label:"Convertidos",  color: C.sage },
   ];
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando CRM...</div>
+    </div>
+  );
+
   return (
     <div>
       <PageHeader title="CRM — Pipeline" sub={`${data.length} leads · ${data.filter((l: any) => l.status==="converted").length} convertidos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Lead</Btn>} />
@@ -962,10 +1000,21 @@ function CRMPage() {
                 <div key={i} style={{ background: C.surface, borderRadius:10, padding:12, border:`1px solid ${C.border}` }}>
                   <div style={{ fontWeight:600, color: C.text, fontSize:12, marginBottom:4 }}>{lead.name}</div>
                   <div style={{ fontSize:11, color: C.textMuted, marginBottom:6 }}>{lead.serviceInterest} · {brl(lead.estimatedValue)}</div>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                     <Badge label={SOURCE_LABEL[lead.source] ?? lead.source} color={C.rose} small />
                     <a href={`https://wa.me/55${lead.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:10, color: C.sage, fontWeight:700, textDecoration:"none" }}>WA</a>
                   </div>
+                  {col.key !== "converted" && (
+                    <select onChange={e => updateStatus(lead.id, e.target.value)} value={lead.status}
+                      style={{ width:"100%", fontSize:10, padding:"3px 6px", background: C.border, border:"none", borderRadius:6, color: C.text, cursor:"pointer" }}>
+                      <option value="new">Novo</option>
+                      <option value="contacted">Contatado</option>
+                      <option value="interested">Interessado</option>
+                      <option value="scheduled">Agendado</option>
+                      <option value="converted">Convertido</option>
+                      <option value="lost">Perdido</option>
+                    </select>
+                  )}
                 </div>
               ))}
             </div>
@@ -982,75 +1031,9 @@ function CRMPage() {
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={() => { setData((d: any) => [...d, { id:Date.now().toString(), ...form, status:"new", createdAt: new Date().toISOString(), followUpAt:null }]); setShowForm(false); }}>Adicionar Lead</Btn>
+          <Btn onClick={saveLead} disabled={saving}>{saving ? "Salvando..." : "Adicionar Lead"}</Btn>
         </div>
       </Modal>
-    </div>
-  );
-}
-
-// ─── FIDELIDADE ───────────────────────────────────────────────
-function FidelityPage() {
-  const [clients, setClients] = useState<any[]>([]);
-  const tiers = ["bronze","silver","gold","platinum","diamond"];
-
-  useEffect(() => {
-    clientsApi.list({ limit: 200 })
-      .then((r: any) => setClients(r.data ?? []))
-      .catch(console.error);
-  }, []);
-
-  return (
-    <div>
-      <PageHeader title="Fidelidade" sub="Programa de pontos e benefícios" />
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:28 }}>
-        {tiers.map(t => {
-          const l = LOYALTY[t];
-          const count = clients.filter((c: any) => c.loyaltyTier === t).length;
-          return (
-            <div key={t} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:20, textAlign:"center" }}>
-              <div style={{ fontSize:28, marginBottom:8 }}>{t==="diamond"?"💎":t==="platinum"?"🔷":t==="gold"?"🌟":t==="silver"?"⭐":"🔶"}</div>
-              <div style={{ fontSize:13, fontWeight:700, color: l.color, fontFamily: FD }}>{l.label}</div>
-              <div style={{ fontSize:24, fontWeight:700, color: C.text, margin:"6px 0", fontFamily: FD }}>{count}</div>
-              <div style={{ fontSize:11, color: C.textMuted }}>clientes</div>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, overflow:"hidden" }}>
-        <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, fontSize:15, fontWeight:700, color: C.text, fontFamily: FD }}>Ranking de Clientes</div>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-          <thead>
-            <tr style={{ background: C.surface }}>
-              {["#","Cliente","Tier","Pontos","LTV","Visitas","Ação"].map(h => (
-                <th key={h} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {[...clients].sort((a,b) => (b.loyaltyPoints ?? 0) - (a.loyaltyPoints ?? 0)).map((c: any, i: number) => {
-              const l = LOYALTY[c.loyaltyTier];
-              return (
-                <tr key={c.id} style={{ borderBottom:`1px solid ${C.border}` }}>
-                  <td style={{ padding:"12px 16px", color: C.textMuted, fontFamily: FB, fontWeight:700 }}>#{i+1}</td>
-                  <td style={{ padding:"12px 16px", fontFamily: FB }}>
-                    <div style={{ fontWeight:600, color: C.text, display:"flex", alignItems:"center", gap:6 }}>
-                      {c.fullName} {c.isVip && <Badge label="VIP" color={C.gold} small />}
-                    </div>
-                  </td>
-                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label ?? c.loyaltyTier ?? "—"} color={l?.color ?? C.textMuted} /></td>
-                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.rose, fontFamily: FB }}>{(c.loyaltyPoints ?? 0).toLocaleString("pt-BR")} pts</td>
-                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.gold, fontFamily: FB }}>{brl(c.totalSpent)}</td>
-                  <td style={{ padding:"12px 16px", color: C.textSec, fontFamily: FB }}>{c.totalVisits ?? 0}</td>
-                  <td style={{ padding:"12px 16px" }}>
-                    <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>Contatar</a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
@@ -1127,6 +1110,71 @@ export default function App() {
   );
 
   if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
+
+  function FidelityPage() {
+  const [clients, setClients] = useState<any[]>([]);
+  const tiers = ["bronze","silver","gold","platinum","diamond"];
+
+  useEffect(() => {
+    clientsApi.list({ limit: 200 })
+      .then((r: any) => setClients(r.data ?? []))
+      .catch(console.error);
+  }, []);
+
+  return (
+    <div>
+      <PageHeader title="Fidelidade" sub="Programa de pontos e benefícios" />
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:28 }}>
+        {tiers.map(t => {
+          const l = LOYALTY[t];
+          const count = clients.filter((c: any) => c.loyaltyTier === t).length;
+          return (
+            <div key={t} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:20, textAlign:"center" }}>
+              <div style={{ fontSize:28, marginBottom:8 }}>{t==="diamond"?"💎":t==="platinum"?"🔷":t==="gold"?"🌟":t==="silver"?"⭐":"🔶"}</div>
+              <div style={{ fontSize:13, fontWeight:700, color: l.color, fontFamily: FD }}>{l.label}</div>
+              <div style={{ fontSize:24, fontWeight:700, color: C.text, margin:"6px 0", fontFamily: FD }}>{count}</div>
+              <div style={{ fontSize:11, color: C.textMuted }}>clientes</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, overflow:"hidden" }}>
+        <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, fontSize:15, fontWeight:700, color: C.text, fontFamily: FD }}>Ranking de Clientes</div>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+          <thead>
+            <tr style={{ background: C.surface }}>
+              {["#","Cliente","Tier","Pontos","LTV","Visitas","Ação"].map(h => (
+                <th key={h} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[...clients].sort((a,b) => (b.loyaltyPoints ?? 0) - (a.loyaltyPoints ?? 0)).map((c: any, i: number) => {
+              const l = LOYALTY[c.loyaltyTier];
+              return (
+                <tr key={c.id} style={{ borderBottom:`1px solid ${C.border}` }}>
+                  <td style={{ padding:"12px 16px", color: C.textMuted, fontFamily: FB, fontWeight:700 }}>#{i+1}</td>
+                  <td style={{ padding:"12px 16px", fontFamily: FB }}>
+                    <div style={{ fontWeight:600, color: C.text, display:"flex", alignItems:"center", gap:6 }}>
+                      {c.fullName} {c.isVip && <Badge label="VIP" color={C.gold} small />}
+                    </div>
+                  </td>
+                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label ?? "—"} color={l?.color ?? C.textMuted} /></td>
+                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.rose, fontFamily: FB }}>{(c.loyaltyPoints ?? 0).toLocaleString("pt-BR")} pts</td>
+                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.gold, fontFamily: FB }}>{brl(c.totalSpent)}</td>
+                  <td style={{ padding:"12px 16px", color: C.textSec, fontFamily: FB }}>{c.totalVisits ?? 0}</td>
+                  <td style={{ padding:"12px 16px" }}>
+                    <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>Contatar</a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
   const PAGES: any = {
     dashboard:     DashboardPage,
