@@ -330,6 +330,8 @@ function LoginPage({ onLogin }: any) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showRegister, setShowRegister] = useState(false);
+  if (showRegister) return <RegisterPage onBack={() => setShowRegister(false)} />;
 
   const submit = async () => {
     setLoading(true); setError("");
