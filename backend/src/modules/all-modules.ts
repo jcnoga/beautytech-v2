@@ -762,11 +762,15 @@ export async function authModule(fastify: FastifyInstance) {
     const authUserId = authData.id;
 
     try {
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 15);
+
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
-        planType: "trial",
+        planTier: "trial",
         isActive: true,
+        trialEndsAt,
       }).returning();
 
       await db.insert(userProfiles).values({
