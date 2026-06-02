@@ -1787,6 +1787,125 @@ function NotificationsPage() {
 }
 
 // --- AUTOMA??ES -----------------------------------------------
+
+// --- AUTOMATION SETTINGS ------------------------------------
+function AutomationSettings() {
+  const defaultSettings = {
+    reminder_24h_enabled: true, reminder_24h_hours: 24,
+    reminder_2h_enabled: true,  reminder_2h_hours: 2,
+    birthday_enabled: true,     birthday_hour: 9,
+    reactivation_enabled: true, reactivation_days: 30,
+    post_service_enabled: true, post_service_hours: 2,
+  };
+  const [settings, setSettings] = useState<any>(defaultSettings);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const s = (k: string) => (v: any) => setSettings((p: any) => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    api.get<any>("/automations/settings")
+      .then((r: any) => { if (r.data) setSettings(r.data); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.post<any>("/automations/settings", settings);
+      alert("Configuracoes salvas com sucesso!");
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const Toggle = ({ value, onChange, label }: any) => (
+    <button onClick={() => onChange(!value)} style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none", cursor:"pointer", padding:0 }}>
+      <div style={{ width:36, height:20, borderRadius:10, background: value ? C.sage : C.border, position:"relative", transition:"background .2s", flexShrink:0 }}>
+        <div style={{ width:14, height:14, borderRadius:"50%", background:"#fff", position:"absolute", top:3, left: value ? 19 : 3, transition:"left .2s" }} />
+      </div>
+      <span style={{ fontSize:13, color: value ? C.text : C.textMuted, fontFamily:FB }}>{label}</span>
+    </button>
+  );
+
+  const NumInp = ({ label, value, onChange, min, max, unit }: any) => (
+    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+      <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB, minWidth:120 }}>{label}</span>
+      <input type="number" value={value} min={min} max={max}
+        onChange={e => onChange(Number(e.target.value))}
+        style={{ width:70, padding:"6px 10px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, fontSize:13, outline:"none", fontFamily:FB, textAlign:"center" }}
+      />
+      <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>{unit}</span>
+    </div>
+  );
+
+  if (loading) return <div style={{ color:C.textMuted, fontFamily:FB }}>Carregando...</div>;
+
+  const configs = [
+    {
+      title:"Lembrete de Agendamento",
+      icon:"⏰",
+      items: [
+        { type:"toggle", label:"Lembrete 24h antes", key:"reminder_24h_enabled" },
+        { type:"num", label:"Horas antes:", key:"reminder_24h_hours", unit:"horas", min:1, max:48 },
+        { type:"toggle", label:"Lembrete 2h antes", key:"reminder_2h_enabled" },
+        { type:"num", label:"Horas antes:", key:"reminder_2h_hours", unit:"horas", min:1, max:12 },
+      ]
+    },
+    {
+      title:"Aniversario",
+      icon:"🎂",
+      items: [
+        { type:"toggle", label:"Mensagem de aniversario", key:"birthday_enabled" },
+        { type:"num", label:"Horario de envio:", key:"birthday_hour", unit:"horas (0-23)", min:0, max:23 },
+      ]
+    },
+    {
+      title:"Reativacao de Clientes",
+      icon:"💕",
+      items: [
+        { type:"toggle", label:"Reativar clientes inativos", key:"reactivation_enabled" },
+        { type:"num", label:"Dias sem visita:", key:"reactivation_days", unit:"dias", min:7, max:180 },
+      ]
+    },
+    {
+      title:"Pos-atendimento",
+      icon:"⭐",
+      items: [
+        { type:"toggle", label:"Mensagem apos atendimento", key:"post_service_enabled" },
+        { type:"num", label:"Horas apos:", key:"post_service_hours", unit:"horas", min:1, max:24 },
+      ]
+    },
+  ];
+
+  return (
+    <div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(300px,1fr))", gap:16, marginBottom:24 }}>
+        {configs.map((group: any) => (
+          <div key={group.title} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:20 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+              <span style={{ fontSize:20 }}>{group.icon}</span>
+              <div style={{ fontWeight:700, color:C.text, fontSize:14, fontFamily:FD }}>{group.title}</div>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              {group.items.map((item: any) => (
+                <div key={item.key}>
+                  {item.type === "toggle"
+                    ? <Toggle value={settings[item.key]} onChange={s(item.key)} label={item.label} />
+                    : <NumInp label={item.label} value={settings[item.key]} onChange={s(item.key)} min={item.min} max={item.max} unit={item.unit} />
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <Btn onClick={save} disabled={saving} variant="gold">
+        {saving ? "Salvando..." : "💾 Salvar Configuracoes"}
+      </Btn>
+    </div>
+  );
+}
+
 function AutomationsPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -2002,6 +2121,14 @@ function AutomationsPage() {
         </div>
       </Modal>
 
+
+      {/* Secao de Configuracoes */}
+      <div style={{ marginTop:40 }}>
+        <div style={{ fontSize:18, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:20 }}>
+          ⚙️ Configuracoes de Automacao
+        </div>
+        <AutomationSettings />
+      </div>
       {/* Modal Envio Manual Avancado */}
       <Modal open={showSend} onClose={() => setShowSend(false)} title={`Enviar: ${selected?.name}`} width={620}>
         {selected && (
