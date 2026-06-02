@@ -6,8 +6,7 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
-import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
-//import { db } from "../db/connection.js";
+import { db } from "../db/connection.js";
 import { userProfiles } from "../db/schema/index.js";
 
 const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
