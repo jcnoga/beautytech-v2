@@ -1287,6 +1287,7 @@ function FinancialPage() {
     { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "-"}</span> },
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
+    { key:"action", label:"", render: (t: any) => t.status === "pending" ? <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); openPayment(t); }}>Baixar</Btn> : <span style={{ fontSize:11, color:C.sage }}>Pago</span> },
   ];
 
   if (loading) return (
@@ -1308,9 +1309,7 @@ function FinancialPage() {
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background: filter===f2.v?`${C.rose}15`:C.card, color: filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{f2.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada."
-        onRow={(t: any) => t.status === "pending" && confirmPayment(t.id, t.paymentMethod ?? "pix")}
-      />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
       <Modal open={showPayment} onClose={() => setShowPayment(false)} title="Confirmar Baixa">
         {paymentTarget && (
           <div>
@@ -2369,6 +2368,9 @@ export default function App() {
     </>
   );
 }
+
+
+
 
 
 
