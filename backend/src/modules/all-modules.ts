@@ -873,7 +873,14 @@ export async function automationsModule(fastify: FastifyInstance) {
   });  // ← fecha o handler anterior
 
   // Listar configuracoes de automacao
-  fastify.get("/automations/settings"...
+fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const result = await db.execute(
+      sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`
+    );
+    const settings = result.rows[0] ?? null;
+    return reply.send({ success: true, data: settings });
+  });
 
     const { tenantId } = req.tenantContext;
     const result = await db.execute(
