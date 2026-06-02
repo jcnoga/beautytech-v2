@@ -898,7 +898,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: tenant });
   });
 
-  fastify.post("/super-admin/tenants/:id/unblock", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+  fastify.post("/super-admin/tenants/:id/unblock", { preHandler: [requireSuperAdmin], bodyLimit: 0 }, async (req: any, reply) => {
     const [tenant] = await db.update(tenants).set({ isActive: true, updatedAt: new Date() }).where(eq(tenants.id, req.params.id)).returning();
     return reply.send({ success: true, data: tenant });
   });
