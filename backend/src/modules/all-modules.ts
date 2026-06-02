@@ -197,8 +197,16 @@ export async function appointmentsModule(fastify: FastifyInstance) {
 
   fastify.post("/appointments", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const { services: svcs, ...body } = req.body as any;
-    const [appt] = await db.insert(appointments).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+  const { services: svcs, ...body } = req.body as any;
+const values = {
+  ...body,
+  tenantId,
+  createdBy:      userId,
+  updatedBy:      userId,
+  scheduledAt:    new Date(body.scheduledAt),
+  endsAt:         new Date(body.endsAt),
+};
+const [appt] = await db.insert(appointments).values(values).returning();
     if (svcs?.length) {
       await db.insert(appointmentServices).values(svcs.map((s: any) => ({ ...s, appointmentId: appt.id, tenantId })));
     }
