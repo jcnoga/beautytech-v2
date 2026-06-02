@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
 // Tipografia: Playfair Display + Outfit
@@ -372,10 +372,10 @@ function DashboardPage() {
     <div>
       <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))", gap:16, marginBottom:28 }}>
-        <KpiCard icon="📅" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mes`} color={C.rose} />
-        <KpiCard icon="👥" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
-        <KpiCard icon="💰" label="Receita do Mes"     value={brl(k.revenueMonth)} sub={brl(k.revenuePrevMonth)+" mes ant."} color={C.sage} trend={k.revenueGrowth} />
-        <KpiCard icon="🎯" label="Ticket Medio"       value={brl(k.averageTicket)} sub="por atendimento"   color={C.sapphire} />
+        <KpiCard icon="?" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mes`} color={C.rose} />
+        <KpiCard icon="?" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
+        <KpiCard icon="?" label="Receita do Mes"     value={brl(k.revenueMonth)} sub={brl(k.revenuePrevMonth)+" mes ant."} color={C.sage} trend={k.revenueGrowth} />
+        <KpiCard icon="?" label="Ticket Medio"       value={brl(k.averageTicket)} sub="por atendimento"   color={C.sapphire} />
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:20, marginBottom:20 }}>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
@@ -921,71 +921,8 @@ function AgendaPage() {
 
 // --- PROFISSIONAIS --------------------------------------------
 function ProfessionalsPage() {
-  const [data, setData]       = useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [selected, setSelected] = useState<any>(null);
-  const [saving, setSaving]   = useState(false);
-  const emptyForm = { fullName:"", whatsapp:"", email:"", commissionPct:"40", monthlyGoal:"0", color:"#E8A598", specialties:"", isActive:true, acceptsOnlineBooking:true };
-  const [form, setForm] = useState(emptyForm);
-  const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]: v }));
-
-  const load = () => {
-    professionalsApi.list()
-      .then((r: any) => setData(r.data ?? []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const openNew = () => {
-    setSelected(null);
-    setForm(emptyForm);
-    setShowForm(true);
-  };
-
-  const openEdit = (p: any) => {
-    setSelected(p);
-    setForm({
-      fullName: p.fullName ?? "",
-      whatsapp: p.whatsapp ?? "",
-      email:    p.email ?? "",
-      commissionPct: p.commissionPct ?? "40",
-      monthlyGoal:   p.monthlyGoal ?? "0",
-      color:         p.color ?? "#E8A598",
-      specialties:   (p.specialties ?? []).join(", "),
-      isActive:      p.isActive ?? true,
-      acceptsOnlineBooking: p.acceptsOnlineBooking ?? true,
-    });
-    setShowForm(true);
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        specialties: form.specialties ? form.specialties.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
-      };
-      if (selected) {
-        const r: any = await professionalsApi.update(selected.id, payload);
-        setData(d => d.map(x => x.id === selected.id ? r.data : x));
-      } else {
-        const r: any = await professionalsApi.create(payload);
-        setData(d => [...d, r.data]);
-      }
-      setShowForm(false);
-    } catch(e: any) { alert("Erro: " + e.message); }
-    finally { setSaving(false); }
-  };
-
-  const toggleActive = async (p: any) => {
-    try {
-      const r: any = await professionalsApi.update(p.id, { isActive: !p.isActive });
-      setData(d => d.map(x => x.id === p.id ? r.data : x));
-    } catch(e) { console.error(e); }
-  };
 
   useEffect(() => {
     professionalsApi.list({ isActive: "true" })
@@ -1002,7 +939,7 @@ function ProfessionalsPage() {
 
   return (
     <div>
-      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={openNew}>+ Nova Profissional</Btn>} />
+      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn>+ Nova Profissional</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
         {data.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB }}>Nenhum profissional cadastrado.</div>}
         {data.map((p: any, i: number) => (
@@ -1029,40 +966,11 @@ function ProfessionalsPage() {
             </div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <Badge label={p.isActive ? "Ativo" : "Inativo"} color={p.isActive ? C.sage : C.textMuted} />
-              <Badge label={p.acceptsOnlineBooking ? "Online" : "Presencial"} color={p.acceptsOnlineBooking ? C.sapphire : C.textMuted} />
-            </div>
-            <div style={{ display:"flex", gap:8, marginTop:12 }}>
-              <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(p); }}>Editar</Btn>
-              <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(p); }}>
-                {p.isActive ? "Desativar" : "Ativar"}
-              </Btn>
+              <Badge label={p.acceptsOnlineBooking ? "Agendamento Online" : "Presencial"} color={p.acceptsOnlineBooking ? C.sapphire : C.textMuted} />
             </div>
           </div>
         ))}
       </div>
-
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={selected ? "Editar Profissional" : "Nova Profissional"}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
-          <Inp label="Nome completo" value={form.fullName} onChange={f("fullName")} required placeholder="Marina Santos" grid="1/-1" />
-          <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
-          <Inp label="E-mail" value={form.email} onChange={f("email")} type="email" placeholder="marina@salao.com" />
-          <Inp label="Comissao (%)" value={form.commissionPct} onChange={f("commissionPct")} type="number" placeholder="40" />
-          <Inp label="Meta Mensal (R$)" value={form.monthlyGoal} onChange={f("monthlyGoal")} type="number" placeholder="5000" />
-          <Inp label="Especialidades" value={form.specialties} onChange={f("specialties")} placeholder="Coloracao, Corte, Escova" grid="1/-1" />
-          <div style={{ marginBottom:14 }}>
-            <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, textTransform:"uppercase" }}>Cor</label>
-            <input type="color" value={form.color} onChange={e => f("color")(e.target.value)} style={{ width:60, height:36, borderRadius:8, border:`1px solid ${C.border}`, background:C.surface, cursor:"pointer" }} />
-          </div>
-          <div style={{ marginBottom:14, display:"flex", alignItems:"center", gap:10, paddingTop:20 }}>
-            <input type="checkbox" checked={form.acceptsOnlineBooking} onChange={e => f("acceptsOnlineBooking")(e.target.checked)} id="online" />
-            <label htmlFor="online" style={{ fontSize:13, color:C.text, fontFamily:FB }}>Aceita agendamento online</label>
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:10, marginTop:8 }}>
-          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : selected ? "Salvar" : "Cadastrar"}</Btn>
-        </div>
-      </Modal>
     </div>
   );
 }
@@ -1073,12 +981,9 @@ function ServicesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [selected, setSelected] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true });
   const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]:v }));
-  const openNew = () => { setSelected(null); setForm({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true }); setShowForm(true); };
-  const openEdit = (s: any) => { setSelected(s); setForm({ name:s.name, categoryId:s.categoryId ?? "", durationMinutes:String(s.durationMinutes), price:String(s.price), isActive:s.isActive }); setShowForm(true); };
 
   useEffect(() => {
     Promise.all([servicesApi.list(), servicesApi.categories()])
@@ -1089,15 +994,8 @@ function ServicesPage() {
   const save = async () => {
     setSaving(true);
     try {
-      if (selected) {
-        const payload2 = { ...form, categoryId: form.categoryId || null };
-const r: any = await servicesApi.update(selected.id, payload2);
-        setData(d => d.map((x: any) => x.id === selected.id ? r.data : x));
-      } else {
-        const payload = { ...form, categoryId: form.categoryId || null };
-const r: any = await servicesApi.create(payload);
-        setData(d => [...d, r.data]);
-      }
+      const r: any = await servicesApi.create(form);
+      setData(d => [...d, r.data]);
       setShowForm(false);
     } catch(e: any) {
       alert("Erro: " + e.message);
@@ -1119,12 +1017,9 @@ const r: any = await servicesApi.create(payload);
     { key:"isOnlineBookable", label:"Online", render: (s: any) => <Badge label={s.isOnlineBookable ? "Sim" : "Nao"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
     { key:"isActive", label:"Status", render: (s: any) => <Badge label={s.isActive ? "Ativo" : "Inativo"} color={s.isActive ? C.sage : C.textMuted} /> },
     { key:"action", label:"", render: (s: any) => (
-      <div style={{ display:"flex", gap:6 }}>
-        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(s); }}>Editar</Btn>
-        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(s); }}>
-          {s.isActive ? "Desativar" : "Ativar"}
-        </Btn>
-      </div>
+      <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(s); }}>
+        {s.isActive ? "Desativar" : "Ativar"}
+      </Btn>
     )},
   ];
 
@@ -1136,9 +1031,9 @@ const r: any = await servicesApi.create(payload);
 
   return (
     <div>
-      <PageHeader title="Servicos" sub={`${data.filter((s: any) => s.isActive).length} servicos ativos`} action={<Btn onClick={openNew}>+ Novo Servico</Btn>} />
+      <PageHeader title="Servicos" sub={`${data.filter((s: any) => s.isActive).length} servicos ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Servico</Btn>} />
       <Table cols={cols} rows={data} />
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={selected ? "Editar Servico" : "Novo Servico"}>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Servico">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="Coloracao Completa" grid="1/-1" />
           <Sel label="Categoria" value={form.categoryId} onChange={f("categoryId")} options={categories.map((c: any) => ({ value:c.id, label:c.name }))} />
@@ -1147,7 +1042,7 @@ const r: any = await servicesApi.create(payload);
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : selected ? "Salvar" : "Criar Servico"}</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Criar Servico"}</Btn>
         </div>
       </Modal>
     </div>
@@ -1207,88 +1102,16 @@ function PackagesPage() {
 
 // --- FINANCEIRO -----------------------------------------------
 function FinancialPage() {
-  const [data, setData]       = useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
-  const [filter, setFilter]   = useState("all");
+  const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving]   = useState(false);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const emptyForm = { description:"", type:"revenue", amount:"", dueDate:"", paymentMethod:"pix", accountId:"", categoryId:"", status:"pending" };
-  const [form, setForm] = useState(emptyForm);
-  const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]: v }));
 
-  const load = async () => {
-    try {
-      const [t, s, a, c] = await Promise.all([
-        financialApi.list({ limit: 100 }),
-        financialApi.summary(),
-        financialApi.accounts(),
-        financialApi.categories(),
-      ]);
-      setData((t as any).data ?? []);
-      setSummary((s as any).data ?? { revenue:0, expenses:0, profit:0 });
-      setAccounts((a as any).data ?? []);
-      setCategories((c as any).data ?? []);
-    } catch(e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        accountId:  form.accountId  || null,
-        categoryId: form.categoryId || null,
-      };
-      const r: any = await financialApi.create(payload);
-      setData(d => [r.data, ...d]);
-      setShowForm(false);
-      setForm(emptyForm);
-      const s: any = await financialApi.summary();
-      setSummary(s.data);
-    } catch(e: any) { alert("Erro: " + e.message); }
-    finally { setSaving(false); }
-  };
-
-  const [showPayment, setShowPayment] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
-  const [accountForm, setAccountForm] = useState({ name:"", type:"checking" });
-  const fa = (k: string) => (v: any) => setAccountForm(p => ({ ...p, [k]: v }));
-  const saveAccount = async () => {
-    try {
-      await api.post<any>("/financial/accounts", accountForm);
-      const a: any = await financialApi.accounts();
-      setAccounts(a.data ?? []);
-      setShowAccount(false);
-      setAccountForm({ name:"", type:"checking" });
-    } catch(e: any) { alert("Erro: " + e.message); }
-  };
-  const [paymentTarget, setPaymentTarget] = useState<any>(null);
-  const [paymentForm, setPaymentForm] = useState({ paymentMethod:"pix", notes:"" });
-  const fp = (k: string) => (v: any) => setPaymentForm(p => ({ ...p, [k]: v }));
-
-  const openPayment = (t: any) => {
-    setPaymentTarget(t);
-    setPaymentForm({ paymentMethod: t.paymentMethod ?? "pix", notes:"" });
-    setShowPayment(true);
-  };
-
-  const confirmPayment = async () => {
-    if (!paymentTarget) return;
-    try {
-      await financialApi.confirmPayment(paymentTarget.id, { paymentMethod: paymentForm.paymentMethod });
-      if (paymentForm.notes) {
-        await financialApi.update(paymentTarget.id, { notes: paymentForm.notes });
-      }
-      setShowPayment(false);
-      load();
-    } catch(e) { console.error(e); }
-  };
+  useEffect(() => {
+    Promise.all([financialApi.list({ limit: 100 }), financialApi.summary()])
+      .then(([t, s]: any) => { setData(t.data ?? []); setSummary(s.data ?? { revenue:0, expenses:0, profit:0 }); })
+      .catch(console.error).finally(() => setLoading(false));
+  }, []);
 
   const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
 
@@ -1299,7 +1122,6 @@ function FinancialPage() {
     { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "-"}</span> },
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
-    { key:"action", label:"", render: (t: any) => t.status === "pending" ? <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); openPayment(t); }}>Baixar</Btn> : <span style={{ fontSize:11, color:C.sage }}>Pago</span> },
   ];
 
   if (loading) return (
@@ -1310,16 +1132,11 @@ function FinancialPage() {
 
   return (
     <div>
-      <PageHeader title="Financeiro" sub="Controle de receitas e despesas"  action={
-  <div style={{ display:"flex", gap:8 }}>
-    <Btn variant="secondary" small onClick={() => setShowAccount(true)}>+ Nova Conta</Btn>
-    <Btn onClick={() => { setForm(emptyForm); setShowForm(true); }}>+ Nova Transacao</Btn>
-  </div>
-} />
+      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transacao</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
-        <KpiCard icon="💰" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
-        <KpiCard icon="💰" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
-        <KpiCard icon="💰" label="Lucro Liquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
+        <KpiCard icon="?" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
+        <KpiCard icon="?" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
+        <KpiCard icon="?" label="Lucro Liquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
@@ -1327,80 +1144,6 @@ function FinancialPage() {
         ))}
       </div>
       <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
-      <Modal open={showAccount} onClose={() => setShowAccount(false)} title="Nova Conta Financeira" width={400}>
-        <Inp label="Nome da Conta *" value={accountForm.name} onChange={fa("name")} required placeholder="Ex: Caixa, Banco, Cartao" />
-        <Sel label="Tipo" value={accountForm.type} onChange={fa("type")} options={[
-          { value:"checking", label:"Conta Corrente" },
-          { value:"savings",  label:"Poupanca" },
-          { value:"cash",     label:"Dinheiro/Caixa" },
-          { value:"credit",   label:"Cartao de Credito" },
-        ]} />
-        <div style={{ display:"flex", gap:10, marginTop:8 }}>
-          <Btn variant="secondary" onClick={() => setShowAccount(false)}>Cancelar</Btn>
-          <Btn onClick={saveAccount}>Criar Conta</Btn>
-        </div>
-      </Modal>
-      <Modal open={showPayment} onClose={() => setShowPayment(false)} title="Confirmar Baixa">
-        {paymentTarget && (
-          <div>
-            <div style={{ background:C.surface, borderRadius:12, padding:16, marginBottom:20 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>{paymentTarget.description}</div>
-              <div style={{ fontSize:11, color:C.textMuted }}>Vencimento: {fmtDate(paymentTarget.dueDate)}</div>
-              <div style={{ fontSize:20, fontWeight:700, color: paymentTarget.type==="revenue" ? C.sage : C.ruby, marginTop:8 }}>
-                {paymentTarget.type==="expense"?"-":""}{brl(paymentTarget.amount)}
-              </div>
-            </div>
-            <Sel label="Forma de Pagamento" value={paymentForm.paymentMethod} onChange={fp("paymentMethod")} options={[
-              { value:"pix", label:"Pix" },
-              { value:"cash", label:"Dinheiro" },
-              { value:"credit_card", label:"Cartao Credito" },
-              { value:"debit_card", label:"Cartao Debito" },
-              { value:"bank_transfer", label:"Transferencia" },
-            ]} />
-            <div style={{ marginBottom:14 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, textTransform:"uppercase" }}>Observacao</label>
-              <textarea
-                value={paymentForm.notes}
-                onChange={e => fp("notes")(e.target.value)}
-                rows={3}
-                placeholder="Ex: Pago via Pix em 02/06/2026..."
-                style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:FB, resize:"vertical" }}
-              />
-            </div>
-            <div style={{ display:"flex", gap:10 }}>
-              <Btn variant="secondary" onClick={() => setShowPayment(false)}>Cancelar</Btn>
-              <Btn variant="gold" onClick={confirmPayment}>Confirmar Baixa</Btn>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Transacao">
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
-          <Inp label="Descricao *" value={form.description} onChange={f("description")} required placeholder="Ex: Coloracao - Ana Silva" grid="1/-1" />
-          <Sel label="Tipo *" value={form.type} onChange={f("type")} options={[{ value:"revenue", label:"Receita" },{ value:"expense", label:"Despesa" }]} />
-          <Sel label="Status" value={form.status} onChange={f("status")} options={[{ value:"pending", label:"Pendente" },{ value:"confirmed", label:"Pago" }]} />
-          <Inp label="Valor (R$) *" value={form.amount} onChange={f("amount")} type="number" placeholder="180.00" grid="1/-1" />
-          <Inp label="Vencimento *" value={form.dueDate} onChange={f("dueDate")} type="date" />
-          <Sel label="Forma de Pagamento" value={form.paymentMethod} onChange={f("paymentMethod")} options={[
-            { value:"pix", label:"Pix" },
-            { value:"cash", label:"Dinheiro" },
-            { value:"credit_card", label:"Cartao Credito" },
-            { value:"debit_card", label:"Cartao Debito" },
-            { value:"bank_transfer", label:"Transferencia" },
-          ]} />
-          {accounts.length > 0 && (
-            <Sel label="Conta" value={form.accountId} onChange={f("accountId")} options={[{ value:"", label:"Selecione..." }, ...accounts.map((a: any) => ({ value:a.id, label:a.name }))]} grid="1/-1" />
-          )}
-          {categories.length > 0 && (
-            <Sel label="Categoria" value={form.categoryId} onChange={f("categoryId")} options={[{ value:"", label:"Selecione..." }, ...categories.filter((c: any) => c.type === form.type).map((c: any) => ({ value:c.id, label:c.name }))]} grid="1/-1" />
-          )}
-        </div>
-        <div style={{ display:"flex", gap:10, marginTop:8 }}>
-          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Lancar"}</Btn>
-        </div>
-      </Modal>
     </div>
   );
 }
@@ -1451,9 +1194,9 @@ function CommissionsPage() {
     <div>
       <PageHeader title="Comissoes" sub="Controle de comissoes por profissional" />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:24 }}>
-        <KpiCard icon="💰" label="A Pagar" value={brl(totalPending)} color={C.gold} />
-        <KpiCard icon="💰" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
-        <KpiCard icon="💰" label="Total"   value={brl(totalPending+totalPaid)} color={C.rose} />
+        <KpiCard icon="?" label="A Pagar" value={brl(totalPending)} color={C.gold} />
+        <KpiCard icon="?" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
+        <KpiCard icon="?" label="Total"   value={brl(totalPending+totalPaid)} color={C.rose} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all",l:"Todas" },{ v:"pending",l:"A Pagar" },{ v:"paid",l:"Pagas" }].map(f2 => (
@@ -1811,12 +1554,12 @@ function SuperAdminDashboard({ token, onLogout }: any) {
         {/* KPIs */}
         {stats && (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px,1fr))", gap:16, marginBottom:28 }}>
-            <KpiCard icon="💰" label="Total Saloes"  value={stats.totalTenants}   color={C.text} />
-            <KpiCard icon="💰" label="Ativos"         value={stats.activeTenants}  color={C.sage} />
-            <KpiCard icon="👥" label="Em Trial"       value={stats.trialTenants}   color={C.gold} />
-            <KpiCard icon="👥" label="Bloqueados"     value={stats.blockedTenants} color={C.ruby} />
-            <KpiCard icon="👥" label="Total Clientes" value={stats.totalClients}   color={C.sapphire} />
-            <KpiCard icon="📅" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
+            <KpiCard icon="?" label="Total Saloes"  value={stats.totalTenants}   color={C.text} />
+            <KpiCard icon="?" label="Ativos"         value={stats.activeTenants}  color={C.sage} />
+            <KpiCard icon="?" label="Em Trial"       value={stats.trialTenants}   color={C.gold} />
+            <KpiCard icon="?" label="Bloqueados"     value={stats.blockedTenants} color={C.ruby} />
+            <KpiCard icon="?" label="Total Clientes" value={stats.totalClients}   color={C.sapphire} />
+            <KpiCard icon="?" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
           </div>
         )}
 
@@ -2050,18 +1793,24 @@ function AutomationsPage() {
   const [selected, setSelected]   = useState<any>(null);
   const [showEdit, setShowEdit]   = useState(false);
   const [saving, setSaving]       = useState(false);
-  const [clients2, setClients2]   = useState<any[]>([]);
   const [showSend, setShowSend]   = useState(false);
-  const [sendTarget, setSendTarget] = useState<any>(null);
   const [editMsg, setEditMsg]     = useState("");
+
+  // Envio avancado
+  const [allClients, setAllClients] = useState<any[]>([]);
+  const [search, setSearch]         = useState("");
+  const [segFilter, setSegFilter]   = useState("all");
+  const [birthdayFilter, setBirthdayFilter] = useState(false);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [sending, setSending]       = useState(false);
 
   useEffect(() => {
     Promise.all([
       api.get<any>("/automations/templates"),
-      clientsApi.list({ limit: 200 }),
+      clientsApi.list({ limit: 500 }),
     ]).then(([t, c]: any) => {
       setTemplates(t.data ?? []);
-      setClients2(c.data ?? []);
+      setAllClients(c.data ?? []);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
@@ -2081,6 +1830,41 @@ function AutomationsPage() {
     setTemplates(ts => ts.map(x => x.id === t.id ? r.data : x));
   };
 
+  // Filtro de clientes
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const filteredClients = allClients.filter((c: any) => {
+    const q = search.toLowerCase();
+    const matchSearch = !q ||
+      c.fullName?.toLowerCase().includes(q) ||
+      c.whatsapp?.includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.phone?.includes(q);
+    const matchSeg = segFilter === "all" || c.segment === segFilter;
+    const matchBirthday = !birthdayFilter ||
+      (c.birthDate && new Date(c.birthDate).getMonth() + 1 === month);
+    return matchSearch && matchSeg && matchBirthday;
+  });
+
+  const toggleClient = (id: string) => {
+    setSelectedClients(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  };
+
+  const selectAll = () => {
+    if (selectedClients.length === filteredClients.length) {
+      setSelectedClients([]);
+    } else {
+      setSelectedClients(filteredClients.map((c: any) => c.id));
+    }
+  };
+
+  const formatMsg = (msg: string, client?: any) => {
+    const nome = client?.fullName?.split(" ")[0] ?? "{nome}";
+    const data = new Date().toLocaleDateString("pt-BR");
+    const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    return msg.replace("{nome}", nome).replace("{data}", data).replace("{hora}", hora).replace("{valor}", "R$ 0,00");
+  };
+
   const TRIGGER_LABEL: any = {
     appointment_reminder_24h: "Lembrete 24h antes",
     appointment_reminder_2h:  "Lembrete 2h antes",
@@ -2095,24 +1879,23 @@ function AutomationsPage() {
   };
 
   const TRIGGER_ICON: any = {
-    appointment_reminder_24h: "?",
-    appointment_reminder_2h:  "!",
-    appointment_confirmed:    "?",
-    appointment_completed:    "?",
-    birthday:                 "?",
-    client_reactivation:      "?",
-    satisfaction_survey:      "?",
-    promotion:                "?",
-    financial_reminder:       "?",
-    welcome:                  "?",
+    appointment_reminder_24h: "⏰",
+    appointment_reminder_2h:  "🔔",
+    appointment_confirmed:    "✅",
+    appointment_completed:    "⭐",
+    birthday:                 "🎂",
+    client_reactivation:      "💕",
+    satisfaction_survey:      "📊",
+    promotion:                "🎉",
+    financial_reminder:       "💰",
+    welcome:                  "🌸",
   };
 
-  const formatMsg = (msg: string, client?: any) => {
-    const nome = client?.fullName?.split(" ")[0] ?? "{nome}";
-    const data = new Date().toLocaleDateString("pt-BR");
-    const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
-    return msg.replace("{nome}", nome).replace("{data}", data).replace("{hora}", hora).replace("{valor}", "R$ 0,00");
-  };
+  const SEGS = [
+    { v:"all", l:"Todos" },{ v:"new", l:"Novos" },{ v:"active", l:"Ativos" },
+    { v:"vip", l:"VIP" },{ v:"loyal", l:"Fieis" },{ v:"at_risk", l:"Em Risco" },
+    { v:"churned", l:"Inativos" },
+  ];
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
@@ -2124,31 +1907,51 @@ function AutomationsPage() {
     <div>
       <PageHeader title="Automacoes" sub={`${templates.length} templates de mensagens`} />
 
-      {/* Aviso trial */}
+      {/* Aviso */}
       <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
-        <span style={{ fontSize:20 }}>??</span>
+        <span style={{ fontSize:20 }}>⚡</span>
         <div>
-          <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Modo Trial - Envio Manual</div>
-          <div style={{ fontSize:11, color:C.textMuted }}>Durante o periodo de teste, as mensagens podem ser visualizadas e enviadas manualmente. O disparo automatico fica disponivel apos ativar o plano.</div>
+          <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Configure suas automacoes</div>
+          <div style={{ fontSize:11, color:C.textMuted }}>Ative o toggle para disparo automatico. Desativado = apenas envio manual.</div>
         </div>
       </div>
 
       {/* Grid de templates */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(320px,1fr))", gap:16 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(340px,1fr))", gap:16 }}>
         {templates.map((t: any) => (
           <div key={t.id} style={{ background:C.card, border:`1px solid ${t.isActive ? C.borderHi : C.border}`, borderRadius:16, padding:20, position:"relative" }}>
-            {/* Header */}
+
+            {/* Header com toggle */}
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "!"}</span>
+                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "💬"}</span>
                 <div>
                   <div style={{ fontWeight:700, color:C.text, fontSize:14, fontFamily:FD }}>{t.name}</div>
                   <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>{TRIGGER_LABEL[t.trigger] ?? t.trigger}</div>
                 </div>
               </div>
-              <button onClick={() => toggleActive(t)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color: t.isActive ? C.sage : C.textMuted, fontWeight:700, fontFamily:FB }}>
-                {t.isActive ? "? Ativo" : "? Inativo"}
-              </button>
+
+              {/* Toggle automatico/manual */}
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
+                <button
+                  onClick={() => toggleActive(t)}
+                  style={{
+                    width:44, height:24, borderRadius:12, border:"none", cursor:"pointer",
+                    background: t.isActive ? C.sage : C.border,
+                    position:"relative", transition:"background .2s",
+                  }}
+                >
+                  <div style={{
+                    width:18, height:18, borderRadius:"50%", background:"#fff",
+                    position:"absolute", top:3,
+                    left: t.isActive ? 23 : 3,
+                    transition:"left .2s",
+                  }} />
+                </button>
+                <span style={{ fontSize:9, color: t.isActive ? C.sage : C.textMuted, fontWeight:700, fontFamily:FB }}>
+                  {t.isActive ? "AUTOMATICO" : "MANUAL"}
+                </span>
+              </div>
             </div>
 
             {/* Mensagem */}
@@ -2164,9 +1967,12 @@ function AutomationsPage() {
             </div>
 
             {/* Acoes */}
-            <div style={{ display:"flex", gap:8 }}>
-              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>?? Editar</Btn>
-              <Btn small onClick={() => { setSelected(t); setSendTarget(null); setShowSend(true); }}>? Enviar</Btn>
+            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>✏️ Editar</Btn>
+              <Btn small onClick={() => { setSelected(t); setSearch(""); setSegFilter("all"); setBirthdayFilter(false); setSelectedClients([]); setShowSend(true); }}>📱 Enviar</Btn>
+              <span style={{ fontSize:10, color: t.isActive ? C.sage : C.textMuted, marginLeft:"auto", fontFamily:FB }}>
+                {t.isActive ? "⚡ Auto" : "👆 Manual"}
+              </span>
             </div>
           </div>
         ))}
@@ -2184,9 +1990,8 @@ function AutomationsPage() {
           />
         </div>
         <div style={{ fontSize:11, color:C.textMuted, marginBottom:16 }}>
-          Variaveis disponiveis: <span style={{ color:C.rose }}>{"{nome}"}</span>, <span style={{ color:C.rose }}>{"{data}"}</span>, <span style={{ color:C.rose }}>{"{hora}"}</span>, <span style={{ color:C.rose }}>{"{valor}"}</span>
+          Variaveis: <span style={{ color:C.rose }}>{"{nome}"}</span>, <span style={{ color:C.rose }}>{"{data}"}</span>, <span style={{ color:C.rose }}>{"{hora}"}</span>, <span style={{ color:C.rose }}>{"{valor}"}</span>
         </div>
-        {/* Preview */}
         <div style={{ background:C.surface, borderRadius:10, padding:"10px 14px", fontSize:12, color:C.textSec, marginBottom:16 }}>
           <div style={{ fontSize:10, color:C.textMuted, marginBottom:6, textTransform:"uppercase" }}>Preview</div>
           {formatMsg(editMsg)}
@@ -2197,44 +2002,102 @@ function AutomationsPage() {
         </div>
       </Modal>
 
-      {/* Modal Enviar */}
-      <Modal open={showSend} onClose={() => setShowSend(false)} title={`Enviar: ${selected?.name}`} width={500}>
+      {/* Modal Envio Manual Avancado */}
+      <Modal open={showSend} onClose={() => setShowSend(false)} title={`Enviar: ${selected?.name}`} width={620}>
         {selected && (
           <div>
-            <div style={{ marginBottom:16 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:8, textTransform:"uppercase" }}>Selecione a cliente</label>
-              <select
-                value={sendTarget?.id ?? ""}
-                onChange={e => setSendTarget(clients2.find((c: any) => c.id === e.target.value))}
-                style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, outline:"none", fontFamily:FB }}
-              >
-                <option value="">Selecione...</option>
-                {clients2.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.fullName} {c.whatsapp ? `? ${c.whatsapp}` : ""}</option>
+            {/* Busca inteligente */}
+            <div style={{ marginBottom:14 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 14px", marginBottom:10 }}>
+                <span style={{ color:C.textMuted }}>🔍</span>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar por nome, telefone ou email..."
+                  style={{ background:"none", border:"none", outline:"none", color:C.text, fontSize:13, width:"100%", fontFamily:FB }}
+                />
+                {search && <button onClick={() => setSearch("")} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:16 }}>×</button>}
+              </div>
+
+              {/* Filtros */}
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+                {SEGS.map(s => (
+                  <button key={s.v} onClick={() => setSegFilter(s.v)}
+                    style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${segFilter===s.v?C.rose:C.border}`, background:segFilter===s.v?`${C.rose}15`:C.card, color:segFilter===s.v?C.rose:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{s.l}</button>
                 ))}
-              </select>
+                <button onClick={() => setBirthdayFilter(!birthdayFilter)}
+                  style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${birthdayFilter?C.gold:C.border}`, background:birthdayFilter?`${C.gold}15`:C.card, color:birthdayFilter?C.gold:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>🎂 Aniversariantes</button>
+              </div>
+
+              {/* Selecionar todos */}
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>{filteredClients.length} clientes encontrados</span>
+                <button onClick={selectAll} style={{ background:"none", border:"none", color:C.rose, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:700 }}>
+                  {selectedClients.length === filteredClients.length && filteredClients.length > 0 ? "Desmarcar todos" : "Selecionar todos"}
+                </button>
+              </div>
+
+              {/* Lista de clientes */}
+              <div style={{ maxHeight:200, overflowY:"auto", border:`1px solid ${C.border}`, borderRadius:10, background:C.surface }}>
+                {filteredClients.length === 0 && (
+                  <div style={{ padding:20, textAlign:"center", color:C.textMuted, fontSize:13, fontFamily:FB }}>Nenhum cliente encontrado</div>
+                )}
+                {filteredClients.map((c: any) => (
+                  <div key={c.id}
+                    onClick={() => toggleClient(c.id)}
+                    style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", cursor:"pointer", borderBottom:`1px solid ${C.border}`, background: selectedClients.includes(c.id) ? `${C.rose}10` : "transparent" }}
+                  >
+                    <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${selectedClients.includes(c.id) ? C.rose : C.border}`, background: selectedClients.includes(c.id) ? C.rose : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      {selectedClients.includes(c.id) && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:C.text, fontFamily:FB }}>{c.fullName}</div>
+                      <div style={{ fontSize:11, color:C.textMuted }}>{c.whatsapp} {c.segment ? `· ${c.segment}` : ""}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {sendTarget && (
-              <div style={{ background:C.surface, borderRadius:10, padding:"14px", marginBottom:16 }}>
-                <div style={{ fontSize:10, color:C.textMuted, marginBottom:8, textTransform:"uppercase" }}>Mensagem que sera enviada</div>
+            {/* Preview da mensagem */}
+            {selectedClients.length > 0 && (
+              <div style={{ background:C.surface, borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
+                <div style={{ fontSize:10, color:C.textMuted, marginBottom:6, textTransform:"uppercase" }}>Preview (primeiro selecionado)</div>
                 <div style={{ fontSize:13, color:C.text, fontFamily:FB, lineHeight:1.6 }}>
-                  {formatMsg(selected.message, sendTarget)}
+                  {formatMsg(selected.message, allClients.find((c: any) => c.id === selectedClients[0]))}
                 </div>
               </div>
             )}
 
-            <div style={{ display:"flex", gap:10 }}>
+            {/* Botoes */}
+            <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               <Btn variant="secondary" onClick={() => setShowSend(false)}>Cancelar</Btn>
-              {sendTarget && (
+              {selectedClients.length === 1 && (
                 <a
-                  href={`https://wa.me/55${sendTarget.whatsapp?.replace(/\D/g,"")}?text=${encodeURIComponent(formatMsg(selected.message, sendTarget))}`}
+                  href={`https://wa.me/55${allClients.find((c: any) => c.id === selectedClients[0])?.whatsapp?.replace(/\D/g,"")}?text=${encodeURIComponent(formatMsg(selected.message, allClients.find((c: any) => c.id === selectedClients[0])))}`}
                   target="_blank"
                   onClick={() => setShowSend(false)}
                   style={{ display:"inline-block", padding:"10px 22px", background:`linear-gradient(135deg, ${C.sage}, #5a8f55)`, color:"#fff", borderRadius:10, textDecoration:"none", fontWeight:700, fontSize:13, fontFamily:FB }}
-                >
-                  ? Abrir WhatsApp
-                </a>
+                >📱 Abrir WhatsApp</a>
+              )}
+              {selectedClients.length > 1 && (
+                <div style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>
+                  {selectedClients.length} clientes selecionados. Clique em cada um para enviar individualmente.
+                  <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
+                    {selectedClients.slice(0,5).map(id => {
+                      const c = allClients.find((x: any) => x.id === id);
+                      if (!c) return null;
+                      return (
+                        <a key={id}
+                          href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}?text=${encodeURIComponent(formatMsg(selected.message, c))}`}
+                          target="_blank"
+                          style={{ fontSize:11, color:C.sage, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none", fontFamily:FB, fontWeight:600 }}
+                        >📱 {c.fullName?.split(" ")[0]}</a>
+                      );
+                    })}
+                    {selectedClients.length > 5 && <span style={{ fontSize:11, color:C.textMuted, padding:"4px 0" }}>+{selectedClients.length - 5} mais...</span>}
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -2243,6 +2106,7 @@ function AutomationsPage() {
     </div>
   );
 }
+
 
 // --- TRIAL BANNER --------------------------------------------
 function TrialBanner() {
@@ -2282,18 +2146,18 @@ function TrialBanner() {
 
 // --- SIDEBAR -------------------------------------------------
 const MENU = [
-  { id:"dashboard",     label:"Dashboard",     icon:"📊" },
-  { id:"agenda",        label:"Agenda",        icon:"📅" },
-  { id:"clients",       label:"Clientes",      icon:"👥" },
-  { id:"professionals", label:"Profissionais", icon:"💅" },
-  { id:"services",      label:"Servicos",      icon:"✂" },
-  { id:"packages",      label:"Pacotes",       icon:"📦" },
-  { id:"financial",     label:"Financeiro",    icon:"💰" },
-  { id:"commissions",   label:"Comissoes",     icon:"💼" },
-  { id:"crm",           label:"CRM",           icon:"🎯" },
-  { id:"fidelity",      label:"Fidelidade",    icon:"⭐" },
-  { id:"automations",   label:"Automacoes",    icon:"⚡" },
-  { id:"notifications", label:"Notificacoes",  icon:"🔔" },
+  { id:"dashboard",     label:"Dashboard",    icon:"*" },
+  { id:"agenda",        label:"Agenda",        icon:"o" },
+  { id:"clients",       label:"Clientes",      icon:"o" },
+  { id:"professionals", label:"Profissionais", icon:"*" },
+  { id:"services",      label:"Servicos",      icon:"*" },
+  { id:"packages",      label:"Pacotes",       icon:"o" },
+  { id:"financial",     label:"Financeiro",    icon:"o" },
+  { id:"commissions",   label:"Comissoes",     icon:"o" },
+  { id:"crm",           label:"CRM",           icon:"o" },
+  { id:"fidelity",      label:"Fidelidade",    icon:"o" },
+  { id:"automations",   label:"Automacoes",    icon:"!" },
+  { id:"notifications", label:"Notificacoes",  icon:"!" },
 ];
 
 function Sidebar({ page, setPage, user, onLogout }: any) {
@@ -2328,7 +2192,7 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
 // --- APP -----------------------------------------------------
 export default function App() {
   // Rota Super Admin
-  if (window.location.pathname.includes("super-admin") || window.location.hash.includes("super-admin")) {
+  if (window.location.pathname === "/super-admin") {
     return <SuperAdminApp />;
   }
 
@@ -2398,10 +2262,3 @@ export default function App() {
     </>
   );
 }
-
-
-
-
-
-
-
