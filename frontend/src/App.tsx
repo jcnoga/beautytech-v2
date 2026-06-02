@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
+import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
