@@ -1040,4 +1040,3 @@ export async function superAdminModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: notif });
   });
 }
-}
