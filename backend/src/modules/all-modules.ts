@@ -1007,3 +1007,36 @@ export async function superAdminModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: { totalTenants: Number(t1[0]?.count ?? 0), activeTenants: Number(t2[0]?.count ?? 0), trialTenants: Number(t3[0]?.count ?? 0), blockedTenants: Number(t4[0]?.count ?? 0), totalClients: Number(t5[0]?.count ?? 0), totalAppts: Number(t6[0]?.count ?? 0) } });
   });
 }
+
+// Listar notificações
+  fastify.get("/automations/notifications", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const { status, channel, page, limit } = req.query as any;
+    const { limit: l, offset } = paginate(page, limit);
+    const cond = [eq(notifications.tenantId, tenantId)];
+    if (status)  cond.push(eq(notifications.status, status));
+    if (channel) cond.push(eq(notifications.channel, channel));
+    const [data, [{ total }]] = await Promise.all([
+      db.select({
+        notification: notifications,
+        client: { id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp },
+      })
+      .from(notifications)
+      .leftJoin(clients, eq(notifications.clientId, clients.id))
+      .where(and(...cond))
+      .orderBy(desc(notifications.createdAt))
+      .limit(l).offset(offset),
+      db.select({ total: sql<number>`count(*)` }).from(notifications).where(and(...cond)),
+    ]);
+    return reply.send({ success: true, data, total: Number(total), page: Number(page ?? 1), limit: l });
+  });
+
+  // Marcar notificação como enviada
+  fastify.post("/automations/notifications/:id/sent", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const [notif] = await db.update(notifications)
+      .set({ status: "sent", sentAt: new Date() })
+      .where(and(eq(notifications.id, req.params.id), eq(notifications.tenantId, tenantId)))
+      .returning();
+    return reply.send({ success: true, data: notif });
+  });

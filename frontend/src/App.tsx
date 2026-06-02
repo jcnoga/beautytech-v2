@@ -7,7 +7,8 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
+
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
   bg:        "#0C0A09",
@@ -1638,6 +1639,153 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 }
 
 
+// ─── NOTIFICAÇÕES ─────────────────────────────────────────────
+function NotificationsPage() {
+  const [data, setData]       = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter]   = useState("all");
+  const [page, setPage]       = useState(1);
+  const [total, setTotal]     = useState(0);
+
+  const load = async (p = 1, f = filter) => {
+    setLoading(true);
+    try {
+      const params: any = { page: p, limit: 20 };
+      if (f !== "all") params.status = f;
+      const r: any = await api.get<any>("/automations/notifications", params);
+      setData(r.data ?? []);
+      setTotal(r.total ?? 0);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const markSent = async (id: string) => {
+    try {
+      await api.post<any>(`/automations/notifications/${id}/sent`);
+      setData(d => d.map((item: any) =>
+        item.notification?.id === id
+          ? { ...item, notification: { ...item.notification, status: "sent" } }
+          : item
+      ));
+    } catch(e) { console.error(e); }
+  };
+
+  const STATUS_COLOR: any = {
+    pending: C.gold,
+    sent:    C.sage,
+    failed:  C.ruby,
+  };
+
+  const STATUS_LABEL: any = {
+    pending: "Pendente",
+    sent:    "Enviado",
+    failed:  "Falhou",
+  };
+
+  const TRIGGER_LABEL: any = {
+    appointment_reminder_24h: "Lembrete 24h",
+    appointment_reminder_2h:  "Lembrete 2h",
+    appointment_confirmed:    "Confirmação",
+    appointment_completed:    "Pós-atendimento",
+    birthday:                 "Aniversário",
+    client_reactivation:      "Reativação",
+    satisfaction_survey:      "Pesquisa",
+    promotion:                "Promoção",
+    financial_reminder:       "Financeiro",
+    welcome:                  "Boas-vindas",
+  };
+
+  const filters = [
+    { v:"all",     l:"Todas" },
+    { v:"pending", l:"Pendentes" },
+    { v:"sent",    l:"Enviadas" },
+    { v:"failed",  l:"Falhas" },
+  ];
+
+  const cols = [
+    { key:"client", label:"Cliente", render: (item: any) => (
+      <div>
+        <div style={{ fontWeight:600, color:C.text }}>{item.client?.fullName ?? "—"}</div>
+        <div style={{ fontSize:11, color:C.textMuted }}>{item.client?.whatsapp}</div>
+      </div>
+    )},
+    { key:"message", label:"Mensagem", render: (item: any) => (
+      <div style={{ maxWidth:300, fontSize:12, color:C.textSec, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+        {item.notification?.message}
+      </div>
+    )},
+    { key:"status", label:"Status", render: (item: any) => {
+      const s = item.notification?.status;
+      return <Badge label={STATUS_LABEL[s] ?? s} color={STATUS_COLOR[s] ?? C.textMuted} />;
+    }},
+    { key:"channel", label:"Canal", render: () => <Badge label="WhatsApp" color={C.sage} /> },
+    { key:"createdAt", label:"Gerado em", render: (item: any) => (
+      <span style={{ fontSize:11, color:C.textMuted }}>{fmtDate(item.notification?.createdAt)}</span>
+    )},
+    { key:"action", label:"Ações", render: (item: any) => (
+      <div style={{ display:"flex", gap:6 }}>
+        {item.notification?.status === "pending" && (
+          <>
+            <a
+              href={`https://wa.me/55${item.client?.whatsapp?.replace(/\D/g,"")}?text=${encodeURIComponent(item.notification?.message ?? "")}`}
+              target="_blank"
+              onClick={() => markSent(item.notification.id)}
+              style={{ fontSize:11, color:C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}
+            >📱 Enviar</a>
+            <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); markSent(item.notification.id); }}>✓ Marcar</Btn>
+          </>
+        )}
+        {item.notification?.status === "sent" && (
+          <span style={{ fontSize:11, color:C.sage }}>✓ Enviado</span>
+        )}
+      </div>
+    )},
+  ];
+
+  return (
+    <div>
+      <PageHeader
+        title="Notificações"
+        sub={`${total} notificações geradas pelo sistema`}
+        action={<Btn small variant="secondary" onClick={() => load(1, filter)}>↻ Atualizar</Btn>}
+      />
+
+      {/* Aviso */}
+      <div style={{ background:`${C.sapphire}12`, border:`1px solid ${C.sapphire}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
+        <span style={{ fontSize:20 }}>🤖</span>
+        <div>
+          <div style={{ fontWeight:700, color:C.sapphire, fontSize:13 }}>Geradas automaticamente pelo scheduler</div>
+          <div style={{ fontSize:11, color:C.textMuted }}>Clique em "Enviar" para abrir o WhatsApp com a mensagem pronta. O status será marcado como enviado automaticamente.</div>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display:"flex", gap:8, marginBottom:20 }}>
+        {filters.map(f => (
+          <button key={f.v} onClick={() => { setFilter(f.v); load(1, f.v); }}
+            style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f.v?C.rose:C.border}`, background:filter===f.v?`${C.rose}15`:C.card, color:filter===f.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f.l}</button>
+        ))}
+      </div>
+
+      {loading
+        ? <div style={{ textAlign:"center", padding:60, color:C.textMuted, fontFamily:FB }}>Carregando...</div>
+        : <Table cols={cols} rows={data} emptyMsg="Nenhuma notificação encontrada." />
+      }
+
+      {/* Paginação */}
+      {total > 20 && (
+        <div style={{ display:"flex", justifyContent:"center", gap:8, marginTop:20 }}>
+          <Btn small variant="secondary" disabled={page === 1} onClick={() => { setPage(p => p-1); load(page-1); }}>← Anterior</Btn>
+          <span style={{ color:C.textMuted, fontSize:12, padding:"7px 14px", fontFamily:FB }}>Página {page}</span>
+          <Btn small variant="secondary" disabled={data.length < 20} onClick={() => { setPage(p => p+1); load(page+1); }}>Próxima →</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── AUTOMAÇÕES ───────────────────────────────────────────────
 function AutomationsPage() {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -1888,6 +2036,7 @@ const MENU = [
   { id:"crm",           label:"CRM",           icon:"◑" },
   { id:"fidelity",      label:"Fidelidade",    icon:"◒" },
   { id:"automations",   label:"Automações",    icon:"⚡" },
+  { id:"notifications", label:"Notificações",  icon:"🔔" },
 ];
 
 function Sidebar({ page, setPage, user, onLogout }: any) {
@@ -1966,6 +2115,7 @@ export default function App() {
     crm:           CRMPage,
     fidelity:      FidelityPage,
     automations:   AutomationsPage,
+    notifications: NotificationsPage,
   };
   const PageComponent = PAGES[page] ?? DashboardPage;
 
