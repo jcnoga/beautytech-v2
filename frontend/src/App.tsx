@@ -582,6 +582,91 @@ function ClientsPage() {
   );
 }
 
+// ─── WA BUTTON COM MENSAGENS POR STATUS ──────────────────────
+const WA_MESSAGES: Record<string, string[]> = {
+  pending: [
+    "Olá {nome}! 😊 Passando para confirmar seu agendamento amanhã. Pode confirmar sua presença?",
+    "Oi {nome}! Tudo bem? Seu horário está reservado para {data} às {hora}. Confirma?",
+    "Olá {nome}! Lembrando do seu agendamento conosco em {data} às {hora}. Confirma presença? 💅",
+  ],
+  confirmed: [
+    "Olá {nome}! ✅ Seu agendamento está confirmado para {data} às {hora}. Até lá!",
+    "Oi {nome}! Só lembrando: você tem horário marcado conosco em {data} às {hora}. Te esperamos! 😍",
+    "Olá {nome}! Seu horário de {hora} está confirmado. Qualquer dúvida é só chamar! 🌸",
+  ],
+  completed: [
+    "Olá {nome}! 🌟 Foi um prazer te atender hoje! Como você avalia nosso serviço?",
+    "Oi {nome}! Esperamos que tenha gostado! Que tal agendar sua próxima visita? 💆‍♀️",
+    "Olá {nome}! Obrigada pela visita! Deixa sua avaliação no Google e ganhe desconto na próxima. ⭐",
+  ],
+  cancelled: [
+    "Olá {nome}! Sentimos sua falta hoje. Que tal remarcarmos? Temos horários disponíveis! 🗓️",
+    "Oi {nome}! Vimos que não pôde vir. Sem problemas! Quando quiser remarcar é só chamar. 😊",
+  ],
+  no_show: [
+    "Olá {nome}! Ficamos te esperando hoje. Tudo bem? Podemos remarcar seu horário! 💕",
+    "Oi {nome}! Sentimos sua falta! Que tal agendarmos de novo? Temos horários esta semana. 📅",
+  ],
+};
+
+function WaButton({ client, status, scheduledAt }: any) {
+  const [open, setOpen] = useState(false);
+  const msgs = WA_MESSAGES[status] ?? WA_MESSAGES.pending;
+  const data = scheduledAt ? new Date(scheduledAt).toLocaleDateString("pt-BR") : "";
+  const hora = scheduledAt ? new Date(scheduledAt).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "";
+  const nome = client?.fullName?.split(" ")[0] ?? "cliente";
+  const phone = client?.whatsapp?.replace(/\D/g, "") ?? "";
+
+  const format = (msg: string) =>
+    msg.replace("{nome}", nome).replace("{data}", data).replace("{hora}", hora);
+
+  return (
+    <>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(true); }}
+        style={{ fontSize:11, color:C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, background:"none", cursor:"pointer", fontFamily:FB }}
+      >WA</button>
+
+      {open && (
+        <div style={{ position:"fixed", inset:0, background:C.overlay, display:"flex", alignItems:"center", justifyContent:"center", zIndex:2000, padding:20 }}
+          onClick={() => setOpen(false)}>
+          <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, width:"100%", maxWidth:480 }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ padding:"18px 24px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div style={{ fontSize:16, fontWeight:700, color:C.text, fontFamily:FD }}>💬 Mensagem para {nome}</div>
+              <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:C.textMuted, fontSize:22, cursor:"pointer" }}>×</button>
+            </div>
+            <div style={{ padding:24 }}>
+              <div style={{ fontSize:11, color:C.textMuted, marginBottom:14, fontFamily:FB, textTransform:"uppercase", letterSpacing:"0.06em" }}>
+                Sugestões para status: <span style={{ color:STATUS_APPT[status]?.color ?? C.rose }}>{STATUS_APPT[status]?.label ?? status}</span>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {msgs.map((msg, i) => {
+                  const texto = format(msg);
+                  return (
+                    
+                      key={i}
+                      href={`https://wa.me/55${phone}?text=${encodeURIComponent(texto)}`}
+                      target="_blank"
+                      onClick={() => setOpen(false)}
+                      style={{ display:"block", background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"12px 16px", color:C.text, textDecoration:"none", fontSize:13, fontFamily:FB, lineHeight:1.5, cursor:"pointer" }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = C.sage)}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
+                    >
+                      <div style={{ fontSize:10, color:C.sage, fontWeight:700, marginBottom:6, textTransform:"uppercase" }}>Opção {i+1} → Clique para abrir WhatsApp</div>
+                      {texto}
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── AGENDA ──────────────────────────────────────────────────
 function AgendaPage() {
   const [filter, setFilter]     = useState("all");
@@ -749,8 +834,7 @@ function AgendaPage() {
         {["pending","confirmed"].includes(a.appointment?.status) && (
           <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"cancelled"); }}>✕</Btn>
         )}
-        <a href={`https://wa.me/55${a.client?.whatsapp?.replace(/\D/g,"")}`} target="_blank"
-          style={{ fontSize:11, color:C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>WA</a>
+        <<WaButton client={a.client} status={a.appointment?.status} scheduledAt={a.appointment?.scheduledAt} />
       </div>
     )},
   ];
