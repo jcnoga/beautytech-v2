@@ -1003,6 +1003,4 @@ export async function superAdminModule(fastify: FastifyInstance) {
     });
   });
 }
-}
-// ─────────────────────────────────────────────────────────────
 
