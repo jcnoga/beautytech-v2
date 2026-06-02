@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
 // Tipografia: Playfair Display + Outfit
