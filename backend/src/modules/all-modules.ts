@@ -374,6 +374,20 @@ export async function financialModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data, total: Number(total), page: Number(page ?? 1), limit: l, totalPages: Math.ceil(Number(total) / l) });
   });
 
+  fastify.post("/financial/accounts", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    const { name, type } = req.body as any;
+    const [account] = await db.insert(financialAccounts).values({
+      tenantId,
+      name,
+      type: type ?? "checking",
+      balance: "0",
+      isActive: true,
+      isDefault: false,
+    }).returning();
+    return reply.status(201).send({ success: true, data: account });
+  });
+
   fastify.get("/financial/summary", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const now = new Date();
