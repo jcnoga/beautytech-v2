@@ -729,6 +729,20 @@ export async function productsModule(fastify: FastifyInstance) {
 // AUTH MODULE — Registro de novo tenant (salão)
 // ─────────────────────────────────────────────────────────────
 export async function authModule(fastify: FastifyInstance) {
+  fastify.get("/auth/me", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const [tenant] = await db.select({
+      id:          tenants.id,
+      name:        tenants.name,
+      planTier:    tenants.planTier,
+      isActive:    tenants.isActive,
+      trialEndsAt: tenants.trialEndsAt,
+    }).from(tenants).where(eq(tenants.id, tenantId));
+    const now = new Date();
+    const trialEnd = tenant?.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
+    const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000) : null;
+    return reply.send({ success: true, data: { ...tenant, daysLeft } });
+  });
   fastify.post("/auth/register", async (req: any, reply) => {
     const { salonName, ownerName, email, password } = req.body as any;
 
