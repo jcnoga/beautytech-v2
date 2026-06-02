@@ -22,7 +22,9 @@ import {
   productsModule,
   authModule,
   superAdminModule,
+  automationsModule,
 } from "./modules/all-modules.js";
+
 
 const server = Fastify({ logger: { level: env.LOG_LEVEL } });
 
@@ -67,6 +69,7 @@ const prefix = env.API_PREFIX;
   await server.register(campaignsModule,     { prefix });
   await server.register(productsModule,      { prefix });
   await server.register(superAdminModule,    { prefix });
+  await server.register(automationsModule,   { prefix });
 
   await server.listen({ port: env.PORT, host: env.HOST });
   console.log(`BeautyTech v2 rodando na porta ${env.PORT}`);
