@@ -869,11 +869,9 @@ export async function automationsModule(fastify: FastifyInstance) {
     if (isActive !== undefined) cond.push(eq(messageTemplates.isActive, isActive === "true"));
     const data = await db.select().from(messageTemplates).where(and(...cond)).orderBy(messageTemplates.trigger);
 
-  return reply.send({ success: true, data, total: data.length });
-  });  // ← fecha o handler anterior
+});
 
-  // Listar configuracoes de automacao
-fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const result = await db.execute(
       sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`
@@ -882,10 +880,7 @@ fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req:
     return reply.send({ success: true, data: settings });
   });
 
-    const { tenantId } = req.tenantContext;
-    const result = await db.execute(
-      sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`
-    );
+  fastify.post("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
     const settings = result.rows[0] ?? null;
     return reply.send({ success: true, data: settings });
   });
@@ -1095,5 +1090,77 @@ export async function superAdminModule(fastify: FastifyInstance) {
       .where(and(eq(notifications.id, req.params.id), eq(notifications.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: notif });
+  });
+
+  fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const result = await db.execute(
+      sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`
+    );
+    const settings = result.rows[0] ?? null;
+    return reply.send({ success: true, data: settings });
+  });
+
+  fastify.post("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const body = req.body as any;
+    await db.execute(sql`
+      INSERT INTO automation_settings (tenant_id, reminder_24h_enabled, reminder_24h_hours, reminder_2h_enabled, reminder_2h_hours, birthday_enabled, birthday_hour, reactivation_enabled, reactivation_days, post_service_enabled, post_service_hours)
+      VALUES (${tenantId}, ${body.reminder_24h_enabled}, ${body.reminder_24h_hours}, ${body.reminder_2h_enabled}, ${body.reminder_2h_hours}, ${body.birthday_enabled}, ${body.birthday_hour}, ${body.reactivation_enabled}, ${body.reactivation_days}, ${body.post_service_enabled}, ${body.post_service_hours})
+      ON CONFLICT (tenant_id) DO UPDATE SET
+        reminder_24h_enabled = ${body.reminder_24h_enabled},
+        reminder_24h_hours = ${body.reminder_24h_hours},
+        reminder_2h_enabled = ${body.reminder_2h_enabled},
+        reminder_2h_hours = ${body.reminder_2h_hours},
+        birthday_enabled = ${body.birthday_enabled},
+        birthday_hour = ${body.birthday_hour},
+        reactivation_enabled = ${body.reactivation_enabled},
+        reactivation_days = ${body.reactivation_days},
+        post_service_enabled = ${body.post_service_enabled},
+        post_service_hours = ${body.post_service_hours},
+        updated_at = NOW()
+    `);
+    return reply.send({ success: true });
+  });
+  fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const result = await db.execute(sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`);
+    const settings = result.rows[0] ?? null;
+    return reply.send({ success: true, data: settings });
+  });
+
+  fastify.post("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const body = req.body as any;
+    return reply.send({ success: true });
+  });
+}
+fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const result = await db.execute(sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`);
+    const settings = result.rows[0] ?? null;
+    return reply.send({ success: true, data: settings });
+  });
+
+  fastify.post("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const body = req.body as any;
+    await db.execute(sql`
+      INSERT INTO automation_settings (tenant_id, reminder_24h_enabled, reminder_24h_hours, reminder_2h_enabled, reminder_2h_hours, birthday_enabled, birthday_hour, reactivation_enabled, reactivation_days, post_service_enabled, post_service_hours)
+      VALUES (${tenantId}, ${body.reminder_24h_enabled}, ${body.reminder_24h_hours}, ${body.reminder_2h_enabled}, ${body.reminder_2h_hours}, ${body.birthday_enabled}, ${body.birthday_hour}, ${body.reactivation_enabled}, ${body.reactivation_days}, ${body.post_service_enabled}, ${body.post_service_hours})
+      ON CONFLICT (tenant_id) DO UPDATE SET
+        reminder_24h_enabled = ${body.reminder_24h_enabled},
+        reminder_24h_hours = ${body.reminder_24h_hours},
+        reminder_2h_enabled = ${body.reminder_2h_enabled},
+        reminder_2h_hours = ${body.reminder_2h_hours},
+        birthday_enabled = ${body.birthday_enabled},
+        birthday_hour = ${body.birthday_hour},
+        reactivation_enabled = ${body.reactivation_enabled},
+        reactivation_days = ${body.reactivation_days},
+        post_service_enabled = ${body.post_service_enabled},
+        post_service_hours = ${body.post_service_hours},
+        updated_at = NOW()
+    `);
+    return reply.send({ success: true });
   });
 }
