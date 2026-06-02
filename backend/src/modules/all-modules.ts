@@ -868,9 +868,13 @@ export async function automationsModule(fastify: FastifyInstance) {
     if (channel)   cond.push(eq(messageTemplates.channel, channel));
     if (isActive !== undefined) cond.push(eq(messageTemplates.isActive, isActive === "true"));
     const data = await db.select().from(messageTemplates).where(and(...cond)).orderBy(messageTemplates.trigger);
-    return reply.send({ success: true, data, total: data.length });
-    // Listar configuracoes de automacao
-  fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+
+  return reply.send({ success: true, data, total: data.length });
+  });  // ← fecha o handler anterior
+
+  // Listar configuracoes de automacao
+  fastify.get("/automations/settings"...
+
     const { tenantId } = req.tenantContext;
     const result = await db.execute(
       sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`
