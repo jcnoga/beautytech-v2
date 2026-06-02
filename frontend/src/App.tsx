@@ -1375,6 +1375,270 @@ function FidelityPage() {
   );
 }
 
+function SuperAdminApp() {
+  const [token, setToken]     = useState<string | null>(() => sessionStorage.getItem("sa_token"));
+  const [email, setEmail]     = useState("superadmin@beautytech.com.br");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
+
+  const login = async () => {
+    setLoading(true); setError("");
+    try {
+      const base = import.meta.env["VITE_API_URL"];
+      const res = await fetch(`${base}/api/v1/super-admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      sessionStorage.setItem("sa_token", json.data.token);
+      setToken(json.data.token);
+    } catch(e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => { sessionStorage.removeItem("sa_token"); setToken(null); };
+
+  if (!token) return (
+    <div style={{ minHeight:"100vh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FB, padding:20 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');`}</style>
+      <div style={{ width:"100%", maxWidth:400 }}>
+        <div style={{ textAlign:"center", marginBottom:40 }}>
+          <div style={{ fontSize:12, letterSpacing:"0.3em", color:C.gold, textTransform:"uppercase", marginBottom:8 }}>Acesso Restrito</div>
+          <div style={{ fontSize:36, fontWeight:700, color:C.text, fontFamily:FD }}>Super Admin</div>
+          <div style={{ fontSize:13, color:C.textMuted, marginTop:6 }}>BeautyTech Enterprise v2</div>
+        </div>
+        <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:32 }}>
+          <Inp label="E-mail" value={email} onChange={setEmail} type="email" />
+          <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="••••••••" />
+          {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color:C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
+          <Btn full onClick={login} disabled={loading} variant="gold">{loading ? "Entrando..." : "Entrar como Super Admin"}</Btn>
+          <div style={{ textAlign:"center", marginTop:16 }}>
+            <a href="/" style={{ fontSize:12, color:C.textMuted, textDecoration:"none" }}>← Voltar ao sistema</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return <SuperAdminDashboard token={token} onLogout={logout} />;
+}
+
+function SuperAdminDashboard({ token, onLogout }: any) {
+  const [stats, setStats]     = useState<any>(null);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [search, setSearch]   = useState("");
+  const [filter, setFilter]   = useState("all");
+  const [selected, setSelected] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [trialDays, setTrialDays] = useState("15");
+
+  const base = import.meta.env["VITE_API_URL"];
+
+  const saFetch = async (method: string, endpoint: string, body?: any) => {
+    const res = await fetch(`${base}/api/v1${endpoint}`, {
+      method,
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return res.json();
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (filter !== "all") params.set("status", filter);
+      const qs = params.toString();
+      const [s, t] = await Promise.all([
+        saFetch("GET", "/super-admin/stats"),
+        saFetch("GET", `/super-admin/tenants${qs ? "?" + qs : ""}`),
+      ]);
+      setStats(s.data);
+      setTenants(t.data ?? []);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [search, filter]);
+
+  const block = async (id: string) => {
+    await saFetch("POST", `/super-admin/tenants/${id}/block`);
+    load();
+  };
+
+  const unblock = async (id: string) => {
+    await saFetch("POST", `/super-admin/tenants/${id}/unblock`);
+    load();
+  };
+
+  const extendTrial = async (id: string) => {
+    setSaving(true);
+    await saFetch("POST", `/super-admin/tenants/${id}/extend-trial`, { days: Number(trialDays) });
+    setSaving(false);
+    setSelected(null);
+    load();
+  };
+
+  const TRIAL_STATUS: any = {
+    trial:   { label:"Trial",    color: C.gold },
+    active:  { label:"Ativo",    color: C.sage },
+    expired: { label:"Expirado", color: C.ruby },
+    blocked: { label:"Bloqueado",color: C.textMuted },
+  };
+
+  const filters = [
+    { v:"all",     l:"Todos" },
+    { v:"trial",   l:"Trial" },
+    { v:"active",  l:"Ativos" },
+    { v:"expired", l:"Expirados" },
+    { v:"blocked", l:"Bloqueados" },
+  ];
+
+  const cols = [
+    { key:"name", label:"Salão", render: (t: any) => (
+      <div>
+        <div style={{ fontWeight:700, color:C.text, fontFamily:FB }}>{t.name}</div>
+        <div style={{ fontSize:11, color:C.textMuted }}>{t.email}</div>
+      </div>
+    )},
+    { key:"trialStatus", label:"Status", render: (t: any) => {
+      const s = TRIAL_STATUS[t.trialStatus];
+      return <Badge label={s?.label ?? t.trialStatus} color={s?.color ?? C.textMuted} />;
+    }},
+    { key:"planTier", label:"Plano", render: (t: any) => <Badge label={t.planTier} color={C.sapphire} /> },
+    { key:"daysLeft", label:"Dias Restantes", render: (t: any) => (
+      <span style={{ fontWeight:700, color: t.daysLeft > 5 ? C.sage : t.daysLeft > 0 ? C.gold : C.ruby }}>
+        {t.daysLeft !== null ? `${t.daysLeft} dias` : "—"}
+      </span>
+    )},
+    { key:"trialEndsAt", label:"Vencimento", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{fmtDate(t.trialEndsAt)}</span> },
+    { key:"createdAt", label:"Cadastro", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{fmtDate(t.createdAt)}</span> },
+    { key:"action", label:"Ações", render: (t: any) => (
+      <div style={{ display:"flex", gap:6 }}>
+        <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); }}>Gerenciar</Btn>
+        {t.isActive
+          ? <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); block(t.id); }}>Bloquear</Btn>
+          : <Btn small variant="gold"   onClick={(e: any) => { e.stopPropagation(); unblock(t.id); }}>Liberar</Btn>
+        }
+      </div>
+    )},
+  ];
+
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:FB }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap'); * { box-sizing:border-box; margin:0; padding:0; } body { background:${C.bg}; }`}</style>
+
+      {/* Header */}
+      <div style={{ background:C.card, borderBottom:`1px solid ${C.border}`, padding:"16px 32px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+          <div style={{ fontSize:20, fontWeight:700, color:C.text, fontFamily:FD }}>BeautyTech</div>
+          <Badge label="SUPER ADMIN" color={C.gold} />
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+          <a href="/" style={{ fontSize:12, color:C.textMuted, textDecoration:"none" }}>← Sistema</a>
+          <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:12, cursor:"pointer", fontFamily:FB }}>Sair</button>
+        </div>
+      </div>
+
+      <div style={{ padding:32 }}>
+        <PageHeader title="Painel Super Admin" sub="Gestão de salões, trials e acessos" />
+
+        {/* KPIs */}
+        {stats && (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px,1fr))", gap:16, marginBottom:28 }}>
+            <KpiCard icon="🏢" label="Total Salões"  value={stats.totalTenants}   color={C.text} />
+            <KpiCard icon="✅" label="Ativos"         value={stats.activeTenants}  color={C.sage} />
+            <KpiCard icon="⏳" label="Em Trial"       value={stats.trialTenants}   color={C.gold} />
+            <KpiCard icon="🚫" label="Bloqueados"     value={stats.blockedTenants} color={C.ruby} />
+            <KpiCard icon="👥" label="Total Clientes" value={stats.totalClients}   color={C.sapphire} />
+            <KpiCard icon="📅" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
+          </div>
+        )}
+
+        {/* Filtros e busca */}
+        <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
+          <Search value={search} onChange={setSearch} placeholder="Buscar salão..." />
+          <div style={{ display:"flex", gap:6 }}>
+            {filters.map(f => (
+              <button key={f.v} onClick={() => setFilter(f.v)}
+                style={{ padding:"7px 14px", borderRadius:8, border:`1px solid ${filter===f.v?C.gold:C.border}`, background:filter===f.v?`${C.gold}15`:C.card, color:filter===f.v?C.gold:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f.l}</button>
+            ))}
+          </div>
+          <Btn small variant="secondary" onClick={load}>↻ Atualizar</Btn>
+        </div>
+
+        {loading
+          ? <div style={{ textAlign:"center", padding:60, color:C.textMuted }}>Carregando...</div>
+          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); }} emptyMsg="Nenhum salão encontrado." />
+        }
+      </div>
+
+      {/* Modal Gerenciar Tenant */}
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={`Gerenciar: ${selected?.name}`} width={480}>
+        {selected && (
+          <div>
+            {/* Info */}
+            <div style={{ background:C.surface, borderRadius:12, padding:16, marginBottom:20 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Status</div>
+                  <Badge label={TRIAL_STATUS[selected.trialStatus]?.label ?? selected.trialStatus} color={TRIAL_STATUS[selected.trialStatus]?.color ?? C.rose} />
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Plano</div>
+                  <Badge label={selected.planTier} color={C.sapphire} />
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Dias Restantes</div>
+                  <div style={{ fontWeight:700, color: selected.daysLeft > 0 ? C.gold : C.ruby }}>{selected.daysLeft ?? "—"} dias</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Vencimento</div>
+                  <div style={{ fontSize:13, color:C.text }}>{fmtDate(selected.trialEndsAt)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Estender Trial */}
+            <div style={{ marginBottom:20 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>⏳ Estender / Definir Trial</div>
+              <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
+                <Inp label="Dias de trial" value={trialDays} onChange={setTrialDays} type="number" placeholder="15" />
+                <Btn variant="gold" onClick={() => extendTrial(selected.id)} disabled={saving}>
+                  {saving ? "Salvando..." : "Aplicar"}
+                </Btn>
+              </div>
+              <div style={{ fontSize:11, color:C.textMuted, marginTop:4 }}>
+                Define um novo período de trial a partir de hoje.
+              </div>
+            </div>
+
+            {/* Bloquear / Liberar */}
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>🔒 Acesso</div>
+              <div style={{ display:"flex", gap:10 }}>
+                {selected.isActive
+                  ? <Btn variant="danger" full onClick={() => { block(selected.id); setSelected(null); }}>Bloquear Acesso</Btn>
+                  : <Btn variant="gold"   full onClick={() => { unblock(selected.id); setSelected(null); }}>Liberar Acesso</Btn>
+                }
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+
 // ─── SIDEBAR ─────────────────────────────────────────────────
 const MENU = [
   { id:"dashboard",     label:"Dashboard",    icon:"◈" },
@@ -1420,6 +1684,12 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
 
 // ─── APP ─────────────────────────────────────────────────────
 export default function App() {
+  // Rota Super Admin
+// Rota Super Admin
+  if (window.location.pathname.startsWith("/super-admin") || window.location.hash === "#/super-admin") {
+    return <SuperAdminApp />;
+  }
+
   const [user, setUser] = useState<any>(null);
   const [page, setPage] = useState("dashboard");
   const [loading, setLoading] = useState(true);
