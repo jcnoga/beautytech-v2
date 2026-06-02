@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
 // Tipografia: Playfair Display + Outfit
@@ -2071,7 +2071,7 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
 // --- APP -----------------------------------------------------
 export default function App() {
   // Rota Super Admin
-  if (window.location.pathname === "/super-admin") {
+  if (window.location.pathname.includes("super-admin") || window.location.hash.includes("super-admin")) {
     return <SuperAdminApp />;
   }
 
@@ -2141,3 +2141,4 @@ export default function App() {
     </>
   );
 }
+
