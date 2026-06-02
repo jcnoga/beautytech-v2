@@ -27,12 +27,14 @@
     "drizzle-orm": "^0.29.5",
     "fastify": "^4.27.0",
     "jose": "^5.0.0",
+    "jsonwebtoken": "^9.0.3",
     "postgres": "^3.4.4",
     "tsx": "^4.7.0",
     "ws": "^8.21.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.14.0",
     "typescript": "^5.4.5"
   }
