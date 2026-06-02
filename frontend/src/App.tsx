@@ -921,8 +921,71 @@ function AgendaPage() {
 
 // --- PROFISSIONAIS --------------------------------------------
 function ProfessionalsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData]       = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [selected, setSelected] = useState<any>(null);
+  const [saving, setSaving]   = useState(false);
+  const emptyForm = { fullName:"", whatsapp:"", email:"", commissionPct:"40", monthlyGoal:"0", color:"#E8A598", specialties:"", isActive:true, acceptsOnlineBooking:true };
+  const [form, setForm] = useState(emptyForm);
+  const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]: v }));
+
+  const load = () => {
+    professionalsApi.list()
+      .then((r: any) => setData(r.data ?? []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openNew = () => {
+    setSelected(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  };
+
+  const openEdit = (p: any) => {
+    setSelected(p);
+    setForm({
+      fullName: p.fullName ?? "",
+      whatsapp: p.whatsapp ?? "",
+      email:    p.email ?? "",
+      commissionPct: p.commissionPct ?? "40",
+      monthlyGoal:   p.monthlyGoal ?? "0",
+      color:         p.color ?? "#E8A598",
+      specialties:   (p.specialties ?? []).join(", "),
+      isActive:      p.isActive ?? true,
+      acceptsOnlineBooking: p.acceptsOnlineBooking ?? true,
+    });
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...form,
+        specialties: form.specialties ? form.specialties.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+      };
+      if (selected) {
+        const r: any = await professionalsApi.update(selected.id, payload);
+        setData(d => d.map(x => x.id === selected.id ? r.data : x));
+      } else {
+        const r: any = await professionalsApi.create(payload);
+        setData(d => [...d, r.data]);
+      }
+      setShowForm(false);
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const toggleActive = async (p: any) => {
+    try {
+      const r: any = await professionalsApi.update(p.id, { isActive: !p.isActive });
+      setData(d => d.map(x => x.id === p.id ? r.data : x));
+    } catch(e) { console.error(e); }
+  };
 
   useEffect(() => {
     professionalsApi.list({ isActive: "true" })
@@ -939,7 +1002,7 @@ function ProfessionalsPage() {
 
   return (
     <div>
-      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn>+ Nova Profissional</Btn>} />
+      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={openNew}>+ Nova Profissional</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
         {data.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB }}>Nenhum profissional cadastrado.</div>}
         {data.map((p: any, i: number) => (
@@ -966,11 +1029,40 @@ function ProfessionalsPage() {
             </div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <Badge label={p.isActive ? "Ativo" : "Inativo"} color={p.isActive ? C.sage : C.textMuted} />
-              <Badge label={p.acceptsOnlineBooking ? "Agendamento Online" : "Presencial"} color={p.acceptsOnlineBooking ? C.sapphire : C.textMuted} />
+              <Badge label={p.acceptsOnlineBooking ? "Online" : "Presencial"} color={p.acceptsOnlineBooking ? C.sapphire : C.textMuted} />
+            </div>
+            <div style={{ display:"flex", gap:8, marginTop:12 }}>
+              <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(p); }}>Editar</Btn>
+              <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(p); }}>
+                {p.isActive ? "Desativar" : "Ativar"}
+              </Btn>
             </div>
           </div>
         ))}
       </div>
+
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={selected ? "Editar Profissional" : "Nova Profissional"}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+          <Inp label="Nome completo" value={form.fullName} onChange={f("fullName")} required placeholder="Marina Santos" grid="1/-1" />
+          <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
+          <Inp label="E-mail" value={form.email} onChange={f("email")} type="email" placeholder="marina@salao.com" />
+          <Inp label="Comissao (%)" value={form.commissionPct} onChange={f("commissionPct")} type="number" placeholder="40" />
+          <Inp label="Meta Mensal (R$)" value={form.monthlyGoal} onChange={f("monthlyGoal")} type="number" placeholder="5000" />
+          <Inp label="Especialidades" value={form.specialties} onChange={f("specialties")} placeholder="Coloracao, Corte, Escova" grid="1/-1" />
+          <div style={{ marginBottom:14 }}>
+            <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, textTransform:"uppercase" }}>Cor</label>
+            <input type="color" value={form.color} onChange={e => f("color")(e.target.value)} style={{ width:60, height:36, borderRadius:8, border:`1px solid ${C.border}`, background:C.surface, cursor:"pointer" }} />
+          </div>
+          <div style={{ marginBottom:14, display:"flex", alignItems:"center", gap:10, paddingTop:20 }}>
+            <input type="checkbox" checked={form.acceptsOnlineBooking} onChange={e => f("acceptsOnlineBooking")(e.target.checked)} id="online" />
+            <label htmlFor="online" style={{ fontSize:13, color:C.text, fontFamily:FB }}>Aceita agendamento online</label>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : selected ? "Salvar" : "Cadastrar"}</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }
