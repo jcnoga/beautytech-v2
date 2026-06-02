@@ -1441,8 +1441,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
   const base = import.meta.env["VITE_API_URL"];
 
-  headers: { ...(body !== undefined ? { "Content-Type": "application/json" } : {}), "Authorization": `Bearer ${token}` },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+  const saFetch = async (method: string, endpoint: string, body?: any) => {
     const res = await fetch(`${base}/api/v1${endpoint}`, {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -1640,6 +1639,42 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 }
 
 
+// ─── TRIAL BANNER ────────────────────────────────────────────
+function TrialBanner() {
+  const [info, setInfo] = useState<any>(null);
+  useEffect(() => {
+    api.get<any>("/auth/me").then((r: any) => setInfo(r.data)).catch(() => {});
+  }, []);
+  if (!info || info.planTier !== "trial") return null;
+  const days = info.daysLeft ?? 0;
+  const expired = days <= 0;
+  const urgent  = days <= 3 && days > 0;
+  const color = expired ? C.ruby : urgent ? C.gold : C.sapphire;
+  return (
+    <div style={{ background:`${color}12`, border:`1px solid ${color}30`, borderRadius:12, padding:"12px 20px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center", fontFamily:FB }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <span style={{ fontSize:18 }}>{expired ? "🚫" : urgent ? "⚠️" : "⏳"}</span>
+        <div>
+          <div style={{ fontWeight:700, color, fontSize:13 }}>
+            {expired ? "Período de teste encerrado" : `Período de teste: ${days} dias restantes`}
+          </div>
+          <div style={{ fontSize:11, color:C.textMuted }}>
+            {expired ? "Entre em contato para continuar usando o sistema." : `Trial vence em ${info.trialEndsAt ? new Date(info.trialEndsAt).toLocaleDateString("pt-BR") : "breve"}.`}
+          </div>
+        </div>
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ width:100, height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(days/15)*100))}%`, background:color, borderRadius:3 }} />
+        </div>
+        <a href="mailto:contato@beautytech.com.br" style={{ fontSize:11, color, fontWeight:700, padding:"5px 12px", border:`1px solid ${color}40`, borderRadius:8, textDecoration:"none" }}>
+          {expired ? "Contatar" : "Upgrade"}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── SIDEBAR ─────────────────────────────────────────────────
 const MENU = [
   { id:"dashboard",     label:"Dashboard",    icon:"◈" },
@@ -1686,8 +1721,7 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
 // ─── APP ─────────────────────────────────────────────────────
 export default function App() {
   // Rota Super Admin
-// Rota Super Admin
-  if (window.location.pathname.startsWith("/super-admin") || window.location.hash === "#/super-admin") {
+  if (window.location.pathname === "/super-admin") {
     return <SuperAdminApp />;
   }
 
@@ -1718,46 +1752,6 @@ export default function App() {
   );
 
   if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
-
-  const [trialInfo, setTrialInfo] = useState<any>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    api.get<any>("/auth/me").then((r: any) => setTrialInfo(r.data)).catch(() => {});
-  }, [user]);
-
-  function TrialBanner() {
-    if (!trialInfo) return null;
-    if (trialInfo.planTier !== "trial") return null;
-    const days = trialInfo.daysLeft ?? 0;
-    const expired = days <= 0;
-    const urgent = days <= 3 && days > 0;
-    const color = expired ? C.ruby : urgent ? C.gold : C.sapphire;
-    const bg = expired ? `${C.ruby}15` : urgent ? `${C.gold}15` : `${C.sapphire}15`;
-    return (
-      <div style={{ background: bg, border:`1px solid ${color}30`, borderRadius:12, padding:"12px 20px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center", fontFamily:FB }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:18 }}>{expired ? "🚫" : urgent ? "⚠️" : "⏳"}</span>
-          <div>
-            <div style={{ fontWeight:700, color, fontSize:13 }}>
-              {expired ? "Período de teste encerrado" : `Período de teste: ${days} dias restantes`}
-            </div>
-            <div style={{ fontSize:11, color: C.textMuted }}>
-              {expired ? "Entre em contato para continuar usando o sistema." : `Seu trial vence em ${trialInfo.trialEndsAt ? new Date(trialInfo.trialEndsAt).toLocaleDateString("pt-BR") : "breve"}.`}
-            </div>
-          </div>
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <div style={{ width:120, height:6, background: C.border, borderRadius:3, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:`${Math.max(0, Math.min(100, (days/15)*100))}%`, background: color, borderRadius:3 }} />
-          </div>
-          <a href="mailto:contato@beautytech.com.br" style={{ fontSize:11, color, fontWeight:700, padding:"5px 12px", border:`1px solid ${color}40`, borderRadius:8, textDecoration:"none" }}>
-            {expired ? "Contatar" : "Fazer Upgrade"}
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   const PAGES: any = {
     dashboard:     DashboardPage,
