@@ -372,10 +372,10 @@ function DashboardPage() {
     <div>
       <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))", gap:16, marginBottom:28 }}>
-        <KpiCard icon="*" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mes`} color={C.rose} />
-        <KpiCard icon="*" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
-        <KpiCard icon="*" label="Receita do Mes"     value={brl(k.revenueMonth)} sub={brl(k.revenuePrevMonth)+" mes ant."} color={C.sage} trend={k.revenueGrowth} />
-        <KpiCard icon="*" label="Ticket Medio"       value={brl(k.averageTicket)} sub="por atendimento"   color={C.sapphire} />
+        <KpiCard icon="📅" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mes`} color={C.rose} />
+        <KpiCard icon="👥" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
+        <KpiCard icon="💰" label="Receita do Mes"     value={brl(k.revenueMonth)} sub={brl(k.revenuePrevMonth)+" mes ant."} color={C.sage} trend={k.revenueGrowth} />
+        <KpiCard icon="🎯" label="Ticket Medio"       value={brl(k.averageTicket)} sub="por atendimento"   color={C.sapphire} />
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:20, marginBottom:20 }}>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
@@ -1134,9 +1134,9 @@ function FinancialPage() {
     <div>
       <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transacao</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
-        <KpiCard icon="*" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
-        <KpiCard icon="*" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
-        <KpiCard icon="*" label="Lucro Liquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
+        <KpiCard icon="💰" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
+        <KpiCard icon="💰" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
+        <KpiCard icon="💰" label="Lucro Liquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
@@ -1194,9 +1194,9 @@ function CommissionsPage() {
     <div>
       <PageHeader title="Comissoes" sub="Controle de comissoes por profissional" />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:24 }}>
-        <KpiCard icon="*" label="A Pagar" value={brl(totalPending)} color={C.gold} />
-        <KpiCard icon="*" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
-        <KpiCard icon="*" label="Total"   value={brl(totalPending+totalPaid)} color={C.rose} />
+        <KpiCard icon="💰" label="A Pagar" value={brl(totalPending)} color={C.gold} />
+        <KpiCard icon="💰" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
+        <KpiCard icon="💰" label="Total"   value={brl(totalPending+totalPaid)} color={C.rose} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all",l:"Todas" },{ v:"pending",l:"A Pagar" },{ v:"paid",l:"Pagas" }].map(f2 => (
@@ -1554,12 +1554,12 @@ function SuperAdminDashboard({ token, onLogout }: any) {
         {/* KPIs */}
         {stats && (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px,1fr))", gap:16, marginBottom:28 }}>
-            <KpiCard icon="*" label="Total Saloes"  value={stats.totalTenants}   color={C.text} />
-            <KpiCard icon="*" label="Ativos"         value={stats.activeTenants}  color={C.sage} />
-            <KpiCard icon="*" label="Em Trial"       value={stats.trialTenants}   color={C.gold} />
-            <KpiCard icon="*" label="Bloqueados"     value={stats.blockedTenants} color={C.ruby} />
-            <KpiCard icon="*" label="Total Clientes" value={stats.totalClients}   color={C.sapphire} />
-            <KpiCard icon="*" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
+            <KpiCard icon="💰" label="Total Saloes"  value={stats.totalTenants}   color={C.text} />
+            <KpiCard icon="💰" label="Ativos"         value={stats.activeTenants}  color={C.sage} />
+            <KpiCard icon="👥" label="Em Trial"       value={stats.trialTenants}   color={C.gold} />
+            <KpiCard icon="👥" label="Bloqueados"     value={stats.blockedTenants} color={C.ruby} />
+            <KpiCard icon="👥" label="Total Clientes" value={stats.totalClients}   color={C.sapphire} />
+            <KpiCard icon="📅" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
           </div>
         )}
 
@@ -2025,7 +2025,7 @@ function TrialBanner() {
 
 // --- SIDEBAR -------------------------------------------------
 const MENU = [
-  { id:"dashboard",     label:"Dashboard",    icon:"📊" },
+  { id:"dashboard",     label:"Dashboard",     icon:"📊" },
   { id:"agenda",        label:"Agenda",        icon:"📅" },
   { id:"clients",       label:"Clientes",      icon:"👥" },
   { id:"professionals", label:"Profissionais", icon:"💅" },
@@ -2038,6 +2038,7 @@ const MENU = [
   { id:"automations",   label:"Automacoes",    icon:"⚡" },
   { id:"notifications", label:"Notificacoes",  icon:"🔔" },
 ];
+
 function Sidebar({ page, setPage, user, onLogout }: any) {
   return (
     <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB }}>
