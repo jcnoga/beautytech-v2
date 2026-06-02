@@ -7,7 +7,8 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
+
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
   bg:        "#0C0A09",
@@ -36,49 +37,7 @@ const FB = "'Outfit', sans-serif";
 
 // ─── MOCK DATA (fallback) ─────────────────────────────────────
 const NOW = new Date();
-const D = (h: number, m = 0) => { const d = new Date(NOW); d.setHours(h, m, 0, 0); return d.toISOString(); };
-
 const MOCK_KPIS = { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0, revenueMonth: 0, revenuePrevMonth: 0, averageTicket: 0, revenueGrowth: 0 };
-
-const MOCK = {
-  professionals: [
-    { id:"p1", fullName:"Marina Santos",  displayName:"Marina",  specialties:["Coloração","Mechas","Progressiva"], commissionPct:"40", color:"#E8A598", isActive:true, acceptsOnlineBooking:true, monthlyGoal:"8000", revenueMonth: 7240, appointmentsMonth: 48, rating: 4.9 },
-    { id:"p2", fullName:"Camila Costa",   displayName:"Camila",  specialties:["Corte","Escova","Hidratação"],       commissionPct:"38", color:"#D4AF7A", isActive:true, acceptsOnlineBooking:true, monthlyGoal:"6000", revenueMonth: 5800, appointmentsMonth: 52, rating: 4.8 },
-    { id:"p3", fullName:"Ana Lucia",      displayName:"Ana",     specialties:["Manicure","Pedicure","Nail Art"],    commissionPct:"45", color:"#8FAF8A", isActive:true, acceptsOnlineBooking:true, monthlyGoal:"4000", revenueMonth: 4120, appointmentsMonth: 67, rating: 4.7 },
-    { id:"p4", fullName:"Sofia Barbosa",  displayName:"Sofia",   specialties:["Estética","Limpeza de Pele"],        commissionPct:"42", color:"#6B8CAE", isActive:true, acceptsOnlineBooking:false,monthlyGoal:"5000", revenueMonth: 3980, appointmentsMonth: 29, rating: 4.9 },
-  ],
-  services: [
-    { id:"s1", name:"Coloração Completa",  categoryName:"Cabelo",  durationMinutes:180, price:"280.00", isActive:true, isOnlineBookable:true },
-    { id:"s2", name:"Mechas Balayage",      categoryName:"Cabelo",  durationMinutes:240, price:"380.00", isActive:true, isOnlineBookable:true },
-    { id:"s3", name:"Escova Progressiva",   categoryName:"Cabelo",  durationMinutes:180, price:"220.00", isActive:true, isOnlineBookable:true },
-    { id:"s4", name:"Corte Feminino",       categoryName:"Cabelo",  durationMinutes:60,  price:"95.00",  isActive:true, isOnlineBookable:true },
-    { id:"s5", name:"Manicure + Pedicure",  categoryName:"Unhas",   durationMinutes:90,  price:"75.00",  isActive:true, isOnlineBookable:true },
-    { id:"s6", name:"Limpeza de Pele",      categoryName:"Estética",durationMinutes:90,  price:"180.00", isActive:true, isOnlineBookable:false },
-  ],
-  packages: [
-    { id:"pk1", clientName:"Isabela Carvalho", name:"Pacote Beleza Total",  totalSessions:10, usedSessions:6, remainingSessions:4,  totalValue:"1200.00", status:"active",    expiresAt:"2026-12-31T23:59:00Z" },
-    { id:"pk2", clientName:"Patricia Mendes",  name:"Pacote Coloração VIP", totalSessions:6,  usedSessions:6, remainingSessions:0,  totalValue:"1500.00", status:"completed", expiresAt:"2026-08-31T23:59:00Z" },
-    { id:"pk3", clientName:"Luciana Rocha",    name:"Pacote Unhas Premium", totalSessions:8,  usedSessions:2, remainingSessions:6,  totalValue:"480.00",  status:"active",    expiresAt:"2026-10-31T23:59:00Z" },
-  ],
-  financial: [
-    { id:"f1", description:"Coloração — Isabela Carvalho", type:"revenue", status:"confirmed", amount:"280.00", dueDate:"2026-05-30", paymentMethod:"pix",          categoryName:"Serviços" },
-    { id:"f2", description:"Mechas — Renata Oliveira",     type:"revenue", status:"pending",   amount:"380.00", dueDate:"2026-05-30", paymentMethod:null,            categoryName:"Serviços" },
-    { id:"f3", description:"Produtos L'Oréal",             type:"expense", status:"confirmed", amount:"890.00", dueDate:"2026-05-28", paymentMethod:"bank_transfer", categoryName:"Fornecedores" },
-    { id:"f4", description:"Aluguel — Junho",              type:"expense", status:"pending",   amount:"3200.00",dueDate:"2026-06-05", paymentMethod:null,            categoryName:"Fixo" },
-  ],
-  commissions: [
-    { id:"cm1", professionalName:"Marina Santos", serviceName:"Coloração Completa", baseAmount:"280.00", commissionPct:"40", commissionAmt:"112.00", isPaid:false, referenceMonth:"2026-05", createdAt: D(8,30) },
-    { id:"cm2", professionalName:"Camila Costa",  serviceName:"Mechas Balayage",    baseAmount:"380.00", commissionPct:"38", commissionAmt:"144.40", isPaid:false, referenceMonth:"2026-05", createdAt: D(9,0) },
-    { id:"cm3", professionalName:"Ana Lucia",     serviceName:"Manicure+Pedicure",  baseAmount:"75.00",  commissionPct:"45", commissionAmt:"33.75",  isPaid:true,  referenceMonth:"2026-04", createdAt:"2026-04-30T16:00:00Z" },
-  ],
-  leads: [
-    { id:"l1", name:"Bianca Souza",   whatsapp:"(34) 98111-0001", source:"instagram", status:"new",       serviceInterest:"Mechas",    estimatedValue:"380.00", createdAt: D(8,0),  followUpAt: D(14,0) },
-    { id:"l2", name:"Camila Nunes",   whatsapp:"(34) 98111-0002", source:"whatsapp",  status:"contacted", serviceInterest:"Coloração", estimatedValue:"280.00", createdAt: D(9,0),  followUpAt: D(16,0) },
-    { id:"l3", name:"Debora Castro",  whatsapp:"(34) 98111-0003", source:"indicacao", status:"scheduled", serviceInterest:"Estética",  estimatedValue:"180.00", createdAt: D(10,0), followUpAt: null },
-    { id:"l4", name:"Elaine Martins", whatsapp:"(34) 98111-0004", source:"google",    status:"interested",serviceInterest:"Manicure",  estimatedValue:"75.00",  createdAt: D(11,0), followUpAt: D(15,0) },
-    { id:"l5", name:"Fabiana Reis",   whatsapp:"(34) 98111-0005", source:"facebook",  status:"converted", serviceInterest:"Corte",     estimatedValue:"95.00",  createdAt:"2026-05-28T10:00:00Z", followUpAt: null },
-  ],
-};
 
 // ─── HELPERS ─────────────────────────────────────────────────
 const brl = (v: any) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -106,11 +65,11 @@ const SEGMENT: any = {
 };
 
 const LOYALTY: any = {
-  bronze:   { label:"Bronze",  color:"#CD7F32" },
-  silver:   { label:"Prata",   color:"#9CA3AF" },
-  gold:     { label:"Ouro",    color: C.gold },
-  platinum: { label:"Platina", color: C.sapphire },
-  diamond:  { label:"Diamante",color: C.rose },
+  bronze:   { label:"Bronze",   color:"#CD7F32" },
+  silver:   { label:"Prata",    color:"#9CA3AF" },
+  gold:     { label:"Ouro",     color: C.gold },
+  platinum: { label:"Platina",  color: C.sapphire },
+  diamond:  { label:"Diamante", color: C.rose },
 };
 
 const PKG_STATUS: any = {
@@ -282,7 +241,7 @@ function RegisterPage({ onBack }: any) {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setSuccess("Sal�o cadastrado com sucesso! Fa�a login para continuar.");
+      setSuccess("Salão cadastrado com sucesso! Faça login para continuar.");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -294,28 +253,28 @@ function RegisterPage({ onBack }: any) {
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily: FB, padding:20 }}>
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
-          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo Sal�o</div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo Salão</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu sal�o gratuitamente</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salão gratuitamente</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           {success ? (
             <div>
-              <div style={{ background:`${C.sage}15`, border:`1px solid ${C.sage}30`, borderRadius:10, padding:"14px", color: C.sage, fontSize:13, marginBottom:20, textAlign:"center" }}>? {success}</div>
+              <div style={{ background:`${C.sage}15`, border:`1px solid ${C.sage}30`, borderRadius:10, padding:"14px", color: C.sage, fontSize:13, marginBottom:20, textAlign:"center" }}>✓ {success}</div>
               <button onClick={onBack} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB }}>Ir para o Login</button>
             </div>
           ) : (
             <>
-              <Inp label="Nome do Sal�o" value={salonName} onChange={setSalonName} placeholder="Sal�o Bella Arte" required />
+              <Inp label="Nome do Salão" value={salonName} onChange={setSalonName} placeholder="Salão Bella Arte" required />
               <Inp label="Seu Nome" value={ownerName} onChange={setOwnerName} placeholder="Maria da Silva" required />
               <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
-              <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="m�nimo 6 caracteres" required />
+              <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="mínimo 6 caracteres" required />
               {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
               <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, marginBottom:16 }}>
-                {loading ? "Cadastrando..." : "Criar Conta Gr�tis"}
+                {loading ? "Cadastrando..." : "Criar Conta Grátis"}
               </button>
               <div style={{ textAlign:"center" }}>
-                <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB }}>J� tenho conta ? Fazer login</button>
+                <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB }}>Já tenho conta → Fazer login</button>
               </div>
             </>
           )}
@@ -546,7 +505,6 @@ function ClientsPage() {
       setShowForm(false);
       setSelected(null);
     } catch(e: any) {
-      console.error("Erro ao salvar cliente:", e);
       alert("Erro ao salvar: " + e.message);
     } finally {
       setSaving(false);
@@ -626,99 +584,245 @@ function ClientsPage() {
 
 // ─── AGENDA ──────────────────────────────────────────────────
 function AgendaPage() {
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter]     = useState("all");
   const [showForm, setShowForm] = useState(false);
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ clientName:"", professionalId:"", serviceId:"", scheduledAt:"", totalPrice:"" });
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+  const [data, setData]         = useState<any[]>([]);
+  const [clientsList, setClientsList]   = useState<any[]>([]);
+  const [profsList, setProfsList]       = useState<any[]>([]);
+  const [svcsList, setSvcsList]         = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState("");
+
+  const emptyForm = {
+    clientId:       "",
+    professionalId: "",
+    serviceId:      "",
+    scheduledAt:    "",
+    durationMinutes:"60",
+    totalPrice:     "",
+  };
+  const [form, setForm] = useState(emptyForm);
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]: v }));
 
   useEffect(() => {
-    // Por enquanto usa dados do banco via appointments/today
-    import("./api/client").then(({ appointmentsApi }) => {
-      appointmentsApi.today()
-        .then((r: any) => setData(r.data ?? []))
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    });
+    const load = async () => {
+      try {
+        const [agenda, c, p, s] = await Promise.all([
+          appointmentsApi.today(),
+          clientsApi.list({ limit: 200 }),
+          professionalsApi.list({ isActive: "true" }),
+          servicesApi.list({ isActive: "true" }),
+        ]);
+        setData(agenda.data ?? []);
+        setClientsList(c.data ?? []);
+        setProfsList(p.data ?? []);
+        setSvcsList(s.data ?? []);
+      } catch (e) {
+        console.error("Agenda load error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
-  const filtered = filter === "all" ? data : data.filter((a: any) => a.appointment?.status === filter);
-  const statuses = [{ v:"all", l:"Todos" },{ v:"pending", l:"Pendentes" },{ v:"confirmed", l:"Confirmados" },{ v:"in_progress", l:"Atendendo" },{ v:"completed", l:"Concluídos" }];
+  const handleServiceChange = (serviceId: string) => {
+    const svc = svcsList.find((s: any) => s.id === serviceId);
+    setForm(p => ({
+      ...p,
+      serviceId,
+      durationMinutes: svc?.durationMinutes?.toString() ?? p.durationMinutes,
+      totalPrice:      svc?.price?.toString() ?? p.totalPrice,
+    }));
+  };
+
+  const save = async () => {
+    setError("");
+    if (!form.clientId)    return setError("Selecione a cliente.");
+    if (!form.scheduledAt) return setError("Informe data e hora.");
+    if (!form.totalPrice)  return setError("Informe o valor.");
+
+    setSaving(true);
+    try {
+      const start  = new Date(form.scheduledAt);
+      const dur    = Number(form.durationMinutes || 60);
+      const endsAt = new Date(start.getTime() + dur * 60_000).toISOString();
+
+      const payload: any = {
+        clientId:        form.clientId,
+        professionalId:  form.professionalId || null,
+        scheduledAt:     start.toISOString(),
+        endsAt,
+        durationMinutes: dur,
+        totalPrice:      form.totalPrice,
+        subtotal:        form.totalPrice,
+        status:          "pending",
+        source:          "manual",
+      };
+
+      if (form.serviceId) {
+        payload.services = [{
+          serviceId:       form.serviceId,
+          price:           form.totalPrice,
+          durationMinutes: dur,
+          total:           form.totalPrice,
+        }];
+      }
+
+      await appointmentsApi.create(payload);
+      const updated = await appointmentsApi.today();
+      setData(updated.data ?? []);
+      setShowForm(false);
+      setForm(emptyForm);
+    } catch (e: any) {
+      setError(e.message ?? "Erro ao agendar.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const changeStatus = async (id: string, status: string) => {
     try {
-      const { appointmentsApi } = await import("./api/client");
-      if (status === "confirmed") await appointmentsApi.confirm(id);
+      if (status === "confirmed")    await appointmentsApi.confirm(id);
       else if (status === "in_progress") await appointmentsApi.checkin(id);
-      else if (status === "cancelled") await appointmentsApi.cancel(id);
-      setData(d => d.map((a: any) => a.appointment?.id === id ? { ...a, appointment: { ...a.appointment, status } } : a));
-    } catch(e) { console.error(e); }
+      else if (status === "cancelled")   await appointmentsApi.cancel(id);
+      setData(d => d.map((a: any) =>
+        a.appointment?.id === id
+          ? { ...a, appointment: { ...a.appointment, status } }
+          : a
+      ));
+    } catch (e) { console.error(e); }
   };
+
+  const filtered = filter === "all"
+    ? data
+    : data.filter((a: any) => a.appointment?.status === filter);
+
+  const statuses = [
+    { v:"all",         l:"Todos" },
+    { v:"pending",     l:"Pendentes" },
+    { v:"confirmed",   l:"Confirmados" },
+    { v:"in_progress", l:"Atendendo" },
+    { v:"completed",   l:"Concluídos" },
+  ];
+
+  const selStyle: any = { width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:FB };
+  const lblStyle: any = { fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" };
 
   const cols = [
     { key:"horario", label:"Horário", render: (a: any) => (
       <div>
-        <div style={{ fontWeight:600, color: C.text, fontFamily: FB }}>{fmtTime(a.appointment?.scheduledAt)}</div>
-        <div style={{ fontSize:11, color: C.textMuted }}>até {fmtTime(a.appointment?.endsAt)}</div>
+        <div style={{ fontWeight:600, color:C.text, fontFamily:FB }}>{fmtTime(a.appointment?.scheduledAt)}</div>
+        <div style={{ fontSize:11, color:C.textMuted }}>até {fmtTime(a.appointment?.endsAt)}</div>
       </div>
     )},
     { key:"client", label:"Cliente", render: (a: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-        <div style={{ width:28, height:28, borderRadius:"50%", background:`linear-gradient(135deg, ${C.rose}40, ${C.gold}40)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12 }}>
+        <div style={{ width:28, height:28, borderRadius:"50%", background:`linear-gradient(135deg,${C.rose}40,${C.gold}40)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12 }}>
           {(a.client?.fullName ?? "?")[0]}
         </div>
         <div>
-          <div style={{ fontWeight:600, color: C.text, display:"flex", gap:6 }}>
+          <div style={{ fontWeight:600, color:C.text, display:"flex", gap:6 }}>
             {a.client?.fullName} {a.client?.isVip && <Badge label="VIP" color={C.gold} small />}
           </div>
-          <div style={{ fontSize:11, color: C.textMuted }}>{a.client?.whatsapp}</div>
+          <div style={{ fontSize:11, color:C.textMuted }}>{a.client?.whatsapp}</div>
         </div>
       </div>
     )},
     { key:"professional", label:"Profissional", render: (a: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-        <div style={{ width:8, height:8, borderRadius:"50%", background: a.professional?.color ?? C.rose }} />
-        <span style={{ color: C.textSec, fontSize:13 }}>{a.professional?.fullName}</span>
+        <div style={{ width:8, height:8, borderRadius:"50%", background:a.professional?.color ?? C.rose }} />
+        <span style={{ color:C.textSec, fontSize:13 }}>{a.professional?.fullName ?? "—"}</span>
       </div>
     )},
-    { key:"status", label:"Status", render: (a: any) => { const s = STATUS_APPT[a.appointment?.status]; return <Badge label={s?.label ?? a.appointment?.status} color={s?.color ?? C.textMuted} />; } },
-    { key:"total", label:"Valor", render: (a: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(a.appointment?.totalPrice)}</span> },
+    { key:"status", label:"Status", render: (a: any) => {
+      const s = STATUS_APPT[a.appointment?.status];
+      return <Badge label={s?.label ?? a.appointment?.status} color={s?.color ?? C.textMuted} />;
+    }},
+    { key:"total", label:"Valor", render: (a: any) => <span style={{ fontWeight:700, color:C.gold }}>{brl(a.appointment?.totalPrice)}</span> },
     { key:"action", label:"Ações", render: (a: any) => (
       <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-        {a.appointment?.status === "pending"     && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "confirmed"); }}>Confirmar</Btn>}
-        {a.appointment?.status === "confirmed"   && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "in_progress"); }}>Check-in</Btn>}
-        {a.appointment?.status === "in_progress" && <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "completed"); }}>Concluir</Btn>}
-        {["pending","confirmed"].includes(a.appointment?.status) && <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id, "cancelled"); }}>✕</Btn>}
-        <a href={`https://wa.me/55${a.client?.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>WA</a>
+        {a.appointment?.status === "pending"     && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"confirmed"); }}>Confirmar</Btn>}
+        {a.appointment?.status === "confirmed"   && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"in_progress"); }}>Check-in</Btn>}
+        {a.appointment?.status === "in_progress" && <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"completed"); }}>Concluir</Btn>}
+        {["pending","confirmed"].includes(a.appointment?.status) && (
+          <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"cancelled"); }}>✕</Btn>
+        )}
+        <a href={`https://wa.me/55${a.client?.whatsapp?.replace(/\D/g,"")}`} target="_blank"
+          style={{ fontSize:11, color:C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>WA</a>
       </div>
     )},
   ];
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
-      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando agenda...</div>
+      <div style={{ color:C.textMuted, fontFamily:FB }}>Carregando agenda...</div>
     </div>
   );
 
   return (
     <div>
-      <PageHeader title="Agenda" sub={`${filtered.length} agendamentos hoje`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Agendamento</Btn>} />
+      <PageHeader
+        title="Agenda"
+        sub={`${filtered.length} agendamentos hoje`}
+        action={<Btn onClick={() => { setForm(emptyForm); setError(""); setShowForm(true); }}>+ Novo Agendamento</Btn>}
+      />
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {statuses.map(s => (
-          <button key={s.v} onClick={() => setFilter(s.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===s.v ? C.rose : C.border}`, background: filter===s.v ? `${C.rose}15` : C.card, color: filter===s.v ? C.rose : C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{s.l}</button>
+          <button key={s.v} onClick={() => setFilter(s.v)}
+            style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===s.v?C.rose:C.border}`, background:filter===s.v?`${C.rose}15`:C.card, color:filter===s.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{s.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhum agendamento hoje." />
+
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Agendamento">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
-          <Inp label="Cliente" value={form.clientName} onChange={f("clientName")} required placeholder="Nome da cliente" grid="1/-1" />
-          <Inp label="Data e Hora" value={form.scheduledAt} onChange={f("scheduledAt")} type="datetime-local" />
-          <Inp label="Valor (R$)" value={form.totalPrice} onChange={f("totalPrice")} type="number" placeholder="180.00" />
+
+          <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
+            <label style={lblStyle}>Cliente *</label>
+            <select value={form.clientId} onChange={e => f("clientId")(e.target.value)} style={selStyle}>
+              <option value="">Selecione a cliente...</option>
+              {clientsList.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.fullName}{c.whatsapp ? ` · ${c.whatsapp}` : ""}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
+            <label style={lblStyle}>Profissional</label>
+            <select value={form.professionalId} onChange={e => f("professionalId")(e.target.value)} style={selStyle}>
+              <option value="">Selecione (opcional)...</option>
+              {profsList.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.fullName}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
+            <label style={lblStyle}>Serviço</label>
+            <select value={form.serviceId} onChange={e => handleServiceChange(e.target.value)} style={selStyle}>
+              <option value="">Selecione (opcional)...</option>
+              {svcsList.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name} — {brl(s.price)} · {s.durationMinutes}min</option>
+              ))}
+            </select>
+          </div>
+
+          <Inp label="Data e Hora *" value={form.scheduledAt} onChange={f("scheduledAt")} type="datetime-local" />
+          <Inp label="Duração (min)" value={form.durationMinutes} onChange={f("durationMinutes")} type="number" placeholder="60" />
+          <Inp label="Valor (R$) *" value={form.totalPrice} onChange={f("totalPrice")} type="number" placeholder="180.00" grid="1/-1" />
         </div>
+
+        {error && (
+          <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color:C.ruby, fontSize:12, marginBottom:16 }}>
+            {error}
+          </div>
+        )}
+
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={() => setShowForm(false)}>Agendar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Agendando..." : "Agendar"}</Btn>
         </div>
       </Modal>
     </div>
@@ -792,13 +896,9 @@ function ServicesPage() {
   const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]:v }));
 
   useEffect(() => {
-    Promise.all([
-      servicesApi.list(),
-      servicesApi.categories(),
-    ]).then(([s, c]: any) => {
-      setData(s.data ?? []);
-      setCategories(c.data ?? []);
-    }).catch(console.error).finally(() => setLoading(false));
+    Promise.all([servicesApi.list(), servicesApi.categories()])
+      .then(([s, c]: any) => { setData(s.data ?? []); setCategories(c.data ?? []); })
+      .catch(console.error).finally(() => setLoading(false));
   }, []);
 
   const save = async () => {
@@ -809,9 +909,7 @@ function ServicesPage() {
       setShowForm(false);
     } catch(e: any) {
       alert("Erro: " + e.message);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const toggleActive = async (s: any) => {
@@ -877,9 +975,7 @@ function PackagesPage() {
     try {
       const r: any = await packagesApi.useSession(id);
       setData(d => d.map((p: any) => p.id === id ? r.data : p));
-    } catch(e: any) {
-      alert("Erro: " + e.message);
-    }
+    } catch(e: any) { alert("Erro: " + e.message); }
   };
 
   const cols = [
@@ -922,13 +1018,9 @@ function FinancialPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      financialApi.list({ limit: 100 }),
-      financialApi.summary(),
-    ]).then(([t, s]: any) => {
-      setData(t.data ?? []);
-      setSummary(s.data ?? { revenue:0, expenses:0, profit:0 });
-    }).catch(console.error).finally(() => setLoading(false));
+    Promise.all([financialApi.list({ limit: 100 }), financialApi.summary()])
+      .then(([t, s]: any) => { setData(t.data ?? []); setSummary(s.data ?? { revenue:0, expenses:0, profit:0 }); })
+      .catch(console.error).finally(() => setLoading(false));
   }, []);
 
   const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
@@ -952,9 +1044,9 @@ function FinancialPage() {
     <div>
       <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transação</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
-        <KpiCard icon="💚" label="Receitas"     value={brl(summary.revenue)}  color={C.sage} />
-        <KpiCard icon="🔴" label="Despesas"     value={brl(summary.expenses)} color={C.ruby} />
-        <KpiCard icon="✨" label="Lucro Líquido" value={brl(summary.profit)}  color={summary.profit >= 0 ? C.gold : C.ruby} />
+        <KpiCard icon="💚" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
+        <KpiCard icon="🔴" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
+        <KpiCard icon="✨" label="Lucro Líquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
@@ -1049,11 +1141,7 @@ function CRMPage() {
       setData(d => [...d, r.data]);
       setShowForm(false);
       setForm({ name:"", whatsapp:"", source:"instagram", serviceInterest:"", estimatedValue:"" });
-    } catch(e: any) {
-      alert("Erro: " + e.message);
-    } finally {
-      setSaving(false);
-    }
+    } catch(e: any) { alert("Erro: " + e.message); } finally { setSaving(false); }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -1064,7 +1152,6 @@ function CRMPage() {
   };
 
   const byStatus = (s: string) => data.filter((l: any) => l.status === s);
-
   const PIPELINE = [
     { key:"new",        label:"Novos",        color: C.sapphire },
     { key:"contacted",  label:"Contatados",   color: C.gold },
@@ -1119,7 +1206,7 @@ function CRMPage() {
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="Maria da Silva" grid="1/-1" />
           <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
-          <Sel label="Origem" value={form.source} onChange={f("source")} options={Object.entries(SOURCE_LABEL).map(([v,l]) => ({ value:v, label:l }))} />
+          <Sel label="Origem" value={form.source} onChange={f("source")} options={Object.entries(SOURCE_LABEL).map(([v,l]) => ({ value:v, label:String(l) }))} />
           <Inp label="Interesse" value={form.serviceInterest} onChange={f("serviceInterest")} placeholder="Coloração" />
           <Inp label="Valor estimado" value={form.estimatedValue} onChange={f("estimatedValue")} type="number" placeholder="280.00" />
         </div>
@@ -1128,6 +1215,72 @@ function CRMPage() {
           <Btn onClick={saveLead} disabled={saving}>{saving ? "Salvando..." : "Adicionar Lead"}</Btn>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+// ─── FIDELIDADE ───────────────────────────────────────────────
+function FidelityPage() {
+  const [clientsData, setClientsData] = useState<any[]>([]);
+  const tiers = ["bronze","silver","gold","platinum","diamond"];
+
+  useEffect(() => {
+    clientsApi.list({ limit: 200 })
+      .then((r: any) => setClientsData(r.data ?? []))
+      .catch(console.error);
+  }, []);
+
+  return (
+    <div>
+      <PageHeader title="Fidelidade" sub="Programa de pontos e benefícios" />
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:28 }}>
+        {tiers.map(t => {
+          const l = LOYALTY[t];
+          const count = clientsData.filter((c: any) => c.loyaltyTier === t).length;
+          return (
+            <div key={t} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:20, textAlign:"center" }}>
+              <div style={{ fontSize:28, marginBottom:8 }}>{t==="diamond"?"💎":t==="platinum"?"🔷":t==="gold"?"🌟":t==="silver"?"⭐":"🔶"}</div>
+              <div style={{ fontSize:13, fontWeight:700, color: l.color, fontFamily: FD }}>{l.label}</div>
+              <div style={{ fontSize:24, fontWeight:700, color: C.text, margin:"6px 0", fontFamily: FD }}>{count}</div>
+              <div style={{ fontSize:11, color: C.textMuted }}>clientes</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, overflow:"hidden" }}>
+        <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, fontSize:15, fontWeight:700, color: C.text, fontFamily: FD }}>Ranking de Clientes</div>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+          <thead>
+            <tr style={{ background: C.surface }}>
+              {["#","Cliente","Tier","Pontos","LTV","Visitas","Ação"].map(h => (
+                <th key={h} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[...clientsData].sort((a,b) => (b.loyaltyPoints ?? 0) - (a.loyaltyPoints ?? 0)).map((c: any, i: number) => {
+              const l = LOYALTY[c.loyaltyTier];
+              return (
+                <tr key={c.id} style={{ borderBottom:`1px solid ${C.border}` }}>
+                  <td style={{ padding:"12px 16px", color: C.textMuted, fontFamily: FB, fontWeight:700 }}>#{i+1}</td>
+                  <td style={{ padding:"12px 16px", fontFamily: FB }}>
+                    <div style={{ fontWeight:600, color: C.text, display:"flex", alignItems:"center", gap:6 }}>
+                      {c.fullName} {c.isVip && <Badge label="VIP" color={C.gold} small />}
+                    </div>
+                  </td>
+                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label ?? "—"} color={l?.color ?? C.textMuted} /></td>
+                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.rose, fontFamily: FB }}>{(c.loyaltyPoints ?? 0).toLocaleString("pt-BR")} pts</td>
+                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.gold, fontFamily: FB }}>{brl(c.totalSpent)}</td>
+                  <td style={{ padding:"12px 16px", color: C.textSec, fontFamily: FB }}>{c.totalVisits ?? 0}</td>
+                  <td style={{ padding:"12px 16px" }}>
+                    <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>Contatar</a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -1205,71 +1358,6 @@ export default function App() {
 
   if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
 
-  function FidelityPage() {
-  const [clients, setClients] = useState<any[]>([]);
-  const tiers = ["bronze","silver","gold","platinum","diamond"];
-
-  useEffect(() => {
-    clientsApi.list({ limit: 200 })
-      .then((r: any) => setClients(r.data ?? []))
-      .catch(console.error);
-  }, []);
-
-  return (
-    <div>
-      <PageHeader title="Fidelidade" sub="Programa de pontos e benefícios" />
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:28 }}>
-        {tiers.map(t => {
-          const l = LOYALTY[t];
-          const count = clients.filter((c: any) => c.loyaltyTier === t).length;
-          return (
-            <div key={t} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:20, textAlign:"center" }}>
-              <div style={{ fontSize:28, marginBottom:8 }}>{t==="diamond"?"💎":t==="platinum"?"🔷":t==="gold"?"🌟":t==="silver"?"⭐":"🔶"}</div>
-              <div style={{ fontSize:13, fontWeight:700, color: l.color, fontFamily: FD }}>{l.label}</div>
-              <div style={{ fontSize:24, fontWeight:700, color: C.text, margin:"6px 0", fontFamily: FD }}>{count}</div>
-              <div style={{ fontSize:11, color: C.textMuted }}>clientes</div>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, overflow:"hidden" }}>
-        <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, fontSize:15, fontWeight:700, color: C.text, fontFamily: FD }}>Ranking de Clientes</div>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-          <thead>
-            <tr style={{ background: C.surface }}>
-              {["#","Cliente","Tier","Pontos","LTV","Visitas","Ação"].map(h => (
-                <th key={h} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {[...clients].sort((a,b) => (b.loyaltyPoints ?? 0) - (a.loyaltyPoints ?? 0)).map((c: any, i: number) => {
-              const l = LOYALTY[c.loyaltyTier];
-              return (
-                <tr key={c.id} style={{ borderBottom:`1px solid ${C.border}` }}>
-                  <td style={{ padding:"12px 16px", color: C.textMuted, fontFamily: FB, fontWeight:700 }}>#{i+1}</td>
-                  <td style={{ padding:"12px 16px", fontFamily: FB }}>
-                    <div style={{ fontWeight:600, color: C.text, display:"flex", alignItems:"center", gap:6 }}>
-                      {c.fullName} {c.isVip && <Badge label="VIP" color={C.gold} small />}
-                    </div>
-                  </td>
-                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label ?? "—"} color={l?.color ?? C.textMuted} /></td>
-                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.rose, fontFamily: FB }}>{(c.loyaltyPoints ?? 0).toLocaleString("pt-BR")} pts</td>
-                  <td style={{ padding:"12px 16px", fontWeight:700, color: C.gold, fontFamily: FB }}>{brl(c.totalSpent)}</td>
-                  <td style={{ padding:"12px 16px", color: C.textSec, fontFamily: FB }}>{c.totalVisits ?? 0}</td>
-                  <td style={{ padding:"12px 16px" }}>
-                    <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.sage, fontWeight:700, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}>Contatar</a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
   const PAGES: any = {
     dashboard:     DashboardPage,
     agenda:        AgendaPage,
@@ -1305,6 +1393,3 @@ export default function App() {
     </>
   );
 }
-
-
-
