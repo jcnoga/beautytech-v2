@@ -1256,6 +1256,18 @@ function FinancialPage() {
   };
 
   const [showPayment, setShowPayment] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [accountForm, setAccountForm] = useState({ name:"", type:"checking" });
+  const fa = (k: string) => (v: any) => setAccountForm(p => ({ ...p, [k]: v }));
+  const saveAccount = async () => {
+    try {
+      await api.post<any>("/financial/accounts", accountForm);
+      const a: any = await financialApi.accounts();
+      setAccounts(a.data ?? []);
+      setShowAccount(false);
+      setAccountForm({ name:"", type:"checking" });
+    } catch(e: any) { alert("Erro: " + e.message); }
+  };
   const [paymentTarget, setPaymentTarget] = useState<any>(null);
   const [paymentForm, setPaymentForm] = useState({ paymentMethod:"pix", notes:"" });
   const fp = (k: string) => (v: any) => setPaymentForm(p => ({ ...p, [k]: v }));
@@ -1298,7 +1310,12 @@ function FinancialPage() {
 
   return (
     <div>
-      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn onClick={() => { setForm(emptyForm); setShowForm(true); }}>+ Nova Transacao</Btn>} />
+      <PageHeader title="Financeiro" sub="Controle de receitas e despesas"  action={
+  <div style={{ display:"flex", gap:8 }}>
+    <Btn variant="secondary" small onClick={() => setShowAccount(true)}>+ Nova Conta</Btn>
+    <Btn onClick={() => { setForm(emptyForm); setShowForm(true); }}>+ Nova Transacao</Btn>
+  </div>
+} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
         <KpiCard icon="💰" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
         <KpiCard icon="💰" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
@@ -1310,6 +1327,19 @@ function FinancialPage() {
         ))}
       </div>
       <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
+      <Modal open={showAccount} onClose={() => setShowAccount(false)} title="Nova Conta Financeira" width={400}>
+        <Inp label="Nome da Conta *" value={accountForm.name} onChange={fa("name")} required placeholder="Ex: Caixa, Banco, Cartao" />
+        <Sel label="Tipo" value={accountForm.type} onChange={fa("type")} options={[
+          { value:"checking", label:"Conta Corrente" },
+          { value:"savings",  label:"Poupanca" },
+          { value:"cash",     label:"Dinheiro/Caixa" },
+          { value:"credit",   label:"Cartao de Credito" },
+        ]} />
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setShowAccount(false)}>Cancelar</Btn>
+          <Btn onClick={saveAccount}>Criar Conta</Btn>
+        </div>
+      </Modal>
       <Modal open={showPayment} onClose={() => setShowPayment(false)} title="Confirmar Baixa">
         {paymentTarget && (
           <div>
