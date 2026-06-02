@@ -1,24 +1,19 @@
-// BEAUTYTECH v2 — API Client
-// ⚠️ VITE_API_URL NÃO deve incluir /api/v1
-// .env: VITE_API_URL=https://meu-backend.railway.app
- 
 import { createClient } from "@supabase/supabase-js";
- 
+
 export const supabase = createClient(
   import.meta.env["VITE_SUPABASE_URL"],
   import.meta.env["VITE_SUPABASE_ANON_KEY"],
 );
- 
+
 class ApiClient {
-  // /api/v1 é adicionado AQUI — não no .env
   private readonly baseUrl = `${import.meta.env["VITE_API_URL"] ?? "http://localhost:3000"}/api/v1`;
- 
-private async getToken(): Promise<string> {
+
+  private async getToken(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error("Sessão expirada");
     return session.access_token;
   }
- 
+
   private async request<T>(method: string, endpoint: string, body?: unknown, params?: Record<string, any>): Promise<T> {
     const token = await this.getToken();
     let url = `${this.baseUrl}${endpoint}`;
@@ -28,35 +23,38 @@ private async getToken(): Promise<string> {
       const s = qs.toString();
       if (s) url += `?${s}`;
     }
+    const headers: Record<string, string> = { "Authorization": `Bearer ${token}` };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-      body: body ? JSON.stringify(body) : undefined,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     if (res.status === 204) return undefined as T;
     const json = await res.json();
-    if (!res.ok || json.success === false) throw new Error(json.error ?? "Erro desconhecido");
+    if (!res.ok || json.success === false) throw new Error(json.error ?? json.message ?? "Erro desconhecido");
     return json as T;
   }
- 
+
   get<T>(endpoint: string, params?: Record<string, any>) { return this.request<T>("GET", endpoint, undefined, params); }
   post<T>(endpoint: string, body?: unknown) { return this.request<T>("POST", endpoint, body); }
   patch<T>(endpoint: string, body?: unknown) { return this.request<T>("PATCH", endpoint, body); }
   delete<T = void>(endpoint: string) { return this.request<T>("DELETE", endpoint); }
 }
- 
+
 export const api = new ApiClient();
- 
+
 export const clientsApi = {
-  list:   (p?: any) => api.get<any>("/clients", p),
-  getById:(id: string) => api.get<any>(`/clients/${id}`),
-  create: (dto: any) => api.post<any>("/clients", dto),
-  update: (id: string, dto: any) => api.patch<any>(`/clients/${id}`, dto),
-  remove: (id: string) => api.delete(`/clients/${id}`),
+  list:      (p?: any) => api.get<any>("/clients", p),
+  getById:   (id: string) => api.get<any>(`/clients/${id}`),
+  create:    (dto: any) => api.post<any>("/clients", dto),
+  update:    (id: string, dto: any) => api.patch<any>(`/clients/${id}`, dto),
+  remove:    (id: string) => api.delete(`/clients/${id}`),
   birthdays: () => api.get<any>("/clients/birthdays"),
   atRisk:    () => api.get<any>("/clients/at-risk"),
 };
- 
+
 export const appointmentsApi = {
   list:     (p?: any) => api.get<any>("/appointments", p),
   today:    () => api.get<any>("/appointments/today"),
@@ -68,27 +66,27 @@ export const appointmentsApi = {
   cancel:   (id: string, reason?: string) => api.post<any>(`/appointments/${id}/cancel`, { reason }),
   noShow:   (id: string) => api.post<any>(`/appointments/${id}/no-show`),
 };
- 
+
 export const professionalsApi = {
   list:        (p?: any) => api.get<any>("/professionals", p),
   create:      (dto: any) => api.post<any>("/professionals", dto),
   update:      (id: string, dto: any) => api.patch<any>(`/professionals/${id}`, dto),
   commissions: (id: string, p?: any) => api.get<any>(`/professionals/${id}/commissions`, p),
 };
- 
+
 export const servicesApi = {
   list:       (p?: any) => api.get<any>("/services", p),
   categories: () => api.get<any>("/service-categories"),
   create:     (dto: any) => api.post<any>("/services", dto),
   update:     (id: string, dto: any) => api.patch<any>(`/services/${id}`, dto),
 };
- 
+
 export const packagesApi = {
   list:       (p?: any) => api.get<any>("/packages", p),
   create:     (dto: any) => api.post<any>("/packages", dto),
   useSession: (id: string) => api.post<any>(`/packages/${id}/use-session`),
 };
- 
+
 export const financialApi = {
   list:           (p?: any) => api.get<any>("/financial", p),
   summary:        () => api.get<any>("/financial/summary"),
@@ -98,12 +96,12 @@ export const financialApi = {
   update:         (id: string, dto: any) => api.patch<any>(`/financial/${id}`, dto),
   confirmPayment: (id: string, dto: any) => api.post<any>(`/financial/${id}/confirm-payment`, dto),
 };
- 
+
 export const commissionsApi = {
   list: (p?: any) => api.get<any>("/commissions", p),
   pay:  (id: string) => api.post<any>(`/commissions/${id}/pay`),
 };
- 
+
 export const dashboardApi = {
   kpis:        () => api.get<any>("/dashboard/kpis"),
   agenda:      () => api.get<any>("/dashboard/agenda"),
@@ -111,24 +109,24 @@ export const dashboardApi = {
   birthdays:   () => api.get<any>("/dashboard/birthdays"),
   performance: () => api.get<any>("/dashboard/professionals-performance"),
 };
- 
+
 export const crmApi = {
   leads:   (p?: any) => api.get<any>("/leads", p),
   create:  (dto: any) => api.post<any>("/leads", dto),
   update:  (id: string, dto: any) => api.patch<any>(`/leads/${id}`, dto),
   convert: (id: string, dto: any) => api.post<any>(`/leads/${id}/convert`, dto),
 };
- 
+
 export const loyaltyApi = {
   get:       (clientId: string) => api.get<any>(`/loyalty/${clientId}`),
   addPoints: (dto: any) => api.post<any>("/loyalty/add-points", dto),
   referrals: () => api.get<any>("/referrals"),
 };
- 
+
 export const whatsappApi = {
-  send:           (dto: any) => api.post<any>("/whatsapp/send", dto),
-  status:         () => api.get<any>("/whatsapp/status"),
-  notifications:  (p?: any) => api.get<any>("/whatsapp/notifications", p),
-  templates:      () => api.get<any>("/whatsapp/templates"),
-  link:           (phone: string, msg?: string) => api.get<any>("/whatsapp/link", { phone, message: msg }),
+  send:          (dto: any) => api.post<any>("/whatsapp/send", dto),
+  status:        () => api.get<any>("/whatsapp/status"),
+  notifications: (p?: any) => api.get<any>("/whatsapp/notifications", p),
+  templates:     () => api.get<any>("/whatsapp/templates"),
+  link:          (phone: string, msg?: string) => api.get<any>("/whatsapp/link", { phone, message: msg }),
 };
