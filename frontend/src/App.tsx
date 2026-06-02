@@ -1255,9 +1255,25 @@ function FinancialPage() {
     finally { setSaving(false); }
   };
 
-  const confirmPayment = async (id: string, paymentMethod: string) => {
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<any>(null);
+  const [paymentForm, setPaymentForm] = useState({ paymentMethod:"pix", notes:"" });
+  const fp = (k: string) => (v: any) => setPaymentForm(p => ({ ...p, [k]: v }));
+
+  const openPayment = (t: any) => {
+    setPaymentTarget(t);
+    setPaymentForm({ paymentMethod: t.paymentMethod ?? "pix", notes:"" });
+    setShowPayment(true);
+  };
+
+  const confirmPayment = async () => {
+    if (!paymentTarget) return;
     try {
-      await financialApi.confirmPayment(id, { paymentMethod });
+      await financialApi.confirmPayment(paymentTarget.id, { paymentMethod: paymentForm.paymentMethod });
+      if (paymentForm.notes) {
+        await financialApi.update(paymentTarget.id, { notes: paymentForm.notes });
+      }
+      setShowPayment(false);
       load();
     } catch(e) { console.error(e); }
   };
@@ -1295,6 +1311,40 @@ function FinancialPage() {
       <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada."
         onRow={(t: any) => t.status === "pending" && confirmPayment(t.id, t.paymentMethod ?? "pix")}
       />
+      <Modal open={showPayment} onClose={() => setShowPayment(false)} title="Confirmar Baixa">
+        {paymentTarget && (
+          <div>
+            <div style={{ background:C.surface, borderRadius:12, padding:16, marginBottom:20 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>{paymentTarget.description}</div>
+              <div style={{ fontSize:11, color:C.textMuted }}>Vencimento: {fmtDate(paymentTarget.dueDate)}</div>
+              <div style={{ fontSize:20, fontWeight:700, color: paymentTarget.type==="revenue" ? C.sage : C.ruby, marginTop:8 }}>
+                {paymentTarget.type==="expense"?"-":""}{brl(paymentTarget.amount)}
+              </div>
+            </div>
+            <Sel label="Forma de Pagamento" value={paymentForm.paymentMethod} onChange={fp("paymentMethod")} options={[
+              { value:"pix", label:"Pix" },
+              { value:"cash", label:"Dinheiro" },
+              { value:"credit_card", label:"Cartao Credito" },
+              { value:"debit_card", label:"Cartao Debito" },
+              { value:"bank_transfer", label:"Transferencia" },
+            ]} />
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, textTransform:"uppercase" }}>Observacao</label>
+              <textarea
+                value={paymentForm.notes}
+                onChange={e => fp("notes")(e.target.value)}
+                rows={3}
+                placeholder="Ex: Pago via Pix em 02/06/2026..."
+                style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:FB, resize:"vertical" }}
+              />
+            </div>
+            <div style={{ display:"flex", gap:10 }}>
+              <Btn variant="secondary" onClick={() => setShowPayment(false)}>Cancelar</Btn>
+              <Btn variant="gold" onClick={confirmPayment}>Confirmar Baixa</Btn>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Transacao">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
