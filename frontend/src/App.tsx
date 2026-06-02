@@ -1073,9 +1073,12 @@ function ServicesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [selected, setSelected] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true });
   const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]:v }));
+  const openNew = () => { setSelected(null); setForm({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true }); setShowForm(true); };
+  const openEdit = (s: any) => { setSelected(s); setForm({ name:s.name, categoryId:s.categoryId ?? "", durationMinutes:String(s.durationMinutes), price:String(s.price), isActive:s.isActive }); setShowForm(true); };
 
   useEffect(() => {
     Promise.all([servicesApi.list(), servicesApi.categories()])
@@ -2241,6 +2244,7 @@ export default function App() {
     </>
   );
 }
+
 
 
 
