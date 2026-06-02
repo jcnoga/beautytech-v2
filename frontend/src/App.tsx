@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
+import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 const C = {
@@ -1639,6 +1639,207 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 }
 
 
+// ─── AUTOMAÇÕES ───────────────────────────────────────────────
+function AutomationsPage() {
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [selected, setSelected]   = useState<any>(null);
+  const [showEdit, setShowEdit]   = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [clients2, setClients2]   = useState<any[]>([]);
+  const [showSend, setShowSend]   = useState(false);
+  const [sendTarget, setSendTarget] = useState<any>(null);
+  const [editMsg, setEditMsg]     = useState("");
+
+  useEffect(() => {
+    Promise.all([
+      api.get<any>("/automations/templates"),
+      clientsApi.list({ limit: 200 }),
+    ]).then(([t, c]: any) => {
+      setTemplates(t.data ?? []);
+      setClients2(c.data ?? []);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const r: any = await api.patch<any>(`/automations/templates/${selected.id}`, { message: editMsg, isActive: selected.isActive });
+      setTemplates(ts => ts.map(t => t.id === selected.id ? r.data : t));
+      setShowEdit(false);
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const toggleActive = async (t: any) => {
+    const r: any = await api.patch<any>(`/automations/templates/${t.id}`, { isActive: !t.isActive });
+    setTemplates(ts => ts.map(x => x.id === t.id ? r.data : x));
+  };
+
+  const TRIGGER_LABEL: any = {
+    appointment_reminder_24h: "Lembrete 24h antes",
+    appointment_reminder_2h:  "Lembrete 2h antes",
+    appointment_confirmed:    "Confirmação de Agendamento",
+    appointment_completed:    "Pós-atendimento",
+    birthday:                 "Aniversário",
+    client_reactivation:      "Reativação de Cliente",
+    satisfaction_survey:      "Pesquisa de Satisfação",
+    promotion:                "Campanha Promocional",
+    financial_reminder:       "Lembrete Financeiro",
+    welcome:                  "Boas-vindas",
+  };
+
+  const TRIGGER_ICON: any = {
+    appointment_reminder_24h: "⏰",
+    appointment_reminder_2h:  "🔔",
+    appointment_confirmed:    "✅",
+    appointment_completed:    "⭐",
+    birthday:                 "🎂",
+    client_reactivation:      "💕",
+    satisfaction_survey:      "📊",
+    promotion:                "🎉",
+    financial_reminder:       "💰",
+    welcome:                  "🌸",
+  };
+
+  const formatMsg = (msg: string, client?: any) => {
+    const nome = client?.fullName?.split(" ")[0] ?? "{nome}";
+    const data = new Date().toLocaleDateString("pt-BR");
+    const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    return msg.replace("{nome}", nome).replace("{data}", data).replace("{hora}", hora).replace("{valor}", "R$ 0,00");
+  };
+
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
+      <div style={{ color:C.textMuted, fontFamily:FB }}>Carregando automações...</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <PageHeader title="Automações" sub={`${templates.length} templates de mensagens`} />
+
+      {/* Aviso trial */}
+      <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
+        <span style={{ fontSize:20 }}>⚠️</span>
+        <div>
+          <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Modo Trial — Envio Manual</div>
+          <div style={{ fontSize:11, color:C.textMuted }}>Durante o período de teste, as mensagens podem ser visualizadas e enviadas manualmente. O disparo automático fica disponível após ativar o plano.</div>
+        </div>
+      </div>
+
+      {/* Grid de templates */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(320px,1fr))", gap:16 }}>
+        {templates.map((t: any) => (
+          <div key={t.id} style={{ background:C.card, border:`1px solid ${t.isActive ? C.borderHi : C.border}`, borderRadius:16, padding:20, position:"relative" }}>
+            {/* Header */}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "💬"}</span>
+                <div>
+                  <div style={{ fontWeight:700, color:C.text, fontSize:14, fontFamily:FD }}>{t.name}</div>
+                  <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>{TRIGGER_LABEL[t.trigger] ?? t.trigger}</div>
+                </div>
+              </div>
+              <button onClick={() => toggleActive(t)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color: t.isActive ? C.sage : C.textMuted, fontWeight:700, fontFamily:FB }}>
+                {t.isActive ? "✓ Ativo" : "○ Inativo"}
+              </button>
+            </div>
+
+            {/* Mensagem */}
+            <div style={{ background:C.surface, borderRadius:10, padding:"10px 14px", fontSize:12, color:C.textSec, fontFamily:FB, lineHeight:1.6, marginBottom:14, minHeight:60 }}>
+              {t.message}
+            </div>
+
+            {/* Variáveis */}
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
+              {["{nome}","{data}","{hora}"].map(v => (
+                <span key={v} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:`${C.rose}15`, color:C.rose, fontFamily:FB, fontWeight:600 }}>{v}</span>
+              ))}
+            </div>
+
+            {/* Ações */}
+            <div style={{ display:"flex", gap:8 }}>
+              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>✏️ Editar</Btn>
+              <Btn small onClick={() => { setSelected(t); setSendTarget(null); setShowSend(true); }}>📱 Enviar</Btn>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal Editar */}
+      <Modal open={showEdit} onClose={() => setShowEdit(false)} title={`Editar: ${selected?.name}`}>
+        <div style={{ marginBottom:8 }}>
+          <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Mensagem</label>
+          <textarea
+            value={editMsg}
+            onChange={e => setEditMsg(e.target.value)}
+            rows={5}
+            style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:FB, resize:"vertical" }}
+          />
+        </div>
+        <div style={{ fontSize:11, color:C.textMuted, marginBottom:16 }}>
+          Variáveis disponíveis: <span style={{ color:C.rose }}>{"{nome}"}</span>, <span style={{ color:C.rose }}>{"{data}"}</span>, <span style={{ color:C.rose }}>{"{hora}"}</span>, <span style={{ color:C.rose }}>{"{valor}"}</span>
+        </div>
+        {/* Preview */}
+        <div style={{ background:C.surface, borderRadius:10, padding:"10px 14px", fontSize:12, color:C.textSec, marginBottom:16 }}>
+          <div style={{ fontSize:10, color:C.textMuted, marginBottom:6, textTransform:"uppercase" }}>Preview</div>
+          {formatMsg(editMsg)}
+        </div>
+        <div style={{ display:"flex", gap:10 }}>
+          <Btn variant="secondary" onClick={() => setShowEdit(false)}>Cancelar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Btn>
+        </div>
+      </Modal>
+
+      {/* Modal Enviar */}
+      <Modal open={showSend} onClose={() => setShowSend(false)} title={`Enviar: ${selected?.name}`} width={500}>
+        {selected && (
+          <div>
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:8, textTransform:"uppercase" }}>Selecione a cliente</label>
+              <select
+                value={sendTarget?.id ?? ""}
+                onChange={e => setSendTarget(clients2.find((c: any) => c.id === e.target.value))}
+                style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, outline:"none", fontFamily:FB }}
+              >
+                <option value="">Selecione...</option>
+                {clients2.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.fullName} {c.whatsapp ? `· ${c.whatsapp}` : ""}</option>
+                ))}
+              </select>
+            </div>
+
+            {sendTarget && (
+              <div style={{ background:C.surface, borderRadius:10, padding:"14px", marginBottom:16 }}>
+                <div style={{ fontSize:10, color:C.textMuted, marginBottom:8, textTransform:"uppercase" }}>Mensagem que será enviada</div>
+                <div style={{ fontSize:13, color:C.text, fontFamily:FB, lineHeight:1.6 }}>
+                  {formatMsg(selected.message, sendTarget)}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display:"flex", gap:10 }}>
+              <Btn variant="secondary" onClick={() => setShowSend(false)}>Cancelar</Btn>
+              {sendTarget && (
+                <a
+                  href={`https://wa.me/55${sendTarget.whatsapp?.replace(/\D/g,"")}?text=${encodeURIComponent(formatMsg(selected.message, sendTarget))}`}
+                  target="_blank"
+                  onClick={() => setShowSend(false)}
+                  style={{ display:"inline-block", padding:"10px 22px", background:`linear-gradient(135deg, ${C.sage}, #5a8f55)`, color:"#fff", borderRadius:10, textDecoration:"none", fontWeight:700, fontSize:13, fontFamily:FB }}
+                >
+                  📱 Abrir WhatsApp
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
 // ─── TRIAL BANNER ────────────────────────────────────────────
 function TrialBanner() {
   const [info, setInfo] = useState<any>(null);
@@ -1687,6 +1888,7 @@ const MENU = [
   { id:"commissions",   label:"Comissões",     icon:"◐" },
   { id:"crm",           label:"CRM",           icon:"◑" },
   { id:"fidelity",      label:"Fidelidade",    icon:"◒" },
+  { id:"automations",   label:"Automações",    icon:"⚡" },
 ];
 
 function Sidebar({ page, setPage, user, onLogout }: any) {
@@ -1764,6 +1966,7 @@ export default function App() {
     commissions:   CommissionsPage,
     crm:           CRMPage,
     fidelity:      FidelityPage,
+    automations:   AutomationsPage,
   };
   const PageComponent = PAGES[page] ?? DashboardPage;
 
