@@ -1090,10 +1090,12 @@ function ServicesPage() {
     setSaving(true);
     try {
       if (selected) {
-        const r: any = await servicesApi.update(selected.id, form);
+        const payload2 = { ...form, categoryId: form.categoryId || null };
+const r: any = await servicesApi.update(selected.id, payload2);
         setData(d => d.map((x: any) => x.id === selected.id ? r.data : x));
       } else {
-        const r: any = await servicesApi.create(form);
+        const payload = { ...form, categoryId: form.categoryId || null };
+const r: any = await servicesApi.create(payload);
         setData(d => [...d, r.data]);
       }
       setShowForm(false);
