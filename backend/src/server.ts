@@ -29,6 +29,10 @@ const server = Fastify({ logger: { level: env.LOG_LEVEL } });
 async function bootstrap() {
   await server.register(helmet, { global: true });
   await server.register(cors, { origin: env.CORS_ORIGINS, credentials: true });
+  server.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
+  if (!body || (body as string).length === 0) { done(null, {}); return; }
+  try { done(null, JSON.parse(body as string)); } catch(e: any) { done(e, undefined); }
+});
   await server.register(rateLimit, { max: env.RATE_LIMIT_MAX, timeWindow: env.RATE_LIMIT_WINDOW });
 
   server.decorate("authenticate", authenticate);
