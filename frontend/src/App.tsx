@@ -1207,16 +1207,60 @@ function PackagesPage() {
 
 // --- FINANCEIRO -----------------------------------------------
 function FinancialPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData]       = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter]   = useState("all");
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving]   = useState(false);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const emptyForm = { description:"", type:"revenue", amount:"", dueDate:"", paymentMethod:"pix", accountId:"", categoryId:"", status:"pending" };
+  const [form, setForm] = useState(emptyForm);
+  const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]: v }));
 
-  useEffect(() => {
-    Promise.all([financialApi.list({ limit: 100 }), financialApi.summary()])
-      .then(([t, s]: any) => { setData(t.data ?? []); setSummary(s.data ?? { revenue:0, expenses:0, profit:0 }); })
-      .catch(console.error).finally(() => setLoading(false));
-  }, []);
+  const load = async () => {
+    try {
+      const [t, s, a, c] = await Promise.all([
+        financialApi.list({ limit: 100 }),
+        financialApi.summary(),
+        financialApi.accounts(),
+        financialApi.categories(),
+      ]);
+      setData((t as any).data ?? []);
+      setSummary((s as any).data ?? { revenue:0, expenses:0, profit:0 });
+      setAccounts((a as any).data ?? []);
+      setCategories((c as any).data ?? []);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...form,
+        accountId:  form.accountId  || null,
+        categoryId: form.categoryId || null,
+      };
+      const r: any = await financialApi.create(payload);
+      setData(d => [r.data, ...d]);
+      setShowForm(false);
+      setForm(emptyForm);
+      const s: any = await financialApi.summary();
+      setSummary(s.data);
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const confirmPayment = async (id: string, paymentMethod: string) => {
+    try {
+      await financialApi.confirmPayment(id, { paymentMethod });
+      load();
+    } catch(e) { console.error(e); }
+  };
 
   const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
 
@@ -1237,7 +1281,7 @@ function FinancialPage() {
 
   return (
     <div>
-      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transacao</Btn>} />
+      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn onClick={() => { setForm(emptyForm); setShowForm(true); }}>+ Nova Transacao</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
         <KpiCard icon="💰" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
         <KpiCard icon="💰" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
@@ -1248,7 +1292,36 @@ function FinancialPage() {
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background: filter===f2.v?`${C.rose}15`:C.card, color: filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{f2.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada."
+        onRow={(t: any) => t.status === "pending" && confirmPayment(t.id, t.paymentMethod ?? "pix")}
+      />
+
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Transacao">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+          <Inp label="Descricao *" value={form.description} onChange={f("description")} required placeholder="Ex: Coloracao - Ana Silva" grid="1/-1" />
+          <Sel label="Tipo *" value={form.type} onChange={f("type")} options={[{ value:"revenue", label:"Receita" },{ value:"expense", label:"Despesa" }]} />
+          <Sel label="Status" value={form.status} onChange={f("status")} options={[{ value:"pending", label:"Pendente" },{ value:"confirmed", label:"Pago" }]} />
+          <Inp label="Valor (R$) *" value={form.amount} onChange={f("amount")} type="number" placeholder="180.00" grid="1/-1" />
+          <Inp label="Vencimento *" value={form.dueDate} onChange={f("dueDate")} type="date" />
+          <Sel label="Forma de Pagamento" value={form.paymentMethod} onChange={f("paymentMethod")} options={[
+            { value:"pix", label:"Pix" },
+            { value:"cash", label:"Dinheiro" },
+            { value:"credit_card", label:"Cartao Credito" },
+            { value:"debit_card", label:"Cartao Debito" },
+            { value:"bank_transfer", label:"Transferencia" },
+          ]} />
+          {accounts.length > 0 && (
+            <Sel label="Conta" value={form.accountId} onChange={f("accountId")} options={[{ value:"", label:"Selecione..." }, ...accounts.map((a: any) => ({ value:a.id, label:a.name }))]} grid="1/-1" />
+          )}
+          {categories.length > 0 && (
+            <Sel label="Categoria" value={form.categoryId} onChange={f("categoryId")} options={[{ value:"", label:"Selecione..." }, ...categories.filter((c: any) => c.type === form.type).map((c: any) => ({ value:c.id, label:c.name }))]} grid="1/-1" />
+          )}
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Lancar"}</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }
