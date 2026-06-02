@@ -28,6 +28,7 @@
     "fastify": "^4.27.0",
     "jose": "^5.0.0",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
     "postgres": "^3.4.4",
     "tsx": "^4.7.0",
     "ws": "^8.21.0",
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.14.0",
+    "@types/node-cron": "^3.0.11",
     "typescript": "^5.4.5"
   }
 }

@@ -5,6 +5,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { env } from "./config/env.js";
 import { checkDatabaseHealth, closeDatabaseConnection } from "./db/connection.js";
+import { startScheduler } from "./jobs/scheduler.js";
 import { authenticate } from "./middleware/auth.js";
 
 import {
@@ -73,6 +74,7 @@ const prefix = env.API_PREFIX;
 
   await server.listen({ port: env.PORT, host: env.HOST });
   console.log(`BeautyTech v2 rodando na porta ${env.PORT}`);
+  startScheduler();
 }
 
 process.on("SIGTERM", async () => {
