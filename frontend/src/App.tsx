@@ -1,15 +1,15 @@
-// ============================================================
-// BEAUTYTECH v2 — Frontend Completo
-// Design: luxury refinado — rose gold + noir + cream
+﻿// ============================================================
+// BEAUTYTECH v2 â€” Frontend Completo
+// Design: luxury refinado â€” rose gold + noir + cream
 // Tipografia: Playfair Display + Outfit
-// 10 módulos: Dashboard, Clientes, Agenda, Profissionais,
-//             Serviços, Pacotes, Financeiro, Comissões, CRM, Fidelidade
+// 10 mÃ³dulos: Dashboard, Clientes, Agenda, Profissionais,
+//             ServiÃ§os, Pacotes, Financeiro, ComissÃµes, CRM, Fidelidade
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { supabase, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
+import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
 
-// ─── DESIGN TOKENS ───────────────────────────────────────────
+// â”€â”€â”€ DESIGN TOKENS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
   bg:        "#0C0A09",
   card:      "#141210",
@@ -35,23 +35,23 @@ const C = {
 const FD = "'Playfair Display', serif";
 const FB = "'Outfit', sans-serif";
 
-// ─── MOCK DATA (fallback) ─────────────────────────────────────
+// â”€â”€â”€ MOCK DATA (fallback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const NOW = new Date();
 const MOCK_KPIS = { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0, revenueMonth: 0, revenuePrevMonth: 0, averageTicket: 0, revenueGrowth: 0 };
 
-// ─── HELPERS ─────────────────────────────────────────────────
+// â”€â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const brl = (v: any) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
-const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "—";
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR") : "â€”";
+const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "â€”";
 const fmtPct = (v: any) => `${Number(v || 0).toFixed(1)}%`;
 
 const STATUS_APPT: any = {
   pending:     { label:"Pendente",       color: C.gold },
   confirmed:   { label:"Confirmado",     color: C.sapphire },
   in_progress: { label:"Atendendo",      color: C.rose },
-  completed:   { label:"Concluído",      color: C.sage },
+  completed:   { label:"ConcluÃ­do",      color: C.sage },
   cancelled:   { label:"Cancelado",      color: C.ruby },
-  no_show:     { label:"Não compareceu", color: C.textMuted },
+  no_show:     { label:"NÃ£o compareceu", color: C.textMuted },
 };
 
 const SEGMENT: any = {
@@ -74,16 +74,16 @@ const LOYALTY: any = {
 
 const PKG_STATUS: any = {
   active:    { label:"Ativo",     color: C.sage },
-  completed: { label:"Concluído", color: C.textMuted },
+  completed: { label:"ConcluÃ­do", color: C.textMuted },
   paused:    { label:"Pausado",   color: C.gold },
   expired:   { label:"Expirado",  color: C.ruby },
   cancelled: { label:"Cancelado", color: C.ruby },
 };
 
-const SOURCE_LABEL: any = { instagram:"Instagram", whatsapp:"WhatsApp", facebook:"Facebook", google:"Google", indicacao:"Indicação" };
-const PAYMENT_LABEL: any = { cash:"Dinheiro", credit_card:"Cartão Crédito", debit_card:"Cartão Débito", pix:"Pix", bank_transfer:"Transferência", voucher:"Voucher", gift_card:"Vale-Presente" };
+const SOURCE_LABEL: any = { instagram:"Instagram", whatsapp:"WhatsApp", facebook:"Facebook", google:"Google", indicacao:"IndicaÃ§Ã£o" };
+const PAYMENT_LABEL: any = { cash:"Dinheiro", credit_card:"CartÃ£o CrÃ©dito", debit_card:"CartÃ£o DÃ©bito", pix:"Pix", bank_transfer:"TransferÃªncia", voucher:"Voucher", gift_card:"Vale-Presente" };
 
-// ─── COMPONENTS ──────────────────────────────────────────────
+// â”€â”€â”€ COMPONENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Badge({ label, color, small }: any) {
   return (
@@ -105,7 +105,7 @@ function KpiCard({ icon, label, value, sub, color = C.rose, trend }: any) {
           {sub && <span style={{ fontSize:12, color: C.textMuted, fontFamily: FB }}>{sub}</span>}
           {trend !== undefined && (
             <span style={{ fontSize:11, fontWeight:700, color: trend >= 0 ? C.sage : C.ruby, background: trend >= 0 ? `${C.sage}15` : `${C.ruby}15`, padding:"1px 8px", borderRadius:20 }}>
-              {trend >= 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}%
+              {trend >= 0 ? "â–²" : "â–¼"} {Math.abs(trend).toFixed(1)}%
             </span>
           )}
         </div>
@@ -121,7 +121,7 @@ function Modal({ open, onClose, title, children, width = 540 }: any) {
       <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, width:"100%", maxWidth:width, maxHeight:"90vh", overflowY:"auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding:"20px 28px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div style={{ fontSize:18, fontWeight:700, color: C.text, fontFamily: FD }}>{title}</div>
-          <button onClick={onClose} style={{ background:"none", border:"none", color: C.textMuted, cursor:"pointer", fontSize:24, lineHeight:1, padding:"0 4px" }}>×</button>
+          <button onClick={onClose} style={{ background:"none", border:"none", color: C.textMuted, cursor:"pointer", fontSize:24, lineHeight:1, padding:"0 4px" }}>Ã—</button>
         </div>
         <div style={{ padding:28 }}>{children}</div>
       </div>
@@ -192,7 +192,7 @@ function Table({ cols, rows, onRow, emptyMsg = "Nenhum registro" }: any) {
 function Search({ value, onChange, placeholder }: any) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:8, background: C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 14px", minWidth:260 }}>
-      <span style={{ color: C.textMuted, fontSize:14 }}>✦</span>
+      <span style={{ color: C.textMuted, fontSize:14 }}>âœ¦</span>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder ?? "Buscar..."}
         style={{ background:"none", border:"none", outline:"none", color: C.text, fontSize:13, width:"100%", fontFamily: FB }} />
     </div>
@@ -220,7 +220,7 @@ function ProgressBar({ value, max, color = C.rose }: any) {
   );
 }
 
-// ─── PAGES ───────────────────────────────────────────────────
+// â”€â”€â”€ PAGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function RegisterPage({ onBack }: any) {
   const [salonName, setSalonName] = useState("");
@@ -241,7 +241,7 @@ function RegisterPage({ onBack }: any) {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setSuccess("Salão cadastrado com sucesso! Faça login para continuar.");
+      setSuccess("SalÃ£o cadastrado com sucesso! FaÃ§a login para continuar.");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -253,28 +253,28 @@ function RegisterPage({ onBack }: any) {
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily: FB, padding:20 }}>
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
-          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo Salão</div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo SalÃ£o</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salão gratuitamente</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salÃ£o gratuitamente</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           {success ? (
             <div>
-              <div style={{ background:`${C.sage}15`, border:`1px solid ${C.sage}30`, borderRadius:10, padding:"14px", color: C.sage, fontSize:13, marginBottom:20, textAlign:"center" }}>✓ {success}</div>
+              <div style={{ background:`${C.sage}15`, border:`1px solid ${C.sage}30`, borderRadius:10, padding:"14px", color: C.sage, fontSize:13, marginBottom:20, textAlign:"center" }}>âœ“ {success}</div>
               <button onClick={onBack} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB }}>Ir para o Login</button>
             </div>
           ) : (
             <>
-              <Inp label="Nome do Salão" value={salonName} onChange={setSalonName} placeholder="Salão Bella Arte" required />
+              <Inp label="Nome do SalÃ£o" value={salonName} onChange={setSalonName} placeholder="SalÃ£o Bella Arte" required />
               <Inp label="Seu Nome" value={ownerName} onChange={setOwnerName} placeholder="Maria da Silva" required />
               <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
-              <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="mínimo 6 caracteres" required />
+              <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="mÃ­nimo 6 caracteres" required />
               {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
               <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, marginBottom:16 }}>
-                {loading ? "Cadastrando..." : "Criar Conta Grátis"}
+                {loading ? "Cadastrando..." : "Criar Conta GrÃ¡tis"}
               </button>
               <div style={{ textAlign:"center" }}>
-                <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB }}>Já tenho conta → Fazer login</button>
+                <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB }}>JÃ¡ tenho conta â†’ Fazer login</button>
               </div>
             </>
           )}
@@ -305,13 +305,13 @@ function LoginPage({ onLogin }: any) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');`}</style>
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
-          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12, fontFamily: FB }}>Sistema de Gestão</div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12, fontFamily: FB }}>Sistema de GestÃ£o</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salão de Beleza Enterprise v2</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>SalÃ£o de Beleza Enterprise v2</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="seu@email.com" />
-          <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="••••••••" />
+          <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
           {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
           <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, letterSpacing:"0.02em" }}>
             {loading ? "Entrando..." : "Entrar"}
@@ -327,7 +327,7 @@ function LoginPage({ onLogin }: any) {
   );
 }
 
-// ─── DASHBOARD ───────────────────────────────────────────────
+// â”€â”€â”€ DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function DashboardPage() {
   const [kpis, setKpis] = useState<any>(null);
   const [agenda, setAgenda] = useState<any[]>([]);
@@ -372,10 +372,10 @@ function DashboardPage() {
     <div>
       <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))", gap:16, marginBottom:28 }}>
-        <KpiCard icon="📅" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mês`} color={C.rose} />
-        <KpiCard icon="👥" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
-        <KpiCard icon="💰" label="Receita do Mês"     value={brl(k.revenueMonth)} sub={brl(k.revenuePrevMonth)+" mês ant."} color={C.sage} trend={k.revenueGrowth} />
-        <KpiCard icon="🎯" label="Ticket Médio"       value={brl(k.averageTicket)} sub="por atendimento"   color={C.sapphire} />
+        <KpiCard icon="ðŸ“…" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mÃªs`} color={C.rose} />
+        <KpiCard icon="ðŸ‘¥" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
+        <KpiCard icon="ðŸ’°" label="Receita do MÃªs"     value={brl(k.revenueMonth)} sub={brl(k.revenuePrevMonth)+" mÃªs ant."} color={C.sage} trend={k.revenueGrowth} />
+        <KpiCard icon="ðŸŽ¯" label="Ticket MÃ©dio"       value={brl(k.averageTicket)} sub="por atendimento"   color={C.sapphire} />
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:20, marginBottom:20 }}>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
@@ -393,7 +393,7 @@ function DashboardPage() {
                         {item.client?.fullName}
                         {item.client?.isVip && <Badge label="VIP" color={C.gold} small />}
                       </div>
-                      <div style={{ fontSize:11, color: C.textMuted }}>{fmtTime(item.appointment?.scheduledAt)} · {item.professional?.fullName}</div>
+                      <div style={{ fontSize:11, color: C.textMuted }}>{fmtTime(item.appointment?.scheduledAt)} Â· {item.professional?.fullName}</div>
                     </div>
                   </div>
                   <div style={{ textAlign:"right" }}>
@@ -406,9 +406,9 @@ function DashboardPage() {
           </div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
-          <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Performance do Mês</div>
+          <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:18, fontFamily: FD }}>Performance do MÃªs</div>
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            {performance.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum dado disponível.</div>}
+            {performance.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum dado disponÃ­vel.</div>}
             {performance.map((p: any, i: number) => {
               const goal = Number(p.professional?.monthlyGoal ?? 1);
               const rev = Number(p.revenueMonth ?? 0);
@@ -431,8 +431,8 @@ function DashboardPage() {
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
-          <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>🎂 Aniversariantes do Mês</div>
-          {birthdays.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum aniversariante este mês.</div>}
+          <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>ðŸŽ‚ Aniversariantes do MÃªs</div>
+          {birthdays.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum aniversariante este mÃªs.</div>}
           {birthdays.slice(0,4).map((c: any, i: number) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
@@ -444,13 +444,13 @@ function DashboardPage() {
           ))}
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
-          <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>⚠️ Clientes em Risco</div>
+          <div style={{ fontSize:15, fontWeight:700, color: C.text, marginBottom:16, fontFamily: FD }}>âš ï¸ Clientes em Risco</div>
           {atRisk.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB, fontSize:13 }}>Nenhum cliente em risco.</div>}
           {atRisk.map((c: any, i: number) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div>
                 <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
-                <div style={{ fontSize:11, color: C.textMuted }}>Última visita: {fmtDate(c.lastVisitAt)}</div>
+                <div style={{ fontSize:11, color: C.textMuted }}>Ãšltima visita: {fmtDate(c.lastVisitAt)}</div>
               </div>
               <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.rose, textDecoration:"none", fontWeight:700, padding:"4px 10px", border:`1px solid ${C.rose}40`, borderRadius:8 }}>Reativar</a>
             </div>
@@ -461,7 +461,7 @@ function DashboardPage() {
   );
 }
 
-// ─── CLIENTES ────────────────────────────────────────────────
+// â”€â”€â”€ CLIENTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ClientsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -519,7 +519,7 @@ function ClientsPage() {
 
   const segs = [
     { v:"all", l:"Todos" },{ v:"vip", l:"VIP" },{ v:"active", l:"Ativos" },
-    { v:"loyal", l:"Fiéis" },{ v:"at_risk", l:"Em Risco" },{ v:"new", l:"Novos" },
+    { v:"loyal", l:"FiÃ©is" },{ v:"at_risk", l:"Em Risco" },{ v:"new", l:"Novos" },
   ];
 
   const cols = [
@@ -537,11 +537,11 @@ function ClientsPage() {
       </div>
     )},
     { key:"segment", label:"Segmento", render: (c: any) => { const s = SEGMENT[c.segment]; return <Badge label={s?.label ?? c.segment} color={s?.color ?? C.textMuted} />; } },
-    { key:"loyaltyTier", label:"Fidelidade", render: (c: any) => { const l = LOYALTY[c.loyaltyTier]; return <Badge label={l?.label ?? c.loyaltyTier ?? "—"} color={l?.color ?? C.textMuted} />; } },
+    { key:"loyaltyTier", label:"Fidelidade", render: (c: any) => { const l = LOYALTY[c.loyaltyTier]; return <Badge label={l?.label ?? c.loyaltyTier ?? "â€”"} color={l?.color ?? C.textMuted} />; } },
     { key:"totalVisits", label:"Visitas", render: (c: any) => <span style={{ color: C.textSec }}>{c.totalVisits ?? 0}</span> },
     { key:"totalSpent", label:"LTV", render: (c: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.totalSpent)}</span> },
     { key:"averageTicket", label:"Ticket", render: (c: any) => <span style={{ color: C.textMuted }}>{brl(c.averageTicket)}</span> },
-    { key:"lastVisitAt", label:"Última Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
+    { key:"lastVisitAt", label:"Ãšltima Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
     { key:"action", label:"", render: (c: any) => (
       <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn>
     )},
@@ -571,7 +571,7 @@ function ClientsPage() {
           <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
           <Inp label="E-mail" value={form.email} onChange={f("email")} type="email" placeholder="ana@email.com" />
           <Inp label="Data de nascimento" value={form.birthDate} onChange={f("birthDate")} type="date" />
-          <Sel label="Gênero" value={form.gender} onChange={f("gender")} options={[{ value:"female", label:"Feminino" },{ value:"male", label:"Masculino" },{ value:"other", label:"Outro" }]} />
+          <Sel label="GÃªnero" value={form.gender} onChange={f("gender")} options={[{ value:"female", label:"Feminino" },{ value:"male", label:"Masculino" },{ value:"other", label:"Outro" }]} />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
@@ -583,33 +583,33 @@ function ClientsPage() {
 }
 
 
-// ─── WA BUTTON COM MENSAGENS POR STATUS ──────────────────────
+// â”€â”€â”€ WA BUTTON COM MENSAGENS POR STATUS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const WA_MESSAGES: Record<string, string[]> = {
   pending: [
-    "Olá {nome}! 😊 Passando para confirmar seu agendamento em {data} às {hora}. Confirma sua presença?",
-    "Oi {nome}! Tudo bem? Seu horário está reservado para {data} às {hora}. Confirma? 💅",
-    "Olá {nome}! Lembrando do seu agendamento conosco em {data} às {hora}. Confirma presença? 🌸",
+    "OlÃ¡ {nome}! ðŸ˜Š Passando para confirmar seu agendamento em {data} Ã s {hora}. Confirma sua presenÃ§a?",
+    "Oi {nome}! Tudo bem? Seu horÃ¡rio estÃ¡ reservado para {data} Ã s {hora}. Confirma? ðŸ’…",
+    "OlÃ¡ {nome}! Lembrando do seu agendamento conosco em {data} Ã s {hora}. Confirma presenÃ§a? ðŸŒ¸",
   ],
   confirmed: [
-    "Olá {nome}! ✅ Seu agendamento está confirmado para {data} às {hora}. Até lá!",
-    "Oi {nome}! Só lembrando: você tem horário marcado conosco em {data} às {hora}. Te esperamos! 😍",
-    "Olá {nome}! Seu horário de {hora} está confirmado. Qualquer dúvida é só chamar! 💕",
+    "OlÃ¡ {nome}! âœ… Seu agendamento estÃ¡ confirmado para {data} Ã s {hora}. AtÃ© lÃ¡!",
+    "Oi {nome}! SÃ³ lembrando: vocÃª tem horÃ¡rio marcado conosco em {data} Ã s {hora}. Te esperamos! ðŸ˜",
+    "OlÃ¡ {nome}! Seu horÃ¡rio de {hora} estÃ¡ confirmado. Qualquer dÃºvida Ã© sÃ³ chamar! ðŸ’•",
   ],
   in_progress: [
-    "Olá {nome}! Você está sendo atendida agora. Qualquer necessidade é só falar! 😊",
+    "OlÃ¡ {nome}! VocÃª estÃ¡ sendo atendida agora. Qualquer necessidade Ã© sÃ³ falar! ðŸ˜Š",
   ],
   completed: [
-    "Olá {nome}! 🌟 Foi um prazer te atender hoje! Como você avalia nosso serviço?",
-    "Oi {nome}! Esperamos que tenha gostado! Que tal agendar sua próxima visita? 💆‍♀️",
-    "Olá {nome}! Obrigada pela visita! Deixa sua avaliação no Google e ganhe desconto na próxima. ⭐",
+    "OlÃ¡ {nome}! ðŸŒŸ Foi um prazer te atender hoje! Como vocÃª avalia nosso serviÃ§o?",
+    "Oi {nome}! Esperamos que tenha gostado! Que tal agendar sua prÃ³xima visita? ðŸ’†â€â™€ï¸",
+    "OlÃ¡ {nome}! Obrigada pela visita! Deixa sua avaliaÃ§Ã£o no Google e ganhe desconto na prÃ³xima. â­",
   ],
   cancelled: [
-    "Olá {nome}! Sentimos sua falta hoje. Que tal remarcarmos? Temos horários disponíveis! 🗓️",
-    "Oi {nome}! Vimos que não pôde vir. Sem problemas! Quando quiser remarcar é só chamar. 😊",
+    "OlÃ¡ {nome}! Sentimos sua falta hoje. Que tal remarcarmos? Temos horÃ¡rios disponÃ­veis! ðŸ—“ï¸",
+    "Oi {nome}! Vimos que nÃ£o pÃ´de vir. Sem problemas! Quando quiser remarcar Ã© sÃ³ chamar. ðŸ˜Š",
   ],
   no_show: [
-    "Olá {nome}! Ficamos te esperando hoje. Tudo bem? Podemos remarcar seu horário! 💕",
-    "Oi {nome}! Sentimos sua falta! Que tal agendarmos de novo? Temos horários esta semana. 📅",
+    "OlÃ¡ {nome}! Ficamos te esperando hoje. Tudo bem? Podemos remarcar seu horÃ¡rio! ðŸ’•",
+    "Oi {nome}! Sentimos sua falta! Que tal agendarmos de novo? Temos horÃ¡rios esta semana. ðŸ“…",
   ],
 };
 
@@ -637,12 +637,12 @@ function WaButton({ client, status, scheduledAt }: any) {
           <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, width:"100%", maxWidth:480 }}
             onClick={e => e.stopPropagation()}>
             <div style={{ padding:"18px 24px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <div style={{ fontSize:16, fontWeight:700, color:C.text, fontFamily:FD }}>💬 Mensagem para {nome}</div>
-              <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:C.textMuted, fontSize:22, cursor:"pointer" }}>×</button>
+              <div style={{ fontSize:16, fontWeight:700, color:C.text, fontFamily:FD }}>ðŸ’¬ Mensagem para {nome}</div>
+              <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:C.textMuted, fontSize:22, cursor:"pointer" }}>Ã—</button>
             </div>
             <div style={{ padding:24 }}>
               <div style={{ fontSize:11, color:C.textMuted, marginBottom:14, fontFamily:FB, textTransform:"uppercase", letterSpacing:"0.06em" }}>
-                Sugestões para: <span style={{ color:STATUS_APPT[status]?.color ?? C.rose, fontWeight:700 }}>{STATUS_APPT[status]?.label ?? status}</span>
+                SugestÃµes para: <span style={{ color:STATUS_APPT[status]?.color ?? C.rose, fontWeight:700 }}>{STATUS_APPT[status]?.label ?? status}</span>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {msgs.map((msg: string, i: number) => {
@@ -657,7 +657,7 @@ function WaButton({ client, status, scheduledAt }: any) {
                       onMouseEnter={e => (e.currentTarget.style.borderColor = C.sage)}
                       onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
                     >
-                      <div style={{ fontSize:10, color:C.sage, fontWeight:700, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Opção {i+1} — clique para abrir WhatsApp</div>
+                      <div style={{ fontSize:10, color:C.sage, fontWeight:700, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>OpÃ§Ã£o {i+1} â€” clique para abrir WhatsApp</div>
                       {texto}
                     </a>
                   );
@@ -671,7 +671,7 @@ function WaButton({ client, status, scheduledAt }: any) {
   );
 }
 
-// ─── AGENDA ──────────────────────────────────────────────────
+// â”€â”€â”€ AGENDA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AgendaPage() {
   const [filter, setFilter]     = useState("all");
   const [showForm, setShowForm] = useState(false);
@@ -795,17 +795,17 @@ function AgendaPage() {
     { v:"pending",     l:"Pendentes" },
     { v:"confirmed",   l:"Confirmados" },
     { v:"in_progress", l:"Atendendo" },
-    { v:"completed",   l:"Concluídos" },
+    { v:"completed",   l:"ConcluÃ­dos" },
   ];
 
   const selStyle: any = { width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:FB };
   const lblStyle: any = { fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" };
 
   const cols = [
-    { key:"horario", label:"Horário", render: (a: any) => (
+    { key:"horario", label:"HorÃ¡rio", render: (a: any) => (
       <div>
         <div style={{ fontWeight:600, color:C.text, fontFamily:FB }}>{fmtTime(a.appointment?.scheduledAt)}</div>
-        <div style={{ fontSize:11, color:C.textMuted }}>até {fmtTime(a.appointment?.endsAt)}</div>
+        <div style={{ fontSize:11, color:C.textMuted }}>atÃ© {fmtTime(a.appointment?.endsAt)}</div>
       </div>
     )},
     { key:"client", label:"Cliente", render: (a: any) => (
@@ -824,7 +824,7 @@ function AgendaPage() {
     { key:"professional", label:"Profissional", render: (a: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
         <div style={{ width:8, height:8, borderRadius:"50%", background:a.professional?.color ?? C.rose }} />
-        <span style={{ color:C.textSec, fontSize:13 }}>{a.professional?.fullName ?? "—"}</span>
+        <span style={{ color:C.textSec, fontSize:13 }}>{a.professional?.fullName ?? "â€”"}</span>
       </div>
     )},
     { key:"status", label:"Status", render: (a: any) => {
@@ -832,13 +832,13 @@ function AgendaPage() {
       return <Badge label={s?.label ?? a.appointment?.status} color={s?.color ?? C.textMuted} />;
     }},
     { key:"total", label:"Valor", render: (a: any) => <span style={{ fontWeight:700, color:C.gold }}>{brl(a.appointment?.totalPrice)}</span> },
-    { key:"action", label:"Ações", render: (a: any) => (
+    { key:"action", label:"AÃ§Ãµes", render: (a: any) => (
       <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
         {a.appointment?.status === "pending"     && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"confirmed"); }}>Confirmar</Btn>}
         {a.appointment?.status === "confirmed"   && <Btn small onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"in_progress"); }}>Check-in</Btn>}
         {a.appointment?.status === "in_progress" && <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"completed"); }}>Concluir</Btn>}
         {["pending","confirmed"].includes(a.appointment?.status) && (
-          <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"cancelled"); }}>✕</Btn>
+          <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"cancelled"); }}>âœ•</Btn>
         )}
         <WaButton client={a.client} status={a.appointment?.status} scheduledAt={a.appointment?.scheduledAt} />
       </div>
@@ -874,7 +874,7 @@ function AgendaPage() {
             <select value={form.clientId} onChange={e => f("clientId")(e.target.value)} style={selStyle}>
               <option value="">Selecione a cliente...</option>
               {clientsList.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.fullName}{c.whatsapp ? ` · ${c.whatsapp}` : ""}</option>
+                <option key={c.id} value={c.id}>{c.fullName}{c.whatsapp ? ` Â· ${c.whatsapp}` : ""}</option>
               ))}
             </select>
           </div>
@@ -890,17 +890,17 @@ function AgendaPage() {
           </div>
 
           <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
-            <label style={lblStyle}>Serviço</label>
+            <label style={lblStyle}>ServiÃ§o</label>
             <select value={form.serviceId} onChange={e => handleServiceChange(e.target.value)} style={selStyle}>
               <option value="">Selecione (opcional)...</option>
               {svcsList.map((s: any) => (
-                <option key={s.id} value={s.id}>{s.name} — {brl(s.price)} · {s.durationMinutes}min</option>
+                <option key={s.id} value={s.id}>{s.name} â€” {brl(s.price)} Â· {s.durationMinutes}min</option>
               ))}
             </select>
           </div>
 
           <Inp label="Data e Hora *" value={form.scheduledAt} onChange={f("scheduledAt")} type="datetime-local" />
-          <Inp label="Duração (min)" value={form.durationMinutes} onChange={f("durationMinutes")} type="number" placeholder="60" />
+          <Inp label="DuraÃ§Ã£o (min)" value={form.durationMinutes} onChange={f("durationMinutes")} type="number" placeholder="60" />
           <Inp label="Valor (R$) *" value={form.totalPrice} onChange={f("totalPrice")} type="number" placeholder="180.00" grid="1/-1" />
         </div>
 
@@ -919,7 +919,7 @@ function AgendaPage() {
   );
 }
 
-// ─── PROFISSIONAIS ────────────────────────────────────────────
+// â”€â”€â”€ PROFISSIONAIS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ProfessionalsPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -951,7 +951,7 @@ function ProfessionalsPage() {
               </div>
               <div>
                 <div style={{ fontWeight:700, color: C.text, fontSize:15, fontFamily: FD }}>{p.fullName}</div>
-                <div style={{ fontSize:11, color: C.textMuted, marginTop:2 }}>{(p.specialties ?? []).slice(0,2).join(" · ")}</div>
+                <div style={{ fontSize:11, color: C.textMuted, marginTop:2 }}>{(p.specialties ?? []).slice(0,2).join(" Â· ")}</div>
               </div>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
@@ -960,7 +960,7 @@ function ProfessionalsPage() {
                 <div style={{ fontSize:16, fontWeight:700, color: C.gold, fontFamily: FD }}>{brl(p.monthlyGoal)}</div>
               </div>
               <div style={{ background: C.surface, borderRadius:10, padding:"10px 12px" }}>
-                <div style={{ fontSize:10, color: C.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>Comissão</div>
+                <div style={{ fontSize:10, color: C.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>ComissÃ£o</div>
                 <div style={{ fontSize:16, fontWeight:700, color: C.rose, fontFamily: FD }}>{p.commissionPct}%</div>
               </div>
             </div>
@@ -975,7 +975,7 @@ function ProfessionalsPage() {
   );
 }
 
-// ─── SERVIÇOS ─────────────────────────────────────────────────
+// â”€â”€â”€ SERVIÃ‡OS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ServicesPage() {
   const [data, setData] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -1010,11 +1010,11 @@ function ServicesPage() {
   };
 
   const cols = [
-    { key:"name", label:"Serviço", render: (s: any) => <span style={{ fontWeight:600, color: C.text }}>{s.name}</span> },
-    { key:"categoryName", label:"Categoria", render: (s: any) => <Badge label={s.categoryName ?? s.category?.name ?? "—"} color={C.rose} /> },
-    { key:"durationMinutes", label:"Duração", render: (s: any) => <span style={{ color: C.textSec }}>{s.durationMinutes}min</span> },
-    { key:"price", label:"Preço", render: (s: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(s.price)}</span> },
-    { key:"isOnlineBookable", label:"Online", render: (s: any) => <Badge label={s.isOnlineBookable ? "Sim" : "Não"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
+    { key:"name", label:"ServiÃ§o", render: (s: any) => <span style={{ fontWeight:600, color: C.text }}>{s.name}</span> },
+    { key:"categoryName", label:"Categoria", render: (s: any) => <Badge label={s.categoryName ?? s.category?.name ?? "â€”"} color={C.rose} /> },
+    { key:"durationMinutes", label:"DuraÃ§Ã£o", render: (s: any) => <span style={{ color: C.textSec }}>{s.durationMinutes}min</span> },
+    { key:"price", label:"PreÃ§o", render: (s: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(s.price)}</span> },
+    { key:"isOnlineBookable", label:"Online", render: (s: any) => <Badge label={s.isOnlineBookable ? "Sim" : "NÃ£o"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
     { key:"isActive", label:"Status", render: (s: any) => <Badge label={s.isActive ? "Ativo" : "Inativo"} color={s.isActive ? C.sage : C.textMuted} /> },
     { key:"action", label:"", render: (s: any) => (
       <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(s); }}>
@@ -1025,31 +1025,31 @@ function ServicesPage() {
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
-      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando serviços...</div>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando serviÃ§os...</div>
     </div>
   );
 
   return (
     <div>
-      <PageHeader title="Serviços" sub={`${data.filter((s: any) => s.isActive).length} serviços ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Serviço</Btn>} />
+      <PageHeader title="ServiÃ§os" sub={`${data.filter((s: any) => s.isActive).length} serviÃ§os ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo ServiÃ§o</Btn>} />
       <Table cols={cols} rows={data} />
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Serviço">
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo ServiÃ§o">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
-          <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="Coloração Completa" grid="1/-1" />
+          <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="ColoraÃ§Ã£o Completa" grid="1/-1" />
           <Sel label="Categoria" value={form.categoryId} onChange={f("categoryId")} options={categories.map((c: any) => ({ value:c.id, label:c.name }))} />
-          <Inp label="Duração (min)" value={form.durationMinutes} onChange={f("durationMinutes")} type="number" placeholder="60" />
-          <Inp label="Preço (R$)" value={form.price} onChange={f("price")} type="number" placeholder="180.00" grid="1/-1" />
+          <Inp label="DuraÃ§Ã£o (min)" value={form.durationMinutes} onChange={f("durationMinutes")} type="number" placeholder="60" />
+          <Inp label="PreÃ§o (R$)" value={form.price} onChange={f("price")} type="number" placeholder="180.00" grid="1/-1" />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
           <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Criar Serviço"}</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Criar ServiÃ§o"}</Btn>
         </div>
       </Modal>
     </div>
   );
 }
 
-// ─── PACOTES ──────────────────────────────────────────────────
+// â”€â”€â”€ PACOTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PackagesPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1071,18 +1071,18 @@ function PackagesPage() {
   const cols = [
     { key:"clientId", label:"Cliente", render: (p: any) => <span style={{ fontWeight:600, color: C.text }}>{p.client?.fullName ?? p.clientId}</span> },
     { key:"name", label:"Pacote", render: (p: any) => <span style={{ color: C.textSec }}>{p.name}</span> },
-    { key:"sessions", label:"Sessões", render: (p: any) => (
+    { key:"sessions", label:"SessÃµes", render: (p: any) => (
       <div>
         <div style={{ fontWeight:700, color: C.text }}>{p.usedSessions} / {p.totalSessions}</div>
         <ProgressBar value={p.usedSessions} max={p.totalSessions} color={C.rose} />
       </div>
     )},
-    { key:"remaining", label:"Restantes", render: (p: any) => <Badge label={`${p.remainingSessions} sessões`} color={p.remainingSessions > 0 ? C.sage : C.textMuted} /> },
+    { key:"remaining", label:"Restantes", render: (p: any) => <Badge label={`${p.remainingSessions} sessÃµes`} color={p.remainingSessions > 0 ? C.sage : C.textMuted} /> },
     { key:"totalValue", label:"Valor Total", render: (p: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(p.totalValue)}</span> },
     { key:"status", label:"Status", render: (p: any) => { const s = PKG_STATUS[p.status]; return <Badge label={s?.label ?? p.status} color={s?.color ?? C.textMuted} />; } },
     { key:"expiresAt", label:"Vencimento", render: (p: any) => <span style={{ fontSize:12, color: C.textMuted }}>{fmtDate(p.expiresAt)}</span> },
     { key:"action", label:"", render: (p: any) => p.remainingSessions > 0 && p.status === "active" && (
-      <Btn small onClick={(e: any) => { e.stopPropagation(); useSession(p.id); }}>Usar Sessão</Btn>
+      <Btn small onClick={(e: any) => { e.stopPropagation(); useSession(p.id); }}>Usar SessÃ£o</Btn>
     )},
   ];
 
@@ -1100,7 +1100,7 @@ function PackagesPage() {
   );
 }
 
-// ─── FINANCEIRO ───────────────────────────────────────────────
+// â”€â”€â”€ FINANCEIRO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function FinancialPage() {
   const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
@@ -1116,10 +1116,10 @@ function FinancialPage() {
   const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
 
   const cols = [
-    { key:"description", label:"Descrição", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
+    { key:"description", label:"DescriÃ§Ã£o", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
     { key:"type", label:"Tipo", render: (t: any) => <Badge label={t.type==="revenue"?"Receita":"Despesa"} color={t.type==="revenue"?C.sage:C.ruby} /> },
     { key:"status", label:"Status", render: (t: any) => <Badge label={t.status==="confirmed"?"Pago":"Pendente"} color={t.status==="confirmed"?C.sage:C.gold} /> },
-    { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "—"}</span> },
+    { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "â€”"}</span> },
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
   ];
@@ -1132,23 +1132,23 @@ function FinancialPage() {
 
   return (
     <div>
-      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transação</Btn>} />
+      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova TransaÃ§Ã£o</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
-        <KpiCard icon="💚" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
-        <KpiCard icon="🔴" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
-        <KpiCard icon="✨" label="Lucro Líquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
+        <KpiCard icon="ðŸ’š" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
+        <KpiCard icon="ðŸ”´" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
+        <KpiCard icon="âœ¨" label="Lucro LÃ­quido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background: filter===f2.v?`${C.rose}15`:C.card, color: filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{f2.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transação encontrada." />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transaÃ§Ã£o encontrada." />
     </div>
   );
 }
 
-// ─── COMISSÕES ────────────────────────────────────────────────
+// â”€â”€â”€ COMISSÃ•ES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CommissionsPage() {
   const [data, setData] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
@@ -1175,9 +1175,9 @@ function CommissionsPage() {
   const cols = [
     { key:"professionalId", label:"Profissional", render: (c: any) => <span style={{ fontWeight:600, color: C.text }}>{c.professional?.fullName ?? c.professionalId}</span> },
     { key:"baseAmount", label:"Base", render: (c: any) => <span style={{ color: C.textMuted }}>{brl(c.baseAmount)}</span> },
-    { key:"commissionPct", label:"Comissão %", render: (c: any) => <Badge label={`${c.commissionPct}%`} color={C.rose} /> },
+    { key:"commissionPct", label:"ComissÃ£o %", render: (c: any) => <Badge label={`${c.commissionPct}%`} color={C.rose} /> },
     { key:"commissionAmt", label:"Valor", render: (c: any) => <span style={{ fontWeight:700, color: C.gold }}>{brl(c.commissionAmt)}</span> },
-    { key:"referenceMonth", label:"Mês Ref.", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{c.referenceMonth}</span> },
+    { key:"referenceMonth", label:"MÃªs Ref.", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{c.referenceMonth}</span> },
     { key:"isPaid", label:"Status", render: (c: any) => <Badge label={c.isPaid?"Pago":"A Pagar"} color={c.isPaid?C.sage:C.gold} /> },
     { key:"action", label:"", render: (c: any) => !c.isPaid && (
       <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); pay(c.id); }}>Pagar</Btn>
@@ -1186,29 +1186,29 @@ function CommissionsPage() {
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
-      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando comissões...</div>
+      <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando comissÃµes...</div>
     </div>
   );
 
   return (
     <div>
-      <PageHeader title="Comissões" sub="Controle de comissões por profissional" />
+      <PageHeader title="ComissÃµes" sub="Controle de comissÃµes por profissional" />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:24 }}>
-        <KpiCard icon="⏳" label="A Pagar" value={brl(totalPending)} color={C.gold} />
-        <KpiCard icon="✅" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
-        <KpiCard icon="💼" label="Total"   value={brl(totalPending+totalPaid)} color={C.rose} />
+        <KpiCard icon="â³" label="A Pagar" value={brl(totalPending)} color={C.gold} />
+        <KpiCard icon="âœ…" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
+        <KpiCard icon="ðŸ’¼" label="Total"   value={brl(totalPending+totalPaid)} color={C.rose} />
       </div>
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {[{ v:"all",l:"Todas" },{ v:"pending",l:"A Pagar" },{ v:"paid",l:"Pagas" }].map(f2 => (
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background:filter===f2.v?`${C.rose}15`:C.card, color:filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f2.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma comissão encontrada." />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma comissÃ£o encontrada." />
     </div>
   );
 }
 
-// ─── CRM ──────────────────────────────────────────────────────
+// â”€â”€â”€ CRM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CRMPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1258,7 +1258,7 @@ function CRMPage() {
 
   return (
     <div>
-      <PageHeader title="CRM — Pipeline" sub={`${data.length} leads · ${data.filter((l: any) => l.status==="converted").length} convertidos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Lead</Btn>} />
+      <PageHeader title="CRM â€” Pipeline" sub={`${data.length} leads Â· ${data.filter((l: any) => l.status==="converted").length} convertidos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Lead</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:12, overflowX:"auto", minWidth:800 }}>
         {PIPELINE.map(col => (
           <div key={col.key} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:16, minHeight:300 }}>
@@ -1270,7 +1270,7 @@ function CRMPage() {
               {byStatus(col.key).map((lead: any, i: number) => (
                 <div key={i} style={{ background: C.surface, borderRadius:10, padding:12, border:`1px solid ${C.border}` }}>
                   <div style={{ fontWeight:600, color: C.text, fontSize:12, marginBottom:4 }}>{lead.name}</div>
-                  <div style={{ fontSize:11, color: C.textMuted, marginBottom:6 }}>{lead.serviceInterest} · {brl(lead.estimatedValue)}</div>
+                  <div style={{ fontSize:11, color: C.textMuted, marginBottom:6 }}>{lead.serviceInterest} Â· {brl(lead.estimatedValue)}</div>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                     <Badge label={SOURCE_LABEL[lead.source] ?? lead.source} color={C.rose} small />
                     <a href={`https://wa.me/55${lead.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:10, color: C.sage, fontWeight:700, textDecoration:"none" }}>WA</a>
@@ -1297,7 +1297,7 @@ function CRMPage() {
           <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="Maria da Silva" grid="1/-1" />
           <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
           <Sel label="Origem" value={form.source} onChange={f("source")} options={Object.entries(SOURCE_LABEL).map(([v,l]) => ({ value:v, label:String(l) }))} />
-          <Inp label="Interesse" value={form.serviceInterest} onChange={f("serviceInterest")} placeholder="Coloração" />
+          <Inp label="Interesse" value={form.serviceInterest} onChange={f("serviceInterest")} placeholder="ColoraÃ§Ã£o" />
           <Inp label="Valor estimado" value={form.estimatedValue} onChange={f("estimatedValue")} type="number" placeholder="280.00" />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
@@ -1309,7 +1309,7 @@ function CRMPage() {
   );
 }
 
-// ─── FIDELIDADE ───────────────────────────────────────────────
+// â”€â”€â”€ FIDELIDADE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function FidelityPage() {
   const [clientsData, setClientsData] = useState<any[]>([]);
   const tiers = ["bronze","silver","gold","platinum","diamond"];
@@ -1322,14 +1322,14 @@ function FidelityPage() {
 
   return (
     <div>
-      <PageHeader title="Fidelidade" sub="Programa de pontos e benefícios" />
+      <PageHeader title="Fidelidade" sub="Programa de pontos e benefÃ­cios" />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:28 }}>
         {tiers.map(t => {
           const l = LOYALTY[t];
           const count = clientsData.filter((c: any) => c.loyaltyTier === t).length;
           return (
             <div key={t} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:20, textAlign:"center" }}>
-              <div style={{ fontSize:28, marginBottom:8 }}>{t==="diamond"?"💎":t==="platinum"?"🔷":t==="gold"?"🌟":t==="silver"?"⭐":"🔶"}</div>
+              <div style={{ fontSize:28, marginBottom:8 }}>{t==="diamond"?"ðŸ’Ž":t==="platinum"?"ðŸ”·":t==="gold"?"ðŸŒŸ":t==="silver"?"â­":"ðŸ”¶"}</div>
               <div style={{ fontSize:13, fontWeight:700, color: l.color, fontFamily: FD }}>{l.label}</div>
               <div style={{ fontSize:24, fontWeight:700, color: C.text, margin:"6px 0", fontFamily: FD }}>{count}</div>
               <div style={{ fontSize:11, color: C.textMuted }}>clientes</div>
@@ -1342,7 +1342,7 @@ function FidelityPage() {
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
           <thead>
             <tr style={{ background: C.surface }}>
-              {["#","Cliente","Tier","Pontos","LTV","Visitas","Ação"].map(h => (
+              {["#","Cliente","Tier","Pontos","LTV","Visitas","AÃ§Ã£o"].map(h => (
                 <th key={h} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{h}</th>
               ))}
             </tr>
@@ -1358,7 +1358,7 @@ function FidelityPage() {
                       {c.fullName} {c.isVip && <Badge label="VIP" color={C.gold} small />}
                     </div>
                   </td>
-                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label ?? "—"} color={l?.color ?? C.textMuted} /></td>
+                  <td style={{ padding:"12px 16px" }}><Badge label={l?.label ?? "â€”"} color={l?.color ?? C.textMuted} /></td>
                   <td style={{ padding:"12px 16px", fontWeight:700, color: C.rose, fontFamily: FB }}>{(c.loyaltyPoints ?? 0).toLocaleString("pt-BR")} pts</td>
                   <td style={{ padding:"12px 16px", fontWeight:700, color: C.gold, fontFamily: FB }}>{brl(c.totalSpent)}</td>
                   <td style={{ padding:"12px 16px", color: C.textSec, fontFamily: FB }}>{c.totalVisits ?? 0}</td>
@@ -1415,11 +1415,11 @@ function SuperAdminApp() {
         </div>
         <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:32 }}>
           <Inp label="E-mail" value={email} onChange={setEmail} type="email" />
-          <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="••••••••" />
+          <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
           {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color:C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
           <Btn full onClick={login} disabled={loading} variant="gold">{loading ? "Entrando..." : "Entrar como Super Admin"}</Btn>
           <div style={{ textAlign:"center", marginTop:16 }}>
-            <a href="/" style={{ fontSize:12, color:C.textMuted, textDecoration:"none" }}>← Voltar ao sistema</a>
+            <a href="/" style={{ fontSize:12, color:C.textMuted, textDecoration:"none" }}>â† Voltar ao sistema</a>
           </div>
         </div>
       </div>
@@ -1503,7 +1503,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   ];
 
   const cols = [
-    { key:"name", label:"Salão", render: (t: any) => (
+    { key:"name", label:"SalÃ£o", render: (t: any) => (
       <div>
         <div style={{ fontWeight:700, color:C.text, fontFamily:FB }}>{t.name}</div>
         <div style={{ fontSize:11, color:C.textMuted }}>{t.email}</div>
@@ -1516,12 +1516,12 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     { key:"planTier", label:"Plano", render: (t: any) => <Badge label={t.planTier} color={C.sapphire} /> },
     { key:"daysLeft", label:"Dias Restantes", render: (t: any) => (
       <span style={{ fontWeight:700, color: t.daysLeft > 5 ? C.sage : t.daysLeft > 0 ? C.gold : C.ruby }}>
-        {t.daysLeft !== null ? `${t.daysLeft} dias` : "—"}
+        {t.daysLeft !== null ? `${t.daysLeft} dias` : "â€”"}
       </span>
     )},
     { key:"trialEndsAt", label:"Vencimento", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{fmtDate(t.trialEndsAt)}</span> },
     { key:"createdAt", label:"Cadastro", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{fmtDate(t.createdAt)}</span> },
-    { key:"action", label:"Ações", render: (t: any) => (
+    { key:"action", label:"AÃ§Ãµes", render: (t: any) => (
       <div style={{ display:"flex", gap:6 }}>
         <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); }}>Gerenciar</Btn>
         {t.isActive
@@ -1543,41 +1543,41 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           <Badge label="SUPER ADMIN" color={C.gold} />
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-          <a href="/" style={{ fontSize:12, color:C.textMuted, textDecoration:"none" }}>← Sistema</a>
+          <a href="/" style={{ fontSize:12, color:C.textMuted, textDecoration:"none" }}>â† Sistema</a>
           <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:12, cursor:"pointer", fontFamily:FB }}>Sair</button>
         </div>
       </div>
 
       <div style={{ padding:32 }}>
-        <PageHeader title="Painel Super Admin" sub="Gestão de salões, trials e acessos" />
+        <PageHeader title="Painel Super Admin" sub="GestÃ£o de salÃµes, trials e acessos" />
 
         {/* KPIs */}
         {stats && (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px,1fr))", gap:16, marginBottom:28 }}>
-            <KpiCard icon="🏢" label="Total Salões"  value={stats.totalTenants}   color={C.text} />
-            <KpiCard icon="✅" label="Ativos"         value={stats.activeTenants}  color={C.sage} />
-            <KpiCard icon="⏳" label="Em Trial"       value={stats.trialTenants}   color={C.gold} />
-            <KpiCard icon="🚫" label="Bloqueados"     value={stats.blockedTenants} color={C.ruby} />
-            <KpiCard icon="👥" label="Total Clientes" value={stats.totalClients}   color={C.sapphire} />
-            <KpiCard icon="📅" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
+            <KpiCard icon="ðŸ¢" label="Total SalÃµes"  value={stats.totalTenants}   color={C.text} />
+            <KpiCard icon="âœ…" label="Ativos"         value={stats.activeTenants}  color={C.sage} />
+            <KpiCard icon="â³" label="Em Trial"       value={stats.trialTenants}   color={C.gold} />
+            <KpiCard icon="ðŸš«" label="Bloqueados"     value={stats.blockedTenants} color={C.ruby} />
+            <KpiCard icon="ðŸ‘¥" label="Total Clientes" value={stats.totalClients}   color={C.sapphire} />
+            <KpiCard icon="ðŸ“…" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
           </div>
         )}
 
         {/* Filtros e busca */}
         <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
-          <Search value={search} onChange={setSearch} placeholder="Buscar salão..." />
+          <Search value={search} onChange={setSearch} placeholder="Buscar salÃ£o..." />
           <div style={{ display:"flex", gap:6 }}>
             {filters.map(f => (
               <button key={f.v} onClick={() => setFilter(f.v)}
                 style={{ padding:"7px 14px", borderRadius:8, border:`1px solid ${filter===f.v?C.gold:C.border}`, background:filter===f.v?`${C.gold}15`:C.card, color:filter===f.v?C.gold:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f.l}</button>
             ))}
           </div>
-          <Btn small variant="secondary" onClick={load}>↻ Atualizar</Btn>
+          <Btn small variant="secondary" onClick={load}>â†» Atualizar</Btn>
         </div>
 
         {loading
           ? <div style={{ textAlign:"center", padding:60, color:C.textMuted }}>Carregando...</div>
-          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); }} emptyMsg="Nenhum salão encontrado." />
+          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); }} emptyMsg="Nenhum salÃ£o encontrado." />
         }
       </div>
 
@@ -1598,7 +1598,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 </div>
                 <div>
                   <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Dias Restantes</div>
-                  <div style={{ fontWeight:700, color: selected.daysLeft > 0 ? C.gold : C.ruby }}>{selected.daysLeft ?? "—"} dias</div>
+                  <div style={{ fontWeight:700, color: selected.daysLeft > 0 ? C.gold : C.ruby }}>{selected.daysLeft ?? "â€”"} dias</div>
                 </div>
                 <div>
                   <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Vencimento</div>
@@ -1609,7 +1609,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
             {/* Estender Trial */}
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>⏳ Estender / Definir Trial</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>â³ Estender / Definir Trial</div>
               <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
                 <Inp label="Dias de trial" value={trialDays} onChange={setTrialDays} type="number" placeholder="15" />
                 <Btn variant="gold" onClick={() => extendTrial(selected.id)} disabled={saving}>
@@ -1617,13 +1617,13 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 </Btn>
               </div>
               <div style={{ fontSize:11, color:C.textMuted, marginTop:4 }}>
-                Define um novo período de trial a partir de hoje.
+                Define um novo perÃ­odo de trial a partir de hoje.
               </div>
             </div>
 
             {/* Bloquear / Liberar */}
             <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>🔒 Acesso</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>ðŸ”’ Acesso</div>
               <div style={{ display:"flex", gap:10 }}>
                 {selected.isActive
                   ? <Btn variant="danger" full onClick={() => { block(selected.id); setSelected(null); }}>Bloquear Acesso</Btn>
@@ -1639,7 +1639,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 }
 
 
-// ─── NOTIFICAÇÕES ─────────────────────────────────────────────
+// â”€â”€â”€ NOTIFICAÃ‡Ã•ES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function NotificationsPage() {
   const [data, setData]       = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1687,12 +1687,12 @@ function NotificationsPage() {
   const TRIGGER_LABEL: any = {
     appointment_reminder_24h: "Lembrete 24h",
     appointment_reminder_2h:  "Lembrete 2h",
-    appointment_confirmed:    "Confirmação",
-    appointment_completed:    "Pós-atendimento",
-    birthday:                 "Aniversário",
-    client_reactivation:      "Reativação",
+    appointment_confirmed:    "ConfirmaÃ§Ã£o",
+    appointment_completed:    "PÃ³s-atendimento",
+    birthday:                 "AniversÃ¡rio",
+    client_reactivation:      "ReativaÃ§Ã£o",
     satisfaction_survey:      "Pesquisa",
-    promotion:                "Promoção",
+    promotion:                "PromoÃ§Ã£o",
     financial_reminder:       "Financeiro",
     welcome:                  "Boas-vindas",
   };
@@ -1707,7 +1707,7 @@ function NotificationsPage() {
   const cols = [
     { key:"client", label:"Cliente", render: (item: any) => (
       <div>
-        <div style={{ fontWeight:600, color:C.text }}>{item.client?.fullName ?? "—"}</div>
+        <div style={{ fontWeight:600, color:C.text }}>{item.client?.fullName ?? "â€”"}</div>
         <div style={{ fontSize:11, color:C.textMuted }}>{item.client?.whatsapp}</div>
       </div>
     )},
@@ -1724,7 +1724,7 @@ function NotificationsPage() {
     { key:"createdAt", label:"Gerado em", render: (item: any) => (
       <span style={{ fontSize:11, color:C.textMuted }}>{fmtDate(item.notification?.createdAt)}</span>
     )},
-    { key:"action", label:"Ações", render: (item: any) => (
+    { key:"action", label:"AÃ§Ãµes", render: (item: any) => (
       <div style={{ display:"flex", gap:6 }}>
         {item.notification?.status === "pending" && (
           <>
@@ -1733,12 +1733,12 @@ function NotificationsPage() {
               target="_blank"
               onClick={() => markSent(item.notification.id)}
               style={{ fontSize:11, color:C.sage, fontWeight:700, padding:"5px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none" }}
-            >📱 Enviar</a>
-            <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); markSent(item.notification.id); }}>✓ Marcar</Btn>
+            >ðŸ“± Enviar</a>
+            <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); markSent(item.notification.id); }}>âœ“ Marcar</Btn>
           </>
         )}
         {item.notification?.status === "sent" && (
-          <span style={{ fontSize:11, color:C.sage }}>✓ Enviado</span>
+          <span style={{ fontSize:11, color:C.sage }}>âœ“ Enviado</span>
         )}
       </div>
     )},
@@ -1747,17 +1747,17 @@ function NotificationsPage() {
   return (
     <div>
       <PageHeader
-        title="Notificações"
-        sub={`${total} notificações geradas pelo sistema`}
-        action={<Btn small variant="secondary" onClick={() => load(1, filter)}>↻ Atualizar</Btn>}
+        title="NotificaÃ§Ãµes"
+        sub={`${total} notificaÃ§Ãµes geradas pelo sistema`}
+        action={<Btn small variant="secondary" onClick={() => load(1, filter)}>â†» Atualizar</Btn>}
       />
 
       {/* Aviso */}
       <div style={{ background:`${C.sapphire}12`, border:`1px solid ${C.sapphire}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
-        <span style={{ fontSize:20 }}>🤖</span>
+        <span style={{ fontSize:20 }}>ðŸ¤–</span>
         <div>
           <div style={{ fontWeight:700, color:C.sapphire, fontSize:13 }}>Geradas automaticamente pelo scheduler</div>
-          <div style={{ fontSize:11, color:C.textMuted }}>Clique em "Enviar" para abrir o WhatsApp com a mensagem pronta. O status será marcado como enviado automaticamente.</div>
+          <div style={{ fontSize:11, color:C.textMuted }}>Clique em "Enviar" para abrir o WhatsApp com a mensagem pronta. O status serÃ¡ marcado como enviado automaticamente.</div>
         </div>
       </div>
 
@@ -1771,22 +1771,22 @@ function NotificationsPage() {
 
       {loading
         ? <div style={{ textAlign:"center", padding:60, color:C.textMuted, fontFamily:FB }}>Carregando...</div>
-        : <Table cols={cols} rows={data} emptyMsg="Nenhuma notificação encontrada." />
+        : <Table cols={cols} rows={data} emptyMsg="Nenhuma notificaÃ§Ã£o encontrada." />
       }
 
-      {/* Paginação */}
+      {/* PaginaÃ§Ã£o */}
       {total > 20 && (
         <div style={{ display:"flex", justifyContent:"center", gap:8, marginTop:20 }}>
-          <Btn small variant="secondary" disabled={page === 1} onClick={() => { setPage(p => p-1); load(page-1); }}>← Anterior</Btn>
-          <span style={{ color:C.textMuted, fontSize:12, padding:"7px 14px", fontFamily:FB }}>Página {page}</span>
-          <Btn small variant="secondary" disabled={data.length < 20} onClick={() => { setPage(p => p+1); load(page+1); }}>Próxima →</Btn>
+          <Btn small variant="secondary" disabled={page === 1} onClick={() => { setPage(p => p-1); load(page-1); }}>â† Anterior</Btn>
+          <span style={{ color:C.textMuted, fontSize:12, padding:"7px 14px", fontFamily:FB }}>PÃ¡gina {page}</span>
+          <Btn small variant="secondary" disabled={data.length < 20} onClick={() => { setPage(p => p+1); load(page+1); }}>PrÃ³xima â†’</Btn>
         </div>
       )}
     </div>
   );
 }
 
-// ─── AUTOMAÇÕES ───────────────────────────────────────────────
+// â”€â”€â”€ AUTOMAÃ‡Ã•ES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AutomationsPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -1827,27 +1827,27 @@ function AutomationsPage() {
   const TRIGGER_LABEL: any = {
     appointment_reminder_24h: "Lembrete 24h antes",
     appointment_reminder_2h:  "Lembrete 2h antes",
-    appointment_confirmed:    "Confirmação de Agendamento",
-    appointment_completed:    "Pós-atendimento",
-    birthday:                 "Aniversário",
-    client_reactivation:      "Reativação de Cliente",
-    satisfaction_survey:      "Pesquisa de Satisfação",
+    appointment_confirmed:    "ConfirmaÃ§Ã£o de Agendamento",
+    appointment_completed:    "PÃ³s-atendimento",
+    birthday:                 "AniversÃ¡rio",
+    client_reactivation:      "ReativaÃ§Ã£o de Cliente",
+    satisfaction_survey:      "Pesquisa de SatisfaÃ§Ã£o",
     promotion:                "Campanha Promocional",
     financial_reminder:       "Lembrete Financeiro",
     welcome:                  "Boas-vindas",
   };
 
   const TRIGGER_ICON: any = {
-    appointment_reminder_24h: "⏰",
-    appointment_reminder_2h:  "🔔",
-    appointment_confirmed:    "✅",
-    appointment_completed:    "⭐",
-    birthday:                 "🎂",
-    client_reactivation:      "💕",
-    satisfaction_survey:      "📊",
-    promotion:                "🎉",
-    financial_reminder:       "💰",
-    welcome:                  "🌸",
+    appointment_reminder_24h: "â°",
+    appointment_reminder_2h:  "ðŸ””",
+    appointment_confirmed:    "âœ…",
+    appointment_completed:    "â­",
+    birthday:                 "ðŸŽ‚",
+    client_reactivation:      "ðŸ’•",
+    satisfaction_survey:      "ðŸ“Š",
+    promotion:                "ðŸŽ‰",
+    financial_reminder:       "ðŸ’°",
+    welcome:                  "ðŸŒ¸",
   };
 
   const formatMsg = (msg: string, client?: any) => {
@@ -1859,20 +1859,20 @@ function AutomationsPage() {
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
-      <div style={{ color:C.textMuted, fontFamily:FB }}>Carregando automações...</div>
+      <div style={{ color:C.textMuted, fontFamily:FB }}>Carregando automaÃ§Ãµes...</div>
     </div>
   );
 
   return (
     <div>
-      <PageHeader title="Automações" sub={`${templates.length} templates de mensagens`} />
+      <PageHeader title="AutomaÃ§Ãµes" sub={`${templates.length} templates de mensagens`} />
 
       {/* Aviso trial */}
       <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
-        <span style={{ fontSize:20 }}>⚠️</span>
+        <span style={{ fontSize:20 }}>âš ï¸</span>
         <div>
-          <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Modo Trial — Envio Manual</div>
-          <div style={{ fontSize:11, color:C.textMuted }}>Durante o período de teste, as mensagens podem ser visualizadas e enviadas manualmente. O disparo automático fica disponível após ativar o plano.</div>
+          <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Modo Trial â€” Envio Manual</div>
+          <div style={{ fontSize:11, color:C.textMuted }}>Durante o perÃ­odo de teste, as mensagens podem ser visualizadas e enviadas manualmente. O disparo automÃ¡tico fica disponÃ­vel apÃ³s ativar o plano.</div>
         </div>
       </div>
 
@@ -1883,14 +1883,14 @@ function AutomationsPage() {
             {/* Header */}
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "💬"}</span>
+                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "ðŸ’¬"}</span>
                 <div>
                   <div style={{ fontWeight:700, color:C.text, fontSize:14, fontFamily:FD }}>{t.name}</div>
                   <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>{TRIGGER_LABEL[t.trigger] ?? t.trigger}</div>
                 </div>
               </div>
               <button onClick={() => toggleActive(t)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color: t.isActive ? C.sage : C.textMuted, fontWeight:700, fontFamily:FB }}>
-                {t.isActive ? "✓ Ativo" : "○ Inativo"}
+                {t.isActive ? "âœ“ Ativo" : "â—‹ Inativo"}
               </button>
             </div>
 
@@ -1899,17 +1899,17 @@ function AutomationsPage() {
               {t.message}
             </div>
 
-            {/* Variáveis */}
+            {/* VariÃ¡veis */}
             <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
               {["{nome}","{data}","{hora}"].map(v => (
                 <span key={v} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:`${C.rose}15`, color:C.rose, fontFamily:FB, fontWeight:600 }}>{v}</span>
               ))}
             </div>
 
-            {/* Ações */}
+            {/* AÃ§Ãµes */}
             <div style={{ display:"flex", gap:8 }}>
-              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>✏️ Editar</Btn>
-              <Btn small onClick={() => { setSelected(t); setSendTarget(null); setShowSend(true); }}>📱 Enviar</Btn>
+              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>âœï¸ Editar</Btn>
+              <Btn small onClick={() => { setSelected(t); setSendTarget(null); setShowSend(true); }}>ðŸ“± Enviar</Btn>
             </div>
           </div>
         ))}
@@ -1927,7 +1927,7 @@ function AutomationsPage() {
           />
         </div>
         <div style={{ fontSize:11, color:C.textMuted, marginBottom:16 }}>
-          Variáveis disponíveis: <span style={{ color:C.rose }}>{"{nome}"}</span>, <span style={{ color:C.rose }}>{"{data}"}</span>, <span style={{ color:C.rose }}>{"{hora}"}</span>, <span style={{ color:C.rose }}>{"{valor}"}</span>
+          VariÃ¡veis disponÃ­veis: <span style={{ color:C.rose }}>{"{nome}"}</span>, <span style={{ color:C.rose }}>{"{data}"}</span>, <span style={{ color:C.rose }}>{"{hora}"}</span>, <span style={{ color:C.rose }}>{"{valor}"}</span>
         </div>
         {/* Preview */}
         <div style={{ background:C.surface, borderRadius:10, padding:"10px 14px", fontSize:12, color:C.textSec, marginBottom:16 }}>
@@ -1953,14 +1953,14 @@ function AutomationsPage() {
               >
                 <option value="">Selecione...</option>
                 {clients2.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.fullName} {c.whatsapp ? `· ${c.whatsapp}` : ""}</option>
+                  <option key={c.id} value={c.id}>{c.fullName} {c.whatsapp ? `Â· ${c.whatsapp}` : ""}</option>
                 ))}
               </select>
             </div>
 
             {sendTarget && (
               <div style={{ background:C.surface, borderRadius:10, padding:"14px", marginBottom:16 }}>
-                <div style={{ fontSize:10, color:C.textMuted, marginBottom:8, textTransform:"uppercase" }}>Mensagem que será enviada</div>
+                <div style={{ fontSize:10, color:C.textMuted, marginBottom:8, textTransform:"uppercase" }}>Mensagem que serÃ¡ enviada</div>
                 <div style={{ fontSize:13, color:C.text, fontFamily:FB, lineHeight:1.6 }}>
                   {formatMsg(selected.message, sendTarget)}
                 </div>
@@ -1976,7 +1976,7 @@ function AutomationsPage() {
                   onClick={() => setShowSend(false)}
                   style={{ display:"inline-block", padding:"10px 22px", background:`linear-gradient(135deg, ${C.sage}, #5a8f55)`, color:"#fff", borderRadius:10, textDecoration:"none", fontWeight:700, fontSize:13, fontFamily:FB }}
                 >
-                  📱 Abrir WhatsApp
+                  ðŸ“± Abrir WhatsApp
                 </a>
               )}
             </div>
@@ -1987,7 +1987,7 @@ function AutomationsPage() {
   );
 }
 
-// ─── TRIAL BANNER ────────────────────────────────────────────
+// â”€â”€â”€ TRIAL BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TrialBanner() {
   const [info, setInfo] = useState<any>(null);
   useEffect(() => {
@@ -2001,10 +2001,10 @@ function TrialBanner() {
   return (
     <div style={{ background:`${color}12`, border:`1px solid ${color}30`, borderRadius:12, padding:"12px 20px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center", fontFamily:FB }}>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <span style={{ fontSize:18 }}>{expired ? "🚫" : urgent ? "⚠️" : "⏳"}</span>
+        <span style={{ fontSize:18 }}>{expired ? "ðŸš«" : urgent ? "âš ï¸" : "â³"}</span>
         <div>
           <div style={{ fontWeight:700, color, fontSize:13 }}>
-            {expired ? "Período de teste encerrado" : `Período de teste: ${days} dias restantes`}
+            {expired ? "PerÃ­odo de teste encerrado" : `PerÃ­odo de teste: ${days} dias restantes`}
           </div>
           <div style={{ fontSize:11, color:C.textMuted }}>
             {expired ? "Entre em contato para continuar usando o sistema." : `Trial vence em ${info.trialEndsAt ? new Date(info.trialEndsAt).toLocaleDateString("pt-BR") : "breve"}.`}
@@ -2023,20 +2023,20 @@ function TrialBanner() {
   );
 }
 
-// ─── SIDEBAR ─────────────────────────────────────────────────
+// â”€â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MENU = [
-  { id:"dashboard",     label:"Dashboard",    icon:"◈" },
-  { id:"agenda",        label:"Agenda",        icon:"◷" },
-  { id:"clients",       label:"Clientes",      icon:"◯" },
-  { id:"professionals", label:"Profissionais", icon:"◈" },
-  { id:"services",      label:"Serviços",      icon:"◆" },
-  { id:"packages",      label:"Pacotes",       icon:"◉" },
-  { id:"financial",     label:"Financeiro",    icon:"◎" },
-  { id:"commissions",   label:"Comissões",     icon:"◐" },
-  { id:"crm",           label:"CRM",           icon:"◑" },
-  { id:"fidelity",      label:"Fidelidade",    icon:"◒" },
-  { id:"automations",   label:"Automações",    icon:"⚡" },
-  { id:"notifications", label:"Notificações",  icon:"🔔" },
+  { id:"dashboard",     label:"Dashboard",    icon:"â—ˆ" },
+  { id:"agenda",        label:"Agenda",        icon:"â—·" },
+  { id:"clients",       label:"Clientes",      icon:"â—¯" },
+  { id:"professionals", label:"Profissionais", icon:"â—ˆ" },
+  { id:"services",      label:"ServiÃ§os",      icon:"â—†" },
+  { id:"packages",      label:"Pacotes",       icon:"â—‰" },
+  { id:"financial",     label:"Financeiro",    icon:"â—Ž" },
+  { id:"commissions",   label:"ComissÃµes",     icon:"â—" },
+  { id:"crm",           label:"CRM",           icon:"â—‘" },
+  { id:"fidelity",      label:"Fidelidade",    icon:"â—’" },
+  { id:"automations",   label:"AutomaÃ§Ãµes",    icon:"âš¡" },
+  { id:"notifications", label:"NotificaÃ§Ãµes",  icon:"ðŸ””" },
 ];
 
 function Sidebar({ page, setPage, user, onLogout }: any) {
@@ -2068,7 +2068,7 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
   );
 }
 
-// ─── APP ─────────────────────────────────────────────────────
+// â”€â”€â”€ APP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function App() {
   // Rota Super Admin
   if (window.location.pathname === "/super-admin") {
@@ -2141,3 +2141,4 @@ export default function App() {
     </>
   );
 }
+
