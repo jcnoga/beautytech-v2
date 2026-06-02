@@ -582,17 +582,21 @@ function ClientsPage() {
   );
 }
 
+
 // ─── WA BUTTON COM MENSAGENS POR STATUS ──────────────────────
 const WA_MESSAGES: Record<string, string[]> = {
   pending: [
-    "Olá {nome}! 😊 Passando para confirmar seu agendamento amanhã. Pode confirmar sua presença?",
-    "Oi {nome}! Tudo bem? Seu horário está reservado para {data} às {hora}. Confirma?",
-    "Olá {nome}! Lembrando do seu agendamento conosco em {data} às {hora}. Confirma presença? 💅",
+    "Olá {nome}! 😊 Passando para confirmar seu agendamento em {data} às {hora}. Confirma sua presença?",
+    "Oi {nome}! Tudo bem? Seu horário está reservado para {data} às {hora}. Confirma? 💅",
+    "Olá {nome}! Lembrando do seu agendamento conosco em {data} às {hora}. Confirma presença? 🌸",
   ],
   confirmed: [
     "Olá {nome}! ✅ Seu agendamento está confirmado para {data} às {hora}. Até lá!",
     "Oi {nome}! Só lembrando: você tem horário marcado conosco em {data} às {hora}. Te esperamos! 😍",
-    "Olá {nome}! Seu horário de {hora} está confirmado. Qualquer dúvida é só chamar! 🌸",
+    "Olá {nome}! Seu horário de {hora} está confirmado. Qualquer dúvida é só chamar! 💕",
+  ],
+  in_progress: [
+    "Olá {nome}! Você está sendo atendida agora. Qualquer necessidade é só falar! 😊",
   ],
   completed: [
     "Olá {nome}! 🌟 Foi um prazer te atender hoje! Como você avalia nosso serviço?",
@@ -638,13 +642,13 @@ function WaButton({ client, status, scheduledAt }: any) {
             </div>
             <div style={{ padding:24 }}>
               <div style={{ fontSize:11, color:C.textMuted, marginBottom:14, fontFamily:FB, textTransform:"uppercase", letterSpacing:"0.06em" }}>
-                Sugestões para status: <span style={{ color:STATUS_APPT[status]?.color ?? C.rose }}>{STATUS_APPT[status]?.label ?? status}</span>
+                Sugestões para: <span style={{ color:STATUS_APPT[status]?.color ?? C.rose, fontWeight:700 }}>{STATUS_APPT[status]?.label ?? status}</span>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                {msgs.map((msg, i) => {
+                {msgs.map((msg: string, i: number) => {
                   const texto = format(msg);
                   return (
-                    
+                    <a
                       key={i}
                       href={`https://wa.me/55${phone}?text=${encodeURIComponent(texto)}`}
                       target="_blank"
@@ -653,7 +657,7 @@ function WaButton({ client, status, scheduledAt }: any) {
                       onMouseEnter={e => (e.currentTarget.style.borderColor = C.sage)}
                       onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
                     >
-                      <div style={{ fontSize:10, color:C.sage, fontWeight:700, marginBottom:6, textTransform:"uppercase" }}>Opção {i+1} → Clique para abrir WhatsApp</div>
+                      <div style={{ fontSize:10, color:C.sage, fontWeight:700, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Opção {i+1} — clique para abrir WhatsApp</div>
                       {texto}
                     </a>
                   );
@@ -769,9 +773,11 @@ function AgendaPage() {
 
   const changeStatus = async (id: string, status: string) => {
     try {
-      if (status === "confirmed")    await appointmentsApi.confirm(id);
+      if (status === "confirmed")        await appointmentsApi.confirm(id);
       else if (status === "in_progress") await appointmentsApi.checkin(id);
+      else if (status === "completed")   await appointmentsApi.complete(id, {});
       else if (status === "cancelled")   await appointmentsApi.cancel(id);
+      else if (status === "no_show")     await appointmentsApi.noShow(id);
       setData(d => d.map((a: any) =>
         a.appointment?.id === id
           ? { ...a, appointment: { ...a.appointment, status } }
@@ -834,7 +840,7 @@ function AgendaPage() {
         {["pending","confirmed"].includes(a.appointment?.status) && (
           <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"cancelled"); }}>✕</Btn>
         )}
-        <<WaButton client={a.client} status={a.appointment?.status} scheduledAt={a.appointment?.scheduledAt} />
+        <WaButton client={a.client} status={a.appointment?.status} scheduledAt={a.appointment?.scheduledAt} />
       </div>
     )},
   ];
