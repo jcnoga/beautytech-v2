@@ -6,7 +6,8 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
-import { db } from "../db/connection.js";
+import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
+//import { db } from "../db/connection.js";
 import { userProfiles } from "../db/schema/index.js";
 
 const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
@@ -40,6 +41,7 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
     const cached = cache.get(userId);
     if (cached && cached.exp > Date.now()) { req.tenantContext = cached.data; return; }
 
+    
     const [profile] = await db
       .select({ tenantId: userProfiles.tenantId, role: userProfiles.role })
       .from(userProfiles).where(eq(userProfiles.authUserId, userId)).limit(1);
