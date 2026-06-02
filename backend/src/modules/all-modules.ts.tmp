@@ -828,21 +828,21 @@ export async function superAdminModule(fastify: FastifyInstance) {
 
   async function requireSuperAdmin(req: any, reply: any) {
     const auth = req.headers.authorization?.replace("Bearer ", "");
-    if (!auth) return reply.status(401).send({ success: false, error: "Nï¿½o autorizado" });
+    if (!auth) return reply.status(401).send({ success: false, error: "Não autorizado" });
     try {
       const jwt = await import("jsonwebtoken");
       const payload = jwt.default.verify(auth, process.env.SUPER_ADMIN_SECRET!) as any;
       if (payload.role !== "super_admin") throw new Error("Acesso negado");
       req.superAdmin = payload;
     } catch {
-      return reply.status(401).send({ success: false, error: "Token Super Admin invï¿½lido" });
+      return reply.status(401).send({ success: false, error: "Token Super Admin inválido" });
     }
   }
 
   fastify.post("/super-admin/login", async (req: any, reply) => {
     const { email, password } = req.body as any;
     if (email !== process.env.SUPER_ADMIN_EMAIL || password !== process.env.SUPER_ADMIN_PASSWORD) {
-      return reply.status(401).send({ success: false, error: "Credenciais invï¿½lidas" });
+      return reply.status(401).send({ success: false, error: "Credenciais inválidas" });
     }
     const jwt = await import("jsonwebtoken");
     const token = jwt.default.sign({ email, role: "super_admin" }, process.env.SUPER_ADMIN_SECRET!, { expiresIn: "8h" });
@@ -867,7 +867,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
 
   fastify.get("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, req.params.id));
-    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant nï¿½o encontrado" });
+    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant não encontrado" });
     const [users, appts, cls] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(userProfiles).where(eq(userProfiles.tenantId, req.params.id)),
       db.select({ count: sql<number>`count(*)` }).from(appointments).where(eq(appointments.tenantId, req.params.id)),
