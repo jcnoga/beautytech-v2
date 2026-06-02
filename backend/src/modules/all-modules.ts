@@ -819,6 +819,371 @@ export async function authModule(fastify: FastifyInstance) {
       return reply.status(500).send({ success: false, error: "Erro ao criar salão. Tente novamente." });
     }
   });
+
+
+
+  // ─────────────────────────────────────────────────────────────
+// SUPER ADMIN MODULE
+// ─────────────────────────────────────────────────────────────
+export async function superAdminModule(fastify: FastifyInstance) {
+
+  // Middleware Super Admin
+  async function requireSuperAdmin(req: any, reply: any) {
+    const auth = req.headers.authorization?.replace("Bearer ", "");
+    if (!auth) return reply.status(401).send({ success: false, error: "Não autorizado" });
+    try {
+      const jwt = await import("jsonwebtoken");
+      const payload = jwt.default.verify(auth, process.env.SUPER_ADMIN_SECRET!) as any;
+      if (payload.role !== "super_admin") throw new Error("Acesso negado");
+      req.superAdmin = payload;
+    } catch {
+      return reply.status(401).send({ success: false, error: "Token Super Admin inválido" });
+    }
+  }
+
+  // ── Login Super Admin ────────────────────────────────────────
+  fastify.post("/super-admin/login", async (req: any, reply) => {
+    const { email, password } = req.body as any;
+    if (
+      email    !== process.env.SUPER_ADMIN_EMAIL ||
+      password !== process.env.SUPER_ADMIN_PASSWORD
+    ) {
+      return reply.status(401).send({ success: false, error: "Credenciais inválidas" });
+    }
+    const jwt = await import("jsonwebtoken");
+    const token = jwt.default.sign(
+      { email, role: "super_admin" },
+      process.env.SUPER_ADMIN_SECRET!,
+      { expiresIn: "8h" }
+    );
+    return reply.send({ success: true, data: { token, email, role: "super_admin" } });
+  });
+
+  // ── Listar todos os tenants ──────────────────────────────────
+  fastify.get("/super-admin/tenants", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { search, status } = req.query as any;
+    const cond: any[] = [isNull(tenants.deletedAt)];
+    if (search) cond.push(ilike(tenants.name, `%${search}%`));
+
+    const data = await db.select({
+      id:          tenants.id,
+      name:        tenants.name,
+      slug:        tenants.slug,
+      email:       tenants.email,
+      phone:       tenants.phone,
+      planTier:    tenants.planTier,
+      isActive:    tenants.isActive,
+      trialEndsAt: tenants.trialEndsAt,
+      createdAt:   tenants.createdAt,
+      maxUsers:    tenants.maxUsers,
+    }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
+
+    // Calcular status do trial
+    const now = new Date();
+    const enriched = data.map(t => {
+      const trialEnd = t.trialEndsAt ? new Date(t.trialEndsAt) : null;
+      const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000) : null;
+      const trialStatus =
+        !t.isActive                          ? "blocked" :
+        t.planTier !== "trial"               ? "active" :
+        !trialEnd                            ? "trial" :
+        daysLeft !== null && daysLeft > 0    ? "trial" :
+                                               "expired";
+      return { ...t, daysLeft, trialStatus };
+    });
+
+    // Filtrar por status se solicitado
+    const filtered = status ? enriched.filter(t => t.trialStatus === status) : enriched;
+
+    return reply.send({ success: true, data: filtered, total: filtered.length });
+  });
+
+  // ── Detalhe de um tenant ─────────────────────────────────────
+  fastify.get("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, req.params.id));
+    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant não encontrado" });
+
+    const [users, appts, clients2] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(userProfiles).where(eq(userProfiles.tenantId, req.params.id)),
+      db.select({ count: sql<number>`count(*)` }).from(appointments).where(eq(appointments.tenantId, req.params.id)),
+      db.select({ count: sql<number>`count(*)` }).from(clients).where(eq(clients.tenantId, req.params.id)),
+    ]);
+
+    return reply.send({
+      success: true,
+      data: {
+        ...tenant,
+        stats: {
+          users:        Number(users[0]?.count ?? 0),
+          appointments: Number(appts[0]?.count ?? 0),
+          clients:      Number(clients2[0]?.count ?? 0),
+        },
+      },
+    });
+  });
+
+  // ── Atualizar trial / plano / status ─────────────────────────
+  fastify.patch("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { trialDays, planTier, isActive, maxUsers } = req.body as any;
+    const updates: any = { updatedAt: new Date() };
+
+    if (planTier  !== undefined) updates.planTier  = planTier;
+    if (isActive  !== undefined) updates.isActive  = isActive;
+    if (maxUsers  !== undefined) updates.maxUsers  = maxUsers;
+    if (trialDays !== undefined) {
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + Number(trialDays));
+      updates.trialEndsAt = trialEndsAt;
+      updates.planTier    = "trial";
+      updates.isActive    = true;
+    }
+
+    const [tenant] = await db.update(tenants)
+      .set(updates)
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Bloquear tenant ──────────────────────────────────────────
+  fastify.post("/super-admin/tenants/:id/block", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const [tenant] = await db.update(tenants)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Liberar tenant ───────────────────────────────────────────
+  fastify.post("/super-admin/tenants/:id/unblock", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const [tenant] = await db.update(tenants)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Estender trial ───────────────────────────────────────────
+  fastify.post("/super-admin/tenants/:id/extend-trial", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { days } = req.body as any;
+    const [current] = await db.select().from(tenants).where(eq(tenants.id, req.params.id));
+    const base = current.trialEndsAt && new Date(current.trialEndsAt) > new Date()
+      ? new Date(current.trialEndsAt)
+      : new Date();
+    base.setDate(base.getDate() + Number(days ?? 15));
+    const [tenant] = await db.update(tenants)
+      .set({ trialEndsAt: base, isActive: true, planTier: "trial", updatedAt: new Date() })
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Stats gerais da plataforma ───────────────────────────────
+  fastify.get("/super-admin/stats", { preHandler: [requireSuperAdmin] }, async (_req, reply) => {
+    const now = new Date();
+    const [totalTenants, activeTenants, trialTenants, blockedTenants, totalClients2, totalAppts] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(isNull(tenants.deletedAt)),
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt))),
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.planTier, "trial"), eq(tenants.isActive, true), gte(tenants.trialEndsAt, now), isNull(tenants.deletedAt))),
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.isActive, false), isNull(tenants.deletedAt))),
+      db.select({ count: sql<number>`count(*)` }).from(clients),
+      db.select({ count: sql<number>`count(*)` }).from(appointments),
+    ]);
+    return reply.send({
+      success: true,
+      data: {
+        totalTenants:   Number(totalTenants[0]?.count ?? 0),
+        activeTenants:  Number(activeTenants[0]?.count ?? 0),
+        trialTenants:   Number(trialTenants[0]?.count ?? 0),
+        blockedTenants: Number(blockedTenants[0]?.count ?? 0),
+        totalClients:   Number(totalClients2[0]?.count ?? 0),
+        totalAppts:     Number(totalAppts[0]?.count ?? 0),
+      },
+    });
+  });
+}
 }
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+// SUPER ADMIN MODULE
+// ─────────────────────────────────────────────────────────────
+export async function superAdminModule(fastify: FastifyInstance) {
+
+  // Middleware Super Admin
+  async function requireSuperAdmin(req: any, reply: any) {
+    const auth = req.headers.authorization?.replace("Bearer ", "");
+    if (!auth) return reply.status(401).send({ success: false, error: "Não autorizado" });
+    try {
+      const jwt = await import("jsonwebtoken");
+      const payload = jwt.default.verify(auth, process.env.SUPER_ADMIN_SECRET!) as any;
+      if (payload.role !== "super_admin") throw new Error("Acesso negado");
+      req.superAdmin = payload;
+    } catch {
+      return reply.status(401).send({ success: false, error: "Token Super Admin inválido" });
+    }
+  }
+
+  // ── Login Super Admin ────────────────────────────────────────
+  fastify.post("/super-admin/login", async (req: any, reply) => {
+    const { email, password } = req.body as any;
+    if (
+      email    !== process.env.SUPER_ADMIN_EMAIL ||
+      password !== process.env.SUPER_ADMIN_PASSWORD
+    ) {
+      return reply.status(401).send({ success: false, error: "Credenciais inválidas" });
+    }
+    const jwt = await import("jsonwebtoken");
+    const token = jwt.default.sign(
+      { email, role: "super_admin" },
+      process.env.SUPER_ADMIN_SECRET!,
+      { expiresIn: "8h" }
+    );
+    return reply.send({ success: true, data: { token, email, role: "super_admin" } });
+  });
+
+  // ── Listar todos os tenants ──────────────────────────────────
+  fastify.get("/super-admin/tenants", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { search, status } = req.query as any;
+    const cond: any[] = [isNull(tenants.deletedAt)];
+    if (search) cond.push(ilike(tenants.name, `%${search}%`));
+
+    const data = await db.select({
+      id:          tenants.id,
+      name:        tenants.name,
+      slug:        tenants.slug,
+      email:       tenants.email,
+      phone:       tenants.phone,
+      planTier:    tenants.planTier,
+      isActive:    tenants.isActive,
+      trialEndsAt: tenants.trialEndsAt,
+      createdAt:   tenants.createdAt,
+      maxUsers:    tenants.maxUsers,
+    }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
+
+    // Calcular status do trial
+    const now = new Date();
+    const enriched = data.map(t => {
+      const trialEnd = t.trialEndsAt ? new Date(t.trialEndsAt) : null;
+      const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000) : null;
+      const trialStatus =
+        !t.isActive                          ? "blocked" :
+        t.planTier !== "trial"               ? "active" :
+        !trialEnd                            ? "trial" :
+        daysLeft !== null && daysLeft > 0    ? "trial" :
+                                               "expired";
+      return { ...t, daysLeft, trialStatus };
+    });
+
+    // Filtrar por status se solicitado
+    const filtered = status ? enriched.filter(t => t.trialStatus === status) : enriched;
+
+    return reply.send({ success: true, data: filtered, total: filtered.length });
+  });
+
+  // ── Detalhe de um tenant ─────────────────────────────────────
+  fastify.get("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, req.params.id));
+    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant não encontrado" });
+
+    const [users, appts, clients2] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(userProfiles).where(eq(userProfiles.tenantId, req.params.id)),
+      db.select({ count: sql<number>`count(*)` }).from(appointments).where(eq(appointments.tenantId, req.params.id)),
+      db.select({ count: sql<number>`count(*)` }).from(clients).where(eq(clients.tenantId, req.params.id)),
+    ]);
+
+    return reply.send({
+      success: true,
+      data: {
+        ...tenant,
+        stats: {
+          users:        Number(users[0]?.count ?? 0),
+          appointments: Number(appts[0]?.count ?? 0),
+          clients:      Number(clients2[0]?.count ?? 0),
+        },
+      },
+    });
+  });
+
+  // ── Atualizar trial / plano / status ─────────────────────────
+  fastify.patch("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { trialDays, planTier, isActive, maxUsers } = req.body as any;
+    const updates: any = { updatedAt: new Date() };
+
+    if (planTier  !== undefined) updates.planTier  = planTier;
+    if (isActive  !== undefined) updates.isActive  = isActive;
+    if (maxUsers  !== undefined) updates.maxUsers  = maxUsers;
+    if (trialDays !== undefined) {
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + Number(trialDays));
+      updates.trialEndsAt = trialEndsAt;
+      updates.planTier    = "trial";
+      updates.isActive    = true;
+    }
+
+    const [tenant] = await db.update(tenants)
+      .set(updates)
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Bloquear tenant ──────────────────────────────────────────
+  fastify.post("/super-admin/tenants/:id/block", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const [tenant] = await db.update(tenants)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Liberar tenant ───────────────────────────────────────────
+  fastify.post("/super-admin/tenants/:id/unblock", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const [tenant] = await db.update(tenants)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Estender trial ───────────────────────────────────────────
+  fastify.post("/super-admin/tenants/:id/extend-trial", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { days } = req.body as any;
+    const [current] = await db.select().from(tenants).where(eq(tenants.id, req.params.id));
+    const base = current.trialEndsAt && new Date(current.trialEndsAt) > new Date()
+      ? new Date(current.trialEndsAt)
+      : new Date();
+    base.setDate(base.getDate() + Number(days ?? 15));
+    const [tenant] = await db.update(tenants)
+      .set({ trialEndsAt: base, isActive: true, planTier: "trial", updatedAt: new Date() })
+      .where(eq(tenants.id, req.params.id))
+      .returning();
+    return reply.send({ success: true, data: tenant });
+  });
+
+  // ── Stats gerais da plataforma ───────────────────────────────
+  fastify.get("/super-admin/stats", { preHandler: [requireSuperAdmin] }, async (_req, reply) => {
+    const now = new Date();
+    const [totalTenants, activeTenants, trialTenants, blockedTenants, totalClients2, totalAppts] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(isNull(tenants.deletedAt)),
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt))),
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.planTier, "trial"), eq(tenants.isActive, true), gte(tenants.trialEndsAt, now), isNull(tenants.deletedAt))),
+      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.isActive, false), isNull(tenants.deletedAt))),
+      db.select({ count: sql<number>`count(*)` }).from(clients),
+      db.select({ count: sql<number>`count(*)` }).from(appointments),
+    ]);
+    return reply.send({
+      success: true,
+      data: {
+        totalTenants:   Number(totalTenants[0]?.count ?? 0),
+        activeTenants:  Number(activeTenants[0]?.count ?? 0),
+        trialTenants:   Number(trialTenants[0]?.count ?? 0),
+        blockedTenants: Number(blockedTenants[0]?.count ?? 0),
+        totalClients:   Number(totalClients2[0]?.count ?? 0),
+        totalAppts:     Number(totalAppts[0]?.count ?? 0),
+      },
+    });
+  });
+}
