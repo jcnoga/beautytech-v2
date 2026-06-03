@@ -857,9 +857,11 @@ export async function authModule(fastify: FastifyInstance) {
 // ─────────────────────────────────────────────────────────────
 // AUTOMATIONS MODULE
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// AUTOMATIONS MODULE
+// ─────────────────────────────────────────────────────────────
 export async function automationsModule(fastify: FastifyInstance) {
 
-  // Listar templates
   fastify.get("/automations/templates", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const { trigger, channel, isActive } = req.query as any;
@@ -869,17 +871,14 @@ export async function automationsModule(fastify: FastifyInstance) {
     if (isActive !== undefined) cond.push(eq(messageTemplates.isActive, isActive === "true"));
     const data = await db.select().from(messageTemplates).where(and(...cond)).orderBy(messageTemplates.trigger);
     return reply.send({ success: true, data, total: data.length });
-    // Listar configuracoes de automacao
-  fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
-    const { tenantId } = req.tenantContext;
-    const result = await db.execute(
-      sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`
-    );
-    const settings = result.rows[0] ?? null;
-    return reply.send({ success: true, data: settings });
   });
 
-  // Salvar configuracoes de automacao
+  fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const result = await db.execute(sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`);
+    return reply.send({ success: true, data: result.rows[0] ?? null });
+  });
+
   fastify.post("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const body = req.body as any;
@@ -887,29 +886,22 @@ export async function automationsModule(fastify: FastifyInstance) {
       INSERT INTO automation_settings (tenant_id, reminder_24h_enabled, reminder_24h_hours, reminder_2h_enabled, reminder_2h_hours, birthday_enabled, birthday_hour, reactivation_enabled, reactivation_days, post_service_enabled, post_service_hours)
       VALUES (${tenantId}, ${body.reminder_24h_enabled}, ${body.reminder_24h_hours}, ${body.reminder_2h_enabled}, ${body.reminder_2h_hours}, ${body.birthday_enabled}, ${body.birthday_hour}, ${body.reactivation_enabled}, ${body.reactivation_days}, ${body.post_service_enabled}, ${body.post_service_hours})
       ON CONFLICT (tenant_id) DO UPDATE SET
-        reminder_24h_enabled = ${body.reminder_24h_enabled},
-        reminder_24h_hours = ${body.reminder_24h_hours},
-        reminder_2h_enabled = ${body.reminder_2h_enabled},
-        reminder_2h_hours = ${body.reminder_2h_hours},
-        birthday_enabled = ${body.birthday_enabled},
-        birthday_hour = ${body.birthday_hour},
-        reactivation_enabled = ${body.reactivation_enabled},
-        reactivation_days = ${body.reactivation_days},
-        post_service_enabled = ${body.post_service_enabled},
-        post_service_hours = ${body.post_service_hours},
+        reminder_24h_enabled = ${body.reminder_24h_enabled}, reminder_24h_hours = ${body.reminder_24h_hours},
+        reminder_2h_enabled = ${body.reminder_2h_enabled}, reminder_2h_hours = ${body.reminder_2h_hours},
+        birthday_enabled = ${body.birthday_enabled}, birthday_hour = ${body.birthday_hour},
+        reactivation_enabled = ${body.reactivation_enabled}, reactivation_days = ${body.reactivation_days},
+        post_service_enabled = ${body.post_service_enabled}, post_service_hours = ${body.post_service_hours},
         updated_at = NOW()
     `);
     return reply.send({ success: true });
   });
 
-  // Criar template
   fastify.post("/automations/templates", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const [template] = await db.insert(messageTemplates).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: template });
   });
 
-  // Atualizar template
   fastify.patch("/automations/templates/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const [template] = await db.update(messageTemplates)
@@ -919,7 +911,6 @@ export async function automationsModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: template });
   });
 
-  // Deletar template
   fastify.delete("/automations/templates/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     await db.update(messageTemplates).set({ deletedAt: new Date() })
@@ -927,25 +918,49 @@ export async function automationsModule(fastify: FastifyInstance) {
     return reply.status(204).send();
   });
 
-  // Seed de templates padrão
   fastify.post("/automations/templates/seed", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const defaults = [
-      { trigger:"appointment_reminder_24h", channel:"whatsapp", name:"Lembrete 24h", message:"Olá {nome}! 😊 Lembrando que você tem um agendamento amanhã, {data} às {hora}. Confirma sua presença? Qualquer dúvida é só chamar!" },
-      { trigger:"appointment_reminder_2h",  channel:"whatsapp", name:"Lembrete 2h",  message:"Olá {nome}! Seu atendimento é em 2 horas, às {hora}. Te esperamos! 💅" },
-      { trigger:"appointment_confirmed",    channel:"whatsapp", name:"Confirmação",  message:"✅ Olá {nome}! Seu agendamento está confirmado para {data} às {hora}. Até lá!" },
-      { trigger:"appointment_completed",    channel:"whatsapp", name:"Pós-atendimento", message:"Olá {nome}! 🌟 Foi um prazer te atender! Como você avalia nosso serviço de 1 a 10?" },
-      { trigger:"birthday",                 channel:"whatsapp", name:"Aniversário",  message:"🎂 Feliz aniversário, {nome}! Em seu dia especial, temos um presente: 15% de desconto no seu próximo atendimento. Use o código: ANIVER15" },
-      { trigger:"client_reactivation",      channel:"whatsapp", name:"Reativação",   message:"Olá {nome}! Sentimos sua falta! 💕 Faz um tempo que não te vemos. Temos novidades e promoções especiais esperando por você!" },
-      { trigger:"satisfaction_survey",      channel:"whatsapp", name:"Pesquisa",     message:"Olá {nome}! Gostaríamos de saber sua opinião sobre seu último atendimento. De 1 a 5, como foi sua experiência? Sua avaliação é muito importante!" },
-      { trigger:"promotion",                channel:"whatsapp", name:"Promoção",     message:"🎉 Olá {nome}! Temos uma promoção especial para você! Confira nossas ofertas e agende seu horário. Vagas limitadas!" },
-      { trigger:"financial_reminder",       channel:"whatsapp", name:"Lembrete Financeiro", message:"Olá {nome}! Passando para lembrar sobre o pagamento pendente de {valor}. Qualquer dúvida estamos à disposição!" },
-      { trigger:"welcome",                  channel:"whatsapp", name:"Boas-vindas",  message:"🌸 Bem-vinda, {nome}! É um prazer tê-la como cliente. Estamos aqui para deixar você ainda mais linda e feliz. Até breve!" },
+      { trigger:"appointment_reminder_24h", channel:"whatsapp", name:"Lembrete 24h", message:"Ola {nome}! Lembrando que voce tem um agendamento amanha, {data} as {hora}. Confirma sua presenca?" },
+      { trigger:"appointment_reminder_2h",  channel:"whatsapp", name:"Lembrete 2h",  message:"Ola {nome}! Seu atendimento e em 2 horas, as {hora}. Te esperamos!" },
+      { trigger:"appointment_confirmed",    channel:"whatsapp", name:"Confirmacao",  message:"Ola {nome}! Seu agendamento esta confirmado para {data} as {hora}. Ate la!" },
+      { trigger:"appointment_completed",    channel:"whatsapp", name:"Pos-atendimento", message:"Ola {nome}! Foi um prazer te atender! Como voce avalia nosso servico de 1 a 10?" },
+      { trigger:"birthday",                 channel:"whatsapp", name:"Aniversario",  message:"Feliz aniversario, {nome}! Temos 15% de desconto no seu proximo atendimento. Use o codigo: ANIVER15" },
+      { trigger:"client_reactivation",      channel:"whatsapp", name:"Reativacao",   message:"Ola {nome}! Sentimos sua falta! Temos novidades esperando por voce!" },
+      { trigger:"satisfaction_survey",      channel:"whatsapp", name:"Pesquisa",     message:"Ola {nome}! De 1 a 5, como foi sua experiencia? Sua avaliacao e muito importante!" },
+      { trigger:"promotion",                channel:"whatsapp", name:"Promocao",     message:"Ola {nome}! Temos uma promocao especial para voce! Vagas limitadas!" },
+      { trigger:"financial_reminder",       channel:"whatsapp", name:"Lembrete Financeiro", message:"Ola {nome}! Passando para lembrar sobre o pagamento pendente de {valor}." },
+      { trigger:"welcome",                  channel:"whatsapp", name:"Boas-vindas",  message:"Bem-vinda, {nome}! E um prazer te-la como cliente. Ate breve!" },
     ];
     const inserted = await db.insert(messageTemplates).values(
       defaults.map(d => ({ ...d, tenantId, isActive: true, sendDelay: 0, createdBy: userId, updatedBy: userId }))
     ).returning();
     return reply.status(201).send({ success: true, data: inserted, total: inserted.length });
+  });
+
+  fastify.get("/automations/notifications", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const { status, channel, page, limit } = req.query as any;
+    const { limit: l, offset } = paginate(page, limit);
+    const cond = [eq(notifications.tenantId, tenantId)];
+    if (status)  cond.push(eq(notifications.status, status));
+    if (channel) cond.push(eq(notifications.channel, channel));
+    const [data, [{ total }]] = await Promise.all([
+      db.select({ notification: notifications, client: { id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp } })
+        .from(notifications).leftJoin(clients, eq(notifications.clientId, clients.id))
+        .where(and(...cond)).orderBy(desc(notifications.createdAt)).limit(l).offset(offset),
+      db.select({ total: sql<number>`count(*)` }).from(notifications).where(and(...cond)),
+    ]);
+    return reply.send({ success: true, data, total: Number(total), page: Number(page ?? 1), limit: l });
+  });
+
+  fastify.post("/automations/notifications/:id/sent", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const [notif] = await db.update(notifications)
+      .set({ status: "sent", sentAt: new Date() })
+      .where(and(eq(notifications.id, req.params.id), eq(notifications.tenantId, tenantId)))
+      .returning();
+    return reply.send({ success: true, data: notif });
   });
 }
 // -------------------------------------------------------------
