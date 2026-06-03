@@ -495,11 +495,23 @@ function ClientsPage() {
   const save = async () => {
     setSaving(true);
     try {
+      const payload: any = { ...form };
+      if (payload.birthDate) {
+        const d = new Date(payload.birthDate);
+        if (isNaN(d.getTime()) || d.getFullYear() > new Date().getFullYear() || d.getFullYear() < 1900) {
+          alert("Data de nascimento inválida.");
+          setSaving(false);
+          return;
+        }
+        payload.birthDate = d.toISOString().split("T")[0];
+      } else {
+        delete payload.birthDate;
+      }
       if (selected) {
-        const r: any = await clientsApi.update(selected.id, form);
+        const r: any = await clientsApi.update(selected.id, payload);
         setData(d => d.map(c => c.id === selected.id ? r.data : c));
       } else {
-        const r: any = await clientsApi.create(form);
+        const r: any = await clientsApi.create(payload);
         setData(d => [...d, r.data]);
       }
       setShowForm(false);
