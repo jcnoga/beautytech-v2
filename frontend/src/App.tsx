@@ -2418,26 +2418,6 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
         })}
       </nav>
       <div style={{ padding:"16px 20px", borderTop:`1px solid ${C.border}` }}>
-        {/* Seletor de tema */}
-        <div style={{ marginBottom:12 }}>
-          <button onClick={() => setShowThemes(s => !s)}
-            style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background: C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"7px 12px", cursor:"pointer", color: C.textSec, fontSize:11, fontFamily: FB }}>
-            <span>{THEMES[themeId === "auto" ? getSystemTheme() : themeId]?.icon} {THEMES[themeId]?.name ?? "Auto"}</span>
-            <span style={{ fontSize:9, opacity:0.6 }}>TEMA</span>
-          </button>
-          {showThemes && (
-            <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:10, marginTop:6, overflow:"hidden" }}>
-              {Object.entries(THEMES).map(([id, t]: any) => (
-                <button key={id} onClick={() => { setGlobalTheme(id); setShowThemes(false); }}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"8px 12px", background: themeId === id ? `${C.rose}15` : "none", border:"none", color: themeId === id ? C.rose : C.textSec, fontSize:12, cursor:"pointer", fontFamily: FB, textAlign:"left", borderBottom:`1px solid ${C.border}` }}>
-                  <span>{t.icon}</span>
-                  <span>{t.name}</span>
-                  {themeId === id && <span style={{ marginLeft:"auto", fontSize:10, color: C.rose }}>✓</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
         <div style={{ marginBottom:10 }}>
           <button onClick={() => setShowThemes(s => !s)}
             style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"7px 12px", cursor:"pointer", color:C.textSec, fontSize:11, fontFamily:FB }}>
