@@ -1,4 +1,4 @@
-// BeautyTech v2 - 2026-06-01
+﻿// BeautyTech v2 - 2026-06-01
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -46,14 +46,14 @@ async function bootstrap() {
     return {
       status: dbOk ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
-      version: "2.0.0",
+      version: "2.0.1",
       environment: env.NODE_ENV,
       database: dbOk ? "connected" : "disconnected",
       uptime: Math.floor(process.uptime()),
     };
   });
 
-  // Registrar todos os módulos com prefixo /api/v1
+  // Registrar todos os mÃ³dulos com prefixo /api/v1
 const prefix = env.API_PREFIX;
   await server.register(authModule,          { prefix });
   await server.register(clientsModule,       { prefix });
