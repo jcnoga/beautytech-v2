@@ -1089,61 +1089,111 @@ export async function superAdminModule(fastify: FastifyInstance) {
 export async function demoModule(fastify: FastifyInstance) {
   fastify.post("/demo/seed", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
-    const clientsDemo = [
-      { fullName: "Ana Demo Silva", whatsapp: "(34) 98001-0001", email: "ana.demo@beautytech.com.br", gender: "female" as const, segment: "active" as const, tags: ["demo"] },
-      { fullName: "Beatriz Demo Santos", whatsapp: "(34) 98001-0002", email: "bea.demo@beautytech.com.br", gender: "female" as const, segment: "vip" as const, isVip: true, tags: ["demo"] },
-      { fullName: "Carla Demo Rocha", whatsapp: "(34) 98001-0003", email: "carla.demo@beautytech.com.br", gender: "female" as const, segment: "new" as const, tags: ["demo"] },
-    ];
-    const insertedClients = await db.insert(clients).values(
-      clientsDemo.map(c => ({ ...c, tenantId, createdBy: tenantId }))
-    ).returning();
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // Profissionais demo
+    const insertedProfs = await db.insert(professionals).values([
+      { tenantId, fullName: "Marina Demo Santos", commissionPct: "50", monthlyGoal: "5000", color: "#E8A598", isActive: true, acceptsOnlineBooking: true, createdBy: tenantId },
+      { tenantId, fullName: "Julia Demo Costa", commissionPct: "45", monthlyGoal: "4000", color: "#6B8CAE", isActive: true, acceptsOnlineBooking: true, createdBy: tenantId },
+    ]).returning();
+
+    // Servicos demo
+    const insertedSvcs = await db.insert(services).values([
+      { tenantId, name: "Demo Coloracao", durationMinutes: 90, price: "180.00", isActive: true, isOnlineBookable: true, createdBy: tenantId },
+      { tenantId, name: "Demo Corte Feminino", durationMinutes: 45, price: "80.00", isActive: true, isOnlineBookable: true, createdBy: tenantId },
+      { tenantId, name: "Demo Manicure", durationMinutes: 60, price: "60.00", isActive: true, isOnlineBookable: true, createdBy: tenantId },
+    ]).returning();
+
+    // Clientes demo
+    const insertedClients = await db.insert(clients).values([
+      { tenantId, fullName: "Ana Demo Silva", whatsapp: "(34) 98001-0001", email: "ana.demo@beautytech.com.br", gender: "female" as const, segment: "active" as const, loyaltyTier: "silver" as const, loyaltyPoints: 150, totalSpent: "1500.00", totalVisits: 12, tags: ["demo"], createdBy: tenantId },
+      { tenantId, fullName: "Beatriz Demo Santos", whatsapp: "(34) 98001-0002", email: "bea.demo@beautytech.com.br", gender: "female" as const, segment: "vip" as const, isVip: true, loyaltyTier: "gold" as const, loyaltyPoints: 480, totalSpent: "4800.00", totalVisits: 38, tags: ["demo"], createdBy: tenantId },
+      { tenantId, fullName: "Carla Demo Rocha", whatsapp: "(34) 98001-0003", email: "carla.demo@beautytech.com.br", gender: "female" as const, segment: "new" as const, loyaltyTier: "bronze" as const, loyaltyPoints: 20, totalSpent: "200.00", totalVisits: 2, tags: ["demo"], createdBy: tenantId },
+      { tenantId, fullName: "Daniela Demo Lima", whatsapp: "(34) 98001-0004", email: "dani.demo@beautytech.com.br", gender: "female" as const, segment: "at_risk" as const, loyaltyTier: "bronze" as const, loyaltyPoints: 45, totalSpent: "450.00", totalVisits: 5, tags: ["demo"], createdBy: tenantId },
+      { tenantId, fullName: "Elena Demo Ferreira", whatsapp: "(34) 98001-0005", email: "elena.demo@beautytech.com.br", gender: "female" as const, segment: "loyal" as const, loyaltyTier: "platinum" as const, loyaltyPoints: 980, totalSpent: "9800.00", totalVisits: 72, tags: ["demo"], createdBy: tenantId },
+    ]).returning();
+
+    // Agendamentos demo
     await db.insert(appointments).values(
-      insertedClients.map((c, i) => ({
-        tenantId, clientId: c.id, status: "pending" as const,
-        scheduledAt: new Date(tomorrow.getTime() + i * 60 * 60 * 1000),
-        endsAt: new Date(tomorrow.getTime() + i * 60 * 60 * 1000 + 60 * 60 * 1000),
-        durationMinutes: 60, totalPrice: String(80 + i * 20), subtotal: String(80 + i * 20),
-        source: "manual" as const, internalNotes: "demo", createdBy: tenantId,
+      insertedClients.slice(0, 3).map((c, i) => ({
+        tenantId, clientId: c.id,
+        professionalId: insertedProfs[i % insertedProfs.length].id,
+        status: i === 0 ? "confirmed" as const : i === 1 ? "pending" as const : "completed" as const,
+        scheduledAt: new Date(tomorrow.getTime() + i * 2 * 60 * 60 * 1000),
+        endsAt: new Date(tomorrow.getTime() + i * 2 * 60 * 60 * 1000 + 60 * 60 * 1000),
+        durationMinutes: 60,
+        totalPrice: insertedSvcs[i].price,
+        subtotal: insertedSvcs[i].price,
+        source: "manual" as const,
+        internalNotes: "demo",
+        createdBy: tenantId,
       }))
     );
+
+    // Financeiro demo
     const [defaultAccount] = await db.select().from(financialAccounts)
       .where(and(eq(financialAccounts.tenantId, tenantId), eq(financialAccounts.isDefault, true)));
     if (defaultAccount) {
       await db.insert(financialTransactions).values([
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, status: "confirmed" as const, description: "Demo - Coloracao Ana", amount: "180.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, status: "confirmed" as const, description: "Demo - Coloracao Beatriz", amount: "180.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, status: "confirmed" as const, description: "Demo - Corte Ana", amount: "80.00", paymentMethod: "credit_card" as const, dueDate: now, notes: "demo", createdBy: tenantId },
         { tenantId, accountId: defaultAccount.id, type: "expense" as const, status: "pending" as const, description: "Demo - Produto Tinta", amount: "90.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "expense" as const, status: "confirmed" as const, description: "Demo - Material Manicure", amount: "45.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
       ]);
     }
-    return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos!", clients: insertedClients.length } });
+
+    // Leads demo no CRM
+    await db.insert(leads).values([
+      { tenantId, name: "Demo Lead Maria", whatsapp: "(34) 98002-0001", source: "instagram" as const, status: "new" as const, serviceInterest: "Coloracao", estimatedValue: "280.00" },
+      { tenantId, name: "Demo Lead Paula", whatsapp: "(34) 98002-0002", source: "whatsapp" as const, status: "contacted" as const, serviceInterest: "Manicure", estimatedValue: "60.00" },
+      { tenantId, name: "Demo Lead Sandra", whatsapp: "(34) 98002-0003", source: "google" as const, status: "interested" as const, serviceInterest: "Corte", estimatedValue: "80.00" },
+    ]);
+
+    // Pacotes demo
+    await db.insert(packages).values([
+      { tenantId, clientId: insertedClients[0].id, name: "Demo Pacote Coloracao", totalSessions: 5, usedSessions: 2, remainingSessions: 3, totalValue: "750.00", amountPaid: "750.00", status: "active" as const, expiresAt: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000), createdBy: tenantId },
+      { tenantId, clientId: insertedClients[1].id, name: "Demo Pacote VIP", totalSessions: 10, usedSessions: 6, remainingSessions: 4, totalValue: "1500.00", amountPaid: "1500.00", status: "active" as const, expiresAt: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000), createdBy: tenantId },
+    ]);
+
+    return reply.send({ success: true, data: {
+      message: "Dados de demonstracao inseridos com sucesso!",
+      clientes: insertedClients.length,
+      profissionais: insertedProfs.length,
+      servicos: insertedSvcs.length,
+    }});
   });
 
   fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
 
-    // Buscar clientes demo primeiro
     const demoClients = await db.select({ id: clients.id })
       .from(clients)
       .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`));
-
     const demoClientIds = demoClients.map(c => c.id);
 
-    // Apagar agendamentos dos clientes demo
     if (demoClientIds.length > 0) {
       await db.delete(appointments)
         .where(and(eq(appointments.tenantId, tenantId), sql`${appointments.clientId} = ANY(ARRAY[${sql.join(demoClientIds.map(id => sql`${id}::uuid`), sql`, `)}])`));
+      await db.delete(packages)
+        .where(and(eq(packages.tenantId, tenantId), sql`${packages.clientId} = ANY(ARRAY[${sql.join(demoClientIds.map(id => sql`${id}::uuid`), sql`, `)}])`));
     }
 
-    // Apagar transações demo
     await db.delete(financialTransactions)
       .where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.notes, "demo")));
 
-    // Apagar clientes demo
-    const deleted = await db.delete(clients)
-      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`))
-      .returning();
+    await db.delete(leads)
+      .where(and(eq(leads.tenantId, tenantId), sql`${leads.name} LIKE 'Demo Lead%'`));
 
-    return reply.send({ success: true, data: { message: "Dados de demonstracao removidos!", deleted: deleted.length } });
+    await db.delete(clients)
+      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`));
+
+    await db.delete(services)
+      .where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
+
+    await db.delete(professionals)
+      .where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '% Demo %'`));
+
+    return reply.send({ success: true, data: { message: "Dados de demonstracao removidos com sucesso!" } });
   });
 }
