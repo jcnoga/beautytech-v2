@@ -1134,7 +1134,7 @@ function FinancialPage() {
       const s: any = await financialApi.summary();
       setSummary(s.data ?? summary);
       setShowForm(false);
-      setForm({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending" });
+      setForm(p => ({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending", accountId: p.accountId }));
     } catch(e: any) {
       alert("Erro ao salvar: " + e.message);
     } finally {
