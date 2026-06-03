@@ -1116,11 +1116,12 @@ function PackagesPage() {
 function FinancialPage() {
   const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending" });
+  const [form, setForm] = useState({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending", accountId:"" });
   const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
   const save = async () => {
@@ -1141,12 +1142,18 @@ function FinancialPage() {
     }
   };
 
-  useEffect(() => {
-    Promise.all([financialApi.list({ limit: 100 }), financialApi.summary()])
-      .then(([t, s]: any) => { setData(t.data ?? []); setSummary(s.data ?? { revenue:0, expenses:0, profit:0 }); })
+useEffect(() => {
+    Promise.all([financialApi.list({ limit: 100 }), financialApi.summary(), financialApi.accounts()])
+      .then(([t, s, a]: any) => {
+        setData(t.data ?? []);
+        setSummary(s.data ?? { revenue:0, expenses:0, profit:0 });
+        const accs = a.data ?? [];
+        setAccounts(accs);
+        const def = accs.find((x: any) => x.isDefault) ?? accs[0];
+        if (def) setForm(p => ({ ...p, accountId: def.id }));
+      })
       .catch(console.error).finally(() => setLoading(false));
   }, []);
-
   const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
 
   const cols = [
