@@ -370,7 +370,20 @@ function DashboardPage() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />
+      <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} action={
+        <div style={{ display:"flex", gap:8 }}>
+          <Btn small variant="gold" onClick={async () => {
+            if (!confirm("Inserir dados de demonstracao?")) return;
+            try { await api.post<any>("/demo/seed", {}); alert("Dados inseridos! Recarregue a pagina."); }
+            catch(e: any) { alert("Erro: " + e.message); }
+          }}>+ Demo</Btn>
+          <Btn small variant="danger" onClick={async () => {
+            if (!confirm("Remover dados de demonstracao?")) return;
+            try { await api.delete("/demo/clear"); alert("Dados removidos! Recarregue a pagina."); }
+            catch(e: any) { alert("Erro: " + e.message); }
+          }}>Limpar Demo</Btn>
+        </div>
+      } />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))", gap:16, marginBottom:28 }}>
         <KpiCard icon="Cal" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mes`} color={C.rose} />
         <KpiCard icon="Cli" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
@@ -696,7 +709,7 @@ function AgendaPage() {
   const [error, setError]       = useState("");
 
   const emptyForm = {
-    clientId:       "",
+    <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />:       "",
     professionalId: "",
     serviceId:      "",
     scheduledAt:    "",
@@ -740,7 +753,7 @@ function AgendaPage() {
 
   const save = async () => {
     setError("");
-    if (!form.clientId)    return setError("Selecione a cliente.");
+    if (!form.<PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />)    return setError("Selecione a cliente.");
     if (!form.scheduledAt) return setError("Informe data e hora.");
     if (!form.totalPrice)  return setError("Informe o valor.");
 
@@ -751,7 +764,7 @@ function AgendaPage() {
       const endsAt = new Date(start.getTime() + dur * 60_000).toISOString();
 
       const payload: any = {
-        clientId:        form.clientId,
+        <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />:        form.clientId,
         professionalId:  form.professionalId || null,
         scheduledAt:     start.toISOString(),
         endsAt,
