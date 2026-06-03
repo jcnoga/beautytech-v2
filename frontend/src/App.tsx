@@ -2372,7 +2372,9 @@ function TrialBanner() {
         <div style={{ width:100, height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(days/15)*100))}%`, background:color, borderRadius:3 }} />
         </div>
-        <a href="mailto:contato@beautytech.com.br" style={{ fontSize:11, color, fontWeight:700, padding:"5px 12px", border:`1px solid ${color}40`, borderRadius:8, textDecoration:"none" }}>
+        <a href={`mailto:contato@websitelog.com.br,jcnvap@gmail.com?subject=${encodeURIComponent("Solicitacao de Upgrade - BeautyTech v2")}&body=${encodeURIComponent(
+          "Ola!\n\nGostaria de fazer o upgrade do meu plano no BeautyTech v2.\n\nInformacoes do meu salao:\n\nNome do salao: " + (info.name ?? "") + "\nE-mail: " + (info.email ?? "") + "\nDias de trial restantes: " + days + "\n\nPor favor, entre em contato para discutir os planos disponiveis.\n\nObrigado!"
+        )}`} style={{ fontSize:11, color, fontWeight:700, padding:"5px 12px", border:`1px solid ${color}40`, borderRadius:8, textDecoration:"none" }}>
           {expired ? "Contatar" : "Upgrade"}
         </a>
       </div>
@@ -2498,3 +2500,4 @@ export default function App() {
     </>
   );
 }
+
