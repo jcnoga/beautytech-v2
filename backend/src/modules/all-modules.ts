@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BEAUTYTECH v2 — Módulos Backend Completos
 // clients | professionals | appointments | services |
 // packages | financial | commissions | dashboard |
@@ -900,7 +900,6 @@ export async function automationsModule(fastify: FastifyInstance) {
         updated_at = NOW()
     `);
     return reply.send({ success: true });
-  });
   });
 
   // Criar template
