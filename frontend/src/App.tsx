@@ -1101,14 +1101,18 @@ function ServicesPage() {
 // --- PACOTES --------------------------------------------------
 function PackagesPage() {
   const [data, setData] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    packagesApi.list({ limit: 100 })
-      .then((r: any) => setData(r.data ?? []))
+    Promise.all([packagesApi.list({ limit: 100 }), clientsApi.list({ limit: 200 })])
+      .then(([p, c]: any) => {
+        setClients(c.data ?? []);
+        setData(p.data ?? []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+  const getClient = (clientId: string) => clients.find((c: any) => c.id === clientId);
 
   const useSession = async (id: string) => {
     try {
