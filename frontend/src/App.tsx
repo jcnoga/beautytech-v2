@@ -480,7 +480,50 @@ function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", gender:"female", birthDate:"" });
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+
+  const exportXLSX = () => {
+    const XLSX = (window as any).XLSX;
+    if (!XLSX) { alert("Aguarde carregar..."); return; }
+    const rows = filtered.map((t: any) => ({
+      "Descricao": t.description,
+      "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
+      "Status": t.status === "confirmed" ? "Pago" : "Pendente",
+      "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Valor": Number(t.amount),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+    XLSX.writeFile(wb, `financeiro_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    const { jsPDF } = (window as any).jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
+    doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
+    const rows = filtered.map((t: any) => [
+      t.description,
+      t.type === "revenue" ? "Receita" : "Despesa",
+      t.status === "confirmed" ? "Pago" : "Pendente",
+      t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      `R$ ${Number(t.amount).toFixed(2)}`,
+    ]);
+    (doc as any).autoTable({
+      head: [["Descricao", "Tipo", "Status", "Forma", "Vencimento", "Valor"]],
+      body: rows,
+      startY: 44,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 90, 80] },
+    });
+    doc.save(`financeiro_${new Date().toISOString().split("T")[0]}.pdf`);
+  }; => setForm(p => ({ ...p, [k]:v }));
 
   useEffect(() => {
     clientsApi.list({ limit: 200 })
@@ -947,7 +990,50 @@ function ProfessionalsPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598" });
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+
+  const exportXLSX = () => {
+    const XLSX = (window as any).XLSX;
+    if (!XLSX) { alert("Aguarde carregar..."); return; }
+    const rows = filtered.map((t: any) => ({
+      "Descricao": t.description,
+      "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
+      "Status": t.status === "confirmed" ? "Pago" : "Pendente",
+      "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Valor": Number(t.amount),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+    XLSX.writeFile(wb, `financeiro_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    const { jsPDF } = (window as any).jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
+    doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
+    const rows = filtered.map((t: any) => [
+      t.description,
+      t.type === "revenue" ? "Receita" : "Despesa",
+      t.status === "confirmed" ? "Pago" : "Pendente",
+      t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      `R$ ${Number(t.amount).toFixed(2)}`,
+    ]);
+    (doc as any).autoTable({
+      head: [["Descricao", "Tipo", "Status", "Forma", "Vencimento", "Valor"]],
+      body: rows,
+      startY: 44,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 90, 80] },
+    });
+    doc.save(`financeiro_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
 
   useEffect(() => {
     professionalsApi.list({ isActive: "true" })
@@ -1172,7 +1258,50 @@ function FinancialPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending", accountId:"" });
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+
+  const exportXLSX = () => {
+    const XLSX = (window as any).XLSX;
+    if (!XLSX) { alert("Aguarde carregar..."); return; }
+    const rows = filtered.map((t: any) => ({
+      "Descricao": t.description,
+      "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
+      "Status": t.status === "confirmed" ? "Pago" : "Pendente",
+      "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Valor": Number(t.amount),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+    XLSX.writeFile(wb, `financeiro_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    const { jsPDF } = (window as any).jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
+    doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
+    const rows = filtered.map((t: any) => [
+      t.description,
+      t.type === "revenue" ? "Receita" : "Despesa",
+      t.status === "confirmed" ? "Pago" : "Pendente",
+      t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      `R$ ${Number(t.amount).toFixed(2)}`,
+    ]);
+    (doc as any).autoTable({
+      head: [["Descricao", "Tipo", "Status", "Forma", "Vencimento", "Valor"]],
+      body: rows,
+      startY: 44,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 90, 80] },
+    });
+    doc.save(`financeiro_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
 
   const save = async () => {
     if (!form.description) return alert("Informe a descrição.");
@@ -1223,7 +1352,13 @@ useEffect(() => {
 
   return (
     <div>
-      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn onClick={() => setShowForm(true)}>+ Nova Transacao</Btn>} />
+      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={
+        <div style={{ display:"flex", gap:8 }}>
+          <Btn small variant="secondary" onClick={exportXLSX}>XLSX</Btn>
+          <Btn small variant="secondary" onClick={exportPDF}>PDF</Btn>
+          <Btn onClick={() => setShowForm(true)}>+ Nova Transacao</Btn>
+        </div>
+      } />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
         <KpiCard icon="R$" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
         <KpiCard icon="D$" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
@@ -1320,7 +1455,50 @@ function CRMPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name:"", whatsapp:"", source:"instagram", serviceInterest:"", estimatedValue:"" });
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+
+  const exportXLSX = () => {
+    const XLSX = (window as any).XLSX;
+    if (!XLSX) { alert("Aguarde carregar..."); return; }
+    const rows = filtered.map((t: any) => ({
+      "Descricao": t.description,
+      "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
+      "Status": t.status === "confirmed" ? "Pago" : "Pendente",
+      "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Valor": Number(t.amount),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+    XLSX.writeFile(wb, `financeiro_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    const { jsPDF } = (window as any).jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
+    doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
+    const rows = filtered.map((t: any) => [
+      t.description,
+      t.type === "revenue" ? "Receita" : "Despesa",
+      t.status === "confirmed" ? "Pago" : "Pendente",
+      t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
+      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      `R$ ${Number(t.amount).toFixed(2)}`,
+    ]);
+    (doc as any).autoTable({
+      head: [["Descricao", "Tipo", "Status", "Forma", "Vencimento", "Valor"]],
+      body: rows,
+      startY: 44,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 90, 80] },
+    });
+    doc.save(`financeiro_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
 
   useEffect(() => {
     crmApi.leads()
