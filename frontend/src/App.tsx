@@ -709,7 +709,7 @@ function AgendaPage() {
   const [error, setError]       = useState("");
 
   const emptyForm = {
-    <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />:       "",
+    clientId:       "",
     professionalId: "",
     serviceId:      "",
     scheduledAt:    "",
@@ -753,7 +753,7 @@ function AgendaPage() {
 
   const save = async () => {
     setError("");
-    if (!form.<PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />)    return setError("Selecione a cliente.");
+    if (!form.clientId)    return setError("Selecione a cliente.");
     if (!form.scheduledAt) return setError("Informe data e hora.");
     if (!form.totalPrice)  return setError("Informe o valor.");
 
@@ -764,7 +764,7 @@ function AgendaPage() {
       const endsAt = new Date(start.getTime() + dur * 60_000).toISOString();
 
       const payload: any = {
-        <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} />:        form.clientId,
+        clientId:        form.clientId,
         professionalId:  form.professionalId || null,
         scheduledAt:     start.toISOString(),
         endsAt,
