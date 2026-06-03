@@ -935,6 +935,10 @@ function AgendaPage() {
 function ProfessionalsPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598" });
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
   useEffect(() => {
     professionalsApi.list({ isActive: "true" })
@@ -943,6 +947,22 @@ function ProfessionalsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const save = async () => {
+    if (!form.fullName) return alert("Informe o nome.");
+    setSaving(true);
+    try {
+      const payload: any = { ...form };
+      if (!payload.monthlyGoal) delete payload.monthlyGoal;
+      if (!payload.whatsapp) delete payload.whatsapp;
+      if (!payload.email) delete payload.email;
+      const r: any = await professionalsApi.create(payload);
+      setData(d => [...d, r.data]);
+      setShowForm(false);
+      setForm({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598" });
+    } catch(e: any) {
+      alert("Erro: " + e.message);
+    } finally { setSaving(false); }
+  };
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
       <div style={{ color: C.textMuted, fontFamily: FB }}>Carregando profissionais...</div>
@@ -951,7 +971,7 @@ function ProfessionalsPage() {
 
   return (
     <div>
-      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn>+ Nova Profissional</Btn>} />
+      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Nova Profissional</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
         {data.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB }}>Nenhum profissional cadastrado.</div>}
         {data.map((p: any, i: number) => (
@@ -982,10 +1002,25 @@ function ProfessionalsPage() {
             </div>
           </div>
         ))}
-      </div>
+</div>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Profissional">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+          <Inp label="Nome completo *" value={form.fullName} onChange={f("fullName")} placeholder="Marina Santos" required grid="1/-1" />
+          <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
+          <Inp label="E-mail" value={form.email} onChange={f("email")} type="email" placeholder="marina@salao.com" />
+          <Inp label="Comissao %" value={form.commissionPct} onChange={f("commissionPct")} type="number" placeholder="50" />
+          <Inp label="Meta Mensal (R$)" value={form.monthlyGoal} onChange={f("monthlyGoal")} type="number" placeholder="5000" />
+          <Inp label="Cor" value={form.color} onChange={f("color")} type="color" />
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Cadastrar"}</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }
+// --- SERVI
 
 // --- SERVI?OS -------------------------------------------------
 function ServicesPage() {
