@@ -1066,6 +1066,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
     ]);
     return reply.send({ success: true, data: { totalTenants: Number(t1[0]?.count ?? 0), activeTenants: Number(t2[0]?.count ?? 0), trialTenants: Number(t3[0]?.count ?? 0), blockedTenants: Number(t4[0]?.count ?? 0), totalClients: Number(t5[0]?.count ?? 0), totalAppts: Number(t6[0]?.count ?? 0) } });
   });
+}
 export async function demoModule(fastify: FastifyInstance) {
   fastify.post("/demo/seed", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
