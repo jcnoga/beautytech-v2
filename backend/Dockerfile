@@ -1,5 +1,5 @@
 ﻿FROM node:20-alpine
-ARG CACHE_BUST=2
+ARG CACHE_BUST=3
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
