@@ -2474,8 +2474,6 @@ export default function App() {
   useTheme();
   const [user, setUser] = useState<any>(null);
 
-  useTheme(); // re-renderiza ao trocar tema
-  const [user, setUser] = useState<any>(null);
   const [page, setPage] = useState("dashboard");
   const [loading, setLoading] = useState(true);
 
