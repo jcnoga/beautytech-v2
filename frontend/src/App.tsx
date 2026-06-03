@@ -523,7 +523,7 @@ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
       headStyles: { fillColor: [180, 90, 80] },
     });
     doc.save(`financeiro_${new Date().toISOString().split("T")[0]}.pdf`);
-  }; => setForm(p => ({ ...p, [k]:v }));
+  };
 
   useEffect(() => {
     clientsApi.list({ limit: 200 })
