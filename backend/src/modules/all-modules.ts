@@ -875,8 +875,13 @@ export async function automationsModule(fastify: FastifyInstance) {
 
   fastify.get("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
-    const result = await db.execute(sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`);
-    return reply.send({ success: true, data: result.rows[0] ?? null });
+    try {
+      const result = await db.execute(sql`SELECT * FROM automation_settings WHERE tenant_id = ${tenantId} LIMIT 1`);
+      const rows = (result as any).rows ?? result ?? [];
+      return reply.send({ success: true, data: rows[0] ?? null });
+    } catch(e) {
+      return reply.send({ success: true, data: null });
+    }
   });
 
   fastify.post("/automations/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
