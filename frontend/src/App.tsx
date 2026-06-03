@@ -1006,7 +1006,9 @@ function ServicesPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const r: any = await servicesApi.create(form);
+      const payload: any = { ...form };
+      if (!payload.categoryId) delete payload.categoryId;
+      const r: any = await servicesApi.create(payload);
       setData(d => [...d, r.data]);
       setShowForm(false);
     } catch(e: any) {
