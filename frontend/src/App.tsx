@@ -1122,7 +1122,7 @@ function PackagesPage() {
   };
 
   const cols = [
-    { key:"clientId", label:"Cliente", render: (p: any) => <span style={{ fontWeight:600, color: C.text }}>{p.client?.fullName ?? p.clientId}</span> },
+    { key:"clientId", label:"Cliente", render: (p: any) => <span style={{ fontWeight:600, color: C.text }}>{getClient(p.clientId)?.fullName ?? p.clientId}</span> },
     { key:"name", label:"Pacote", render: (p: any) => <span style={{ color: C.textSec }}>{p.name}</span> },
     { key:"sessions", label:"Sessoes", render: (p: any) => (
       <div>
