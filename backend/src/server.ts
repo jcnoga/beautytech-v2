@@ -10,6 +10,7 @@ import { authenticate } from "./middleware/auth.js";
 
 import {
   clientsModule,
+  demoModule,
   professionalsModule,
   appointmentsModule,
   servicesModule,
@@ -71,6 +72,7 @@ const prefix = env.API_PREFIX;
   await server.register(productsModule,      { prefix });
   await server.register(superAdminModule,    { prefix });
   await server.register(automationsModule,   { prefix });
+  await server.register(demoModule,          { prefix });
 
   await server.listen({ port: env.PORT, host: env.HOST });
   console.log(`BeautyTech v2 rodando na porta ${env.PORT}`);

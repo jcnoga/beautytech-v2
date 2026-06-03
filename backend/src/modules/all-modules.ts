@@ -1086,3 +1086,46 @@ export async function superAdminModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: notif });
   });
 }
+export async function demoModule(fastify: FastifyInstance) {
+  fastify.post("/demo/seed", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const clientsDemo = [
+      { fullName: "Ana Demo Silva", whatsapp: "(34) 98001-0001", email: "ana.demo@beautytech.com.br", gender: "female" as const, segment: "active" as const, tags: ["demo"] },
+      { fullName: "Beatriz Demo Santos", whatsapp: "(34) 98001-0002", email: "bea.demo@beautytech.com.br", gender: "female" as const, segment: "vip" as const, isVip: true, tags: ["demo"] },
+      { fullName: "Carla Demo Rocha", whatsapp: "(34) 98001-0003", email: "carla.demo@beautytech.com.br", gender: "female" as const, segment: "new" as const, tags: ["demo"] },
+    ];
+    const insertedClients = await db.insert(clients).values(
+      clientsDemo.map(c => ({ ...c, tenantId, createdBy: tenantId }))
+    ).returning();
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    await db.insert(appointments).values(
+      insertedClients.map((c, i) => ({
+        tenantId, clientId: c.id, status: "pending" as const,
+        scheduledAt: new Date(tomorrow.getTime() + i * 60 * 60 * 1000),
+        endsAt: new Date(tomorrow.getTime() + i * 60 * 60 * 1000 + 60 * 60 * 1000),
+        durationMinutes: 60, totalPrice: String(80 + i * 20), subtotal: String(80 + i * 20),
+        source: "manual" as const, internalNotes: "demo", createdBy: tenantId,
+      }))
+    );
+    const [defaultAccount] = await db.select().from(financialAccounts)
+      .where(and(eq(financialAccounts.tenantId, tenantId), eq(financialAccounts.isDefault, true)));
+    if (defaultAccount) {
+      await db.insert(financialTransactions).values([
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, status: "confirmed" as const, description: "Demo - Coloracao Ana", amount: "180.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "expense" as const, status: "pending" as const, description: "Demo - Produto Tinta", amount: "90.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
+      ]);
+    }
+    return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos!", clients: insertedClients.length } });
+  });
+
+  fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const deleted = await db.delete(clients)
+      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`))
+      .returning();
+    await db.delete(financialTransactions)
+      .where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.notes, "demo")));
+    return reply.send({ success: true, data: { message: "Dados de demonstracao removidos!", deleted: deleted.length } });
+  });
+}
