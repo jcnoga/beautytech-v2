@@ -1121,11 +1121,29 @@ export async function demoModule(fastify: FastifyInstance) {
 
   fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
+
+    // Buscar clientes demo primeiro
+    const demoClients = await db.select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`));
+
+    const demoClientIds = demoClients.map(c => c.id);
+
+    // Apagar agendamentos dos clientes demo
+    if (demoClientIds.length > 0) {
+      await db.delete(appointments)
+        .where(and(eq(appointments.tenantId, tenantId), sql`${appointments.clientId} = ANY(ARRAY[${sql.join(demoClientIds.map(id => sql`${id}::uuid`), sql`, `)}])`));
+    }
+
+    // Apagar transações demo
+    await db.delete(financialTransactions)
+      .where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.notes, "demo")));
+
+    // Apagar clientes demo
     const deleted = await db.delete(clients)
       .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`))
       .returning();
-    await db.delete(financialTransactions)
-      .where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.notes, "demo")));
+
     return reply.send({ success: true, data: { message: "Dados de demonstracao removidos!", deleted: deleted.length } });
   });
 }
