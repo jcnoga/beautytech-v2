@@ -10,30 +10,26 @@ import { useState, useEffect } from "react";
 import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
 
 // --- DESIGN TOKENS -------------------------------------------
-const C = {
-  bg:        "#0C0A09",
-  card:      "#141210",
-  surface:   "#1A1714",
-  border:    "#2A2420",
-  borderHi:  "#3D3028",
-  rose:      "#E8A598",
-  roseDeep:  "#C4766A",
-  roseDim:   "#E8A59820",
-  gold:      "#D4AF7A",
-  goldDeep:  "#B8924A",
-  goldDim:   "#D4AF7A18",
-  cream:     "#F5EDD8",
-  sage:      "#8FAF8A",
-  sapphire:  "#6B8CAE",
-  ruby:      "#C4606A",
-  text:      "#F0E8DC",
-  textSec:   "#C4A882",
-  textMuted: "#6B5A48",
-  overlay:   "rgba(12,10,9,0.85)",
+// --- TEMAS ---------------------------------------------------
+const THEMES: Record<string, any> = {
+  noir:      { name:"Noir",      icon:"N", bg:"#0C0A09", card:"#141210", surface:"#1A1714", border:"#2A2420", borderHi:"#3D3028", rose:"#E8A598", roseDeep:"#C4766A", roseDim:"#E8A59820", gold:"#D4AF7A", goldDeep:"#B8924A", goldDim:"#D4AF7A18", cream:"#F5EDD8", sage:"#8FAF8A", sapphire:"#6B8CAE", ruby:"#C4606A", text:"#F0E8DC", textSec:"#C4A882", textMuted:"#6B5A48", overlay:"rgba(12,10,9,0.85)", fd:"'Playfair Display', serif", fb:"'Outfit', sans-serif" },
+  sakura:    { name:"Sakura",    icon:"S", bg:"#FDF6F8", card:"#FFFFFF", surface:"#FFF0F3", border:"#F5D5DC", borderHi:"#EBB8C3", rose:"#D4637A", roseDeep:"#B84860", roseDim:"#D4637A18", gold:"#C4956A", goldDeep:"#A87850", goldDim:"#C4956A18", cream:"#4A3040", sage:"#5A8F6A", sapphire:"#5878A8", ruby:"#C43050", text:"#2A1820", textSec:"#6A3848", textMuted:"#B898A8", overlay:"rgba(253,246,248,0.92)", fd:"'Playfair Display', serif", fb:"'Outfit', sans-serif" },
+  dourado:   { name:"Dourado",   icon:"D", bg:"#FAFAF7", card:"#FFFFFF", surface:"#F7F5F0", border:"#E8E0D0", borderHi:"#D4C8A8", rose:"#B8924A", roseDeep:"#9A7830", roseDim:"#B8924A18", gold:"#C8A050", goldDeep:"#A88030", goldDim:"#C8A05018", cream:"#3A3020", sage:"#607850", sapphire:"#506880", ruby:"#A84040", text:"#2A2010", textSec:"#6A5830", textMuted:"#B0A080", overlay:"rgba(250,250,247,0.92)", fd:"'Cormorant Garamond', serif", fb:"'Outfit', sans-serif" },
+  esmeralda: { name:"Esmeralda", icon:"E", bg:"#0A120E", card:"#111A14", surface:"#182218", border:"#243028", borderHi:"#304038", rose:"#7AC8A0", roseDeep:"#58A880", roseDim:"#7AC8A020", gold:"#D4AF7A", goldDeep:"#B8924A", goldDim:"#D4AF7A18", cream:"#E8F5EE", sage:"#A8D8B8", sapphire:"#6898B8", ruby:"#C87868", text:"#E0F0E8", textSec:"#A0C8B0", textMuted:"#506858", overlay:"rgba(10,18,14,0.88)", fd:"'Playfair Display', serif", fb:"'Outfit', sans-serif" },
+  violeta:   { name:"Violeta",   icon:"V", bg:"#0E0A14", card:"#150F1E", surface:"#1C1428", border:"#2A2038", borderHi:"#382C4C", rose:"#C898E8", roseDeep:"#A870D0", roseDim:"#C898E820", gold:"#E8C878", goldDeep:"#D0A848", goldDim:"#E8C87818", cream:"#F0E8FF", sage:"#90B890", sapphire:"#7898D8", ruby:"#D86878", text:"#F0E8FF", textSec:"#C0A8E0", textMuted:"#705888", overlay:"rgba(14,10,20,0.88)", fd:"'Playfair Display', serif", fb:"'Outfit', sans-serif" },
+  auto:      { name:"Auto",      icon:"A" },
 };
-
-const FD = "'Playfair Display', serif";
-const FB = "'Outfit', sans-serif";
+const getSystemTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "noir" : "sakura";
+const getSavedTheme = () => { const t = localStorage.getItem("beautytech_theme") ?? "noir"; return t === "auto" ? "auto" : (THEMES[t] ? t : "noir"); };
+const resolveTheme = (id: string) => id === "auto" ? THEMES[getSystemTheme()] : (THEMES[id] ?? THEMES.noir);
+let _themeId = getSavedTheme();
+let C: any = resolveTheme(_themeId);
+let FD: string = C.fd;
+let FB: string = C.fb;
+type ThemeListener = () => void;
+const themeListeners: ThemeListener[] = [];
+const setGlobalTheme = (id: string) => { _themeId = id; localStorage.setItem("beautytech_theme", id); C = resolveTheme(id); FD = C.fd; FB = C.fb; themeListeners.forEach(fn => fn()); };
+const useTheme = () => { const [, upd] = useState(0); useEffect(() => { const fn = () => upd(n => n+1); themeListeners.push(fn); const mq = window.matchMedia("(prefers-color-scheme: dark)"); const mqFn = () => { if (_themeId === "auto") { C = resolveTheme("auto"); FD = C.fd; FB = C.fb; upd(n => n+1); } }; mq.addEventListener("change", mqFn); return () => { themeListeners.splice(themeListeners.indexOf(fn), 1); mq.removeEventListener("change", mqFn); }; }, []); return _themeId; };
 
 // --- MOCK DATA (fallback) -------------------------------------
 const NOW = new Date();
@@ -2553,8 +2549,27 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
             </div>
           )}
         </div>
-        <div style={{ fontSize:11, color: C.textMuted, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.email}</div>
-        <button onClick={onLogout} style={{ background:"none", border:"none", color: C.ruby, fontSize:12, cursor:"pointer", padding:0, fontFamily: FB }}>Sair</button>
+        <div style={{ marginBottom:10 }}>
+          <button onClick={() => setShowThemes(s => !s)}
+            style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"7px 12px", cursor:"pointer", color:C.textSec, fontSize:11, fontFamily:FB }}>
+            <span>{THEMES[themeId === "auto" ? getSystemTheme() : themeId]?.icon ?? "N"} {THEMES[themeId]?.name ?? "Noir"}</span>
+            <span style={{ fontSize:9, opacity:0.6 }}>TEMA</span>
+          </button>
+          {showThemes && (
+            <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:10, marginTop:4, overflow:"hidden" }}>
+              {["noir","sakura","dourado","esmeralda","violeta","auto"].map(id => (
+                <button key={id} onClick={() => { setGlobalTheme(id); setShowThemes(false); }}
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"8px 12px", background:themeId===id?`${C.rose}15`:"none", border:"none", borderBottom:`1px solid ${C.border}`, color:themeId===id?C.rose:C.textSec, fontSize:12, cursor:"pointer", fontFamily:FB, textAlign:"left" as const }}>
+                  <span>{THEMES[id]?.icon}</span>
+                  <span>{THEMES[id]?.name}</span>
+                  {themeId===id && <span style={{ marginLeft:"auto", color:C.rose, fontSize:10 }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ fontSize:11, color:C.textMuted, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.email}</div>
+        <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:12, cursor:"pointer", padding:0, fontFamily:FB }}>Sair</button>
       </div>
     </div>
   );
@@ -2566,6 +2581,9 @@ export default function App() {
   if (window.location.pathname === "/super-admin") {
     return <SuperAdminApp />;
   }
+
+  useTheme();
+  const [user, setUser] = useState<any>(null);
 
   useTheme(); // re-renderiza ao trocar tema
   const [user, setUser] = useState<any>(null);
