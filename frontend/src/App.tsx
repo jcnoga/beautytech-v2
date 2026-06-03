@@ -1177,11 +1177,25 @@ function FinancialPage() {
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background: filter===f2.v?`${C.rose}15`:C.card, color: filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{f2.l}</button>
         ))}
       </div>
-      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
+<Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Transacao">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+          <Inp label="Descricao *" value={form.description} onChange={f("description")} placeholder="Ex: Coloracao - Ana Silva" grid="1/-1" />
+          <Sel label="Tipo" value={form.type} onChange={f("type")} options={[{ value:"revenue", label:"Receita" },{ value:"expense", label:"Despesa" }]} />
+          <Inp label="Valor (R$) *" value={form.amount} onChange={f("amount")} type="number" placeholder="150.00" />
+          <Sel label="Forma de Pagamento" value={form.paymentMethod} onChange={f("paymentMethod")} options={Object.entries(PAYMENT_LABEL).map(([v,l]) => ({ value:v, label:String(l) }))} />
+          <Inp label="Vencimento" value={form.dueDate} onChange={f("dueDate")} type="date" />
+          <Sel label="Status" value={form.status} onChange={f("status")} options={[{ value:"pending", label:"Pendente" },{ value:"confirmed", label:"Pago" }]} />
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }
-
+// --- COMISS?ES
 // --- COMISS?ES ------------------------------------------------
 function CommissionsPage() {
   const [data, setData] = useState<any[]>([]);
