@@ -1118,6 +1118,28 @@ function FinancialPage() {
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending" });
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+
+  const save = async () => {
+    if (!form.description) return alert("Informe a descrição.");
+    if (!form.amount) return alert("Informe o valor.");
+    setSaving(true);
+    try {
+      const r: any = await financialApi.create(form);
+      setData(d => [...d, r.data]);
+      const s: any = await financialApi.summary();
+      setSummary(s.data ?? summary);
+      setShowForm(false);
+      setForm({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending" });
+    } catch(e: any) {
+      alert("Erro ao salvar: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([financialApi.list({ limit: 100 }), financialApi.summary()])
@@ -1144,7 +1166,7 @@ function FinancialPage() {
 
   return (
     <div>
-      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn>+ Nova Transacao</Btn>} />
+      <PageHeader title="Financeiro" sub="Controle de receitas e despesas" action={<Btn onClick={() => setShowForm(true)}>+ Nova Transacao</Btn>} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
         <KpiCard icon="?" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
         <KpiCard icon="?" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
