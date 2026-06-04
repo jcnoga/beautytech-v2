@@ -333,24 +333,24 @@ export async function packagesModule(fastify: FastifyInstance) {
     const { tenantId, userId } = req.tenantContext;
     const body = req.body as any;
     const [pkg] = await db.insert(packages).values({
-      ...body, tenantId, createdBy: userId, updatedBy: userId,
-      remainingSessions: body.totalSessions,
+      tenantId, createdBy: userId, updatedBy: userId,
+      clientId: body.clientId,
+      name: body.name,
+      totalSessions: Number(body.totalSessions),
+      usedSessions: 0,
+      remainingSessions: Number(body.totalSessions),
+      totalValue: String(body.totalValue),
+      status: "active",
+      expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
     }).returning();
     return reply.status(201).send({ success: true, data: pkg });
   });
-
   fastify.post("/packages/:id/use-session", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [pkg] = await db.select().from(packages)
-      .where(and(eq(packages.id, req.params.id), eq(packages.tenantId, tenantId)));
+    const [pkg] = await db.select().from(packages).where(and(eq(packages.id, req.params.id), eq(packages.tenantId, tenantId)));
     if (!pkg || pkg.remainingSessions <= 0) {
-      return reply.status(400).send({ success: false, error: "Pacote sem sessões disponíveis" });
+      return reply.status(400).send({ success: false, error: "Pacote sem sessoes disponiveis" });
     }
-    const [updated] = await db.update(packages)
-      .set({ usedSessions: pkg.usedSessions + 1, remainingSessions: pkg.remainingSessions - 1, updatedBy: userId, updatedAt: new Date(), status: pkg.remainingSessions - 1 === 0 ? "completed" : "active" })
-      .where(eq(packages.id, pkg.id))
-      .returning();
-    return reply.send({ success: true, data: updated });
   });
 }
 
