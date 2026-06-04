@@ -233,7 +233,7 @@ function RegisterPage({ onBack }: any) {
       const res = await fetch(`${import.meta.env["VITE_API_URL"]}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ salonName, ownerName, email, password }),
+        body: JSON.stringify({ salonName, ownerName, email, password, whatsapp }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -265,6 +265,7 @@ function RegisterPage({ onBack }: any) {
               <Inp label="Seu Nome" value={ownerName} onChange={setOwnerName} placeholder="Maria da Silva" required />
               <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
               <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="minimo 6 caracteres" required />
+              <Inp label="WhatsApp" value={whatsapp} onChange={setWhatsapp} type="tel" placeholder="(34) 99999-9999" required />
               {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
               <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, marginBottom:16 }}>
                 {loading ? "Cadastrando..." : "Criar Conta Gratis"}
@@ -1731,6 +1732,7 @@ function SuperAdminApp() {
   const [token, setToken]     = useState<string | null>(() => sessionStorage.getItem("sa_token"));
   const [email, setEmail]     = useState("superadmin@beautytech.com.br");
   const [password, setPassword] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
 
@@ -1865,6 +1867,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       <div>
         <div style={{ fontWeight:700, color:C.text, fontFamily:FB }}>{t.name}</div>
         <div style={{ fontSize:11, color:C.textMuted }}>{t.email}</div>
+        {t.phone && <div style={{ fontSize:11, color:C.textMuted }}>📱 {t.phone}</div>}
       </div>
     )},
     { key:"trialStatus", label:"Status", render: (t: any) => {

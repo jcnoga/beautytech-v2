@@ -758,8 +758,8 @@ export async function authModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: { ...tenant, daysLeft } });
   });
   fastify.post("/auth/register", async (req: any, reply) => {
-    const { salonName, ownerName, email, password } = req.body as any;
-
+    const { salonName, ownerName, email, password, whatsapp } = req.body as any;
+    if (!salonName || !ownerName || !email || !password) {
     if (!salonName || !ownerName || !email || !password) {
       return reply.status(400).send({ success: false, error: "Todos os campos são obrigatórios" });
     }
@@ -796,11 +796,11 @@ export async function authModule(fastify: FastifyInstance) {
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
+        phone: whatsapp ?? null,
         planTier: "trial",
         isActive: true,
         trialEndsAt,
       }).returning();
-
       await db.insert(userProfiles).values({
         tenantId: tenant.id,
         authUserId,
