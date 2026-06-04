@@ -797,7 +797,7 @@ export async function authModule(fastify: FastifyInstance) {
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
         email,
-        phone: whatsapp ?? null,
+        whatsapp: whatsapp ?? null,
         planTier: "trial",
         isActive: true,
         trialEndsAt,
@@ -805,8 +805,8 @@ export async function authModule(fastify: FastifyInstance) {
       await db.insert(userProfiles).values({
         tenantId: tenant.id,
         authUserId,
+        fullName: ownerName,
         email,
-        role: "owner",
         isActive: true,
       });
 
