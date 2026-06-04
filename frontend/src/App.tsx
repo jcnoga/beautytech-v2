@@ -1362,6 +1362,8 @@ useEffect(() => {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
         <KpiCard icon="R$" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
         <KpiCard icon="D$" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
+        <KpiCard icon="L$" label="Lucro Liquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
+      </div>
        <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background: filter===f2.v?`${C.rose}15`:C.card, color: filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{f2.l}</button>
