@@ -1770,6 +1770,12 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     load();
   };
 
+
+  const deleteTenant = async (id: string, name: string) => {
+    if (!window.confirm(`Tem certeza que deseja DELETAR o salão "${name}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    await saFetch("DELETE", `/super-admin/tenants/${id}`);
+    load();
+  };
   const TRIAL_STATUS: any = {
     trial:   { label:"Trial",    color: C.gold },
     active:  { label:"Ativo",    color: C.sage },
@@ -1811,6 +1817,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           ? <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); block(t.id); }}>Bloquear</Btn>
           : <Btn small variant="gold"   onClick={(e: any) => { e.stopPropagation(); unblock(t.id); }}>Liberar</Btn>
         }
+        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); deleteTenant(t.id, t.name); }}>Deletar</Btn>
       </div>
     )},
   ];
@@ -2697,4 +2704,6 @@ export default function App() {
     </>
   );
 }
+
+
 

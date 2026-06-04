@@ -1059,6 +1059,11 @@ export async function superAdminModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: tenant });
   });
 
+  
+  fastify.delete("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    await db.update(tenants).set({ deletedAt: new Date(), isActive: false, updatedAt: new Date() }).where(eq(tenants.id, req.params.id));
+    return reply.send({ success: true });
+  });
   fastify.get("/super-admin/stats", { preHandler: [requireSuperAdmin] }, async (_req, reply) => {
     const now = new Date();
     const [t1, t2, t3, t4, t5, t6] = await Promise.all([
@@ -1183,3 +1188,4 @@ export async function demoModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: { message: "Dados de demonstracao removidos com sucesso!" } });
   });
 }
+
