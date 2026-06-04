@@ -480,51 +480,51 @@ function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", gender:"female", birthDate:"" });
-const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
   const exportXLSX = () => {
     const XLSX = (window as any).XLSX;
     if (!XLSX) { alert("Aguarde carregar..."); return; }
-    const rows = filtered.map((t: any) => ({
-      "Descricao": t.description,
-      "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
-      "Status": t.status === "confirmed" ? "Pago" : "Pendente",
-      "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
-      "Valor": Number(t.amount),
+    const rows = filtered.map((c: any) => ({
+      "Nome": c.fullName,
+      "WhatsApp": c.whatsapp ?? "-",
+      "Email": c.email ?? "-",
+      "Genero": c.gender === "female" ? "Feminino" : c.gender === "male" ? "Masculino" : "Outro",
+      "Nascimento": c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR") : "-",
+      "Segmento": c.segment ?? "-",
+      "Visitas": c.totalVisits ?? 0,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
-    XLSX.writeFile(wb, `financeiro_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+    XLSX.writeFile(wb, `clientes_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
-
   const exportPDF = () => {
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.text("Relatorio de Clientes - BeautyTech", 14, 20);
     doc.setFontSize(11);
     doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
-    doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
-    const rows = filtered.map((t: any) => [
-      t.description,
-      t.type === "revenue" ? "Receita" : "Despesa",
-      t.status === "confirmed" ? "Pago" : "Pendente",
-      t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
-      `R$ ${Number(t.amount).toFixed(2)}`,
+    doc.text(`Total de clientes: ${filtered.length}`, 14, 36);
+    const rows = filtered.map((c: any) => [
+      c.fullName,
+      c.whatsapp ?? "-",
+      c.email ?? "-",
+      c.gender === "female" ? "Feminino" : c.gender === "male" ? "Masculino" : "Outro",
+      c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR") : "-",
+      c.segment ?? "-",
+      c.totalVisits ?? 0,
     ]);
     (doc as any).autoTable({
-      head: [["Descricao", "Tipo", "Status", "Forma", "Vencimento", "Valor"]],
+      head: [["Nome", "WhatsApp", "Email", "Genero", "Nascimento", "Segmento", "Visitas"]],
       body: rows,
       startY: 44,
       styles: { fontSize: 9 },
       headStyles: { fillColor: [180, 90, 80] },
     });
-    doc.save(`financeiro_${new Date().toISOString().split("T")[0]}.pdf`);
+    doc.save(`clientes_${new Date().toISOString().split("T")[0]}.pdf`);
   };
-
   useEffect(() => {
     clientsApi.list({ limit: 200 })
       .then((r: any) => setData(r.data ?? []))
@@ -1420,6 +1420,40 @@ function CommissionsPage() {
     } catch(e) { console.error(e); }
   };
 
+  const exportXLSX = () => {
+    const XLSX = (window as any).XLSX;
+    if (!XLSX) { alert("Aguarde carregar..."); return; }
+    const rows = data.map((c: any) => ({
+      "Profissional": c.professional?.fullName ?? c.professionalId,
+      "Base": Number(c.baseAmount),
+      "Comissao %": c.commissionPct,
+      "Valor Comissao": Number(c.commissionAmt),
+      "Mes Referencia": c.referenceMonth ?? "-",
+      "Status": c.isPaid ? "Pago" : "A Pagar",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Comissoes");
+    XLSX.writeFile(wb, `comissoes_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+  const exportPDF = () => {
+    const { jsPDF } = (window as any).jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Relatorio de Comissoes - BeautyTech", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
+    const rows = data.map((c: any) => [
+      c.professional?.fullName ?? c.professionalId,
+      brl(c.baseAmount),
+      `${c.commissionPct}%`,
+      brl(c.commissionAmt),
+      c.referenceMonth ?? "-",
+      c.isPaid ? "Pago" : "A Pagar",
+    ]);
+    (doc as any).autoTable({ head: [["Profissional","Base","Comissao %","Valor","Mes Ref.","Status"]], body: rows, startY: 44, styles: { fontSize: 9 }, headStyles: { fillColor: [180, 90, 80] } });
+    doc.save(`comissoes_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
   const filtered = filter === "all" ? data : data.filter((c: any) => c.isPaid === (filter === "paid"));
   const totalPending = data.filter((c: any) => !c.isPaid).reduce((s, c: any) => s + Number(c.commissionAmt), 0);
   const totalPaid    = data.filter((c: any) =>  c.isPaid).reduce((s, c: any) => s + Number(c.commissionAmt), 0);
@@ -1444,7 +1478,12 @@ function CommissionsPage() {
 
   return (
     <div>
-      <PageHeader title="Comissoes" sub="Controle de comissoes por profissional" />
+      <PageHeader title="Comissoes" sub="Controle de comissoes por profissional" action={
+        <div style={{ display:"flex", gap:8 }}>
+          <Btn small variant="secondary" onClick={exportXLSX}>XLSX</Btn>
+          <Btn small variant="secondary" onClick={exportPDF}>PDF</Btn>
+        </div>
+      } />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:24 }}>
         <KpiCard icon="AP" label="A Pagar" value={brl(totalPending)} color={C.gold} />
         <KpiCard icon="OK" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
