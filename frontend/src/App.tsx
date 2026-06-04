@@ -1254,8 +1254,8 @@ function FinancialPage() {
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
   const [accounts, setAccounts] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ description:"", type:"revenue", amount:"", paymentMethod:"pix", dueDate:"", status:"pending", accountId:"" });
  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
@@ -1333,12 +1333,12 @@ useEffect(() => {
       })
       .catch(console.error).finally(() => setLoading(false));
   }, []);
-  const filtered = filter === "all" ? data : data.filter((t: any) => t.type === filter);
-
-  const cols = [
-    { key:"description", label:"Descricao", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
-    { key:"type", label:"Tipo", render: (t: any) => <Badge label={t.type==="revenue"?"Receita":"Despesa"} color={t.type==="revenue"?C.sage:C.ruby} /> },
-    { key:"status", label:"Status", render: (t: any) => <Badge label={t.status==="confirmed"?"Pago":"Pendente"} color={t.status==="confirmed"?C.sage:C.gold} /> },
+  const filtered = data.filter((t: any) => {
+    if (filter !== "all" && t.type !== filter) return false;
+    if (dateFrom && t.dueDate && t.dueDate < dateFrom) return false;
+    if (dateTo   && t.dueDate && t.dueDate > dateTo)   return false;
+    return true;
+  });
     { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "-"}</span> },
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
@@ -1362,14 +1362,19 @@ useEffect(() => {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
         <KpiCard icon="R$" label="Receitas"      value={brl(summary.revenue)}  color={C.sage} />
         <KpiCard icon="D$" label="Despesas"      value={brl(summary.expenses)} color={C.ruby} />
-        <KpiCard icon="L$" label="Lucro Liquido" value={brl(summary.profit)}   color={summary.profit >= 0 ? C.gold : C.ruby} />
-      </div>
-      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+       <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
         {[{ v:"all", l:"Todos" },{ v:"revenue", l:"Receitas" },{ v:"expense", l:"Despesas" }].map(f2 => (
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background: filter===f2.v?`${C.rose}15`:C.card, color: filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB, fontWeight:600 }}>{f2.l}</button>
         ))}
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8 }}>
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>De:</span>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>Até:</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
+          {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.ruby, fontSize:11, cursor:"pointer", fontFamily:FB }}>Limpar</button>}
+        </div>
       </div>
-<Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
+      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma transacao encontrada." />
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Transacao">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Descricao *" value={form.description} onChange={f("description")} placeholder="Ex: Coloracao - Ana Silva" grid="1/-1" />
@@ -1387,7 +1392,6 @@ useEffect(() => {
     </div>
   );
 }
-// --- COMISS?ES
 // --- COMISS?ES ------------------------------------------------
 function CommissionsPage() {
   const [data, setData] = useState<any[]>([]);
