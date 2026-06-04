@@ -223,10 +223,10 @@ function RegisterPage({ onBack }: any) {
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
   const submit = async () => {
     setLoading(true); setError(""); setSuccess("");
     try {
