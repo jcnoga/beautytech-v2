@@ -619,7 +619,13 @@ function ClientsPage() {
 
   return (
     <div>
-      <PageHeader title="Clientes" sub={`${filtered.length} clientes`} action={<Btn onClick={openNew}>+ Nova Cliente</Btn>} />
+     <PageHeader title="Clientes" sub={`${filtered.length} clientes`} action={
+        <div style={{ display:"flex", gap:8 }}>
+          <Btn small variant="secondary" onClick={exportXLSX}>XLSX</Btn>
+          <Btn small variant="secondary" onClick={exportPDF}>PDF</Btn>
+          <Btn onClick={openNew}>+ Nova Cliente</Btn>
+        </div>
+      } />
       <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
         <Search value={search} onChange={setSearch} placeholder="Buscar por nome ou WhatsApp..." />
         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
