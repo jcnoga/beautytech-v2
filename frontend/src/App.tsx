@@ -1410,8 +1410,9 @@ useEffect(() => {
 function CommissionsPage() {
   const [data, setData] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     commissionsApi.list({ limit: 100 })
       .then((r: any) => setData(r.data ?? []))
@@ -1460,7 +1461,12 @@ function CommissionsPage() {
     (doc as any).autoTable({ head: [["Profissional","Base","Comissao %","Valor","Mes Ref.","Status"]], body: rows, startY: 44, styles: { fontSize: 9 }, headStyles: { fillColor: [180, 90, 80] } });
     doc.save(`comissoes_${new Date().toISOString().split("T")[0]}.pdf`);
   };
-  const filtered = filter === "all" ? data : data.filter((c: any) => c.isPaid === (filter === "paid"));
+  const filtered = data.filter((c: any) => {
+    if (filter !== "all" && c.isPaid !== (filter === "paid")) return false;
+    if (dateFrom && c.referenceMonth && c.referenceMonth < dateFrom.substring(0,7)) return false;
+    if (dateTo   && c.referenceMonth && c.referenceMonth > dateTo.substring(0,7))   return false;
+    return true;
+  });
   const totalPending = data.filter((c: any) => !c.isPaid).reduce((s, c: any) => s + Number(c.commissionAmt), 0);
   const totalPaid    = data.filter((c: any) =>  c.isPaid).reduce((s, c: any) => s + Number(c.commissionAmt), 0);
 
@@ -1495,12 +1501,18 @@ function CommissionsPage() {
         <KpiCard icon="OK" label="Pagas"   value={brl(totalPaid)}    color={C.sage} />
         <KpiCard icon="Tot" label="Total"   value={brl(totalPending+totalPaid)} color={C.rose} />
       </div>
-      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+<div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
         {[{ v:"all",l:"Todas" },{ v:"pending",l:"A Pagar" },{ v:"paid",l:"Pagas" }].map(f2 => (
           <button key={f2.v} onClick={() => setFilter(f2.v)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${filter===f2.v?C.rose:C.border}`, background:filter===f2.v?`${C.rose}15`:C.card, color:filter===f2.v?C.rose:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f2.l}</button>
         ))}
-      </div>
-      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma comissao encontrada." />
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8 }}>
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>De:</span>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>Até:</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
+          {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.ruby, fontSize:11, cursor:"pointer", fontFamily:FB }}>Limpar</button>}
+        </div>
+      </div>      <Table cols={cols} rows={filtered} emptyMsg="Nenhuma comissao encontrada." />
     </div>
   );
 }
