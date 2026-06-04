@@ -478,18 +478,16 @@ function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   const [data, setData] = useState<any[]>([]);
+  //const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", gender:"female", birthDate:"" });
   const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
-
   const exportXLSX = () => {
     const XLSX = (window as any).XLSX;
     if (!XLSX) { alert("Aguarde carregar..."); return; }
     const rows = filtered.map((c: any) => ({
       "Nome": c.fullName,
-      "WhatsApp": c.whatsapp ?? "-",
-      "Email": c.email ?? "-",
       "Genero": c.gender === "female" ? "Feminino" : c.gender === "male" ? "Masculino" : "Outro",
       "Nascimento": c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR") : "-",
       "Segmento": c.segment ?? "-",
@@ -1200,17 +1198,17 @@ function ServicesPage() {
   );
 }
 
-// --- PACOTES --------------------------------------------------
 function PackagesPage() {
   const [data, setData] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ clientId:"", name:"", totalSessions:"", totalValue:"", expiresAt:"" });
+  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
   useEffect(() => {
     Promise.all([packagesApi.list({ limit: 100 }), clientsApi.list({ limit: 200 })])
-      .then(([p, c]: any) => {
-        setClients(c.data ?? []);
-        setData(p.data ?? []);
-      })
+      .then(([p, c]: any) => { setClients(c.data ?? []); setData(p.data ?? []); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -1223,6 +1221,20 @@ function PackagesPage() {
     } catch(e: any) { alert("Erro: " + e.message); }
   };
 
+  const save = async () => {
+    if (!form.clientId) return alert("Selecione o cliente.");
+    if (!form.name) return alert("Informe o nome do pacote.");
+    if (!form.totalSessions) return alert("Informe o numero de sessoes.");
+    if (!form.totalValue) return alert("Informe o valor.");
+    setSaving(true);
+    try {
+      const r: any = await packagesApi.create(form);
+      setData(d => [...d, r.data]);
+      setShowForm(false);
+      setForm({ clientId:"", name:"", totalSessions:"", totalValue:"", expiresAt:"" });
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSaving(false); }
+  };
   const cols = [
     { key:"clientId", label:"Cliente", render: (p: any) => <span style={{ fontWeight:600, color: C.text }}>{getClient(p.clientId)?.fullName ?? p.clientId}</span> },
     { key:"name", label:"Pacote", render: (p: any) => <span style={{ color: C.textSec }}>{p.name}</span> },
@@ -1248,9 +1260,22 @@ function PackagesPage() {
   );
 
   return (
-    <div>
-      <PageHeader title="Pacotes" sub={`${data.filter((p: any) => p.status === "active").length} pacotes ativos`} action={<Btn>+ Novo Pacote</Btn>} />
+<div>
+      <PageHeader title="Pacotes" sub={`${data.filter((p: any) => p.status === "active").length} pacotes ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Pacote</Btn>} />
       <Table cols={cols} rows={data} emptyMsg="Nenhum pacote encontrado." />
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Pacote">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+          <Sel label="Cliente *" value={form.clientId} onChange={f("clientId")} options={clients.map((c: any) => ({ value: c.id, label: c.fullName }))} grid="1/-1" />
+          <Inp label="Nome do Pacote *" value={form.name} onChange={f("name")} placeholder="Ex: Pacote 10 Cortes" grid="1/-1" />
+          <Inp label="Total de Sessoes *" value={form.totalSessions} onChange={f("totalSessions")} type="number" placeholder="10" />
+          <Inp label="Valor Total (R$) *" value={form.totalValue} onChange={f("totalValue")} type="number" placeholder="500.00" />
+          <Inp label="Vencimento" value={form.expiresAt} onChange={f("expiresAt")} type="date" grid="1/-1" />
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }
