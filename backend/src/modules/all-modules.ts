@@ -760,7 +760,7 @@ export async function authModule(fastify: FastifyInstance) {
   fastify.post("/auth/register", async (req: any, reply) => {
     const { salonName, ownerName, email, password, whatsapp } = req.body as any;
     if (!salonName || !ownerName || !email || !password) {
-    if (!salonName || !ownerName || !email || !password) {
+      return reply.status(400).send({ success: false, error: "Todos os campos são obrigatórios" });
       return reply.status(400).send({ success: false, error: "Todos os campos são obrigatórios" });
     }
     if (password.length < 6) {
