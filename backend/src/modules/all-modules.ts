@@ -456,7 +456,7 @@ export async function commissionsModule(fastify: FastifyInstance) {
     if (professionalId) cond.push(eq(commissions.professionalId, professionalId));
     if (month) cond.push(eq(commissions.referenceMonth, month));
     if (isPaid !== undefined) cond.push(eq(commissions.isPaid, isPaid === "true"));
-    const data = await db.select().from(commissions).where(and(...cond)).orderBy(desc(commissions.createdAt));
+    const data = await db.select({ id: commissions.id, tenantId: commissions.tenantId, professionalId: commissions.professionalId, baseAmount: commissions.baseAmount, commissionPct: commissions.commissionPct, commissionAmt: commissions.commissionAmt, referenceMonth: commissions.referenceMonth, isPaid: commissions.isPaid, paidAt: commissions.paidAt, createdAt: commissions.createdAt, professional: { id: professionals.id, fullName: professionals.fullName } }).from(commissions).leftJoin(professionals, eq(professionals.id, commissions.professionalId)).where(and(...cond)).orderBy(desc(commissions.createdAt));
     const totalAmt = data.reduce((s, c) => s + Number(c.commissionAmt), 0);
     return reply.send({ success: true, data, total: data.length, totalAmount: totalAmt });
   });
