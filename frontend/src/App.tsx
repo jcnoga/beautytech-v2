@@ -1228,7 +1228,7 @@ function PackagesPage() {
     if (!form.totalValue) return alert("Informe o valor.");
     setSaving(true);
     try {
-      const r: any = await packagesApi.create(form);
+     const r: any = await packagesApi.create({ ...form, totalSessions: Number(form.totalSessions), totalValue: Number(form.totalValue) });
       setData(d => [...d, r.data]);
       setShowForm(false);
       setForm({ clientId:"", name:"", totalSessions:"", totalValue:"", expiresAt:"" });
