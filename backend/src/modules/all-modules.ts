@@ -796,6 +796,7 @@ export async function authModule(fastify: FastifyInstance) {
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
+        email,
         phone: whatsapp ?? null,
         planTier: "trial",
         isActive: true,
@@ -804,7 +805,6 @@ export async function authModule(fastify: FastifyInstance) {
       await db.insert(userProfiles).values({
         tenantId: tenant.id,
         authUserId,
-        fullName: ownerName,
         email,
         role: "owner",
         isActive: true,
