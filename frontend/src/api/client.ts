@@ -10,7 +10,7 @@ class ApiClient {
 
   private async getToken(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error("Sessão expirada");
+    if (!session?.access_token) throw new Error("SessÃƒÂ£o expirada");
     return session.access_token;
   }
 
@@ -129,4 +129,11 @@ export const whatsappApi = {
   notifications: (p?: any) => api.get<any>("/whatsapp/notifications", p),
   templates:     () => api.get<any>("/whatsapp/templates"),
   link:          (phone: string, msg?: string) => api.get<any>("/whatsapp/link", { phone, message: msg }),
+};
+export const notificationsApi = {
+  list:       (p?: any) => api.get<any>('/automations/notifications', p),
+  templates:  () => api.get<any>('/automations/templates'),
+  sendManual: (dto: any) => api.post<any>('/automations/notifications/send-manual', dto),
+  retry:      (id: string) => api.post<any>('/automations/notifications/' + id + '/retry'),
+  markSent:   (id: string) => api.post<any>('/automations/notifications/' + id + '/sent'),
 };
