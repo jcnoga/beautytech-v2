@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
 // Tipografia: Playfair Display + Outfit
@@ -550,7 +550,7 @@ function ClientsPage() {
       if (payload.birthDate) {
         const d = new Date(payload.birthDate);
         if (isNaN(d.getTime()) || d.getFullYear() > new Date().getFullYear() || d.getFullYear() < 1900) {
-          alert("Data de nascimento inválida.");
+          alert("Data de nascimento invÃƒÂ¡lida.");
           setSaving(false);
           return;
         }
@@ -1338,7 +1338,7 @@ function FinancialPage() {
   };
 
   const save = async () => {
-    if (!form.description) return alert("Informe a descrição.");
+    if (!form.description) return alert("Informe a descriÃƒÂ§ÃƒÂ£o.");
     if (!form.amount) return alert("Informe o valor.");
     setSaving(true);
     try {
@@ -1409,7 +1409,7 @@ useEffect(() => {
         <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8 }}>
           <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>De:</span>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
-          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>Até:</span>
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>AtÃƒÂ©:</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
           {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.ruby, fontSize:11, cursor:"pointer", fontFamily:FB }}>Limpar</button>}
         </div>
@@ -1534,7 +1534,7 @@ function CommissionsPage() {
         <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8 }}>
           <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>De:</span>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
-          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>Até:</span>
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>AtÃƒÂ©:</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
           {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.ruby, fontSize:11, cursor:"pointer", fontFamily:FB }}>Limpar</button>}
         </div>
@@ -1868,7 +1868,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
 
   const deleteTenant = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja DELETAR o salão "${name}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    if (!window.confirm(`Tem certeza que deseja DELETAR o salÃƒÂ£o "${name}"?\n\nEsta aÃƒÂ§ÃƒÂ£o nÃƒÂ£o pode ser desfeita.`)) return;
     await saFetch("DELETE", `/super-admin/tenants/${id}`);
     load();
   };
@@ -1892,7 +1892,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       <div>
         <div style={{ fontWeight:700, color:C.text, fontFamily:FB }}>{t.name}</div>
         <div style={{ fontSize:11, color:C.textMuted }}>{t.email}</div>
-        {t.phone && <div style={{ fontSize:11, color:C.textMuted }}>📱 {t.phone}</div>}
+        {t.phone && <div style={{ fontSize:11, color:C.textMuted }}>Ã°Å¸â€œÂ± {t.phone}</div>}
       </div>
     )},
     { key:"trialStatus", label:"Status", render: (t: any) => {
@@ -2230,7 +2230,7 @@ function AutomationSettings() {
   const configs = [
     {
       title:"Lembrete de Agendamento",
-      icon:"⏰",
+      icon:"Ã¢ÂÂ°",
       items: [
         { type:"toggle", label:"Lembrete 24h antes", key:"reminder_24h_enabled" },
         { type:"num", label:"Horas antes:", key:"reminder_24h_hours", unit:"horas", min:1, max:48 },
@@ -2240,7 +2240,7 @@ function AutomationSettings() {
     },
     {
       title:"Aniversario",
-      icon:"🎂",
+      icon:"Ã°Å¸Å½â€š",
       items: [
         { type:"toggle", label:"Mensagem de aniversario", key:"birthday_enabled" },
         { type:"num", label:"Horario de envio:", key:"birthday_hour", unit:"horas (0-23)", min:0, max:23 },
@@ -2248,7 +2248,7 @@ function AutomationSettings() {
     },
     {
       title:"Reativacao de Clientes",
-      icon:"💕",
+      icon:"Ã°Å¸â€™â€¢",
       items: [
         { type:"toggle", label:"Reativar clientes inativos", key:"reactivation_enabled" },
         { type:"num", label:"Dias sem visita:", key:"reactivation_days", unit:"dias", min:7, max:180 },
@@ -2256,7 +2256,7 @@ function AutomationSettings() {
     },
     {
       title:"Pos-atendimento",
-      icon:"⭐",
+      icon:"Ã¢Â­Â",
       items: [
         { type:"toggle", label:"Mensagem apos atendimento", key:"post_service_enabled" },
         { type:"num", label:"Horas apos:", key:"post_service_hours", unit:"horas", min:1, max:24 },
@@ -2287,7 +2287,7 @@ function AutomationSettings() {
         ))}
       </div>
       <Btn onClick={save} disabled={saving} variant="gold">
-        {saving ? "Salvando..." : "💾 Salvar Configuracoes"}
+        {saving ? "Salvando..." : "Ã°Å¸â€™Â¾ Salvar Configuracoes"}
       </Btn>
     </div>
   );
@@ -2385,16 +2385,16 @@ function AutomationsPage() {
   };
 
   const TRIGGER_ICON: any = {
-    appointment_reminder_24h: "⏰",
-    appointment_reminder_2h:  "🔔",
-    appointment_confirmed:    "✅",
-    appointment_completed:    "⭐",
-    birthday:                 "🎂",
-    client_reactivation:      "💕",
-    satisfaction_survey:      "📊",
-    promotion:                "🎉",
-    financial_reminder:       "💰",
-    welcome:                  "🌸",
+    appointment_reminder_24h: "Ã¢ÂÂ°",
+    appointment_reminder_2h:  "Ã°Å¸â€â€",
+    appointment_confirmed:    "Ã¢Å“â€¦",
+    appointment_completed:    "Ã¢Â­Â",
+    birthday:                 "Ã°Å¸Å½â€š",
+    client_reactivation:      "Ã°Å¸â€™â€¢",
+    satisfaction_survey:      "Ã°Å¸â€œÅ ",
+    promotion:                "Ã°Å¸Å½â€°",
+    financial_reminder:       "Ã°Å¸â€™Â°",
+    welcome:                  "Ã°Å¸Å’Â¸",
   };
 
   const SEGS = [
@@ -2415,7 +2415,7 @@ function AutomationsPage() {
 
       {/* Aviso */}
       <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
-        <span style={{ fontSize:20 }}>⚡</span>
+        <span style={{ fontSize:20 }}>Ã¢Å¡Â¡</span>
         <div>
           <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Configure suas automacoes</div>
           <div style={{ fontSize:11, color:C.textMuted }}>Ative o toggle para disparo automatico. Desativado = apenas envio manual.</div>
@@ -2430,7 +2430,7 @@ function AutomationsPage() {
             {/* Header com toggle */}
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "💬"}</span>
+                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "Ã°Å¸â€™Â¬"}</span>
                 <div>
                   <div style={{ fontWeight:700, color:C.text, fontSize:14, fontFamily:FD }}>{t.name}</div>
                   <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>{TRIGGER_LABEL[t.trigger] ?? t.trigger}</div>
@@ -2474,10 +2474,10 @@ function AutomationsPage() {
 
             {/* Acoes */}
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>✏️ Editar</Btn>
-              <Btn small onClick={() => { setSelected(t); setSearch(""); setSegFilter("all"); setBirthdayFilter(false); setSelectedClients([]); setShowSend(true); }}>📱 Enviar</Btn>
+              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>Ã¢Å“ÂÃ¯Â¸Â Editar</Btn>
+              <Btn small onClick={() => { setSelected(t); setSearch(""); setSegFilter("all"); setBirthdayFilter(false); setSelectedClients([]); setShowSend(true); }}>Ã°Å¸â€œÂ± Enviar</Btn>
               <span style={{ fontSize:10, color: t.isActive ? C.sage : C.textMuted, marginLeft:"auto", fontFamily:FB }}>
-                {t.isActive ? "⚡ Auto" : "👆 Manual"}
+                {t.isActive ? "Ã¢Å¡Â¡ Auto" : "Ã°Å¸â€˜â€  Manual"}
               </span>
             </div>
           </div>
@@ -2512,7 +2512,7 @@ function AutomationsPage() {
       {/* Secao de Configuracoes */}
       <div style={{ marginTop:40 }}>
         <div style={{ fontSize:18, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:20 }}>
-          ⚙️ Configuracoes de Automacao
+          Ã¢Å¡â„¢Ã¯Â¸Â Configuracoes de Automacao
         </div>
         <AutomationSettings />
       </div>
@@ -2523,14 +2523,14 @@ function AutomationsPage() {
             {/* Busca inteligente */}
             <div style={{ marginBottom:14 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 14px", marginBottom:10 }}>
-                <span style={{ color:C.textMuted }}>🔍</span>
+                <span style={{ color:C.textMuted }}>Ã°Å¸â€Â</span>
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Buscar por nome, telefone ou email..."
                   style={{ background:"none", border:"none", outline:"none", color:C.text, fontSize:13, width:"100%", fontFamily:FB }}
                 />
-                {search && <button onClick={() => setSearch("")} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:16 }}>×</button>}
+                {search && <button onClick={() => setSearch("")} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:16 }}>Ãƒâ€”</button>}
               </div>
 
               {/* Filtros */}
@@ -2540,7 +2540,7 @@ function AutomationsPage() {
                     style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${segFilter===s.v?C.rose:C.border}`, background:segFilter===s.v?`${C.rose}15`:C.card, color:segFilter===s.v?C.rose:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{s.l}</button>
                 ))}
                 <button onClick={() => setBirthdayFilter(!birthdayFilter)}
-                  style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${birthdayFilter?C.gold:C.border}`, background:birthdayFilter?`${C.gold}15`:C.card, color:birthdayFilter?C.gold:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>🎂 Aniversariantes</button>
+                  style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${birthdayFilter?C.gold:C.border}`, background:birthdayFilter?`${C.gold}15`:C.card, color:birthdayFilter?C.gold:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>Ã°Å¸Å½â€š Aniversariantes</button>
               </div>
 
               {/* Selecionar todos */}
@@ -2562,11 +2562,11 @@ function AutomationsPage() {
                     style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", cursor:"pointer", borderBottom:`1px solid ${C.border}`, background: selectedClients.includes(c.id) ? `${C.rose}10` : "transparent" }}
                   >
                     <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${selectedClients.includes(c.id) ? C.rose : C.border}`, background: selectedClients.includes(c.id) ? C.rose : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      {selectedClients.includes(c.id) && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>✓</span>}
+                      {selectedClients.includes(c.id) && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>Ã¢Å“â€œ</span>}
                     </div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:600, color:C.text, fontFamily:FB }}>{c.fullName}</div>
-                      <div style={{ fontSize:11, color:C.textMuted }}>{c.whatsapp} {c.segment ? `· ${c.segment}` : ""}</div>
+                      <div style={{ fontSize:11, color:C.textMuted }}>{c.whatsapp} {c.segment ? `Ã‚Â· ${c.segment}` : ""}</div>
                     </div>
                   </div>
                 ))}
@@ -2592,7 +2592,7 @@ function AutomationsPage() {
                   target="_blank"
                   onClick={() => setShowSend(false)}
                   style={{ display:"inline-block", padding:"10px 22px", background:`linear-gradient(135deg, ${C.sage}, #5a8f55)`, color:"#fff", borderRadius:10, textDecoration:"none", fontWeight:700, fontSize:13, fontFamily:FB }}
-                >📱 Abrir WhatsApp</a>
+                >Ã°Å¸â€œÂ± Abrir WhatsApp</a>
               )}
               {selectedClients.length > 1 && (
                 <div style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>
@@ -2606,7 +2606,7 @@ function AutomationsPage() {
                           href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}?text=${encodeURIComponent(formatMsg(selected.message, c))}`}
                           target="_blank"
                           style={{ fontSize:11, color:C.sage, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none", fontFamily:FB, fontWeight:600 }}
-                        >📱 {c.fullName?.split(" ")[0]}</a>
+                        >Ã°Å¸â€œÂ± {c.fullName?.split(" ")[0]}</a>
                       );
                     })}
                     {selectedClients.length > 5 && <span style={{ fontSize:11, color:C.textMuted, padding:"4px 0" }}>+{selectedClients.length - 5} mais...</span>}
@@ -2713,7 +2713,7 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"8px 12px", background:themeId===id?`${C.rose}15`:"none", border:"none", borderBottom:`1px solid ${C.border}`, color:themeId===id?C.rose:C.textSec, fontSize:12, cursor:"pointer", fontFamily:FB, textAlign:"left" as const }}>
                   <span>{THEMES[id]?.icon}</span>
                   <span>{THEMES[id]?.name}</span>
-                  {themeId===id && <span style={{ marginLeft:"auto", color:C.rose, fontSize:10 }}>✓</span>}
+                  {themeId===id && <span style={{ marginLeft:"auto", color:C.rose, fontSize:10 }}>Ã¢Å“â€œ</span>}
                 </button>
               ))}
             </div>
@@ -2728,16 +2728,12 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
 
 // --- APP -----------------------------------------------------
 export default function App() {
-  // Rota Super Admin
-  if (window.location.pathname === "/super-admin") {
-    return <SuperAdminApp />;
-  }
-
   useTheme();
+  const isSuperAdmin = window.location.pathname === '/super-admin';
   const [user, setUser] = useState<any>(null);
-
-  const [page, setPage] = useState("dashboard");
+  const [page, setPage] = useState('dashboard');
   const [loading, setLoading] = useState(true);
+  if (isSuperAdmin) return <SuperAdminApp />;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
