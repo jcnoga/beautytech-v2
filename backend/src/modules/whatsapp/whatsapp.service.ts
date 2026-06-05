@@ -1,15 +1,21 @@
 import { env } from '../../config/env.js';
 
-const EVOLUTION_URL = env.WHATSAPP_API_URL!;
-const EVOLUTION_KEY = env.WHATSAPP_API_KEY!;
-const EVOLUTION_INSTANCE = env.WHATSAPP_INSTANCE!;
+function getConfig() {
+  return {
+    url: env.WHATSAPP_API_URL ?? process.env['WHATSAPP_API_URL'] ?? '',
+    key: env.WHATSAPP_API_KEY ?? process.env['WHATSAPP_API_KEY'] ?? '',
+    instance: env.WHATSAPP_INSTANCE ?? process.env['WHATSAPP_INSTANCE'] ?? '',
+  };
+}
 
 async function evolutionRequest(path: string, method: string, body?: object) {
-  const res = await fetch(EVOLUTION_URL + path, {
+  const { url, key } = getConfig();
+  if (!url) throw new Error('WHATSAPP_API_URL nao configurada');
+  const res = await fetch(url + path, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'apikey': EVOLUTION_KEY,
+      'apikey': key,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -21,8 +27,9 @@ async function evolutionRequest(path: string, method: string, body?: object) {
 }
 
 export async function sendTextMessage(number: string, text: string) {
-  const instance = encodeURIComponent(EVOLUTION_INSTANCE);
-  return evolutionRequest('/message/sendText/' + instance, 'POST', { number, text });
+  const { instance } = getConfig();
+  const inst = encodeURIComponent(instance);
+  return evolutionRequest('/message/sendText/' + inst, 'POST', { number, text });
 }
 
 export async function sendTemplateMessage(number: string, template: string, variables: Record<string, string>) {
