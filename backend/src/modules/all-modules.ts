@@ -1189,3 +1189,5 @@ export async function demoModule(fastify: FastifyInstance) {
   });
 }
 
+
+export { whatsappModule } from './whatsapp/whatsapp.routes.js';

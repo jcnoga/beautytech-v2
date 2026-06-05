@@ -1,4 +1,4 @@
-﻿// BeautyTech v2 - 2026-06-01
+// BeautyTech v2 - 2026-06-01
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -25,6 +25,7 @@ import {
   authModule,
   superAdminModule,
   automationsModule,
+  whatsappModule,
 } from "./modules/all-modules.js";
 
 
@@ -72,6 +73,7 @@ const prefix = env.API_PREFIX;
   await server.register(productsModule,      { prefix });
   await server.register(superAdminModule,    { prefix });
   await server.register(automationsModule,   { prefix });
+  await server.register(whatsappModule,     { prefix });
   await server.register(demoModule,          { prefix });
 
   await server.listen({ port: env.PORT, host: env.HOST });
