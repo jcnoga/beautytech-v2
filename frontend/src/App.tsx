@@ -2471,14 +2471,12 @@ function AutomationsPage() {
   return (
     <div>
       <PageHeader title="Automacoes" sub={`${templates.length} templates de mensagens`} />
-
-      {/* Aviso */}
       <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
-        <span style={{ fontSize:20 }}>{group.icon}</span>
+        <span style={{ fontSize:20 }}>!</span>
         <div>
           <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Configure suas automacoes</div>
           <div style={{ fontSize:11, color:C.textMuted }}>Ative o toggle para disparo automatico. Desativado = apenas envio manual.</div>
-        </div>
+      </div>
       </div>
 
       {/* Grid de templates */}
