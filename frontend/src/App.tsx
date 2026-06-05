@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
 // Tipografia: Playfair Display + Outfit
@@ -550,7 +550,7 @@ function ClientsPage() {
       if (payload.birthDate) {
         const d = new Date(payload.birthDate);
         if (isNaN(d.getTime()) || d.getFullYear() > new Date().getFullYear() || d.getFullYear() < 1900) {
-          alert("Data de nascimento invÃƒÆ’Ã‚Â¡lida.");
+          alert("Data de nascimento invalida. Use o formato DD/MM/AAAA.");
           setSaving(false);
           return;
         }
@@ -1338,7 +1338,7 @@ function FinancialPage() {
   };
 
   const save = async () => {
-    if (!form.description) return alert("Informe a descriÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o.");
+    if (!form.description) return alert("Informe a descricao.");
     if (!form.amount) return alert("Informe o valor.");
     setSaving(true);
     try {
@@ -1409,7 +1409,7 @@ useEffect(() => {
         <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8 }}>
           <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>De:</span>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
-          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>AtÃƒÆ’Ã‚Â©:</span>
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>Ate</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
           {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.ruby, fontSize:11, cursor:"pointer", fontFamily:FB }}>Limpar</button>}
         </div>
@@ -1534,7 +1534,7 @@ function CommissionsPage() {
         <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8 }}>
           <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>De:</span>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
-          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>AtÃƒÆ’Ã‚Â©:</span>
+          <span style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>Ate</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, fontFamily:FB, cursor:"pointer" }} />
           {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.ruby, fontSize:11, cursor:"pointer", fontFamily:FB }}>Limpar</button>}
         </div>
@@ -1868,7 +1868,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
 
   const deleteTenant = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja DELETAR o salÃƒÆ’Ã‚Â£o "${name}"?\n\nEsta aÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o nÃƒÆ’Ã‚Â£o pode ser desfeita.`)) return;
+    if (!window.confirm(`Tem certeza que deseja DELETAR o salao "${t.name}"? Esta acao nao pode ser desfeita.`)) return;
     await saFetch("DELETE", `/super-admin/tenants/${id}`);
     load();
   };
@@ -1892,7 +1892,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       <div>
         <div style={{ fontWeight:700, color:C.text, fontFamily:FB }}>{t.name}</div>
         <div style={{ fontSize:11, color:C.textMuted }}>{t.email}</div>
-        {t.phone && <div style={{ fontSize:11, color:C.textMuted }}>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â± {t.phone}</div>}
+        {t.phone && <div style={{ fontSize:11, color:C.textMuted }}>{t.phone}</div>}
       </div>
     )},
     { key:"trialStatus", label:"Status", render: (t: any) => {
@@ -2033,7 +2033,12 @@ function NotificationsPage() {
   const [filter, setFilter]   = useState("all");
   const [page, setPage]       = useState(1);
   const [total, setTotal]     = useState(0);
-
+  const [showModal, setShowModal] = useState(false);
+  const [modalClient, setModalClient] = useState('');
+  const [modalMsg, setModalMsg]   = useState('');
+  const [modalSending, setModalSending] = useState(false);
+  const [clients2, setClients2]   = useState<any[]>([]);
+  const [templates2, setTemplates2] = useState<any[]>([]);
   const load = async (p = 1, f = filter) => {
     setLoading(true);
     try {
@@ -2048,6 +2053,28 @@ function NotificationsPage() {
 
   useEffect(() => { load(); }, []);
 
+  const openModal = async () => {
+    setShowModal(true);
+    setModalClient(''); setModalMsg('');
+    try {
+      const [c, t]: any = await Promise.all([
+        api.get<any>('/clients'),
+        api.get<any>('/automations/templates'),
+      ]);
+      setClients2(c.data ?? []);
+      setTemplates2(t.data ?? []);
+    } catch(e) { console.error(e); }
+  };
+  const sendManual = async () => {
+    if (!modalClient || !modalMsg) return;
+    setModalSending(true);
+    try {
+      await api.post<any>('/automations/notifications/send-manual', { clientId: modalClient, message: modalMsg });
+      setShowModal(false);
+      load();
+    } catch(e) { console.error(e); }
+    finally { setModalSending(false); }
+  };
   const markSent = async (id: string) => {
     try {
       await api.post<any>(`/automations/notifications/${id}/sent`);
@@ -2139,9 +2166,38 @@ function NotificationsPage() {
       <PageHeader
         title="Notificacoes"
         sub={`${total} notificacoes geradas pelo sistema`}
-        action={<Btn small variant="secondary" onClick={() => load(1, filter)}>? Atualizar</Btn>}
+        action={<div style={{display:'flex',gap:8}}><Btn small onClick={openModal}>+ Nova Mensagem</Btn><Btn small variant='secondary' onClick={() => load(1, filter)}>Atualizar</Btn></div>}
       />
 
+      {showModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ background:C.card, border:'1px solid ' + C.borderHi, borderRadius:20, padding:32, width:'100%', maxWidth:480, fontFamily:FB }}>
+            <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:20 }}>Nova Mensagem WhatsApp</div>
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:6 }}>Cliente</div>
+              <select value={modalClient} onChange={(e:any) => setModalClient(e.target.value)} style={{ width:'100%', padding:'10px 14px', background:C.surface, border:'1px solid ' + C.border, borderRadius:10, color:C.text, fontSize:13, fontFamily:FB }}>
+                <option value=''>Selecione um cliente...</option>
+                {clients2.map((c:any) => <option key={c.id} value={c.id}>{c.fullName} - {c.whatsapp}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:6 }}>Template rapido</div>
+              <select onChange={(e:any) => { if(e.target.value) setModalMsg(e.target.value); }} style={{ width:'100%', padding:'10px 14px', background:C.surface, border:'1px solid ' + C.border, borderRadius:10, color:C.text, fontSize:13, fontFamily:FB }}>
+                <option value=''>Escolher template...</option>
+                {templates2.map((t:any) => <option key={t.id} value={t.message}>{t.name}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:6 }}>Mensagem</div>
+              <textarea value={modalMsg} onChange={(e:any) => setModalMsg(e.target.value)} rows={4} placeholder='Digite a mensagem...' style={{ width:'100%', padding:'10px 14px', background:C.surface, border:'1px solid ' + C.border, borderRadius:10, color:C.text, fontSize:13, fontFamily:FB, resize:'vertical' }} />
+            </div>
+            <div style={{ display:'flex', gap:12, justifyContent:'flex-end' }}>
+              <Btn variant='secondary' onClick={() => setShowModal(false)}>Cancelar</Btn>
+              <Btn onClick={sendManual} disabled={!modalClient || !modalMsg || modalSending}>{modalSending ? 'Enviando...' : 'Enviar Mensagem'}</Btn>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Aviso */}
       <div style={{ background:`${C.sapphire}12`, border:`1px solid ${C.sapphire}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
         <span style={{ fontSize:20 }}>?</span>
@@ -2233,7 +2289,7 @@ function AutomationSettings() {
   const configs = [
     {
       title:"Lembrete de Agendamento",
-      icon:"ÃƒÂ¢Ã‚ÂÃ‚Â°",
+      icon:"[L]",
       items: [
         { type:"toggle", label:"Lembrete 24h antes", key:"reminder_24h_enabled" },
         { type:"num", label:"Horas antes:", key:"reminder_24h_hours", unit:"horas", min:1, max:48 },
@@ -2243,7 +2299,7 @@ function AutomationSettings() {
     },
     {
       title:"Aniversario",
-      icon:"ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Å¡",
+      icon:"[A]",
       items: [
         { type:"toggle", label:"Mensagem de aniversario", key:"birthday_enabled" },
         { type:"num", label:"Horario de envio:", key:"birthday_hour", unit:"horas (0-23)", min:0, max:23 },
@@ -2251,7 +2307,7 @@ function AutomationSettings() {
     },
     {
       title:"Reativacao de Clientes",
-      icon:"ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã¢â‚¬Â¢",
+      icon:"[R]",
       items: [
         { type:"toggle", label:"Reativar clientes inativos", key:"reactivation_enabled" },
         { type:"num", label:"Dias sem visita:", key:"reactivation_days", unit:"dias", min:7, max:180 },
@@ -2259,7 +2315,7 @@ function AutomationSettings() {
     },
     {
       title:"Pos-atendimento",
-      icon:"ÃƒÂ¢Ã‚Â­Ã‚Â",
+      icon:"[S]",
       items: [
         { type:"toggle", label:"Mensagem apos atendimento", key:"post_service_enabled" },
         { type:"num", label:"Horas apos:", key:"post_service_hours", unit:"horas", min:1, max:24 },
@@ -2290,7 +2346,7 @@ function AutomationSettings() {
         ))}
       </div>
       <Btn onClick={save} disabled={saving} variant="gold">
-        {saving ? "Salvando..." : "ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¾ Salvar Configuracoes"}
+        {saving ? "Salvando..." : "Salvar Configuracoes"}
       </Btn>
     </div>
   );
@@ -2388,16 +2444,16 @@ function AutomationsPage() {
   };
 
   const TRIGGER_ICON: any = {
-    appointment_reminder_24h: "ÃƒÂ¢Ã‚ÂÃ‚Â°",
-    appointment_reminder_2h:  "ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Â",
-    appointment_confirmed:    "ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦",
-    appointment_completed:    "ÃƒÂ¢Ã‚Â­Ã‚Â",
-    birthday:                 "ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Å¡",
-    client_reactivation:      "ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã¢â‚¬Â¢",
-    satisfaction_survey:      "ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…Â ",
-    promotion:                "ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Â°",
-    financial_reminder:       "ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â°",
-    welcome:                  "ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â¸",
+    appointment_reminder_24h: "Lembrete 24h antes do agendamento",
+    appointment_reminder_2h:  "Lembrete 2h antes do agendamento",
+    appointment_confirmed:    "Confirmacao de agendamento",
+    appointment_completed:    "Agendamento concluido",
+    birthday:                 "Mensagem de aniversario",
+    client_reactivation:      "Reativacao de cliente inativo",
+    satisfaction_survey:      "Pesquisa de satisfacao",
+    promotion:                "Promocao especial",
+    financial_reminder:       "Lembrete financeiro",
+    welcome:                  "Boas-vindas ao salao",
   };
 
   const SEGS = [
@@ -2418,7 +2474,7 @@ function AutomationsPage() {
 
       {/* Aviso */}
       <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
-        <span style={{ fontSize:20 }}>ÃƒÂ¢Ã…Â¡Ã‚Â¡</span>
+        <span style={{ fontSize:20 }}>{group.icon}</span>
         <div>
           <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>Configure suas automacoes</div>
           <div style={{ fontSize:11, color:C.textMuted }}>Ative o toggle para disparo automatico. Desativado = apenas envio manual.</div>
@@ -2433,7 +2489,7 @@ function AutomationsPage() {
             {/* Header com toggle */}
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¬"}</span>
+                <span style={{ fontSize:24 }}>{TRIGGER_ICON[t.trigger] ?? "?"}</span>
                 <div>
                   <div style={{ fontWeight:700, color:C.text, fontSize:14, fontFamily:FD }}>{t.name}</div>
                   <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>{TRIGGER_LABEL[t.trigger] ?? t.trigger}</div>
@@ -2477,10 +2533,10 @@ function AutomationsPage() {
 
             {/* Acoes */}
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>ÃƒÂ¢Ã…â€œÃ‚ÂÃƒÂ¯Ã‚Â¸Ã‚Â Editar</Btn>
-              <Btn small onClick={() => { setSelected(t); setSearch(""); setSegFilter("all"); setBirthdayFilter(false); setSelectedClients([]); setShowSend(true); }}>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â± Enviar</Btn>
+              <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>Editar</Btn>
+              <Btn small onClick={() => { setSelected(t); setSearch(""); setSegFilter("all"); setBirthdayFilter(false); setSelectedClients([]); setShowSend(true); }}>Enviar</Btn>
               <span style={{ fontSize:10, color: t.isActive ? C.sage : C.textMuted, marginLeft:"auto", fontFamily:FB }}>
-                {t.isActive ? "ÃƒÂ¢Ã…Â¡Ã‚Â¡ Auto" : "ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ¢â‚¬Â  Manual"}
+                {t.isActive ? "Auto" : "Manual"}
               </span>
             </div>
           </div>
@@ -2515,7 +2571,7 @@ function AutomationsPage() {
       {/* Secao de Configuracoes */}
       <div style={{ marginTop:40 }}>
         <div style={{ fontSize:18, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:20 }}>
-          ÃƒÂ¢Ã…Â¡Ã¢â€žÂ¢ÃƒÂ¯Ã‚Â¸Ã‚Â Configuracoes de Automacao
+          Variaveis: {"{nome}"}, {"{data}"}, {"{hora}"}, {"{valor}"}
         </div>
         <AutomationSettings />
       </div>
@@ -2526,14 +2582,14 @@ function AutomationsPage() {
             {/* Busca inteligente */}
             <div style={{ marginBottom:14 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 14px", marginBottom:10 }}>
-                <span style={{ color:C.textMuted }}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â</span>
+                <span style={{ color:C.textMuted }}>Buscar por nome, telefone ou email...</span>
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Buscar por nome, telefone ou email..."
                   style={{ background:"none", border:"none", outline:"none", color:C.text, fontSize:13, width:"100%", fontFamily:FB }}
                 />
-                {search && <button onClick={() => setSearch("")} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:16 }}>ÃƒÆ’Ã¢â‚¬â€</button>}
+                {search && <button onClick={() => setSearch("")} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:16 }}>x</button>}
               </div>
 
               {/* Filtros */}
@@ -2543,7 +2599,7 @@ function AutomationsPage() {
                     style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${segFilter===s.v?C.rose:C.border}`, background:segFilter===s.v?`${C.rose}15`:C.card, color:segFilter===s.v?C.rose:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{s.l}</button>
                 ))}
                 <button onClick={() => setBirthdayFilter(!birthdayFilter)}
-                  style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${birthdayFilter?C.gold:C.border}`, background:birthdayFilter?`${C.gold}15`:C.card, color:birthdayFilter?C.gold:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Å¡ Aniversariantes</button>
+                  style={{ padding:"4px 10px", borderRadius:8, border:`1px solid ${birthdayFilter?C.gold:C.border}`, background:birthdayFilter?`${C.gold}15`:C.card, color:birthdayFilter?C.gold:C.textMuted, fontSize:11, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>Aniversariantes</button>
               </div>
 
               {/* Selecionar todos */}
@@ -2565,11 +2621,11 @@ function AutomationsPage() {
                     style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", cursor:"pointer", borderBottom:`1px solid ${C.border}`, background: selectedClients.includes(c.id) ? `${C.rose}10` : "transparent" }}
                   >
                     <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${selectedClients.includes(c.id) ? C.rose : C.border}`, background: selectedClients.includes(c.id) ? C.rose : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      {selectedClients.includes(c.id) && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</span>}
+                      {selectedClients.includes(c.id) && <span style={{ color:"#fff", fontSize:10, fontWeight:700 }}>OK</span>}
                     </div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:600, color:C.text, fontFamily:FB }}>{c.fullName}</div>
-                      <div style={{ fontSize:11, color:C.textMuted }}>{c.whatsapp} {c.segment ? `Ãƒâ€šÃ‚Â· ${c.segment}` : ""}</div>
+                      <div style={{ fontSize:11, color:C.textMuted }}>{c.whatsapp} {c.segment ? `(${c.segment})` : ""}</div>
                     </div>
                   </div>
                 ))}
@@ -2595,7 +2651,7 @@ function AutomationsPage() {
                   target="_blank"
                   onClick={() => setShowSend(false)}
                   style={{ display:"inline-block", padding:"10px 22px", background:`linear-gradient(135deg, ${C.sage}, #5a8f55)`, color:"#fff", borderRadius:10, textDecoration:"none", fontWeight:700, fontSize:13, fontFamily:FB }}
-                >ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â± Abrir WhatsApp</a>
+                >Enviar para {selectedClients.length} cliente(s)</a>
               )}
               {selectedClients.length > 1 && (
                 <div style={{ fontSize:12, color:C.textMuted, fontFamily:FB }}>
@@ -2609,7 +2665,7 @@ function AutomationsPage() {
                           href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}?text=${encodeURIComponent(formatMsg(selected.message, c))}`}
                           target="_blank"
                           style={{ fontSize:11, color:C.sage, padding:"4px 10px", border:`1px solid ${C.sage}40`, borderRadius:8, textDecoration:"none", fontFamily:FB, fontWeight:600 }}
-                        >ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â± {c.fullName?.split(" ")[0]}</a>
+                        >{c.fullName}</a>
                       );
                     })}
                     {selectedClients.length > 5 && <span style={{ fontSize:11, color:C.textMuted, padding:"4px 0" }}>+{selectedClients.length - 5} mais...</span>}
@@ -2716,7 +2772,7 @@ function Sidebar({ page, setPage, user, onLogout }: any) {
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"8px 12px", background:themeId===id?`${C.rose}15`:"none", border:"none", borderBottom:`1px solid ${C.border}`, color:themeId===id?C.rose:C.textSec, fontSize:12, cursor:"pointer", fontFamily:FB, textAlign:"left" as const }}>
                   <span>{THEMES[id]?.icon}</span>
                   <span>{THEMES[id]?.name}</span>
-                  {themeId===id && <span style={{ marginLeft:"auto", color:C.rose, fontSize:10 }}>ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</span>}
+                  {themeId===id && <span style={{ marginLeft:"auto", color:C.rose, fontSize:10 }}>Ativo</span>}
                 </button>
               ))}
             </div>
