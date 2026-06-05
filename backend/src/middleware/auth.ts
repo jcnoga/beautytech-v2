@@ -1,4 +1,4 @@
-﻿// BEAUTYTECH v2 — Auth Middleware
+// BEAUTYTECH v2 — Auth Middleware
 // ⚠️ JWKS — Supabase ECC P-256
 // ⚠️ NUNCA usar supabase.auth.getUser() — falha com novos tokens
 // ⚠️ SEMPRE jose + createRemoteJWKSet
@@ -46,7 +46,7 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
       return;
     }
     const ctx: TenantContext = { tenantId: profile.tenantId, userId, role: profile.role };
-    cache.set(userId, { data: ctx, exp: Date.now() + 60_000 });
+    cache.set(userId, { data: ctx, exp: Date.now() + 10_000 });
     req.tenantContext = ctx;
   } catch (err: unknown) {
     console.error("JWT error:", String(err));

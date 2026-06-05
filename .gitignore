@@ -13,3 +13,4 @@ drizzle/
 *.rtf
 *.docx
 *.doc
+.vercel
