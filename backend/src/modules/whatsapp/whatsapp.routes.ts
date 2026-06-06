@@ -1,41 +1,90 @@
-import { FastifyInstance } from 'fastify';
-import { authenticate } from '../../middleware/auth.js';
-import { sendTextMessage, sendTemplateMessage, getInstanceStatus } from './whatsapp.service.js';
+import { FastifyInstance } from "fastify";
+import { authenticate } from "../../middleware/auth.js";
+import {
+  sendTextMessage,
+  sendTemplateMessage,
+  getInstanceStatus,
+  createInstance,
+  getQRCode,
+  disconnectInstance,
+  deleteInstance,
+} from "./whatsapp.service.js";
 
 export async function whatsappModule(fastify: FastifyInstance) {
 
-  // Status da instancia
-  fastify.get('/whatsapp/status', { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.get("/whatsapp/status", { preHandler: [authenticate] }, async (req: any, reply) => {
     try {
-      const data = await getInstanceStatus();
+      const tenantId = req.tenantContext.tenantId;
+      const data = await getInstanceStatus(tenantId);
       return reply.send({ success: true, data });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
 
-  // Enviar mensagem de texto
-  fastify.post('/whatsapp/send-text', { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/whatsapp/connect", { preHandler: [authenticate] }, async (req: any, reply) => {
+    try {
+      const tenantId = req.tenantContext.tenantId;
+      await createInstance(tenantId, tenantId);
+      const qr = await getQRCode(tenantId);
+      return reply.send({ success: true, data: qr });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get("/whatsapp/qrcode", { preHandler: [authenticate] }, async (req: any, reply) => {
+    try {
+      const tenantId = req.tenantContext.tenantId;
+      const qr = await getQRCode(tenantId);
+      return reply.send({ success: true, data: qr });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post("/whatsapp/disconnect", { preHandler: [authenticate] }, async (req: any, reply) => {
+    try {
+      const tenantId = req.tenantContext.tenantId;
+      const data = await disconnectInstance(tenantId);
+      return reply.send({ success: true, data });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.delete("/whatsapp/instance", { preHandler: [authenticate] }, async (req: any, reply) => {
+    try {
+      const tenantId = req.tenantContext.tenantId;
+      const data = await deleteInstance(tenantId);
+      return reply.send({ success: true, data });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post("/whatsapp/send-text", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { number, text } = req.body as { number: string; text: string };
     if (!number || !text) {
-      return reply.status(400).send({ success: false, error: 'number e text sao obrigatorios' });
+      return reply.status(400).send({ success: false, error: "number e text sao obrigatorios" });
     }
     try {
-      const data = await sendTextMessage(number, text);
+      const tenantId = req.tenantContext.tenantId;
+      const data = await sendTextMessage(number, text, tenantId);
       return reply.send({ success: true, data });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
 
-  // Enviar mensagem com template
-  fastify.post('/whatsapp/send-template', { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/whatsapp/send-template", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { number, template, variables } = req.body as { number: string; template: string; variables: Record<string, string> };
     if (!number || !template) {
-      return reply.status(400).send({ success: false, error: 'number e template sao obrigatorios' });
+      return reply.status(400).send({ success: false, error: "number e template sao obrigatorios" });
     }
     try {
-      const data = await sendTemplateMessage(number, template, variables || {});
+      const tenantId = req.tenantContext.tenantId;
+      const data = await sendTemplateMessage(number, template, variables || {}, tenantId);
       return reply.send({ success: true, data });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
