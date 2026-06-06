@@ -8,14 +8,14 @@ export const supabase = createClient(
 class ApiClient {
   private readonly baseUrl = `${import.meta.env["VITE_API_URL"] ?? "http://localhost:3000"}/api/v1`;
 
-  private async getToken(): Promise<string> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error("SessÃƒÂ£o expirada");
-    return session.access_token;
+  private getToken(): string {
+    const key = Object.keys(localStorage).find(k => k.includes("wthheg"));
+    if (key) { const s = JSON.parse(localStorage.getItem(key) ?? "{}"); if (s?.access_token) return s.access_token; }
+    throw new Error("Sessao expirada");
   }
 
   private async request<T>(method: string, endpoint: string, body?: unknown, params?: Record<string, any>): Promise<T> {
-    const token = await this.getToken();
+    const token = this.getToken();
     let url = `${this.baseUrl}${endpoint}`;
     if (params) {
       const qs = new URLSearchParams();

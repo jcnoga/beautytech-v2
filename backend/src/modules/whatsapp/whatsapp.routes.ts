@@ -4,8 +4,8 @@ import {
   sendTextMessage,
   sendTemplateMessage,
   getInstanceStatus,
-  createInstance,
-  getQRCode,
+  connectInstance,
+  
   disconnectInstance,
   deleteInstance,
 } from "./whatsapp.service.js";
@@ -25,8 +25,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
   fastify.post("/whatsapp/connect", { preHandler: [authenticate] }, async (req: any, reply) => {
     try {
       const tenantId = req.tenantContext.tenantId;
-      await createInstance(tenantId, tenantId);
-      const qr = await getQRCode(tenantId);
+      const qr = await connectInstance(tenantId);
       return reply.send({ success: true, data: qr });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -36,7 +35,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
   fastify.get("/whatsapp/qrcode", { preHandler: [authenticate] }, async (req: any, reply) => {
     try {
       const tenantId = req.tenantContext.tenantId;
-      const qr = await getQRCode(tenantId);
+      const qr = await connectInstance(tenantId);
       return reply.send({ success: true, data: qr });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });

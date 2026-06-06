@@ -1,4 +1,5 @@
-﻿// ============================================================
+import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
+// ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
 // Tipografia: Playfair Display + Outfit
@@ -2731,6 +2732,7 @@ const MENU = [
   { id:"fidelity",      label:"Fidelidade",    icon:"o" },
   { id:"automations",   label:"Automacoes",    icon:"!" },
   { id:"notifications", label:"Notificacoes",  icon:"!" },
+  { id:"whatsapp", label:"WhatsApp", icon:"W" },
 ];
 
 function Sidebar({ page, setPage, user, onLogout }: any) {
@@ -2829,6 +2831,7 @@ export default function App() {
     fidelity:      FidelityPage,
     automations:   AutomationsPage,
     notifications: NotificationsPage,
+    whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
   };
   const PageComponent = PAGES[page] ?? DashboardPage;
 
