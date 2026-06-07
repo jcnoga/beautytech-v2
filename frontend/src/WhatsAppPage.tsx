@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+const API_BASE = (import.meta as any).env.VITE_API_URL ?? "http://localhost:3000";
 export function WhatsAppPage({ C, FD, FB }: any) {
   const [state, setState] = useState<string>("close");
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -11,7 +12,7 @@ export function WhatsAppPage({ C, FD, FB }: any) {
     return s?.access_token || "";
   }
   async function callApi(path: string, method: string = "GET") {
-    const res = await fetch("http://localhost:3000/api/v1" + path, {
+    const res = await fetch(API_BASE + "/api/v1" + path, {
       method,
       headers: { "Authorization": "Bearer " + getToken(), "Content-Type": "application/json" },
       body: method === "POST" ? "{}" : undefined,
