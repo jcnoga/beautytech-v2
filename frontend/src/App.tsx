@@ -1872,7 +1872,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
 
   const saveWhatsappMode = async (id: string) => {
-    setSaving(true);
+    console.log("SAVE id:", id, "mode:", whatsappMode, "token:", token?.substring(0,20));
     try {
       await saFetch("PATCH", "/super-admin/tenants/" + id + "/whatsapp-mode", {
         whatsapp_mode: whatsappMode,
