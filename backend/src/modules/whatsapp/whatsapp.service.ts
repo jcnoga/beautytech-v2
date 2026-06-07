@@ -27,32 +27,42 @@ export async function getInstanceStatus(tenantId?: string) {
     if (tenantId) {
       const found = instances.find((i: any) => i.name.startsWith("salon-" + tenantId.slice(0,8)));
       if (found) {
-        const state = found.connectionStatus === 'open' ? 'open' : 'close';
-        if (found.connectionStatus === 'connecting') {
-          try { const qr = await evolutionRequest('/instance/connect/' + encodeURIComponent(found.name), 'GET') as any; if (qr?.base64) return { instance: found.name, state: 'connecting', base64: qr.base64, code: qr.code }; } catch {}
+        if (found.connectionStatus === "open") {
+          return { instance: found.name, state: "open" };
         }
-        return { instance: found.name, state };
+        try {
+          const qr = await evolutionRequest("/instance/connect/" + encodeURIComponent(found.name), "GET") as any;
+          if (qr?.base64) return { instance: found.name, state: "connecting", base64: qr.base64, code: qr.code };
+        } catch {}
+        return { instance: found.name, state: "close" };
       }
-      return { instance: tenantId, state: "close" };
+      return { instance: null, state: "close" };
     }
     return instances;
-  } catch { return { instance: tenantId, state: "close" }; }
+  } catch { return { instance: null, state: "close" }; }
 }
 export async function connectInstance(tenantId: string) {
-  const existing = await findTenantInstance(tenantId);
-  if (existing) {
-    const inst = encodeURIComponent(existing.name);
-    try { await evolutionRequest("/instance/logout/" + inst, "DELETE"); } catch {}
-    try { await evolutionRequest("/instance/delete/" + inst, "DELETE"); } catch {}
-    await new Promise(r => setTimeout(r, 1000));
+  try {
+    const existing = await findTenantInstance(tenantId);
+    if (existing) {
+      if (existing.connectionStatus === "open") {
+        return { state: "open", instance: existing.name };
+      }
+      const qr = await evolutionRequest("/instance/connect/" + encodeURIComponent(existing.name), "GET") as any;
+      if (qr?.base64) return { base64: qr.base64, code: qr.code, instance: existing.name };
+      try { await evolutionRequest("/instance/logout/" + encodeURIComponent(existing.name), "DELETE"); } catch {}
+      try { await evolutionRequest("/instance/delete/" + encodeURIComponent(existing.name), "DELETE"); } catch {}
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    const instanceName = "salon-" + tenantId.slice(0,8) + "-" + Date.now();
+    await evolutionRequest("/instance/create", "POST", { instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true });
+    await new Promise(r => setTimeout(r, 2000));
+    const qr = await evolutionRequest("/instance/connect/" + encodeURIComponent(instanceName), "GET") as any;
+    if (qr?.base64) return { base64: qr.base64, code: qr.code, instance: instanceName };
+    return { state: "connecting", instance: instanceName };
+  } catch (err: any) {
+    throw new Error(err.message ?? "Erro ao conectar instancia");
   }
-  const instanceName = "salon-" + tenantId.slice(0,8) + "-" + Date.now();
-  const inst = encodeURIComponent(instanceName);
-  await evolutionRequest("/instance/create", "POST", { instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true });
-  await new Promise(r => setTimeout(r, 3000));
-  const qr = await evolutionRequest("/instance/connect/" + inst, "GET") as any;
-  if (qr?.base64) return { base64: qr.base64, code: qr.code };
-  return qr;
 }
 export async function getQRCode(tenantId: string) {
   const existing = await findTenantInstance(tenantId);

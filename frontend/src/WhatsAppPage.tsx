@@ -1,61 +1,60 @@
 import { useState, useEffect, useRef } from "react";
-import { api } from "./api/client";
-
 export function WhatsAppPage({ C, FD, FB }: any) {
-  const [status, setStatus] = useState<any>(null);
+  const [state, setState] = useState<string>("close");
+  const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<any>(null);
-
   function getToken() {
     const s = JSON.parse(localStorage.getItem("sb-wthhegdhdkhffjbzhvtt-auth-token") || "{}");
     return s?.access_token || "";
   }
-
   async function callApi(path: string, method: string = "GET") {
-    const token = getToken();
     const res = await fetch("http://localhost:3000/api/v1" + path, {
       method,
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      headers: { "Authorization": "Bearer " + getToken(), "Content-Type": "application/json" },
       body: method === "POST" ? "{}" : undefined,
     });
+    if (!res.ok) throw new Error("Erro " + res.status);
     return res.json();
   }
-
-  async function loadStatus() {
+  function stopPolling() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+  }
+  async function fetchStatus() {
     try {
       const d = await callApi("/whatsapp/status");
-      setStatus(d.data);
-      if (d.data?.base64) { setQrCode(d.data.base64); stopPolling(); }
-      else if (d.data?.state === "open") { setQrCode(null); stopPolling(); }
-      return d.data;
+      const data = d.data;
+      setState(data?.state ?? "close");
+      if (data?.base64) {
+        setQrCode(data.base64);
+      } else if (data?.state === "open") {
+        setQrCode(null);
+        stopPolling();
+      }
+      return data;
     } catch (e: any) {
       setError(e.message);
+      return null;
     } finally {
       setLoading(false);
     }
   }
-
   function startPolling() {
     stopPolling();
-    pollRef.current = setInterval(async () => {
-      const d = await loadStatus();
-      if (d?.base64 || d?.state === "open") stopPolling();
-    }, 3000);
+    pollRef.current = setInterval(fetchStatus, 3000);
   }
-
-  function stopPolling() {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-  }
-
   async function handleConnect() {
     setConnecting(true);
-    setQrCode(null);
     setError(null);
+    setQrCode(null);
     try {
-      await callApi("/whatsapp/connect", "POST");
+      const d = await callApi("/whatsapp/connect", "POST");
+      if (d.data?.base64) {
+        setQrCode(d.data.base64);
+        setState("connecting");
+      }
       startPolling();
     } catch (e: any) {
       setError(e.message);
@@ -63,26 +62,23 @@ export function WhatsAppPage({ C, FD, FB }: any) {
       setConnecting(false);
     }
   }
-
   async function handleDisconnect() {
     if (!confirm("Deseja desconectar o WhatsApp?")) return;
+    setLoading(true);
+    stopPolling();
     try {
-      setLoading(true);
-      stopPolling();
       await callApi("/whatsapp/disconnect", "POST");
       setQrCode(null);
-      await loadStatus();
+      setState("close");
+      await fetchStatus();
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
   }
-
-  useEffect(() => { loadStatus(); return () => stopPolling(); }, []);
-
-  const connected = status?.state === "open";
-
+  useEffect(() => { fetchStatus(); return () => stopPolling(); }, []);
+  const connected = state === "open";
   return (
     <div style={{ padding: "32px 40px", maxWidth: 700, margin: "0 auto" }}>
       <div style={{ marginBottom: 32 }}>
@@ -101,14 +97,14 @@ export function WhatsAppPage({ C, FD, FB }: any) {
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: FD }}>Status da Conexao</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? C.sage : connecting ? C.gold : C.ruby }} />
-              <span style={{ fontSize: 13, color: connected ? C.sage : connecting ? C.gold : C.ruby, fontFamily: FB, fontWeight: 600 }}>
-                {loading ? "Verificando..." : connected ? "Conectado" : connecting ? "Aguardando QR Code..." : "Desconectado"}
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? C.sage : qrCode ? C.gold : C.ruby }} />
+              <span style={{ fontSize: 13, color: connected ? C.sage : qrCode ? C.gold : C.ruby, fontFamily: FB, fontWeight: 600 }}>
+                {loading ? "Verificando..." : connected ? "Conectado" : qrCode ? "Aguardando leitura do QR Code..." : "Desconectado"}
               </span>
             </div>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-            {!connected && (
+            {!connected && !qrCode && (
               <button onClick={handleConnect} disabled={connecting || loading}
                 style={{ padding: "10px 22px", background: "linear-gradient(135deg, " + C.sage + ", #5a8f55)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FB, opacity: connecting ? 0.7 : 1 }}>
                 {connecting ? "Conectando..." : "Conectar"}
@@ -120,14 +116,14 @@ export function WhatsAppPage({ C, FD, FB }: any) {
                 Desconectar
               </button>
             )}
-            <button onClick={() => { setLoading(true); loadStatus(); }} disabled={loading}
+            <button onClick={() => { setLoading(true); fetchStatus(); }} disabled={loading}
               style={{ padding: "10px 16px", background: C.surface, color: C.textMuted, border: "1px solid " + C.border, borderRadius: 10, fontSize: 13, cursor: "pointer", fontFamily: FB }}>
               Atualizar
             </button>
           </div>
         </div>
         {qrCode && !connected && (
-          <div style={{ borderTop: "1px solid " + C.border, paddingTop: 24, marginTop: 24 }}>
+          <div style={{ borderTop: "1px solid " + C.border, paddingTop: 24, marginTop: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFamily: FB, marginBottom: 4 }}>Escaneie o QR Code com o WhatsApp</div>
             <div style={{ fontSize: 12, color: C.textMuted, fontFamily: FB, marginBottom: 16 }}>Abra o WhatsApp - Aparelhos conectados - Conectar aparelho</div>
             <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
