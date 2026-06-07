@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeautyTech — Prospecção WhatsApp</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --bg:#0d0d0d;--surface:#161616;--card:#1e1e1e;--border:#2a2a2a;
+    --gold:#c9a96e;--gold2:#e8c98a;--green:#4caf7d;--red:#e05c5c;
+    --yellow:#e0b84a;--text:#f0ece4;--muted:#888;
+    --font:'DM Sans',sans-serif;--display:'Syne',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;gap:16px;}
+  .logo{font-family:var(--display);font-size:20px;font-weight:800;color:var(--gold);}
+  .logo span{color:var(--text);}
+  .badge{background:var(--gold);color:#0d0d0d;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;}
+  .container{display:grid;grid-template-columns:380px 1fr;flex:1;height:calc(100vh - 57px);}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;}
+  .section-title{font-family:var(--display);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;}
+  .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(201,169,110,0.05);}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .upload-icon{font-size:28px;margin-bottom:8px;}
+  .upload-text{font-size:13px;color:var(--muted);}
+  .upload-text strong{color:var(--gold);display:block;font-size:14px;margin-bottom:4px;}
+  .file-loaded{background:rgba(76,175,125,0.1);border:1px solid rgba(76,175,125,0.3);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px;}
+  .file-loaded .icon{font-size:20px;}
+  .file-loaded .name{font-weight:600;color:var(--green);}
+  .file-loaded .count{font-size:11px;color:var(--muted);}
+  .timer-group{display:flex;align-items:center;gap:12px;}
+  .timer-label{font-size:13px;color:var(--muted);flex:1;}
+  .timer-input{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:15px;font-weight:600;padding:8px 12px;width:70px;text-align:center;}
+  .timer-input:focus{outline:none;border-color:var(--gold);}
+  .msg-area{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;color:var(--muted);line-height:1.6;max-height:160px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;}
+  .msg-highlight{color:var(--gold);font-weight:600;}
+  .controls{display:flex;flex-direction:column;gap:10px;}
+  .btn{padding:12px 20px;border-radius:10px;border:none;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn:disabled{opacity:0.35;cursor:not-allowed;}
+  .btn-primary{background:var(--gold);color:#0d0d0d;}
+  .btn-primary:hover:not(:disabled){background:var(--gold2);}
+  .btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border);}
+  .btn-secondary:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+  .btn-danger{background:rgba(224,92,92,0.15);color:var(--red);border:1px solid rgba(224,92,92,0.3);}
+  .btn-danger:hover:not(:disabled){background:rgba(224,92,92,0.25);}
+  .btn-green{background:rgba(76,175,125,0.15);color:var(--green);border:1px solid rgba(76,175,125,0.3);}
+  .btn-green:hover:not(:disabled){background:rgba(76,175,125,0.25);}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn{flex:1;}
+  .main{display:flex;flex-direction:column;overflow:hidden;}
+  .stats-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .stat{text-align:center;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--border);}
+  .stat-value{font-family:var(--display);font-size:24px;font-weight:800;}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+  .stat.total .stat-value{color:var(--text);}
+  .stat.ok .stat-value{color:var(--green);}
+  .stat.erro .stat-value{color:var(--red);}
+  .stat.pendente .stat-value{color:var(--yellow);}
+  .progress-section{padding:16px 24px;border-bottom:1px solid var(--border);}
+  .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;}
+  .progress-label{color:var(--muted);}
+  .progress-pct{font-weight:700;color:var(--gold);font-size:15px;}
+  .progress-bar-bg{height:6px;background:var(--card);border-radius:99px;overflow:hidden;}
+  .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:99px;transition:width 0.4s ease;width:0%;}
+  .countdown-bar{padding:12px 24px;border-bottom:1px solid var(--border);display:none;align-items:center;gap:12px;background:rgba(201,169,110,0.07);}
+  .countdown-bar.active{display:flex;}
+  .countdown-info{flex:1;}
+  .countdown-nome{font-weight:700;color:var(--gold);font-size:14px;}
+  .countdown-tel{font-size:11px;color:var(--muted);margin-top:2px;}
+  .countdown-right{display:flex;align-items:center;gap:12px;}
+  .countdown-progress{width:120px;height:4px;background:var(--card);border-radius:99px;overflow:hidden;}
+  .countdown-fill{height:100%;background:var(--gold);border-radius:99px;}
+  .countdown-num{font-family:var(--display);font-size:22px;font-weight:800;color:var(--gold);min-width:30px;text-align:center;}
+  .log-section{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .log-header{padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .log-title{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+  .log-clear{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;}
+  .log-clear:hover{color:var(--red);background:rgba(224,92,92,0.1);}
+  .log-body{flex:1;overflow-y:auto;padding:12px 24px;display:flex;flex-direction:column;gap:3px;}
+  .log-entry{display:flex;align-items:flex-start;gap:10px;font-size:12px;padding:5px 8px;border-radius:6px;animation:fadeIn 0.2s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  .log-time{color:var(--muted);font-size:10px;min-width:56px;margin-top:1px;}
+  .log-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+  .log-msg{flex:1;line-height:1.5;}
+  .log-entry.info .log-dot{background:var(--muted);}.log-entry.info .log-msg{color:var(--muted);}
+  .log-entry.ok .log-dot{background:var(--green);}.log-entry.ok .log-msg{color:var(--green);}
+  .log-entry.erro .log-dot{background:var(--red);}.log-entry.erro .log-msg{color:var(--red);}
+  .log-entry.aviso .log-dot{background:var(--yellow);}.log-entry.aviso .log-msg{color:var(--yellow);}
+  .log-entry.destaque .log-dot{background:var(--gold);}.log-entry.destaque .log-msg{color:var(--gold);font-weight:600;}
+  .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted);padding:40px;text-align:center;}
+  .empty-icon{font-size:48px;opacity:0.3;}
+  .empty-title{font-family:var(--display);font-size:18px;font-weight:700;color:var(--muted);}
+  .empty-sub{font-size:13px;max-width:280px;line-height:1.6;}
+  ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+  .step-qr{background:rgba(201,169,110,0.08);border:1px solid rgba(201,169,110,0.3);border-radius:12px;padding:16px;display:none;flex-direction:column;gap:10px;}
+  .step-qr.visible{display:flex;}
+  .step-qr-title{font-weight:700;color:var(--gold);font-size:14px;}
+  .step-qr-sub{font-size:12px;color:var(--muted);line-height:1.6;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:520px;max-width:90vw;}
+  .modal h3{font-family:var(--display);font-size:18px;margin-bottom:16px;}
+  .modal-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+  .modal-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;}
+  .modal-stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .modal-stat-value{font-size:20px;font-weight:700;margin-top:4px;}
+  .erros-lista{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;max-height:160px;overflow-y:auto;display:none;}
+  .erros-lista.visible{display:block;}
+  .erros-lista-title{font-size:11px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+  .erro-item{font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border);}
+  .erro-item:last-child{border-bottom:none;}
+  .erro-item strong{color:var(--text);}
+  .erro-motivo{color:var(--red);font-size:11px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Beauty<span>Tech</span></div>
+  <div class="badge">Prospecção WhatsApp</div>
+</header>
+
+<div class="container">
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-title">📂 Planilha XLSX</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+        <div class="upload-icon">📊</div>
+        <div class="upload-text"><strong>Selecionar Planilha</strong>Arraste ou clique para carregar</div>
+      </div>
+      <div class="file-loaded" id="fileLoaded" style="display:none;margin-top:10px;">
+        <div class="icon">✅</div>
+        <div>
+          <div class="name" id="fileName">—</div>
+          <div class="count" id="fileCount">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">📱 Passo 1 — WhatsApp Web</div>
+      <div class="step-qr visible" id="stepQr">
+        <div class="step-qr-title">Conectar WhatsApp Web</div>
+        <div class="step-qr-sub">Clique abaixo para abrir o WhatsApp Web e escaneie o QR Code. Após conectado, clique em <strong style="color:var(--gold)">Já Conectei</strong>.</div>
+        <button class="btn btn-primary" onclick="abrirWhatsappWeb()">🌐 Abrir WhatsApp Web</button>
+        <button class="btn btn-green" onclick="confirmarConexao()">✅ Já Conectei</button>
+      </div>
+      <div id="statusConexao" style="display:none;background:rgba(76,175,125,0.1);border:1px solid rgba(76,175,125,0.3);border-radius:10px;padding:12px;font-size:13px;color:var(--green);font-weight:600;">
+        ✅ WhatsApp Web conectado
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">⏱ Tempo por contato</div>
+      <div class="timer-group">
+        <div class="timer-label">Avançar após:</div>
+        <input type="number" class="timer-input" id="timerInput" value="15" min="5" max="120">
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;">segundos (mínimo 5s)</div>
+    </div>
+
+    <div>
+      <div class="section-title">💬 Mensagem</div>
+      <div class="msg-area" id="msgPreview"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;"><span style="color:var(--gold)">[Nome]</span> será substituído automaticamente</div>
+    </div>
+
+    <div class="controls">
+      <div class="section-title">🎮 Controles</div>
+      <button class="btn btn-primary" id="btnIniciar" disabled onclick="iniciar()">▶ Iniciar Processamento</button>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="btnPausar" disabled onclick="pausar()">⏸ Pausar</button>
+        <button class="btn btn-green" id="btnContinuar" disabled onclick="continuar()">▶ Continuar</button>
+      </div>
+      <button class="btn btn-danger" id="btnParar" disabled onclick="parar()">⏹ Parar</button>
+      <button class="btn btn-secondary" onclick="exportar()">📥 Exportar Relatório</button>
+    </div>
+
+  </aside>
+
+  <main class="main">
+    <div class="stats-bar">
+      <div class="stat total"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total</div></div>
+      <div class="stat ok"><div class="stat-value" id="statProcessados">0</div><div class="stat-label">Enviados</div></div>
+      <div class="stat erro"><div class="stat-value" id="statErros">0</div><div class="stat-label">Erros</div></div>
+      <div class="stat pendente"><div class="stat-value" id="statPendentes">0</div><div class="stat-label">Pendentes</div></div>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-header">
+        <span class="progress-label" id="progressLabel">Aguardando planilha...</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="countdown-bar" id="countdownBar">
+      <div class="countdown-info">
+        <div class="countdown-nome" id="countdownNome">—</div>
+        <div class="countdown-tel" id="countdownTel">Próximo contato</div>
+      </div>
+      <div class="countdown-right">
+        <div class="countdown-progress"><div class="countdown-fill" id="countdownFill" style="width:100%"></div></div>
+        <div class="countdown-num" id="countdownNum">15</div>
+      </div>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <div class="log-title">📋 Log de Operações</div>
+        <button class="log-clear" onclick="limparLog()">Limpar</button>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📱</div>
+          <div class="empty-title">Pronto para prospectar</div>
+          <div class="empty-sub">1. Abra o WhatsApp Web e escaneie o QR Code<br>2. Carregue a planilha XLSX<br>3. Clique em Iniciar</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalExportar">
+  <div class="modal">
+    <h3>📥 Relatório Final</h3>
+    <div class="modal-stats">
+      <div class="modal-stat"><div class="modal-stat-label">Total</div><div class="modal-stat-value" id="mTotal">0</div></div>
+      <div class="modal-stat"><div class="modal-stat-label" style="color:var(--green)">Enviados</div><div class="modal-stat-value" style="color:var(--green)" id="mProc">0</div></div>
+      <div class="modal-stat"><div class="modal-stat-label" style="color:var(--red)">Erros</div><div class="modal-stat-value" style="color:var(--red)" id="mErros">0</div></div>
+      <div class="modal-stat"><div class="modal-stat-label" style="color:var(--yellow)">Pendentes</div><div class="modal-stat-value" style="color:var(--yellow)" id="mPend">0</div></div>
+    </div>
+    <div class="erros-lista" id="errosLista">
+      <div class="erros-lista-title">❌ Contatos com erro</div>
+      <div id="errosListaBody"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="baixarRelatorio()">📥 Baixar XLSX</button>
+      <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var contatos = [];
+var indiceAtual = 0;
+var rodando = false;
+var pausado = false;
+var processados = 0;
+var erros = 0;
+var countdownInterval = null;
+var countdownTimer = null;
+var resultados = [];
+var errosLista = [];
+var whatsappConectado = false;
+var whatsappWin = null;
+
+var MENSAGEM = "Ola, [Nome]! Tudo bem?\n\nMuitos saloes ainda perdem tempo com agendas espalhadas, controles manuais e informacoes em varios lugares diferentes.\n\nPensando nisso, estamos oferecendo 15 dias gratuitos para voce conhecer uma plataforma que centraliza agenda, clientes, financeiro, comissoes e comunicacao por WhatsApp em um unico sistema.\n\n✅ Agenda online\n✅ Cadastro de clientes\n✅ Controle financeiro\n✅ Comissoes dos profissionais\n✅ WhatsApp integrado\n\nSem contrato, sem cartao de credito e sem compromisso.\n\nSe desejar conhecer a plataforma, responda apenas \"Quero testar\" e envio seu acesso ainda hoje.\n\nwww.websitelog.com.br\nWhatsApp: 34997824990\nEmail: contato@websitelog.com.br";
+
+document.addEventListener('DOMContentLoaded', function() {
+  var preview = document.getElementById('msgPreview');
+  preview.innerHTML = MENSAGEM.replace(/\[Nome\]/g, '<span class="msg-highlight">[Nome]</span>').replace(/\n/g, '<br>');
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    if (e.target.files[0]) carregarArquivo(e.target.files[0]);
+  });
+  var zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', function() { zone.classList.remove('drag'); });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault(); zone.classList.remove('drag');
+    if (e.dataTransfer.files[0]) carregarArquivo(e.dataTransfer.files[0]);
+  });
+  document.getElementById('modalExportar').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+  });
+});
+
+function abrirWhatsappWeb() {
+  whatsappWin = window.open('https://web.whatsapp.com', 'wpp_prospect');
+  log('WhatsApp Web aberto. Escaneie o QR Code e clique em "Já Conectei".', 'aviso');
+}
+
+function confirmarConexao() {
+  whatsappConectado = true;
+  document.getElementById('stepQr').classList.remove('visible');
+  document.getElementById('statusConexao').style.display = 'block';
+  log('✅ WhatsApp conectado! Carregue a planilha e inicie.', 'ok');
+  verificarPodeIniciar();
+}
+
+function carregarArquivo(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, { type: 'array' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!data.length) { log('Planilha vazia.', 'erro'); return; }
+      var keys = Object.keys(data[0]);
+      var colNome = keys.find(function(k) { return /nome/i.test(k); });
+      var colTel = keys.find(function(k) { return /tel|fone|whats|celular|numero/i.test(k); });
+      if (!colNome || !colTel) {
+        log('Colunas nao encontradas. Detectadas: ' + keys.join(', '), 'erro');
+        log('Renomeie para "Nome" e "Telefone".', 'aviso');
+        return;
+      }
+      contatos = data.map(function(row, i) {
+        return { idx: i, nome: String(row[colNome]||'').trim(), telefone: String(row[colTel]||'').trim(), status: 'pendente' };
+      }).filter(function(c) { return c.nome || c.telefone; });
+      if (!contatos.length) { log('Nenhum contato encontrado.', 'erro'); return; }
+      document.getElementById('fileLoaded').style.display = 'flex';
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileCount').textContent = contatos.length + ' contatos carregados';
+      atualizarStats();
+      log('Planilha carregada: ' + contatos.length + ' contatos', 'destaque');
+      verificarPodeIniciar();
+    } catch(err) { log('Erro ao ler arquivo: ' + err.message, 'erro'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function verificarPodeIniciar() {
+  document.getElementById('btnIniciar').disabled = !(whatsappConectado && contatos.length > 0);
+}
+
+function iniciar() {
+  if (!contatos.length || !whatsappConectado) return;
+  indiceAtual = 0; processados = 0; erros = 0;
+  resultados = []; errosLista = [];
+  contatos.forEach(function(c) { c.status = 'pendente'; });
+  rodando = true; pausado = false;
+  atualizarBotoes(); atualizarStats();
+  log('▶ Iniciando processamento de ' + contatos.length + ' contatos', 'destaque');
+  processarProximo();
+}
+
+function pausar() {
+  pausado = true; pararCountdown();
+  document.getElementById('countdownBar').classList.remove('active');
+  atualizarBotoes(); log('⏸ Pausado', 'aviso');
+}
+
+function continuar() {
+  pausado = false; atualizarBotoes();
+  log('▶ Retomando...', 'destaque');
+  processarProximo();
+}
+
+function parar() {
+  rodando = false; pausado = false; pararCountdown();
+  document.getElementById('countdownBar').classList.remove('active');
+  atualizarBotoes(); log('⏹ Encerrado pelo usuario', 'aviso'); atualizarStats();
+}
+
+function atualizarBotoes() {
+  document.getElementById('btnIniciar').disabled = rodando || !(whatsappConectado && contatos.length > 0);
+  document.getElementById('btnPausar').disabled = !rodando || pausado;
+  document.getElementById('btnContinuar').disabled = !pausado;
+  document.getElementById('btnParar').disabled = !rodando && !pausado;
+}
+
+// =============================================
+// PROCESSAMENTO
+// =============================================
+function processarProximo() {
+  if (!rodando || pausado) return;
+  if (indiceAtual >= contatos.length) { finalizar(); return; }
+
+  var contato = contatos[indiceAtual];
+  var pos = '[' + (indiceAtual + 1) + '/' + contatos.length + ']';
+
+  // Validação do nome
+  if (!contato.nome) {
+    registrarErro(contato, 'Nome vazio');
+    log(pos + ' ERRO — Nome vazio. Numero: ' + contato.telefone + ' — pulando', 'erro');
+    indiceAtual++; atualizarStats();
+    processarProximo();
+    return;
+  }
+
+  // Validação e limpeza do telefone
+  var resultado = validarTelefone(contato.telefone);
+  if (!resultado.valido) {
+    registrarErro(contato, resultado.motivo);
+    log(pos + ' ERRO — ' + contato.nome + ' — ' + resultado.motivo + ': "' + contato.telefone + '" — pulando', 'erro');
+    indiceAtual++; atualizarStats();
+    processarProximo();
+    return;
+  }
+
+  // Número válido — abre conversa
+  var tel = resultado.numero;
+  var primeiroNome = contato.nome.split(' ')[0];
+  var msg = MENSAGEM.replace(/\[Nome\]/g, primeiroNome);
+  var url = 'https://web.whatsapp.com/send?phone=' + tel + '&text=' + encodeURIComponent(msg);
+
+  log(pos + ' Abrindo: ' + contato.nome + ' → ' + tel, 'ok');
+
+  // Navega na mesma janela do WhatsApp Web
+  try {
+    if (whatsappWin && !whatsappWin.closed) {
+      whatsappWin.location.href = url;
+    } else {
+      whatsappWin = window.open(url, 'wpp_prospect');
+    }
+    contato.status = 'processado';
+    processados++;
+    resultados.push({ nome: contato.nome, telefone: contato.telefone, status: 'Enviado', motivo: '' });
+  } catch(e) {
+    registrarErro(contato, 'Falha ao abrir WhatsApp: ' + e.message);
+    log(pos + ' ERRO ao abrir WhatsApp para ' + contato.nome + ' — pulando', 'erro');
+    indiceAtual++; atualizarStats();
+    processarProximo();
+    return;
+  }
+
+  indiceAtual++; atualizarStats(); atualizarProgresso();
+
+  var tempoSeg = Math.max(5, parseInt(document.getElementById('timerInput').value) || 15);
+
+  // Mostra countdown
+  if (indiceAtual < contatos.length) {
+    var prox = contatos[indiceAtual];
+    iniciarCountdown(tempoSeg, prox.nome, prox.telefone);
+  } else {
+    iniciarCountdown(tempoSeg, '— Ultimo contato —', '');
+  }
+
+  countdownTimer = setTimeout(function() {
+    if (rodando && !pausado) processarProximo();
+  }, tempoSeg * 1000);
+}
+
+function registrarErro(contato, motivo) {
+  contato.status = 'erro';
+  erros++;
+  resultados.push({ nome: contato.nome, telefone: contato.telefone, status: 'Erro', motivo: motivo });
+  errosLista.push({ nome: contato.nome, telefone: contato.telefone, motivo: motivo });
+}
+
+// =============================================
+// VALIDAÇÃO DE TELEFONE — aceita todos os formatos comuns
+// =============================================
+function validarTelefone(tel) {
+  if (!tel || tel.toString().trim() === '') {
+    return { valido: false, motivo: 'Telefone vazio' };
+  }
+
+  // Remove tudo que não é número
+  var limpo = tel.toString().replace(/\D/g, '');
+
+  // Telefone com código do país +55
+  if (limpo.length > 13) {
+    return { valido: false, motivo: 'Numero muito longo (' + limpo.length + ' digitos)' };
+  }
+
+  // Remove o 55 do início se já tiver
+  if (limpo.indexOf('55') === 0 && limpo.length > 11) {
+    limpo = limpo.substring(2);
+  }
+
+  // Verifica se tem 8 a 11 dígitos (aceita fixo e celular)
+  if (limpo.length < 8) {
+    return { valido: false, motivo: 'Numero muito curto (' + limpo.length + ' digitos)' };
+  }
+
+  // Se tiver DDD (10 ou 11 dígitos), adiciona 55
+  if (limpo.length >= 10 && limpo.length <= 11) {
+    return { valido: true, numero: '55' + limpo };
+  }
+
+  // Se tiver só o número sem DDD (8 ou 9 dígitos), não conseguimos enviar
+  if (limpo.length < 10) {
+    return { valido: false, motivo: 'Sem DDD (' + limpo.length + ' digitos)' };
+  }
+
+  // Já tem 55 na frente
+  if (limpo.indexOf('55') === 0) {
+    return { valido: true, numero: limpo };
+  }
+
+  return { valido: true, numero: '55' + limpo };
+}
+
+// =============================================
+// COUNTDOWN
+// =============================================
+function iniciarCountdown(seg, nome, tel) {
+  pararContagem();
+  var bar = document.getElementById('countdownBar');
+  var fill = document.getElementById('countdownFill');
+  var num = document.getElementById('countdownNum');
+  bar.classList.add('active');
+  document.getElementById('countdownNome').textContent = nome;
+  document.getElementById('countdownTel').textContent = tel || '';
+  num.textContent = seg;
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  setTimeout(function() {
+    fill.style.transition = 'width ' + seg + 's linear';
+    fill.style.width = '0%';
+  }, 50);
+  var restante = seg;
+  countdownInterval = setInterval(function() {
+    restante--;
+    num.textContent = restante;
+    if (restante <= 0) { pararContagem(); bar.classList.remove('active'); }
+  }, 1000);
+}
+
+function pararContagem() {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+}
+
+function pararCountdown() {
+  pararContagem();
+  if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
+}
+
+function finalizar() {
+  rodando = false; pausado = false; pararCountdown();
+  document.getElementById('countdownBar').classList.remove('active');
+  atualizarBotoes(); atualizarStats(); atualizarProgresso();
+  log('🎉 Concluido! ' + processados + ' enviados, ' + erros + ' erros.', 'destaque');
+  if (erros > 0) {
+    log('⚠ ' + erros + ' contato(s) com erro — veja o relatorio para detalhes', 'aviso');
+  }
+}
+
+// =============================================
+// UTILITÁRIOS
+// =============================================
+function atualizarStats() {
+  var pendentes = contatos.filter(function(c) { return c.status === 'pendente'; }).length;
+  document.getElementById('statTotal').textContent = contatos.length;
+  document.getElementById('statProcessados').textContent = processados;
+  document.getElementById('statErros').textContent = erros;
+  document.getElementById('statPendentes').textContent = pendentes;
+}
+
+function atualizarProgresso() {
+  var total = contatos.length;
+  var feitos = processados + erros;
+  var pct = total > 0 ? Math.round((feitos / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressLabel').textContent = total > 0 ? feitos + ' de ' + total + ' contatos' : 'Aguardando planilha...';
+}
+
+function log(msg, tipo) {
+  tipo = tipo || 'info';
+  var body = document.getElementById('logBody');
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.remove();
+  var agora = new Date();
+  var hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  var entry = document.createElement('div');
+  entry.className = 'log-entry ' + tipo;
+  entry.innerHTML = '<div class="log-time">' + hora + '</div><div class="log-dot"></div><div class="log-msg">' + msg + '</div>';
+  body.appendChild(entry);
+  body.scrollTop = body.scrollHeight;
+}
+
+function limparLog() { document.getElementById('logBody').innerHTML = ''; }
+
+function exportar() {
+  document.getElementById('mTotal').textContent = contatos.length;
+  document.getElementById('mProc').textContent = processados;
+  document.getElementById('mErros').textContent = erros;
+  document.getElementById('mPend').textContent = contatos.filter(function(c) { return c.status === 'pendente'; }).length;
+  var listaEl = document.getElementById('errosLista');
+  var listaBody = document.getElementById('errosListaBody');
+  listaBody.innerHTML = '';
+  if (errosLista.length > 0) {
+    listaEl.classList.add('visible');
+    errosLista.forEach(function(e) {
+      var item = document.createElement('div');
+      item.className = 'erro-item';
+      item.innerHTML = '<strong>' + e.nome + '</strong> — ' + e.telefone + '<br><span class="erro-motivo">Motivo: ' + e.motivo + '</span>';
+      listaBody.appendChild(item);
+    });
+  } else {
+    listaEl.classList.remove('visible');
+  }
+  document.getElementById('modalExportar').classList.add('open');
+}
+
+function fecharModal() { document.getElementById('modalExportar').classList.remove('open'); }
+
+function baixarRelatorio() {
+  var dados = resultados.slice();
+  contatos.filter(function(c) { return c.status === 'pendente'; }).forEach(function(c) {
+    dados.push({ nome: c.nome, telefone: c.telefone, status: 'Pendente', motivo: 'Nao processado' });
+  });
+  var ws = XLSX.utils.json_to_sheet(dados.map(function(r) {
+    return { Nome: r.nome, Telefone: r.telefone, Status: r.status, Motivo: r.motivo || '' };
+  }));
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Relatorio');
+  var data = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+  XLSX.writeFile(wb, 'beautytech-prospeccao-' + data + '.xlsx');
+  fecharModal();
+  log('Relatorio exportado com sucesso', 'ok');
+}
+</script>
+</body>
+</html>
