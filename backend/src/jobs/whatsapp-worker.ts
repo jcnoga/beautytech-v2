@@ -24,7 +24,7 @@ export async function processWhatsAppQueue() {
     try {
       const clean = phone.replace(/\\D/g, '');
       const number = clean.startsWith('55') ? clean : '55' + clean;
-      await sendTextMessage(number, row.notification.message);
+      await sendTextMessage(number, row.notification.message, row.notification.tenantId);
       await db.update(notifications).set({ status: 'sent', sentAt: new Date() }).where(eq(notifications.id, row.notification.id));
       console.log('[WhatsAppWorker] Enviado para ' + (row.client?.fullName ?? phone));
       await new Promise(r => setTimeout(r, 3000));
