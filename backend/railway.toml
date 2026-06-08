@@ -1,6 +1,9 @@
 ﻿[build]
 builder = "nixpacks"
 
+[build.nixpacks]
+NO_CACHE = "1"
+
 [deploy]
 startCommand = "npm start"
 restartPolicyType = "on_failure"
