@@ -1930,7 +1930,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   };
 
   const deleteTenant = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja DELETAR o salao "${t.name}"? Esta acao nao pode ser desfeita.`)) return;
+    if (!window.confirm(`Tem certeza que deseja DELETAR o salao "${name}"? Esta acao nao pode ser desfeita.`)) return;
     await saFetch("DELETE", `/super-admin/tenants/${id}`);
     load();
   };
