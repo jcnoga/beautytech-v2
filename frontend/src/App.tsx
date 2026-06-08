@@ -256,7 +256,7 @@ function RegisterPage({ onBack }: any) {
             <option value="aesthetics_clinic">Clinica de Estetica</option>
             <option value="barbershop">Barbearia</option>
           </select>
-          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo Salao</div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
           <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salao gratuitamente</div>
         </div>
