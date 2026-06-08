@@ -886,6 +886,7 @@ function AgendaPage() {
 
   const save = async () => {
     setError("");
+    console.log("FORM:", JSON.stringify(form));
     if (!form.clientId)    return setError("Selecione a cliente.");
     if (!form.scheduledAt) return setError("Informe data e hora.");
     if (!form.totalPrice)  return setError("Informe o valor.");
