@@ -362,7 +362,7 @@ function DashboardPage() {
       }
     };
     load();
-  }, [viewMode]);
+  }, []);
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
