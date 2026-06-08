@@ -1219,3 +1219,4 @@ export async function protocolsModule(fastify: any) {
   });
 }
 export { whatsappModule } from './whatsapp/whatsapp.routes.js';
+
