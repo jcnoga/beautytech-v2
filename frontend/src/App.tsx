@@ -484,6 +484,28 @@ function ClientsPage() {
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<any>(null);
+  const [anamneseClient, setAnamneseClient] = useState<any>(null);
+  const [anamneseData, setAnamneseData] = useState<any>(null);
+  const [anamneseForm, setAnamneseForm] = useState({ medications:"", medicalHistory:"", previousProcedures:"", skinType:"normal", contraindications:"", notes:"" });
+  const [savingAnamnese, setSavingAnamnese] = useState(false);
+  const loadAnamnese = async (clientId: string) => {
+    try {
+      const r: any = await api.get("/client-records/" + clientId);
+      const rec = (r.data ?? [])[0];
+      setAnamneseData(rec ?? null);
+      if (rec) setAnamneseForm({ medications: rec.medications??"", medicalHistory: rec.medical_history??"", previousProcedures: rec.previous_procedures??"", skinType: rec.skin_type??"normal", contraindications: rec.contraindications??"", notes: rec.notes??"" });
+    } catch(e) { setAnamneseData(null); }
+  };
+  useEffect(() => { if (anamneseClient) loadAnamnese(anamneseClient.id); }, [anamneseClient]);
+  const saveAnamnese = async () => {
+    setSavingAnamnese(true);
+    try {
+      if (anamneseData) { await api.patch("/client-records/" + anamneseData.id, anamneseForm); }
+      else { await api.post("/client-records", { clientId: anamneseClient.id, ...anamneseForm }); }
+      setAnamneseClient(null);
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSavingAnamnese(false); }
+  };
   const [data, setData] = useState<any[]>([]);
   //const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -613,7 +635,10 @@ function ClientsPage() {
     { key:"averageTicket", label:"Ticket", render: (c: any) => <span style={{ color: C.textMuted }}>{brl(c.averageTicket)}</span> },
     { key:"lastVisitAt", label:"Ultima Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
     { key:"action", label:"", render: (c: any) => (
-      <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn>
+      <div style={{ display:"flex", gap:6 }}>
+        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn>
+        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setAnamneseClient(c); }}>Anamnese</Btn>
+      </div>
     )},
   ];
 
@@ -641,6 +666,20 @@ function ClientsPage() {
         </div>
       </div>
       <Table cols={cols} rows={filtered} onRow={openEdit} />
+      <Modal open={!!anamneseClient} onClose={() => setAnamneseClient(null)} title={"Anamnese - " + (anamneseClient?.fullName ?? "")}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+          <Inp label="Medicamentos em uso" value={anamneseForm.medications} onChange={(v:string) => setAnamneseForm(p=>({...p,medications:v}))} placeholder="Ex: Anticoagulante" />
+          <Inp label="Tipo de pele" value={anamneseForm.skinType} onChange={(v:string) => setAnamneseForm(p=>({...p,skinType:v}))} placeholder="normal, oleosa, seca..." />
+          <Inp label="Historico medico" value={anamneseForm.medicalHistory} onChange={(v:string) => setAnamneseForm(p=>({...p,medicalHistory:v}))} placeholder="Doencas, cirurgias..." />
+          <Inp label="Procedimentos anteriores" value={anamneseForm.previousProcedures} onChange={(v:string) => setAnamneseForm(p=>({...p,previousProcedures:v}))} placeholder="Ex: Peeling quimico" />
+          <Inp label="Contraindicacoes" value={anamneseForm.contraindications} onChange={(v:string) => setAnamneseForm(p=>({...p,contraindications:v}))} placeholder="Ex: Gestante" />
+          <Inp label="Observacoes" value={anamneseForm.notes} onChange={(v:string) => setAnamneseForm(p=>({...p,notes:v}))} placeholder="Notas adicionais..." />
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setAnamneseClient(null)}>Cancelar</Btn>
+          <Btn onClick={saveAnamnese} disabled={savingAnamnese}>{savingAnamnese ? "Salvando..." : "Salvar Anamnese"}</Btn>
+        </div>
+      </Modal>
       <Modal open={showForm} onClose={() => setShowForm(false)} title={selected ? "Editar Cliente" : "Nova Cliente"}>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Nome completo" value={form.fullName} onChange={f("fullName")} required placeholder="Ana Beatriz" grid="1/-1" />
