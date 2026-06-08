@@ -753,9 +753,11 @@ export async function authModule(fastify: FastifyInstance) {
       trialEndsAt: tenants.trialEndsAt,
       businessType: tenants.businessType,
     }).from(tenants).where(eq(tenants.id, tenantId));
+    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant nao encontrado" });
     const now = new Date();
     const trialEnd = tenant?.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
     const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000) : null;
+    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant nao encontrado" });
     return reply.send({ success: true, data: { ...tenant, daysLeft } });
   });
   fastify.post("/auth/register", async (req: any, reply) => {
