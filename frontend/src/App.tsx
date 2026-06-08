@@ -667,7 +667,7 @@ function ClientsPage() {
       </div>
       <Table cols={cols} rows={filtered} onRow={openEdit} />
       <Modal open={!!anamneseClient} onClose={() => setAnamneseClient(null)} title={"Anamnese - " + (anamneseClient?.fullName ?? "")}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:8 }}>
           <Inp label="Medicamentos em uso" value={anamneseForm.medications} onChange={(v:string) => setAnamneseForm(p=>({...p,medications:v}))} placeholder="Ex: Anticoagulante" />
           <Inp label="Tipo de pele" value={anamneseForm.skinType} onChange={(v:string) => setAnamneseForm(p=>({...p,skinType:v}))} placeholder="normal, oleosa, seca..." />
           <Inp label="Historico medico" value={anamneseForm.medicalHistory} onChange={(v:string) => setAnamneseForm(p=>({...p,medicalHistory:v}))} placeholder="Doencas, cirurgias..." />
