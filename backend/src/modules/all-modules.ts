@@ -937,17 +937,21 @@ export async function automationsModule(fastify: FastifyInstance) {
 
   fastify.post("/automations/templates/seed", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const [tenantData] = await db.select({ businessType: tenants.businessType }).from(tenants).where(eq(tenants.id, tenantId));
+    const btype = tenantData?.businessType ?? "beauty_salon";
+    const isCli = btype === "aesthetics_clinic";
+    const isBar = btype === "barbershop";
     const defaults = [
       { trigger:"appointment_reminder_24h", channel:"whatsapp", name:"Lembrete 24h", message:"Ola {nome}! Lembrando que voce tem um agendamento amanha, {data} as {hora}. Confirma sua presenca?" },
       { trigger:"appointment_reminder_2h",  channel:"whatsapp", name:"Lembrete 2h",  message:"Ola {nome}! Seu atendimento e em 2 horas, as {hora}. Te esperamos!" },
       { trigger:"appointment_confirmed",    channel:"whatsapp", name:"Confirmacao",  message:"Ola {nome}! Seu agendamento esta confirmado para {data} as {hora}. Ate la!" },
-      { trigger:"appointment_completed",    channel:"whatsapp", name:"Pos-atendimento", message:"Ola {nome}! Foi um prazer te atender! Como voce avalia nosso servico de 1 a 10?" },
-      { trigger:"birthday",                 channel:"whatsapp", name:"Aniversario",  message:"Feliz aniversario, {nome}! Temos 15% de desconto no seu proximo atendimento. Use o codigo: ANIVER15" },
-      { trigger:"client_reactivation",      channel:"whatsapp", name:"Reativacao",   message:"Ola {nome}! Sentimos sua falta! Temos novidades esperando por voce!" },
-      { trigger:"satisfaction_survey",      channel:"whatsapp", name:"Pesquisa",     message:"Ola {nome}! De 1 a 5, como foi sua experiencia? Sua avaliacao e muito importante!" },
-      { trigger:"promotion",                channel:"whatsapp", name:"Promocao",     message:"Ola {nome}! Temos uma promocao especial para voce! Vagas limitadas!" },
-      { trigger:"financial_reminder",       channel:"whatsapp", name:"Lembrete Financeiro", message:"Ola {nome}! Passando para lembrar sobre o pagamento pendente de {valor}." },
-      { trigger:"welcome",                  channel:"whatsapp", name:"Boas-vindas",  message:"Bem-vinda, {nome}! E um prazer te-la como cliente. Ate breve!" },
+      { trigger:"appointment_completed", channel:"whatsapp", name:"Pos-atendimento", message: isCli ? "Ola {nome}! Foi um prazer realizar seu procedimento! Como voce avalia nosso atendimento de 1 a 10?" : isBar ? "Ola {nome}! Foi um prazer te atender! Como voce avalia nosso servico de 1 a 10?" : "Ola {nome}! Foi um prazer te atender! Como voce avalia nosso servico de 1 a 10?" },
+      { trigger:"birthday", channel:"whatsapp", name:"Aniversario", message: isCli ? "Feliz aniversario, {nome}! Temos um presente: 15% de desconto no seu proximo procedimento. Codigo: ANIVER15" : isBar ? "Feliz aniversario, {nome}! Temos 15% de desconto no seu proximo corte. Codigo: ANIVER15" : "Feliz aniversario, {nome}! Temos 15% de desconto no seu proximo atendimento. Codigo: ANIVER15" },
+      { trigger:"client_reactivation", channel:"whatsapp", name:"Reativacao", message: isCli ? "Ola {nome}! Sentimos sua falta! Temos novos procedimentos esperando por voce!" : isBar ? "Ola {nome}! Sentimos sua falta! Novidades no cardapio esperando por voce!" : "Ola {nome}! Sentimos sua falta! Temos novidades esperando por voce!" },
+      { trigger:"satisfaction_survey", channel:"whatsapp", name:"Pesquisa", message:"Ola {nome}! De 1 a 5, como foi sua experiencia? Sua avaliacao e muito importante!" },
+      { trigger:"promotion", channel:"whatsapp", name:"Promocao", message: isCli ? "Ola {nome}! Temos uma promocao especial em procedimentos esteticos! Vagas limitadas!" : isBar ? "Ola {nome}! Promocao especial esta semana! Venha se cuidar!" : "Ola {nome}! Temos uma promocao especial para voce! Vagas limitadas!" },
+      { trigger:"financial_reminder", channel:"whatsapp", name:"Lembrete Financeiro", message:"Ola {nome}! Passando para lembrar sobre o pagamento pendente de {valor}." },
+      { trigger:"welcome", channel:"whatsapp", name:"Boas-vindas", message: isCli ? "Bem-vindo(a), {nome}! E um prazer te-lo(a) como cliente da nossa clinica. Ate breve!" : isBar ? "Bem-vindo, {nome}! E um prazer te-lo como cliente. Ate breve!" : "Bem-vinda, {nome}! E um prazer te-la como cliente. Ate breve!" },
     ];
     const inserted = await db.insert(messageTemplates).values(
       defaults.map(d => ({ ...d, tenantId, isActive: true, sendDelay: 0, createdBy: userId, updatedBy: userId }))
