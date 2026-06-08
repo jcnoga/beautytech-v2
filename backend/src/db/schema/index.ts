@@ -77,6 +77,7 @@ export const tenants = pgTable("tenants", {
   trialEndsAt:  timestamp("trial_ends_at", { withTimezone: true }),
   maxUsers:     integer("max_users").notNull().default(3),
   maxClients:   integer("max_clients").notNull().default(100),
+  businessType: varchar("business_type", { length: 50 }).notNull().default("beauty_salon"),
   ...audit,
 });
 
