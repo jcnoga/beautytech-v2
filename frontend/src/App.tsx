@@ -251,14 +251,18 @@ function RegisterPage({ onBack }: any) {
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily: FB, padding:20 }}>
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
-          <select value={businessType} onChange={e => setBusinessType(e.target.value)} style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1px solid #333", background:"#1a1a2e", color:"#fff", fontSize:13, marginBottom:16, cursor:"pointer" }}>
-            <option value="beauty_salon">Salao de Beleza</option>
-            <option value="aesthetics_clinic">Clinica de Estetica</option>
-            <option value="barbershop">Barbearia</option>
-          </select>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
+            {[{v:"beauty_salon",l:"Salao de Beleza",i:"??"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"??"},{v:"barbershop",l:"Barbearia",i:"??"}].map(opt => (
+              <label key={opt.v} onClick={() => setBusinessType(opt.v)} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", borderRadius:10, border:`1px solid ${businessType === opt.v ? "#c9a96e" : "#2a2a2a"}`, background: businessType === opt.v ? "#c9a96e15" : "transparent", cursor:"pointer", transition:"all 0.2s" }}>
+                <span style={{ fontSize:20 }}>{opt.i}</span>
+                <span style={{ flex:1, fontSize:14, color: businessType === opt.v ? "#c9a96e" : "#a0998f", fontWeight: businessType === opt.v ? 600 : 400 }}>{opt.l}</span>
+                <span style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${businessType === opt.v ? "#c9a96e" : "#444"}`, background: businessType === opt.v ? "#c9a96e" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{businessType === opt.v ? <span style={{ width:8, height:8, borderRadius:"50%", background:"#0a0a0a", display:"block" }}></span> : null}</span>
+              </label>
+            ))}
+          </div>
           <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salao gratuitamente</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           {success ? (
