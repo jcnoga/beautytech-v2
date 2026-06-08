@@ -1235,4 +1235,30 @@ export async function clientRecordsModule(fastify) {
     return reply.send({ success: true, data: ((data as any).rows??[])[0] });
   });
 }
+
+// CONSENT FORMS MODULE
+export async function consentFormsModule(fastify) {
+  fastify.get("/consent-forms/:clientId", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sqlSELECT * FROM consent_forms WHERE tenant_id =  AND client_id =  ORDER BY created_at DESC);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlINSERT INTO consent_forms (tenant_id,client_id,type,content,created_by) VALUES (,,,,) RETURNING *);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.post("/consent-forms/:id/sign", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlUPDATE consent_forms SET is_signed=true,signed_at=NOW(),signed_by_name=,ip_address=,updated_at=NOW() WHERE id= AND tenant_id= RETURNING *);
+    return reply.send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.delete("/consent-forms/:id", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    await db.execute(sqlDELETE FROM consent_forms WHERE id= AND tenant_id=);
+    return reply.status(204).send();
+  });
+}
 export { whatsappModule } from './whatsapp/whatsapp.routes.js';
