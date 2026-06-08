@@ -2823,13 +2823,13 @@ const MENU = [
   { id:"whatsapp", label:"WhatsApp", icon:"W" },
 ];
 
-function Sidebar({ page, setPage, user, onLogout }: any) {
+function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   const themeId = useTheme();
   const [showThemes, setShowThemes] = useState(false);
   return (
     <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB }}>
       <div style={{ padding:"28px 20px 24px", borderBottom:`1px solid ${C.border}` }}>
-        <div style={{ fontSize:11, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:6 }}>Sistema</div>
+        <div style={{ fontSize:11, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:6 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
         <div style={{ fontSize:22, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.02em" }}>BeautyTech</div>
         <div style={{ fontSize:10, color: C.textMuted, marginTop:2, letterSpacing:"0.1em" }}>ENTERPRISE v2</div>
       </div>
@@ -2878,6 +2878,7 @@ export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
   const [user, setUser] = useState<any>(null);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [page, setPage] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   if (isSuperAdmin) return <SuperAdminApp />;
@@ -2885,6 +2886,7 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
@@ -2937,7 +2939,7 @@ export default function App() {
         select option { background:${C.surface}; color:${C.text}; }
         a { transition: opacity .15s; } a:hover { opacity:.8; }
       `}</style>
-      <Sidebar page={page} setPage={setPage} user={user} onLogout={logout} />
+      <Sidebar page={page} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft:220, padding:36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner />
         <PageComponent />

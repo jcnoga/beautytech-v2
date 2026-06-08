@@ -751,6 +751,7 @@ export async function authModule(fastify: FastifyInstance) {
       planTier:    tenants.planTier,
       isActive:    tenants.isActive,
       trialEndsAt: tenants.trialEndsAt,
+      businessType: tenants.businessType,
     }).from(tenants).where(eq(tenants.id, tenantId));
     const now = new Date();
     const trialEnd = tenant?.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
