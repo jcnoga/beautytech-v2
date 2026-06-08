@@ -873,7 +873,7 @@ function AgendaPage() {
       }
     };
     load();
-  }, []);
+  }, [viewMode]);
 
   const handleServiceChange = (serviceId: string) => {
     const svc = svcsList.find((s: any) => s.id === serviceId);
