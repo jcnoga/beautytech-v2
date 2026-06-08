@@ -1214,4 +1214,25 @@ export async function demoModule(fastify: FastifyInstance) {
 }
 
 
+
+// CLIENT RECORDS MODULE
+export async function clientRecordsModule(fastify) {
+  fastify.get("/client-records/:clientId", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sqlSELECT * FROM client_records WHERE tenant_id =  AND client_id =  ORDER BY created_at DESC);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.post("/client-records", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlINSERT INTO client_records (tenant_id,client_id,type,allergies,medications,medical_history,previous_procedures,skin_type,contraindications,notes,created_by) VALUES (,,'anamnesis',,,,,,,,) RETURNING *);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.patch("/client-records/:id", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlUPDATE client_records SET medications=COALESCE(,medications),medical_history=COALESCE(,medical_history),notes=COALESCE(,notes),updated_at=NOW() WHERE id= AND tenant_id= RETURNING *);
+    return reply.send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+}
 export { whatsappModule } from './whatsapp/whatsapp.routes.js';

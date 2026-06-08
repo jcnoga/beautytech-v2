@@ -26,6 +26,7 @@ import {
   superAdminModule,
   automationsModule,
   whatsappModule,
+  clientRecordsModule,
 } from "./modules/all-modules.js";
 
 
@@ -74,6 +75,7 @@ const prefix = env.API_PREFIX;
   await server.register(superAdminModule,    { prefix });
   await server.register(automationsModule,   { prefix });
   await server.register(whatsappModule,     { prefix });
+  await server.register(clientRecordsModule, { prefix });
   await server.register(demoModule,          { prefix });
 
   await server.listen({ port: env.PORT, host: env.HOST });
