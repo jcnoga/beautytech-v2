@@ -2891,6 +2891,8 @@ export default function App() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
+      else { setTenantInfo(null); }
     });
     return () => subscription.unsubscribe();
   }, []);
