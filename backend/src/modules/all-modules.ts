@@ -1261,4 +1261,24 @@ export async function consentFormsModule(fastify) {
     return reply.status(204).send();
   });
 }
+
+// APPOINTMENT PHOTOS MODULE
+export async function appointmentPhotosModule(fastify) {
+  fastify.get("/appointment-photos/:clientId", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sqlSELECT * FROM appointment_photos WHERE tenant_id =  AND client_id =  ORDER BY taken_at DESC);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.post("/appointment-photos", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlINSERT INTO appointment_photos (tenant_id,client_id,appointment_id,type,storage_path,public_url,description,created_by) VALUES (,,,,,,,) RETURNING *);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.delete("/appointment-photos/:id", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    await db.execute(sqlDELETE FROM appointment_photos WHERE id= AND tenant_id=);
+    return reply.status(204).send();
+  });
+}
 export { whatsappModule } from './whatsapp/whatsapp.routes.js';
