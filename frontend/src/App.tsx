@@ -886,14 +886,15 @@ function AgendaPage() {
 
   const save = async () => {
     setError("");
-    console.log("FORM:", JSON.stringify(form));
     if (!form.clientId)    return setError("Selecione a cliente.");
     if (!form.scheduledAt) return setError("Informe data e hora.");
     if (!form.totalPrice)  return setError("Informe o valor.");
 
     setSaving(true);
     try {
-      const start  = new Date(form.scheduledAt);
+      const rawDate = form.scheduledAt.length > 19 ? form.scheduledAt.slice(-16) : form.scheduledAt;
+      const start  = new Date(rawDate);
+      if (isNaN(start.getTime())) throw new Error("Data invalida: " + rawDate);
       const dur    = Number(form.durationMinutes || 60);
       const endsAt = new Date(start.getTime() + dur * 60_000).toISOString();
 
@@ -924,7 +925,6 @@ function AgendaPage() {
       setShowForm(false);
       setForm(emptyForm);
     } catch (e: any) {
-      console.error("AGENDA CATCH:", e);
       setError(e.message ?? "Erro ao agendar.");
     } finally {
       setSaving(false);
