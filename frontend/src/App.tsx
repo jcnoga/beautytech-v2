@@ -2509,6 +2509,8 @@ function AutomationsPage() {
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState<any>(null);
   const [showEdit, setShowEdit]   = useState(false);
+  const [showNew, setShowNew]     = useState(false);
+  const [newTpl, setNewTpl]       = useState({ name:"", trigger:"custom", message:"" });
   const [saving, setSaving]       = useState(false);
   const [showSend, setShowSend]   = useState(false);
   const [editMsg, setEditMsg]     = useState("");
@@ -2622,7 +2624,7 @@ function AutomationsPage() {
 
   return (
     <div>
-      <PageHeader title="Automacoes" sub={`${templates.length} templates de mensagens`} action={templates.length === 0 ? <Btn onClick={async () => { await api.post("/automations/templates/seed"); window.location.reload(); }}>Inicializar Templates</Btn> : undefined} />
+      <PageHeader title="Automacoes" sub={`${templates.length} templates de mensagens`} action={<div style={{display:"flex",gap:8}}>{templates.length === 0 && <Btn onClick={async () => { await api.post("/automations/templates/seed"); window.location.reload(); }}>Inicializar Templates</Btn>}<Btn onClick={() => setShowNew(true)}>+ Novo Template</Btn></div>} />
       <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
         <span style={{ fontSize:20 }}>!</span>
         <div>
@@ -2694,6 +2696,33 @@ function AutomationsPage() {
       </div>
 
       {/* Modal Editar */}
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="Novo Template">
+        <div style={{ display:"grid", gap:12 }}>
+          <Inp label="Nome do template" value={newTpl.name} onChange={(v:string) => setNewTpl(p=>({...p,name:v}))} placeholder="Ex: Promocao de verao" />
+          <div>
+            <label style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:C.textMuted, display:"block", marginBottom:8 }}>Tipo</label>
+            <select value={newTpl.trigger} onChange={e => setNewTpl(p=>({...p,trigger:e.target.value}))} style={{ width:"100%", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:FB, fontSize:14, outline:"none" }}>
+              <option value="custom">Personalizado</option>
+              <option value="promotion">Promocao</option>
+              <option value="welcome">Boas-vindas</option>
+              <option value="appointment_reminder_24h">Lembrete 24h</option>
+              <option value="appointment_reminder_2h">Lembrete 2h</option>
+              <option value="birthday">Aniversario</option>
+              <option value="client_reactivation">Reativacao</option>
+              <option value="financial_reminder">Lembrete Financeiro</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:C.textMuted, display:"block", marginBottom:8 }}>Mensagem</label>
+            <textarea value={newTpl.message} onChange={e => setNewTpl(p=>({...p,message:e.target.value}))} placeholder="Use: {nome}, {data}, {hora}, {valor}" rows={4} style={{ width:"100%", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:FB, fontSize:14, outline:"none", resize:"vertical" }} />
+          </div>
+          <div style={{ fontSize:12, color:C.textMuted }}>Variaveis: nome, data, hora, valor</div>
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:8 }}>
+          <Btn variant="secondary" onClick={() => setShowNew(false)}>Cancelar</Btn>
+          <Btn onClick={async () => { if (!newTpl.name || !newTpl.message) { alert("Preencha nome e mensagem."); return; } setSaving(true); try { const r: any = await api.post("/automations/templates", { name: newTpl.name, trigger: newTpl.trigger, channel: "whatsapp", message: newTpl.message }); setTemplates((p:any) => [...p, r.data]); setShowNew(false); } catch(e:any) { alert("Erro: "+e.message); } finally { setSaving(false); } }} disabled={saving}>{saving ? "Salvando..." : "Criar Template"}</Btn>
+        </div>
+      </Modal>
       <Modal open={showEdit} onClose={() => setShowEdit(false)} title={`Editar: ${selected?.name}`}>
         <div style={{ marginBottom:8 }}>
           <label style={{ fontSize:11, fontWeight:700, color:C.textSec, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Mensagem</label>
