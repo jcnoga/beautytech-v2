@@ -188,11 +188,7 @@ export async function appointmentsModule(fastify: FastifyInstance) {
     return reply.status(204).send();
   });
 
-  fastify.delete("/appointments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
-    const { tenantId } = req.tenantContext;
-    await db.update(appointments).set({ deletedAt: new Date() }).where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)));
-    return reply.status(204).send();
-  });
+  
 
   fastify.get("/appointments/today", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
