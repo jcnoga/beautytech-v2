@@ -29,6 +29,7 @@ import {
   clientRecordsModule,
   consentFormsModule,
   appointmentPhotosModule,
+  protocolsModule,
 } from "./modules/all-modules.js";
 
 
@@ -80,6 +81,7 @@ const prefix = env.API_PREFIX;
   await server.register(clientRecordsModule, { prefix });
   await server.register(consentFormsModule,   { prefix });
   await server.register(appointmentPhotosModule, { prefix });
+  await server.register(protocolsModule,          { prefix });
   await server.register(demoModule,          { prefix });
 
   await server.listen({ port: env.PORT, host: env.HOST });

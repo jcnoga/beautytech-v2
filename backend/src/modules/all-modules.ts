@@ -1281,4 +1281,41 @@ export async function appointmentPhotosModule(fastify) {
     return reply.status(204).send();
   });
 }
+
+// PROTOCOLS MODULE
+export async function protocolsModule(fastify) {
+  fastify.get("/protocols", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sqlSELECT * FROM protocols WHERE tenant_id =  AND is_active = true ORDER BY name);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.get("/protocols/:id/steps", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sqlSELECT * FROM protocol_steps WHERE tenant_id =  AND protocol_id =  ORDER BY sort_order);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.post("/protocols", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlINSERT INTO protocols (tenant_id,name,description,service_id,created_by) VALUES (,,,,) RETURNING *);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.post("/protocols/:id/steps", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlINSERT INTO protocol_steps (tenant_id,protocol_id,title,description,duration_minutes,sort_order,is_required) VALUES (,,,,,,) RETURNING *);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.patch("/protocols/:id", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sqlUPDATE protocols SET name=COALESCE(,name),description=COALESCE(,description),is_active=COALESCE(,is_active),updated_at=NOW() WHERE id= AND tenant_id= RETURNING *);
+    return reply.send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.delete("/protocols/:id", { preHandler: [authenticate] }, async (req, reply) => {
+    const { tenantId } = req.tenantContext;
+    await db.execute(sqlUPDATE protocols SET is_active=false,updated_at=NOW() WHERE id= AND tenant_id=);
+    return reply.status(204).send();
+  });
+}
 export { whatsappModule } from './whatsapp/whatsapp.routes.js';
