@@ -923,10 +923,9 @@ function AgendaPage() {
       setData(updated.data ?? []);
       setShowForm(false);
       setForm(emptyForm);
-      } catch (e: any) {
-        console.error("AGENDA CATCH:", e);
-        setError(e.message ?? "Erro ao agendar.");
-      }
+    } catch (e: any) {
+      console.error("AGENDA CATCH:", e);
+      setError(e.message ?? "Erro ao agendar.");
     } finally {
       setSaving(false);
     }
