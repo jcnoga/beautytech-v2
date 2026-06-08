@@ -2625,7 +2625,7 @@ function AutomationsPage() {
 
   return (
     <div>
-      <PageHeader title="Automacoes" sub={`${templates.length} templates de mensagens`} />
+      <PageHeader title="Automacoes" sub={`${templates.length} templates de mensagens`} action={templates.length === 0 ? <Btn onClick={async () => { await api.post("/automations/templates/seed"); window.location.reload(); }}>Inicializar Templates</Btn> : undefined} />
       <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 20px", marginBottom:24, display:"flex", alignItems:"center", gap:12, fontFamily:FB }}>
         <span style={{ fontSize:20 }}>!</span>
         <div>
