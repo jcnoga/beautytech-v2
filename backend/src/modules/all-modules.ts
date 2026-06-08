@@ -1115,206 +1115,106 @@ export async function demoModule(fastify: FastifyInstance) {
 
     // Servicos demo
     const insertedSvcs = await db.insert(services).values([
-      { tenantId, name: "Demo Coloracao", durationMinutes: 90, price: "180.00", isActive: true, isOnlineBookable: true, createdBy: tenantId },
-      { tenantId, name: "Demo Corte Feminino", durationMinutes: 45, price: "80.00", isActive: true, isOnlineBookable: true, createdBy: tenantId },
-      { tenantId, name: "Demo Manicure", durationMinutes: 60, price: "60.00", isActive: true, isOnlineBookable: true, createdBy: tenantId },
-    ]).returning();
-
-    // Clientes demo
-    const insertedClients = await db.insert(clients).values([
-      { tenantId, fullName: "Ana Demo Silva", whatsapp: "(34) 98001-0001", email: "ana.demo@beautytech.com.br", gender: "female" as const, segment: "active" as const, loyaltyTier: "silver" as const, loyaltyPoints: 150, totalSpent: "1500.00", totalVisits: 12, tags: ["demo"], createdBy: tenantId },
-      { tenantId, fullName: "Beatriz Demo Santos", whatsapp: "(34) 98001-0002", email: "bea.demo@beautytech.com.br", gender: "female" as const, segment: "vip" as const, isVip: true, loyaltyTier: "gold" as const, loyaltyPoints: 480, totalSpent: "4800.00", totalVisits: 38, tags: ["demo"], createdBy: tenantId },
-      { tenantId, fullName: "Carla Demo Rocha", whatsapp: "(34) 98001-0003", email: "carla.demo@beautytech.com.br", gender: "female" as const, segment: "new" as const, loyaltyTier: "bronze" as const, loyaltyPoints: 20, totalSpent: "200.00", totalVisits: 2, tags: ["demo"], createdBy: tenantId },
-      { tenantId, fullName: "Daniela Demo Lima", whatsapp: "(34) 98001-0004", email: "dani.demo@beautytech.com.br", gender: "female" as const, segment: "at_risk" as const, loyaltyTier: "bronze" as const, loyaltyPoints: 45, totalSpent: "450.00", totalVisits: 5, tags: ["demo"], createdBy: tenantId },
-      { tenantId, fullName: "Elena Demo Ferreira", whatsapp: "(34) 98001-0005", email: "elena.demo@beautytech.com.br", gender: "female" as const, segment: "loyal" as const, loyaltyTier: "platinum" as const, loyaltyPoints: 980, totalSpent: "9800.00", totalVisits: 72, tags: ["demo"], createdBy: tenantId },
-    ]).returning();
-
-    // Agendamentos demo
-    await db.insert(appointments).values(
-      insertedClients.slice(0, 3).map((c, i) => ({
-        tenantId, clientId: c.id,
-        professionalId: insertedProfs[i % insertedProfs.length].id,
-        status: i === 0 ? "confirmed" as const : i === 1 ? "pending" as const : "completed" as const,
-        scheduledAt: new Date(tomorrow.getTime() + i * 2 * 60 * 60 * 1000),
-        endsAt: new Date(tomorrow.getTime() + i * 2 * 60 * 60 * 1000 + 60 * 60 * 1000),
-        durationMinutes: 60,
-        totalPrice: insertedSvcs[i].price,
-        subtotal: insertedSvcs[i].price,
-        source: "manual" as const,
-        internalNotes: "demo",
-        createdBy: tenantId,
-      }))
-    );
-
-    // Financeiro demo
-    const [defaultAccount] = await db.select().from(financialAccounts)
-      .where(and(eq(financialAccounts.tenantId, tenantId), eq(financialAccounts.isDefault, true)));
-    if (defaultAccount) {
-      await db.insert(financialTransactions).values([
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, status: "confirmed" as const, description: "Demo - Coloracao Beatriz", amount: "180.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, status: "confirmed" as const, description: "Demo - Corte Ana", amount: "80.00", paymentMethod: "credit_card" as const, dueDate: now, notes: "demo", createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "expense" as const, status: "pending" as const, description: "Demo - Produto Tinta", amount: "90.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "expense" as const, status: "confirmed" as const, description: "Demo - Material Manicure", amount: "45.00", paymentMethod: "pix" as const, dueDate: now, notes: "demo", createdBy: tenantId },
-      ]);
-    }
-
-    // Leads demo no CRM
-    await db.insert(leads).values([
-      { tenantId, name: "Demo Lead Maria", whatsapp: "(34) 98002-0001", source: "instagram" as const, status: "new" as const, serviceInterest: "Coloracao", estimatedValue: "280.00" },
-      { tenantId, name: "Demo Lead Paula", whatsapp: "(34) 98002-0002", source: "whatsapp" as const, status: "contacted" as const, serviceInterest: "Manicure", estimatedValue: "60.00" },
-      { tenantId, name: "Demo Lead Sandra", whatsapp: "(34) 98002-0003", source: "google" as const, status: "interested" as const, serviceInterest: "Corte", estimatedValue: "80.00" },
-    ]);
-
-    // Pacotes demo
-    await db.insert(packages).values([
-      { tenantId, clientId: insertedClients[0].id, name: "Demo Pacote Coloracao", totalSessions: 5, usedSessions: 2, remainingSessions: 3, totalValue: "750.00", amountPaid: "750.00", status: "active" as const, expiresAt: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000), createdBy: tenantId },
-      { tenantId, clientId: insertedClients[1].id, name: "Demo Pacote VIP", totalSessions: 10, usedSessions: 6, remainingSessions: 4, totalValue: "1500.00", amountPaid: "1500.00", status: "active" as const, expiresAt: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000), createdBy: tenantId },
-    ]);
-
-    return reply.send({ success: true, data: {
-      message: "Dados de demonstracao inseridos com sucesso!",
-      clientes: insertedClients.length,
-      profissionais: insertedProfs.length,
-      servicos: insertedSvcs.length,
-    }});
-  });
-
-  fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply) => {
+ // CLIENT RECORDS MODULE
+export async function clientRecordsModule(fastify: any) {
+  fastify.get("/client-records/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-
-    const demoClients = await db.select({ id: clients.id })
-      .from(clients)
-      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`));
-    const demoClientIds = demoClients.map(c => c.id);
-
-    if (demoClientIds.length > 0) {
-      await db.delete(appointments)
-        .where(and(eq(appointments.tenantId, tenantId), sql`${appointments.clientId} = ANY(ARRAY[${sql.join(demoClientIds.map(id => sql`${id}::uuid`), sql`, `)}])`));
-      await db.delete(packages)
-        .where(and(eq(packages.tenantId, tenantId), sql`${packages.clientId} = ANY(ARRAY[${sql.join(demoClientIds.map(id => sql`${id}::uuid`), sql`, `)}])`));
-    }
-
-    await db.delete(financialTransactions)
-      .where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.notes, "demo")));
-
-    await db.delete(leads)
-      .where(and(eq(leads.tenantId, tenantId), sql`${leads.name} LIKE 'Demo Lead%'`));
-
-    await db.delete(clients)
-      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`));
-
-    await db.delete(services)
-      .where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
-
-    await db.delete(professionals)
-      .where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '% Demo %'`));
-
-    return reply.send({ success: true, data: { message: "Dados de demonstracao removidos com sucesso!" } });
-  });
-}
-
-
-
-// CLIENT RECORDS MODULE
-export async function clientRecordsModule(fastify) {
-  fastify.get("/client-records/:clientId", { preHandler: [authenticate] }, async (req, reply) => {
-    const { tenantId } = req.tenantContext;
-    const data = await db.execute(sqlSELECT * FROM client_records WHERE tenant_id =  AND client_id =  ORDER BY created_at DESC);
+    const data = await db.execute(sql`SELECT * FROM client_records WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY created_at DESC`);
     return reply.send({ success: true, data: (data as any).rows ?? [] });
   });
-  fastify.post("/client-records", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/client-records", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlINSERT INTO client_records (tenant_id,client_id,type,allergies,medications,medical_history,previous_procedures,skin_type,contraindications,notes,created_by) VALUES (,,'anamnesis',,,,,,,,) RETURNING *);
+    const data = await db.execute(sql`INSERT INTO client_records (tenant_id,client_id,type,medications,medical_history,previous_procedures,skin_type,contraindications,notes,created_by) VALUES (${tenantId},${b.clientId},'anamnesis',${b.medications??null},${b.medicalHistory??null},${b.previousProcedures??null},${b.skinType??null},${b.contraindications??null},${b.notes??null},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
-  fastify.patch("/client-records/:id", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.patch("/client-records/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlUPDATE client_records SET medications=COALESCE(,medications),medical_history=COALESCE(,medical_history),notes=COALESCE(,notes),updated_at=NOW() WHERE id= AND tenant_id= RETURNING *);
+    const data = await db.execute(sql`UPDATE client_records SET medications=COALESCE(${b.medications??null},medications),medical_history=COALESCE(${b.medicalHistory??null},medical_history),notes=COALESCE(${b.notes??null},notes),updated_at=NOW() WHERE id=${req.params.id} AND tenant_id=${tenantId} RETURNING *`);
     return reply.send({ success: true, data: ((data as any).rows??[])[0] });
   });
 }
 
 // CONSENT FORMS MODULE
-export async function consentFormsModule(fastify) {
-  fastify.get("/consent-forms/:clientId", { preHandler: [authenticate] }, async (req, reply) => {
+export async function consentFormsModule(fastify: any) {
+  fastify.get("/consent-forms/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    const data = await db.execute(sqlSELECT * FROM consent_forms WHERE tenant_id =  AND client_id =  ORDER BY created_at DESC);
+    const data = await db.execute(sql`SELECT * FROM consent_forms WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY created_at DESC`);
     return reply.send({ success: true, data: (data as any).rows ?? [] });
   });
-  fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlINSERT INTO consent_forms (tenant_id,client_id,type,content,created_by) VALUES (,,,,) RETURNING *);
+    const data = await db.execute(sql`INSERT INTO consent_forms (tenant_id,client_id,type,content,created_by) VALUES (${tenantId},${b.clientId},${b.type??'lgpd'},${b.content??null},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
-  fastify.post("/consent-forms/:id/sign", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/consent-forms/:id/sign", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlUPDATE consent_forms SET is_signed=true,signed_at=NOW(),signed_by_name=,ip_address=,updated_at=NOW() WHERE id= AND tenant_id= RETURNING *);
+    const data = await db.execute(sql`UPDATE consent_forms SET is_signed=true,signed_at=NOW(),signed_by_name=${b.signedByName??null},ip_address=${b.ipAddress??null},updated_at=NOW() WHERE id=${req.params.id} AND tenant_id=${tenantId} RETURNING *`);
     return reply.send({ success: true, data: ((data as any).rows??[])[0] });
   });
-  fastify.delete("/consent-forms/:id", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.delete("/consent-forms/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    await db.execute(sqlDELETE FROM consent_forms WHERE id= AND tenant_id=);
+    await db.execute(sql`DELETE FROM consent_forms WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
     return reply.status(204).send();
   });
 }
 
 // APPOINTMENT PHOTOS MODULE
-export async function appointmentPhotosModule(fastify) {
-  fastify.get("/appointment-photos/:clientId", { preHandler: [authenticate] }, async (req, reply) => {
+export async function appointmentPhotosModule(fastify: any) {
+  fastify.get("/appointment-photos/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    const data = await db.execute(sqlSELECT * FROM appointment_photos WHERE tenant_id =  AND client_id =  ORDER BY taken_at DESC);
+    const data = await db.execute(sql`SELECT * FROM appointment_photos WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY taken_at DESC`);
     return reply.send({ success: true, data: (data as any).rows ?? [] });
   });
-  fastify.post("/appointment-photos", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/appointment-photos", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlINSERT INTO appointment_photos (tenant_id,client_id,appointment_id,type,storage_path,public_url,description,created_by) VALUES (,,,,,,,) RETURNING *);
+    const data = await db.execute(sql`INSERT INTO appointment_photos (tenant_id,client_id,appointment_id,type,storage_path,public_url,description,created_by) VALUES (${tenantId},${b.clientId},${b.appointmentId??null},${b.type??'before'},${b.storagePath},${b.publicUrl??null},${b.description??null},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
-  fastify.delete("/appointment-photos/:id", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.delete("/appointment-photos/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    await db.execute(sqlDELETE FROM appointment_photos WHERE id= AND tenant_id=);
+    await db.execute(sql`DELETE FROM appointment_photos WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
     return reply.status(204).send();
   });
 }
 
 // PROTOCOLS MODULE
-export async function protocolsModule(fastify) {
-  fastify.get("/protocols", { preHandler: [authenticate] }, async (req, reply) => {
+export async function protocolsModule(fastify: any) {
+  fastify.get("/protocols", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    const data = await db.execute(sqlSELECT * FROM protocols WHERE tenant_id =  AND is_active = true ORDER BY name);
+    const data = await db.execute(sql`SELECT * FROM protocols WHERE tenant_id = ${tenantId} AND is_active = true ORDER BY name`);
     return reply.send({ success: true, data: (data as any).rows ?? [] });
   });
-  fastify.get("/protocols/:id/steps", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.get("/protocols/:id/steps", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    const data = await db.execute(sqlSELECT * FROM protocol_steps WHERE tenant_id =  AND protocol_id =  ORDER BY sort_order);
+    const data = await db.execute(sql`SELECT * FROM protocol_steps WHERE tenant_id = ${tenantId} AND protocol_id = ${req.params.id} ORDER BY sort_order`);
     return reply.send({ success: true, data: (data as any).rows ?? [] });
   });
-  fastify.post("/protocols", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/protocols", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlINSERT INTO protocols (tenant_id,name,description,service_id,created_by) VALUES (,,,,) RETURNING *);
+    const data = await db.execute(sql`INSERT INTO protocols (tenant_id,name,description,service_id,created_by) VALUES (${tenantId},${b.name},${b.description??null},${b.serviceId??null},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
-  fastify.post("/protocols/:id/steps", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.post("/protocols/:id/steps", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlINSERT INTO protocol_steps (tenant_id,protocol_id,title,description,duration_minutes,sort_order,is_required) VALUES (,,,,,,) RETURNING *);
+    const data = await db.execute(sql`INSERT INTO protocol_steps (tenant_id,protocol_id,title,description,duration_minutes,sort_order,is_required) VALUES (${tenantId},${req.params.id},${b.title},${b.description??null},${b.durationMinutes??0},${b.sortOrder??0},${b.isRequired??true}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
-  fastify.patch("/protocols/:id", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.patch("/protocols/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const b = req.body as any;
-    const data = await db.execute(sqlUPDATE protocols SET name=COALESCE(,name),description=COALESCE(,description),is_active=COALESCE(,is_active),updated_at=NOW() WHERE id= AND tenant_id= RETURNING *);
+    const data = await db.execute(sql`UPDATE protocols SET name=COALESCE(${b.name??null},name),description=COALESCE(${b.description??null},description),is_active=COALESCE(${b.isActive??null},is_active),updated_at=NOW() WHERE id=${req.params.id} AND tenant_id=${tenantId} RETURNING *`);
     return reply.send({ success: true, data: ((data as any).rows??[])[0] });
   });
-  fastify.delete("/protocols/:id", { preHandler: [authenticate] }, async (req, reply) => {
+  fastify.delete("/protocols/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    await db.execute(sqlUPDATE protocols SET is_active=false,updated_at=NOW() WHERE id= AND tenant_id=);
+    await db.execute(sql`UPDATE protocols SET is_active=false,updated_at=NOW() WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
     return reply.status(204).send();
   });
 }
