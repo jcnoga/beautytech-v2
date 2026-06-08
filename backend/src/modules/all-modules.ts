@@ -809,7 +809,24 @@ export async function authModule(fastify: FastifyInstance) {
         planTier: "trial",
         isActive: true,
         trialEndsAt,
+        businessType: resolvedBusinessType,
       }).returning();
+      await db.insert(userProfiles).values({
+        tenantId: tenant.id,
+        authUserId,
+        fullName: ownerName,
+        email,
+        role: "owner",
+        isActive: true,
+      });
+      await db.insert(financialAccounts).values({
+        tenantId: tenant.id,
+        name: "Caixa Principal",
+        type: "cash",
+        balance: "0",
+        isDefault: true,
+        isActive: true,
+      });
 
       await db.insert(serviceCategories).values(
         defaultCategories.map((name, i) => ({
