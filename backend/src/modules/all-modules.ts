@@ -758,7 +758,7 @@ export async function authModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: { ...tenant, daysLeft } });
   });
   fastify.post("/auth/register", async (req: any, reply) => {
-    const { salonName, ownerName, email, password, whatsapp } = req.body as any;
+    const { salonName, ownerName, email, password, whatsapp, businessType } = req.body as any;
     if (!salonName || !ownerName || !email || !password) {
       return reply.status(400).send({ success: false, error: "Todos os campos sÃƒÆ’Ã‚Â£o obrigatÃƒÆ’Ã‚Â³rios" });
       return reply.status(400).send({ success: false, error: "Todos os campos sÃƒÆ’Ã‚Â£o obrigatÃƒÆ’Ã‚Â³rios" });
@@ -793,6 +793,13 @@ export async function authModule(fastify: FastifyInstance) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 15);
 
+      const categoriesByType = {
+        beauty_salon: ["Cabelo", "Unhas", "Estetica", "Maquiagem", "Massagem"],
+        aesthetics_clinic: ["Limpeza de Pele", "Peeling", "Microagulhamento", "Depilacao", "Massagem Estetica"],
+        barbershop: ["Corte Masculino", "Barba", "Pigmentacao", "Sobrancelha Masculina", "Tratamento Capilar"],
+      }
+      const resolvedBusinessType = (businessType && categoriesByType[businessType as keyof typeof categoriesByType]) ? businessType : "beauty_salon"
+      const defaultCategories = categoriesByType[resolvedBusinessType as keyof typeof categoriesByType]
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
@@ -802,24 +809,7 @@ export async function authModule(fastify: FastifyInstance) {
         isActive: true,
         trialEndsAt,
       }).returning();
-      await db.insert(userProfiles).values({
-        tenantId: tenant.id,
-        authUserId,
-        fullName: ownerName,
-        email,
-        isActive: true,
-      });
 
-      await db.insert(financialAccounts).values({
-        tenantId: tenant.id,
-        name: "Caixa Principal",
-        type: "cash",
-        balance: "0",
-        isDefault: true,
-        isActive: true,
-      });
-
-      const defaultCategories = ["Cabelo", "Unhas", "EstÃƒÆ’Ã‚Â©tica", "Maquiagem", "Massagem"];
       await db.insert(serviceCategories).values(
         defaultCategories.map((name, i) => ({
           tenantId: tenant.id,
