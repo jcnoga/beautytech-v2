@@ -362,7 +362,7 @@ function DashboardPage() {
       }
     };
     load();
-  }, []);
+  }, [viewMode]);
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
@@ -832,6 +832,7 @@ function WaButton({ client, status, scheduledAt }: any) {
 // --- AGENDA --------------------------------------------------
 function AgendaPage() {
   const [filter, setFilter]     = useState("all");
+  const [viewMode, setViewMode]   = useState("today");
   const [showForm, setShowForm] = useState(false);
   const [data, setData]         = useState<any[]>([]);
   const [clientsList, setClientsList]   = useState<any[]>([]);
@@ -856,7 +857,7 @@ function AgendaPage() {
     const load = async () => {
       try {
         const [agenda, c, p, s] = await Promise.all([
-          appointmentsApi.today(),
+          viewMode === "today" ? appointmentsApi.today() : appointmentsApi.list({ dateFrom: new Date().toISOString().split("T")[0], limit: 100 }),
           clientsApi.list({ limit: 200 }),
           professionalsApi.list({ isActive: "true" }),
           servicesApi.list({ isActive: "true" }),
@@ -1015,9 +1016,13 @@ function AgendaPage() {
     <div>
       <PageHeader
         title="Agenda"
-        sub={`${filtered.length} agendamentos hoje`}
+        sub={`${filtered.length} agendamento${filtered.length !== 1 ? "s" : ""} ${viewMode === "today" ? "hoje" : "futuros"}`}
         action={<Btn onClick={() => { setForm(emptyForm); setError(""); setShowForm(true); }}>+ Novo Agendamento</Btn>}
       />
+      <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+        <button onClick={() => setViewMode("today")} style={{ padding:"8px 18px", borderRadius:8, border:"1px solid " + (viewMode === "today" ? C.rose : C.border), background: viewMode === "today" ? C.rose + "20" : "transparent", color: viewMode === "today" ? C.rose : C.textMuted, fontFamily:FB, fontSize:13, cursor:"pointer" }}>Hoje</button>
+        <button onClick={() => setViewMode("upcoming")} style={{ padding:"8px 18px", borderRadius:8, border:"1px solid " + (viewMode === "upcoming" ? C.rose : C.border), background: viewMode === "upcoming" ? C.rose + "20" : "transparent", color: viewMode === "upcoming" ? C.rose : C.textMuted, fontFamily:FB, fontSize:13, cursor:"pointer" }}>Futuros</button>
+      </div>
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {statuses.map(s => (
           <button key={s.v} onClick={() => setFilter(s.v)}
