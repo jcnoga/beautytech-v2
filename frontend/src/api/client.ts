@@ -65,6 +65,7 @@ export const appointmentsApi = {
   complete: (id: string, dto: any) => api.post<any>(`/appointments/${id}/complete`, dto),
   cancel:   (id: string, reason?: string) => api.post<any>(`/appointments/${id}/cancel`, { reason }),
   noShow:   (id: string) => api.post<any>(`/appointments/${id}/no-show`),
+  remove:   (id: string) => api.delete(`/appointments/${id}`),
 };
 
 export const professionalsApi = {

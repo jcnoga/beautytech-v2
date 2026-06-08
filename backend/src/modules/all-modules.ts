@@ -172,10 +172,26 @@ export async function appointmentsModule(fastify: FastifyInstance) {
     if (professionalId) cond.push(eq(appointments.professionalId, professionalId));
     if (status)         cond.push(eq(appointments.status, status));
     const [data, [{ total }]] = await Promise.all([
-      db.select().from(appointments).where(and(...cond)).orderBy(appointments.scheduledAt).limit(l).offset(offset),
+      db.select({
+        appointment: appointments,
+        client: { id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp },
+        professional: { id: professionals.id, fullName: professionals.fullName, color: professionals.color },
+      }).from(appointments).leftJoin(clients, eq(appointments.clientId, clients.id)).leftJoin(professionals, eq(appointments.professionalId, professionals.id)).where(and(...cond)).orderBy(appointments.scheduledAt).limit(l).offset(offset),
       db.select({ total: sql<number>`count(*)` }).from(appointments).where(and(...cond)),
     ]);
     return reply.send({ success: true, data, total: Number(total), page: Number(page ?? 1), limit: l, totalPages: Math.ceil(Number(total) / l) });
+  });
+
+  fastify.delete("/appointments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    await db.update(appointments).set({ deletedAt: new Date() }).where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)));
+    return reply.status(204).send();
+  });
+
+  fastify.delete("/appointments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    await db.update(appointments).set({ deletedAt: new Date() }).where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)));
+    return reply.status(204).send();
   });
 
   fastify.get("/appointments/today", { preHandler: [authenticate] }, async (req: any, reply) => {

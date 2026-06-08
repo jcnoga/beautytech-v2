@@ -932,6 +932,22 @@ function AgendaPage() {
     }
   };
 
+  const deleteAppointment = async (id: string) => {
+    if (!window.confirm("Excluir este agendamento?")) return;
+    try {
+      await appointmentsApi.remove(id);
+      setData(d => d.filter((a: any) => (a.appointment?.id ?? a.id) !== id));
+    } catch(e: any) { alert("Erro: " + e.message); }
+  };
+
+  const deleteAppointment = async (id: string) => {
+    if (!window.confirm("Excluir este agendamento?")) return;
+    try {
+      await appointmentsApi.remove(id);
+      setData(d => d.filter((a: any) => (a.appointment?.id ?? a.id) !== id));
+    } catch(e: any) { alert("Erro: " + e.message); }
+  };
+
   const changeStatus = async (id: string, status: string) => {
     try {
       if (status === "confirmed")        await appointmentsApi.confirm(id);
