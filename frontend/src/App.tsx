@@ -315,7 +315,7 @@ function LoginPage({ onLogin }: any) {
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12, fontFamily: FB }}>Sistema de Gestao</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza Enterprise v2</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="seu@email.com" />
@@ -2923,7 +2923,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
       <div style={{ padding:"28px 20px 24px", borderBottom:`1px solid ${C.border}` }}>
         <div style={{ fontSize:11, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:6 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
         <div style={{ fontSize:22, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.02em" }}>BeautyTech</div>
-        <div style={{ fontSize:10, color: C.textMuted, marginTop:2, letterSpacing:"0.1em" }}>ENTERPRISE v2</div>
+        <div style={{ fontSize:10, color: C.textMuted, marginTop:2, letterSpacing:"0.1em" }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
       </div>
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
         {MENU.map(m => {
