@@ -225,6 +225,7 @@ function RegisterPage({ onBack }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [businessType, setBusinessType] = useState("beauty_salon");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -234,7 +235,7 @@ function RegisterPage({ onBack }: any) {
       const res = await fetch(`${import.meta.env["VITE_API_URL"]}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ salonName, ownerName, email, password, whatsapp }),
+        body: JSON.stringify({ salonName, ownerName, email, password, whatsapp, businessType }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -250,6 +251,11 @@ function RegisterPage({ onBack }: any) {
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily: FB, padding:20 }}>
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
+          <select value={businessType} onChange={e => setBusinessType(e.target.value)} style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1px solid #333", background:"#1a1a2e", color:"#fff", fontSize:13, marginBottom:16, cursor:"pointer" }}>
+            <option value="beauty_salon">Salao de Beleza</option>
+            <option value="aesthetics_clinic">Clinica de Estetica</option>
+            <option value="barbershop">Barbearia</option>
+          </select>
           <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>Novo Salao</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
           <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Cadastre seu salao gratuitamente</div>
