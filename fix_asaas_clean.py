@@ -1,4 +1,4 @@
-
+content = '''
 // ============================================================
 // ASAAS MODULE - Pagamentos e Assinaturas
 // ============================================================
@@ -107,3 +107,7 @@ export async function asaasModule(fastify: any) {
     return reply.send({ success: true, data: { status: charge.status, value: charge.value, dueDate: charge.dueDate } });
   });
 }
+'''
+with open('C:/projetos/beautytech-v2/backend/src/modules/asaas.module.ts', 'w', encoding='utf-8') as f:
+    f.write(content)
+print('CORRIGIDO')
