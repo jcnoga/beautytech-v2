@@ -922,7 +922,7 @@ export async function authModule(fastify: FastifyInstance) {
           "apikey": serviceKey,
         },
       });
-      rconsole.error("[REGISTER ERROR]", err?.message, err?.stack);
+      console.error("[REGISTER ERROR]", err?.message, err?.stack);
       return reply.status(500).send({ success: false, error: err?.message ?? "Erro ao criar salao" });
 
     }
