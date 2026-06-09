@@ -1287,6 +1287,12 @@ export async function consentFormsModule(fastify: any) {
     const data = await db.execute(sql`INSERT INTO consent_forms (tenant_id,client_id,type,content,created_by) VALUES (${tenantId},${b.clientId},${b.type??'lgpd'},${b.content??null},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
+  fastify.post("/consent-forms/:id/sign", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const b = req.body as any;
+    await db.execute(sql`UPDATE consent_forms SET is_signed=true, signed_at=NOW(), signed_by_name=${b.signedByName??null} WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
+    return reply.status(200).send({ success: true });
+  });
   fastify.delete("/consent-forms/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     await db.execute(sql`DELETE FROM consent_forms WHERE id=${req.params.id} AND tenant_id=${tenantId}`);

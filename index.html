@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeautyTech — Gestão Inteligente para Salões de Beleza</title>
+<title>BeautyTech — Gestão para Salões, Barbearias e Clínicas de Estética</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -20,6 +20,10 @@
     --gold-light:  #E2C98A;
     --white:       #FFFFFF;
 
+    --accent:      #C9847A;
+    --accent-deep: #A05A52;
+    --accent-light:#E8B4AE;
+
     --font-display: 'Cormorant Garamond', Georgia, serif;
     --font-body:    'DM Sans', sans-serif;
 
@@ -34,9 +38,7 @@
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   html { scroll-behavior: smooth; font-size: 16px; }
-
   body {
     font-family: var(--font-body);
     background: var(--cream);
@@ -44,8 +46,6 @@
     overflow-x: hidden;
     line-height: 1.6;
   }
-
-  /* ── NOISE TEXTURE OVERLAY ── */
   body::before {
     content: '';
     position: fixed; inset: 0;
@@ -53,12 +53,46 @@
     pointer-events: none; z-index: 9999; opacity: .4;
   }
 
+  /* ══ NICHO SWITCHER ══ */
+  .nicho-switcher {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    background: var(--charcoal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: .45rem 1rem;
+    font-size: .72rem;
+    font-weight: 500;
+    letter-spacing: .04em;
+    color: rgba(250,246,242,.55);
+  }
+  .nicho-switcher span { color: rgba(250,246,242,.4); }
+  .nicho-btn {
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    color: rgba(250,246,242,.7);
+    border-radius: 100px;
+    padding: .25rem .85rem;
+    cursor: pointer;
+    font-size: .72rem;
+    font-family: var(--font-body);
+    transition: all .2s;
+  }
+  .nicho-btn:hover, .nicho-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
   /* ══════════════════ NAV ══════════════════ */
   nav {
-    position: fixed; top: 0; left: 0; right: 0;
+    position: fixed; top: 34px; left: 0; right: 0;
     z-index: 100;
     padding: 0 5%;
-    height: 72px;
+    height: 68px;
     display: flex; align-items: center; justify-content: space-between;
     background: rgba(250,246,242,.88);
     backdrop-filter: blur(20px);
@@ -70,26 +104,39 @@
 
   .nav-logo {
     font-family: var(--font-display);
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--charcoal);
     letter-spacing: -.02em;
+    display: flex; align-items: center; gap: .5rem;
   }
-  .nav-logo span { color: var(--rose); }
+  .nav-logo span { color: var(--accent); }
+  .nav-logo .nicho-tag {
+    font-family: var(--font-body);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    background: rgba(201,132,122,.15);
+    color: var(--accent-deep);
+    padding: .2rem .6rem;
+    border-radius: 100px;
+    margin-left: .3rem;
+  }
 
   .nav-cta {
     background: var(--charcoal);
     color: var(--white);
     font-family: var(--font-body);
-    font-size: .85rem;
+    font-size: .83rem;
     font-weight: 500;
-    padding: .55rem 1.4rem;
+    padding: .52rem 1.3rem;
     border-radius: 100px;
     text-decoration: none;
     letter-spacing: .02em;
     transition: background .25s, transform .2s;
   }
-  .nav-cta:hover { background: var(--rose-deep); transform: translateY(-1px); }
+  .nav-cta:hover { background: var(--accent-deep); transform: translateY(-1px); }
 
   /* ══════════════════ HERO ══════════════════ */
   .hero {
@@ -98,23 +145,20 @@
     grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 4rem;
-    padding: 120px 8% 80px;
+    padding: 140px 8% 80px;
     position: relative;
     overflow: hidden;
   }
-
   .hero::before {
     content: '';
-    position: absolute;
-    right: -10%;  top: -20%;
+    position: absolute; right: -10%;  top: -20%;
     width: 60vw; height: 80vh;
     background: radial-gradient(ellipse at center, rgba(201,132,122,.18) 0%, transparent 65%);
     pointer-events: none;
   }
   .hero::after {
     content: '';
-    position: absolute;
-    left: 5%; bottom: 5%;
+    position: absolute; left: 5%; bottom: 5%;
     width: 30vw; height: 30vw;
     background: radial-gradient(ellipse at center, rgba(196,169,109,.12) 0%, transparent 65%);
     pointer-events: none;
@@ -128,7 +172,7 @@
     border-radius: 100px;
     font-size: .78rem;
     font-weight: 500;
-    color: var(--rose-deep);
+    color: var(--accent-deep);
     letter-spacing: .06em;
     text-transform: uppercase;
     margin-bottom: 1.5rem;
@@ -138,7 +182,7 @@
   .hero-badge::before {
     content: '';
     width: 6px; height: 6px;
-    background: var(--rose);
+    background: var(--accent);
     border-radius: 50%;
     animation: pulse 2s infinite;
   }
@@ -154,10 +198,7 @@
     opacity: 0;
     animation: fadeUp .7s .35s forwards;
   }
-  .hero-headline em {
-    font-style: italic;
-    color: var(--rose);
-  }
+  .hero-headline em { font-style: italic; color: var(--accent); }
 
   .hero-sub {
     font-size: 1.05rem;
@@ -177,7 +218,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
     color: var(--white);
     font-family: var(--font-body);
     font-size: .95rem;
@@ -201,15 +242,14 @@
     color: var(--muted);
     display: flex; align-items: center; gap: .3rem;
   }
-  .hero-note::before { content: '✓'; color: var(--rose); font-weight: 600; }
+  .hero-note::before { content: '✓'; color: var(--accent); font-weight: 600; }
 
-  /* ── Hero Visual ── */
+  /* Hero Visual */
   .hero-visual {
     position: relative;
     opacity: 0;
     animation: fadeIn .9s .5s forwards;
   }
-
   .hero-card {
     background: var(--white);
     border-radius: var(--radius-lg);
@@ -217,16 +257,13 @@
     overflow: hidden;
     position: relative;
   }
-
   .card-header {
     background: linear-gradient(135deg, var(--charcoal) 0%, #2D2926 100%);
     padding: 1.4rem 1.6rem;
     display: flex; align-items: center; gap: .8rem;
   }
   .card-dots { display: flex; gap: .4rem; }
-  .card-dots span {
-    width: 10px; height: 10px; border-radius: 50%;
-  }
+  .card-dots span { width: 10px; height: 10px; border-radius: 50%; }
   .card-dots span:nth-child(1) { background: #FF5F57; }
   .card-dots span:nth-child(2) { background: #FFBB2F; }
   .card-dots span:nth-child(3) { background: #2BC74A; }
@@ -237,7 +274,6 @@
     letter-spacing: .08em;
     text-transform: uppercase;
   }
-
   .card-body { padding: 1.6rem; }
 
   .stat-row {
@@ -258,7 +294,7 @@
     line-height: 1;
     margin-bottom: .2rem;
   }
-  .stat-num.accent { color: var(--rose); }
+  .stat-num.accent { color: var(--accent); }
   .stat-label { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 
   .appt-list { display: flex; flex-direction: column; gap: .6rem; }
@@ -272,12 +308,12 @@
   .appt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .appt-dot.green  { background: #2BC74A; }
   .appt-dot.yellow { background: #FFBB2F; }
-  .appt-dot.rose   { background: var(--rose); }
+  .appt-dot.rose   { background: var(--accent); }
   .appt-name { font-weight: 500; color: var(--charcoal); flex: 1; }
   .appt-time { color: var(--muted); font-size: .75rem; }
   .appt-tag {
     background: rgba(201,132,122,.15);
-    color: var(--rose-deep);
+    color: var(--accent-deep);
     border-radius: 100px;
     padding: .15rem .55rem;
     font-size: .68rem;
@@ -295,15 +331,8 @@
     font-weight: 500;
     animation: float 3s ease-in-out infinite;
   }
-  .float-badge.badge-1 {
-    bottom: -20px; left: -30px;
-    color: var(--charcoal);
-  }
-  .float-badge.badge-2 {
-    top: -18px; right: -24px;
-    color: var(--charcoal);
-    animation-delay: 1.5s;
-  }
+  .float-badge.badge-1 { bottom: -20px; left: -30px; color: var(--charcoal); }
+  .float-badge.badge-2 { top: -18px; right: -24px; color: var(--charcoal); animation-delay: 1.5s; }
   .badge-icon { font-size: 1.3rem; }
 
   /* ══════════════════ PROBLEMS ══════════════════ */
@@ -326,10 +355,9 @@
     font-weight: 600;
     letter-spacing: .14em;
     text-transform: uppercase;
-    color: var(--rose);
+    color: var(--accent);
     margin-bottom: .8rem;
   }
-
   .section-title {
     font-family: var(--font-display);
     font-size: clamp(2rem, 3.5vw, 3.2rem);
@@ -340,7 +368,6 @@
   }
   .section-title.light { color: var(--cream); }
   .section-title.dark  { color: var(--charcoal); }
-
   .section-sub {
     font-size: 1rem;
     color: var(--muted);
@@ -358,14 +385,12 @@
     overflow: hidden;
     margin-top: 3.5rem;
   }
-
   .problem-item {
     background: rgba(255,255,255,.03);
     padding: 2rem;
     transition: background .25s;
   }
   .problem-item:hover { background: rgba(201,132,122,.08); }
-
   .problem-icon {
     width: 44px; height: 44px;
     background: rgba(201,132,122,.15);
@@ -374,20 +399,8 @@
     font-size: 1.2rem;
     margin-bottom: 1rem;
   }
-
-  .problem-title {
-    font-size: .95rem;
-    font-weight: 600;
-    color: var(--cream);
-    margin-bottom: .4rem;
-  }
-
-  .problem-desc {
-    font-size: .82rem;
-    color: rgba(250,246,242,.4);
-    line-height: 1.6;
-    font-weight: 300;
-  }
+  .problem-title { font-size: .95rem; font-weight: 600; color: var(--cream); margin-bottom: .4rem; }
+  .problem-desc { font-size: .82rem; color: rgba(250,246,242,.4); line-height: 1.6; font-weight: 300; }
 
   /* ══════════════════ BENEFITS ══════════════════ */
   .section-benefits {
@@ -395,7 +408,6 @@
     background: var(--cream);
     position: relative;
   }
-
   .benefits-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -403,9 +415,7 @@
     align-items: center;
     margin-top: 4rem;
   }
-
   .benefits-list { display: flex; flex-direction: column; gap: 1.2rem; }
-
   .benefit-row {
     display: flex; align-items: flex-start; gap: 1rem;
     padding: 1.2rem;
@@ -418,10 +428,9 @@
     transform: translateX(4px);
     box-shadow: var(--shadow-soft);
   }
-
   .benefit-check {
     width: 28px; height: 28px;
-    background: linear-gradient(135deg, var(--rose-light), var(--rose));
+    background: linear-gradient(135deg, var(--accent-light), var(--accent));
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     color: var(--white);
@@ -430,25 +439,10 @@
     flex-shrink: 0;
     margin-top: .1rem;
   }
+  .benefit-text h4 { font-size: .95rem; font-weight: 600; color: var(--charcoal); margin-bottom: .2rem; }
+  .benefit-text p { font-size: .82rem; color: var(--muted); line-height: 1.5; font-weight: 300; }
 
-  .benefit-text h4 {
-    font-size: .95rem;
-    font-weight: 600;
-    color: var(--charcoal);
-    margin-bottom: .2rem;
-  }
-  .benefit-text p {
-    font-size: .82rem;
-    color: var(--muted);
-    line-height: 1.5;
-    font-weight: 300;
-  }
-
-  /* Benefits visual panel */
-  .benefits-visual {
-    position: relative;
-  }
-
+  .benefits-visual { position: relative; }
   .feature-card {
     background: var(--white);
     border-radius: var(--radius-lg);
@@ -456,7 +450,6 @@
     padding: 2rem;
     border: 1px solid var(--cream-dark);
   }
-
   .feature-card-title {
     font-family: var(--font-display);
     font-size: 1.3rem;
@@ -480,18 +473,8 @@
     font-size: .78rem;
     line-height: 1.5;
   }
-  .wa-msg.out {
-    background: #DCF8C6;
-    align-self: flex-end;
-    color: #2D5A27;
-    border-bottom-right-radius: 3px;
-  }
-  .wa-msg.in {
-    background: var(--white);
-    align-self: flex-start;
-    color: var(--charcoal);
-    border-bottom-left-radius: 3px;
-  }
+  .wa-msg.out { background: #DCF8C6; align-self: flex-end; color: #2D5A27; border-bottom-right-radius: 3px; }
+  .wa-msg.in  { background: var(--white); align-self: flex-start; color: var(--charcoal); border-bottom-left-radius: 3px; }
   .wa-time { font-size: .65rem; color: rgba(0,0,0,.35); text-align: right; margin-top: .15rem; }
 
   .mini-chart {
@@ -500,7 +483,7 @@
   }
   .bar {
     flex: 1;
-    background: linear-gradient(to top, var(--rose), var(--rose-light));
+    background: linear-gradient(to top, var(--accent), var(--accent-light));
     border-radius: 4px 4px 0 0;
     position: relative;
     transition: opacity .25s;
@@ -527,12 +510,10 @@
     background: radial-gradient(ellipse, rgba(201,132,122,.1) 0%, transparent 60%);
     pointer-events: none;
   }
-
   .offer-grid {
     display: flex; justify-content: center; flex-wrap: wrap; gap: 1.5rem;
     margin: 2.5rem 0;
   }
-
   .offer-pill {
     display: flex; align-items: center; gap: .6rem;
     background: rgba(255,255,255,.07);
@@ -543,7 +524,7 @@
     color: var(--cream);
     font-weight: 400;
   }
-  .offer-pill span { color: var(--rose-light); font-weight: 600; }
+  .offer-pill span { color: var(--accent-light); font-weight: 600; }
 
   /* ══════════════════ FORM ══════════════════ */
   .section-form {
@@ -554,19 +535,13 @@
     gap: 6rem;
     align-items: start;
   }
-
   .form-intro .section-title { margin-bottom: 1rem; }
-
-  .testimonial-block {
-    margin-top: 3rem;
-    display: flex; flex-direction: column; gap: 1.2rem;
-  }
-
+  .testimonial-block { margin-top: 3rem; display: flex; flex-direction: column; gap: 1.2rem; }
   .testimonial {
     background: var(--white);
     border-radius: var(--radius-md);
     padding: 1.4rem;
-    border-left: 3px solid var(--rose);
+    border-left: 3px solid var(--accent);
     box-shadow: var(--shadow-soft);
   }
   .testimonial p {
@@ -577,13 +552,8 @@
     margin-bottom: .7rem;
     font-weight: 300;
   }
-  .testimonial-author {
-    font-size: .78rem;
-    font-weight: 600;
-    color: var(--rose-deep);
-  }
+  .testimonial-author { font-size: .78rem; font-weight: 600; color: var(--accent-deep); }
 
-  /* Form Card */
   .form-card {
     background: var(--white);
     border-radius: var(--radius-xl);
@@ -591,13 +561,9 @@
     padding: 2.8rem;
     border: 1px solid var(--cream-dark);
     position: sticky;
-    top: 90px;
+    top: 112px;
   }
-
-  .form-card-header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
+  .form-card-header { text-align: center; margin-bottom: 2rem; }
   .form-card-title {
     font-family: var(--font-display);
     font-size: 1.7rem;
@@ -609,7 +575,7 @@
 
   .trial-badge {
     display: inline-block;
-    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
     color: var(--white);
     font-size: .72rem;
     font-weight: 600;
@@ -620,11 +586,7 @@
     margin-bottom: .8rem;
   }
 
-  .form-group {
-    position: relative;
-    margin-bottom: 1rem;
-  }
-
+  .form-group { position: relative; margin-bottom: 1rem; }
   .form-label {
     display: block;
     font-size: .75rem;
@@ -634,7 +596,6 @@
     text-transform: uppercase;
     margin-bottom: .4rem;
   }
-
   .form-input {
     width: 100%;
     background: var(--cream);
@@ -649,16 +610,26 @@
   }
   .form-input::placeholder { color: #BDB4AD; }
   .form-input:focus {
-    border-color: var(--rose);
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(201,132,122,.15);
     background: var(--white);
   }
-
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  /* Select input */
+  .form-input.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239B8E87' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+    cursor: pointer;
+  }
 
   .submit-btn {
     width: 100%;
-    background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
     color: var(--white);
     border: none;
     border-radius: var(--radius-sm);
@@ -672,10 +643,7 @@
     box-shadow: 0 6px 24px rgba(160,90,82,.3);
     margin-top: .4rem;
   }
-  .submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(160,90,82,.4);
-  }
+  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(160,90,82,.4); }
   .submit-btn:disabled { opacity: .7; cursor: not-allowed; transform: none; }
 
   .form-footer-note {
@@ -685,14 +653,9 @@
     margin-top: .8rem;
     display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;
   }
-  .form-footer-note span::before { content: '✓ '; color: var(--rose); font-weight: 700; }
+  .form-footer-note span::before { content: '✓ '; color: var(--accent); font-weight: 700; }
 
-  /* Success message */
-  .success-state {
-    display: none;
-    text-align: center;
-    padding: 2rem 0;
-  }
+  .success-state { display: none; text-align: center; padding: 2rem 0; }
   .success-state.active { display: block; }
   .success-icon {
     width: 70px; height: 70px;
@@ -702,13 +665,7 @@
     font-size: 2rem;
     margin: 0 auto 1.2rem;
   }
-  .success-title {
-    font-family: var(--font-display);
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--charcoal);
-    margin-bottom: .6rem;
-  }
+  .success-title { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; color: var(--charcoal); margin-bottom: .6rem; }
   .success-sub { font-size: .9rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
 
   /* ══════════════════ FOOTER ══════════════════ */
@@ -717,58 +674,40 @@
     padding: 3rem 8%;
     text-align: center;
   }
-  .footer-logo {
-    font-family: var(--font-display);
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--cream);
-    margin-bottom: .5rem;
-  }
-  .footer-logo span { color: var(--rose); }
+  .footer-logo { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; color: var(--cream); margin-bottom: .5rem; }
+  .footer-logo span { color: var(--accent); }
   .footer-tagline { font-size: .85rem; color: var(--muted); font-weight: 300; margin-bottom: 1.5rem; }
   .footer-divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 1.5rem 0; }
   .footer-contacts { display: flex; justify-content: center; flex-wrap: wrap; gap: 1.5rem; margin: .5rem 0; }
   .footer-contacts a { color: rgba(250,246,242,.55); font-size: .85rem; text-decoration: none; transition: color .2s; }
-  .footer-contacts a:hover { color: var(--rose-light); }
+  .footer-contacts a:hover { color: var(--accent-light); }
   .footer-copy { font-size: .75rem; color: rgba(250,246,242,.3); }
 
   /* ══════════════════ ANIMATIONS ══════════════════ */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50%       { transform: translateY(-8px); }
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: .5; transform: scale(1.2); }
-  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.2); } }
 
-  .reveal {
-    opacity: 0;
-    transform: translateY(28px);
-    transition: opacity .65s ease, transform .65s ease;
-  }
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .65s ease, transform .65s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* Transition de nicho */
+  .nicho-transition { transition: opacity .3s ease, transform .3s ease; }
+  .nicho-transition.fading { opacity: 0; transform: translateY(6px); }
 
   /* ══════════════════ RESPONSIVE ══════════════════ */
   @media (max-width: 1024px) {
-    .hero { grid-template-columns: 1fr; gap: 3rem; padding: 100px 6% 60px; }
+    .hero { grid-template-columns: 1fr; gap: 3rem; padding: 130px 6% 60px; }
     .hero-visual { max-width: 500px; margin: 0 auto; }
     .benefits-layout { grid-template-columns: 1fr; gap: 3rem; }
     .section-form { grid-template-columns: 1fr; gap: 3rem; }
     .form-card { position: static; }
   }
-
   @media (max-width: 768px) {
-    nav { padding: 0 4%; }
-    .hero { padding: 90px 4% 60px; }
+    .nicho-switcher { font-size: .68rem; gap: .35rem; padding: .4rem .8rem; flex-wrap: wrap; }
+    nav { top: 40px; padding: 0 4%; height: 62px; }
+    .hero { padding: 120px 4% 60px; }
     .section-problems, .section-benefits, .section-offer, .section-form { padding: 70px 4%; }
     .problems-grid { grid-template-columns: 1fr; }
     .stat-row { grid-template-columns: repeat(3,1fr); }
@@ -777,7 +716,6 @@
     .float-badge { display: none; }
     footer { padding: 2.5rem 4%; }
   }
-
   @media (max-width: 480px) {
     .hero-headline { font-size: 2.1rem; }
     .offer-pill { font-size: .78rem; padding: .55rem 1rem; }
@@ -786,22 +724,30 @@
 </head>
 <body>
 
+<!-- NICHO SWITCHER -->
+<div class="nicho-switcher">
+  <span>Selecione seu segmento:</span>
+  <button class="nicho-btn active" data-nicho="salao">💇‍♀️ Salão de Beleza</button>
+  <button class="nicho-btn" data-nicho="barbearia">✂️ Barbearia</button>
+  <button class="nicho-btn" data-nicho="estetica">✨ Clínica de Estética</button>
+</div>
+
 <!-- NAV -->
 <nav id="navbar">
-  <div class="nav-logo">Beauty<span>Tech</span></div>
-  <a href="#formulario" class="nav-cta">Teste Grátis por 15 Dias</a>
+  <div class="nav-logo">Beauty<span>Tech</span> <span class="nicho-tag" id="nav-nicho-tag">Salão</span></div>
+  <a href="#formulario" class="nav-cta" id="nav-cta-btn">Teste Grátis por 15 Dias</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-content">
-    <div class="hero-badge">🌸 Nova plataforma para salões</div>
+    <div class="hero-badge nicho-transition" id="hero-badge">🌸 Plataforma para salões de beleza</div>
 
-    <h1 class="hero-headline">
+    <h1 class="hero-headline nicho-transition" id="hero-headline">
       Transforme Seu Salão em um Negócio Mais <em>Organizado, Lucrativo</em> e Profissional
     </h1>
 
-    <p class="hero-sub">
+    <p class="hero-sub nicho-transition" id="hero-sub">
       Centralize agenda, clientes, financeiro, comissões e comunicação por WhatsApp em uma única plataforma simples e eficiente.
     </p>
 
@@ -815,52 +761,50 @@
     <div class="float-badge badge-2">
       <span class="badge-icon">📈</span>
       <div>
-        <div style="font-weight:600;color:#1C1917;font-size:.82rem;">+34% retenção</div>
+        <div style="font-weight:600;color:#1C1917;font-size:.82rem;" id="float-stat">+34% retenção</div>
         <div style="font-size:.68rem;color:#9B8E87;">este mês</div>
       </div>
     </div>
 
     <div class="hero-card">
       <div class="card-header">
-        <div class="card-dots">
-          <span></span><span></span><span></span>
-        </div>
-        <div class="card-title-bar">BeautyTech — Painel do Salão</div>
+        <div class="card-dots"><span></span><span></span><span></span></div>
+        <div class="card-title-bar" id="card-title-bar">BeautyTech — Painel do Salão</div>
       </div>
       <div class="card-body">
         <div class="stat-row">
           <div class="stat-box">
-            <div class="stat-num accent">14</div>
-            <div class="stat-label">Hoje</div>
+            <div class="stat-num accent" id="stat1-num">14</div>
+            <div class="stat-label" id="stat1-label">Hoje</div>
           </div>
           <div class="stat-box">
-            <div class="stat-num">R$847</div>
+            <div class="stat-num" id="stat2-num">R$847</div>
             <div class="stat-label">Faturado</div>
           </div>
           <div class="stat-box">
-            <div class="stat-num accent">96%</div>
-            <div class="stat-label">Presença</div>
+            <div class="stat-num accent" id="stat3-num">96%</div>
+            <div class="stat-label" id="stat3-label">Presença</div>
           </div>
         </div>
         <div class="appt-list">
-          <div style="font-size:.72rem;font-weight:600;color:#9B8E87;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.2rem;">Agendamentos de hoje</div>
+          <div style="font-size:.72rem;font-weight:600;color:#9B8E87;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.2rem;" id="appt-list-title">Agendamentos de hoje</div>
           <div class="appt-item">
             <span class="appt-dot green"></span>
-            <span class="appt-name">Ana Beatriz</span>
+            <span class="appt-name" id="appt1-name">Ana Beatriz</span>
             <span class="appt-time">09:00</span>
-            <span class="appt-tag">Coloração</span>
+            <span class="appt-tag" id="appt1-tag">Coloração</span>
           </div>
           <div class="appt-item">
             <span class="appt-dot yellow"></span>
-            <span class="appt-name">Camila Torres</span>
+            <span class="appt-name" id="appt2-name">Camila Torres</span>
             <span class="appt-time">10:30</span>
-            <span class="appt-tag">Corte</span>
+            <span class="appt-tag" id="appt2-tag">Corte</span>
           </div>
           <div class="appt-item">
             <span class="appt-dot rose"></span>
-            <span class="appt-name">Fernanda Lima</span>
+            <span class="appt-name" id="appt3-name">Fernanda Lima</span>
             <span class="appt-time">14:00</span>
-            <span class="appt-tag">Manicure</span>
+            <span class="appt-tag" id="appt3-tag">Manicure</span>
           </div>
         </div>
       </div>
@@ -880,41 +824,12 @@
 <section class="section-problems">
   <div class="reveal">
     <div class="section-label">Diagnóstico</div>
-    <h2 class="section-title light">Seu salão enfrenta<br>algum destes desafios?</h2>
-    <p class="section-sub">Você não está sozinho. São os problemas mais comuns que impedem salões de crescer.</p>
+    <h2 class="section-title light nicho-transition" id="problems-title">Seu salão enfrenta<br>algum destes desafios?</h2>
+    <p class="section-sub">Você não está sozinho. São os problemas mais comuns que impedem o crescimento do negócio.</p>
   </div>
 
-  <div class="problems-grid reveal">
-    <div class="problem-item">
-      <div class="problem-icon">📅</div>
-      <div class="problem-title">Agenda desorganizada</div>
-      <div class="problem-desc">Conflitos de horário, anotações em cadernos e clientes sem confirmação aumentam as faltas.</div>
-    </div>
-    <div class="problem-item">
-      <div class="problem-icon">📊</div>
-      <div class="problem-title">Financeiro em planilhas</div>
-      <div class="problem-desc">Sem visibilidade do fluxo de caixa, comissões e quanto realmente sobra no final do mês.</div>
-    </div>
-    <div class="problem-item">
-      <div class="problem-icon">👤</div>
-      <div class="problem-title">Clientes sem histórico</div>
-      <div class="problem-desc">Cada atendimento começa do zero — sem registro de serviços, preferências ou histórico de visitas.</div>
-    </div>
-    <div class="problem-item">
-      <div class="problem-icon">🔁</div>
-      <div class="problem-title">Clientes que somem</div>
-      <div class="problem-desc">Sem acompanhamento pós-atendimento, clientes vão para a concorrência sem você perceber.</div>
-    </div>
-    <div class="problem-item">
-      <div class="problem-icon">💸</div>
-      <div class="problem-title">Comissões complicadas</div>
-      <div class="problem-desc">Calcular comissões manualmente gera erros, conflitos e desconfiança na equipe.</div>
-    </div>
-    <div class="problem-item">
-      <div class="problem-icon">📱</div>
-      <div class="problem-title">Informações espalhadas</div>
-      <div class="problem-desc">Dados em vários apps, WhatsApp, cadernos e planilhas — sem centralização e controle.</div>
-    </div>
+  <div class="problems-grid reveal" id="problems-grid">
+    <!-- preenchido via JS -->
   </div>
 </section>
 
@@ -922,74 +837,21 @@
 <section class="section-benefits">
   <div class="reveal" style="text-align:center;margin-bottom:0;">
     <div class="section-label">Solução Completa</div>
-    <h2 class="section-title dark" style="margin-bottom:.6rem;">Tudo que seu salão precisa<br>em um único lugar</h2>
-    <p class="section-sub" style="margin:0 auto;">Nossa plataforma reúne todos os módulos essenciais para dar mais controle, praticidade e crescimento ao seu negócio.</p>
+    <h2 class="section-title dark nicho-transition" id="benefits-title" style="margin-bottom:.6rem;">Tudo que seu salão precisa<br>em um único lugar</h2>
+    <p class="section-sub nicho-transition" id="benefits-sub" style="margin:0 auto;">Nossa plataforma reúne todos os módulos essenciais para dar mais controle, praticidade e crescimento ao seu negócio.</p>
   </div>
 
   <div class="benefits-layout">
-    <div class="benefits-list reveal">
-      <div class="benefit-row">
-        <div class="benefit-check">✓</div>
-        <div class="benefit-text">
-          <h4>Agenda online inteligente</h4>
-          <p>Visualize, confirme e organize todos os agendamentos em tempo real, com lembretes automáticos via WhatsApp.</p>
-        </div>
-      </div>
-      <div class="benefit-row">
-        <div class="benefit-check">✓</div>
-        <div class="benefit-text">
-          <h4>Cadastro completo de clientes</h4>
-          <p>Histórico de atendimentos, preferências, aniversário e dados de contato sempre acessíveis.</p>
-        </div>
-      </div>
-      <div class="benefit-row">
-        <div class="benefit-check">✓</div>
-        <div class="benefit-text">
-          <h4>Controle financeiro simplificado</h4>
-          <p>Receitas, despesas, caixa diário e relatórios em poucos cliques — sem planilhas complicadas.</p>
-        </div>
-      </div>
-      <div class="benefit-row">
-        <div class="benefit-check">✓</div>
-        <div class="benefit-text">
-          <h4>Controle de comissões</h4>
-          <p>Defina regras por profissional e serviço. Cálculo automático, transparente e sem erros.</p>
-        </div>
-      </div>
-      <div class="benefit-row">
-        <div class="benefit-check">✓</div>
-        <div class="benefit-text">
-          <h4>Comunicação via WhatsApp</h4>
-          <p>Confirme agendamentos, envie lembretes, aniversários e mensagens de reativação automaticamente.</p>
-        </div>
-      </div>
-      <div class="benefit-row">
-        <div class="benefit-check">✓</div>
-        <div class="benefit-text">
-          <h4>Maior fidelização de clientes</h4>
-          <p>Acompanhamento pós-atendimento e fluxos automáticos que trazem clientes de volta.</p>
-        </div>
-      </div>
+    <div class="benefits-list reveal" id="benefits-list">
+      <!-- preenchido via JS -->
     </div>
 
     <div class="benefits-visual reveal">
       <div class="feature-card">
         <div class="feature-card-title">💬 WhatsApp Automático</div>
-        <div class="whatsapp-preview">
-          <div class="wa-msg out">
-            Oi Ana! Lembrete: amanhã às 14h você tem horário marcado com a Jú para coloração 💇‍♀️<br>
-            <div class="wa-time">BeautyTech · 20:00 ✓✓</div>
-          </div>
-          <div class="wa-msg in">
-            Obrigada!! Confirmo sim 😊<br>
-            <div class="wa-time">20:03</div>
-          </div>
-          <div class="wa-msg out">
-            Ótimo! Nos vemos amanhã 🌸 Qualquer dúvida é só chamar.<br>
-            <div class="wa-time">20:03 ✓✓</div>
-          </div>
+        <div class="whatsapp-preview" id="wa-preview">
+          <!-- preenchido via JS -->
         </div>
-
         <div style="margin-top:1.4rem;">
           <div style="font-size:.78rem;font-weight:600;color:#9B8E87;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.6rem;">Faturamento — Últimos 7 dias</div>
           <div class="mini-chart">
@@ -1011,11 +873,10 @@
 <!-- OFFER -->
 <section class="section-offer">
   <div class="reveal">
-    <div class="section-label" style="color:var(--rose-light);">Oferta Especial</div>
-    <h2 class="section-title light" style="margin-bottom:.6rem;">Experimente gratuitamente<br>por <em style="font-style:italic;color:var(--rose-light);">15 dias</em></h2>
-    <p style="color:rgba(250,246,242,.55);font-size:1rem;font-weight:300;max-width:500px;margin:0 auto 2rem;">Sem burocracia, sem risco. Veja na prática como o BeautyTech transforma a gestão do seu salão.</p>
+    <div class="section-label" style="color:var(--accent-light);">Oferta Especial</div>
+    <h2 class="section-title light" style="margin-bottom:.6rem;">Experimente gratuitamente<br>por <em style="font-style:italic;color:var(--accent-light);">15 dias</em></h2>
+    <p style="color:rgba(250,246,242,.55);font-size:1rem;font-weight:300;max-width:500px;margin:0 auto 2rem;" id="offer-sub">Sem burocracia, sem risco. Veja na prática como o BeautyTech transforma a gestão do seu negócio.</p>
   </div>
-
   <div class="offer-grid reveal">
     <div class="offer-pill"><span>✔</span> Sem cartão de crédito</div>
     <div class="offer-pill"><span>✔</span> Sem contrato</div>
@@ -1023,7 +884,6 @@
     <div class="offer-pill"><span>✔</span> Sem taxa de implantação</div>
     <div class="offer-pill"><span>✔</span> Suporte durante o teste</div>
   </div>
-
   <div class="reveal">
     <a href="#formulario" class="btn-primary" style="font-size:1.05rem;padding:1rem 2.8rem;">
       Quero Receber Meu Acesso Gratuito →
@@ -1035,28 +895,19 @@
 <section class="section-form" id="formulario">
   <div class="form-intro reveal">
     <div class="section-label">Formulário de Interesse</div>
-    <h2 class="section-title dark">Pronto para transformar<br>seu salão?</h2>
+    <h2 class="section-title dark nicho-transition" id="form-title">Pronto para transformar<br>seu negócio?</h2>
     <p class="section-sub">Preencha ao lado e nossa equipe entrará em contato para liberar seu acesso e mostrar tudo o que a plataforma oferece.</p>
-
-    <div class="testimonial-block">
-      <div class="testimonial">
-        <p>"Antes usava caderno e WhatsApp para tudo. Com o BeautyTech em 1 semana já reduzi as faltas em quase 40%. É impressionante como parece simples."</p>
-        <div class="testimonial-author">— Juliana Menezes, Studio Juliana · SP</div>
-      </div>
-      <div class="testimonial">
-        <p>"O controle de comissões que me deu mais paz. Antes tinha problemas toda quinzena. Agora todo mundo vê o próprio extrato em tempo real."</p>
-        <div class="testimonial-author">— Ricardo Alves, Barber House · BH</div>
-      </div>
+    <div class="testimonial-block" id="testimonials-block">
+      <!-- preenchido via JS -->
     </div>
   </div>
 
   <div class="form-card reveal" id="form-card">
-    <!-- FORM STATE -->
     <div id="form-state">
       <div class="form-card-header">
         <div class="trial-badge">🎁 15 dias gratuitos</div>
-        <div class="form-card-title">Solicitar Acesso de Teste</div>
-        <div class="form-card-sub">Preencha os dados abaixo e entraremos em contato em breve</div>
+        <div class="form-card-title nicho-transition" id="form-card-title">Solicitar Acesso de Teste</div>
+        <div class="form-card-sub" id="form-card-sub">Preencha os dados abaixo e entraremos em contato em breve</div>
       </div>
 
       <form id="lead-form" novalidate>
@@ -1064,12 +915,19 @@
           <label class="form-label" for="nome">Seu Nome</label>
           <input type="text" id="nome" class="form-input" placeholder="Ex: Juliana Costa" required>
         </div>
-
         <div class="form-group">
-          <label class="form-label" for="salao">Nome do Salão</label>
-          <input type="text" id="salao" class="form-input" placeholder="Ex: Studio Juliana Beleza" required>
+          <label class="form-label" for="negocio" id="negocio-label">Nome do Salão</label>
+          <input type="text" id="negocio" class="form-input" placeholder="Ex: Studio Juliana Beleza" required>
         </div>
-
+        <div class="form-group">
+          <label class="form-label" for="segmento">Segmento</label>
+          <select id="segmento" class="form-input form-select" required>
+            <option value="">Selecione seu segmento</option>
+            <option value="Salão de Beleza">💇‍♀️ Salão de Beleza</option>
+            <option value="Barbearia">✂️ Barbearia</option>
+            <option value="Clínica de Estética">✨ Clínica de Estética</option>
+          </select>
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="whatsapp">WhatsApp</label>
@@ -1080,7 +938,6 @@
             <input type="text" id="cidade" class="form-input" placeholder="Ex: Uberaba - MG" required>
           </div>
         </div>
-
         <div class="form-group">
           <label class="form-label" for="email">E-mail</label>
           <input type="email" id="email" class="form-input" placeholder="seu@email.com.br" required>
@@ -1089,22 +946,20 @@
         <button type="submit" class="submit-btn" id="submit-btn">
           Receber Acesso de Teste Gratuito →
         </button>
-
         <div class="form-footer-note">
-          <span>Sem cartão de crédito</span>
+          <span>Sem cartão</span>
           <span>Sem contrato</span>
           <span>Suporte incluso</span>
         </div>
       </form>
     </div>
 
-    <!-- SUCCESS STATE -->
     <div class="success-state" id="success-state">
       <div class="success-icon">✓</div>
       <div class="success-title">Solicitação Recebida!</div>
       <p class="success-sub">
         Obrigado pelo seu interesse!<br><br>
-        Em breve entraremos em contato pelo WhatsApp informado para liberar seu acesso gratuito de 15 dias e apresentar todos os recursos da plataforma. 🌸
+        Em breve entraremos em contato pelo WhatsApp informado para liberar seu acesso gratuito de 15 dias. 🌸
       </p>
     </div>
   </div>
@@ -1113,7 +968,7 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-logo">Beauty<span>Tech</span></div>
-  <div class="footer-tagline">Sistema de Gestão para Salões de Beleza<br>Mais organização, mais clientes fidelizados e mais resultados para o seu negócio.</div>
+  <div class="footer-tagline" id="footer-tagline">Sistema de Gestão para Salões de Beleza, Barbearias e Clínicas de Estética<br>Mais organização, mais clientes fidelizados e mais resultados para o seu negócio.</div>
   <div class="footer-contacts">
     <a href="https://www.websitelog.com.br" target="_blank" rel="noopener">🌐 www.websitelog.com.br</a>
     <a href="mailto:websitelogx@gmail.com">✉️ websitelogx@gmail.com</a>
@@ -1124,154 +979,426 @@
 </footer>
 
 <script>
-  // ── Nav scroll ──
-  const navbar = document.getElementById('navbar');
-  window.addEventListener('scroll', () => {
-    navbar.classList.toggle('scrolled', window.scrollY > 20);
-  });
+// ═══════════════════════════════════════════════
+// ⚙️  CONFIGURAÇÃO — edite apenas estas linhas
+// ═══════════════════════════════════════════════
+const CFG = {
+  emailjs_public_key:  'COLE_SUA_PUBLIC_KEY_AQUI',
+  emailjs_service_id:  'COLE_SEU_SERVICE_ID_AQUI',
+  emailjs_template_id: 'COLE_SEU_TEMPLATE_ID_AQUI',
+  email_destino:    'websitelogx@gmail.com',
+  whatsapp_destino: '5534997824990',
+};
+// ═══════════════════════════════════════════════
 
-  // ── Scroll reveal ──
-  const revealEls = document.querySelectorAll('.reveal');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        setTimeout(() => entry.target.classList.add('visible'), i * 80);
-        observer.unobserve(entry.target);
+// ── Dados por nicho ──────────────────────────────────────────────────────────
+const NICHOS = {
+  salao: {
+    tag:         'Salão',
+    badge:       '🌸 Plataforma para Clínicas de Estética, Salões de Beleza e Barbearia',
+    headline:    'Transforme sua <span style="color:#C8BFB9;">Clínica de Estética</span>, <span style="color:#C9847A;font-weight:700;">Salão de Beleza</span> ou <span style="color:#C8BFB9;">Barbearia</span> em um negócio mais <em>organizado, lucrativo</em> e profissional com automação, fidelização de clientes e gestão completa em uma única plataforma.',
+    sub:         'Centralize agenda, clientes, financeiro, comissões e comunicação por WhatsApp em uma única plataforma simples e eficiente.',
+    floatStat:   '+34% retenção',
+    cardTitle:   'BeautyTech — Painel do Salão',
+    stat1: '14', stat1lbl: 'Hoje', stat2: 'R$847', stat3: '96%', stat3lbl: 'Presença',
+    appts: [
+      { name: 'Ana Beatriz',    time: '09:00', tag: 'Coloração', dot: 'green'  },
+      { name: 'Camila Torres',  time: '10:30', tag: 'Corte',     dot: 'yellow' },
+      { name: 'Fernanda Lima',  time: '14:00', tag: 'Manicure',  dot: 'rose'   },
+    ],
+    problemsTitle: 'Sua <span style="color:#C8BFB9;">clínica de estética</span>, <span style="color:#C9847A;font-weight:700;">salão de beleza</span><br>ou <span style="color:#C8BFB9;">barbearia</span> enfrenta algum destes desafios?',
+    problems: [
+      { icon: '📅', title: 'Agenda desorganizada',   desc: 'Conflitos de horário, anotações em cadernos e clientes sem confirmação aumentam as faltas.' },
+      { icon: '📊', title: 'Financeiro em planilhas', desc: 'Sem visibilidade do fluxo de caixa, comissões e quanto realmente sobra no final do mês.' },
+      { icon: '👤', title: 'Clientes sem histórico',  desc: 'Cada atendimento começa do zero — sem registro de serviços, preferências ou histórico de visitas.' },
+      { icon: '🔁', title: 'Clientes que somem',      desc: 'Sem acompanhamento pós-atendimento, clientes vão para a concorrência sem você perceber.' },
+      { icon: '💸', title: 'Comissões complicadas',   desc: 'Calcular comissões manualmente gera erros, conflitos e desconfiança na equipe.' },
+      { icon: '📱', title: 'Informações espalhadas',  desc: 'Dados em vários apps, WhatsApp, cadernos e planilhas — sem centralização e controle.' },
+    ],
+    benefitsTitle: 'Tudo que sua <span style="color:#C8BFB9;">Clínica de Estética</span>, <span style="color:#C9847A;font-weight:700;">Salão de Beleza</span><br>ou <span style="color:#C8BFB9;">Barbearia</span> precisa em um único lugar',
+    benefitsSub:   'Nossa plataforma reúne todos os módulos essenciais para dar mais controle, praticidade e crescimento ao seu negócio.',
+    benefits: [
+      { title: 'Agenda online inteligente',          desc: 'Visualize, confirme e organize todos os agendamentos em tempo real, com lembretes automáticos via WhatsApp.' },
+      { title: 'Cadastro completo de clientes',      desc: 'Histórico de atendimentos, preferências, aniversário e dados de contato sempre acessíveis.' },
+      { title: 'Controle financeiro simplificado',   desc: 'Receitas, despesas, caixa diário e relatórios em poucos cliques — sem planilhas complicadas.' },
+      { title: 'Controle de comissões',              desc: 'Defina regras por profissional e serviço. Cálculo automático, transparente e sem erros.' },
+      { title: 'Comunicação via WhatsApp',           desc: 'Confirme agendamentos, envie lembretes, aniversários e mensagens de reativação automaticamente.' },
+      { title: 'Maior fidelização de clientes',      desc: 'Acompanhamento pós-atendimento e fluxos automáticos que trazem clientes de volta.' },
+    ],
+    waMsg1: 'Oi Ana! Lembrete: amanhã às 14h você tem horário com a Jú para coloração 💇‍♀️',
+    waReply:'Obrigada!! Confirmo sim 😊',
+    waMsg2: 'Ótimo! Nos vemos amanhã 🌸 Qualquer dúvida é só chamar.',
+    negocioLabel: 'Nome do Salão',
+    negocioPlaceholder: 'Ex: Studio Juliana Beleza',
+    formCardTitle: 'Acesso para Salões',
+    problemsFormTitle: 'Pronto para transformar<br>seu salão?',
+    testimonials: [
+      { text: '"Antes usava caderno e WhatsApp para tudo. Com o BeautyTech em 1 semana já reduzi as faltas em quase 40%. É impressionante como parece simples."', author: '— Juliana Menezes, Studio Juliana · SP' },
+      { text: '"O controle de comissões me deu mais paz. Antes tinha problemas toda quinzena. Agora todo mundo vê o próprio extrato em tempo real."', author: '— Ricardo Alves, Barber House · BH' },
+    ],
+  },
+
+  barbearia: {
+    tag:         'Barbearia',
+    badge:       '✂️ Plataforma para Clínicas de Estética, Salões de Beleza e Barbearia',
+    headline:    'Transforme sua <span style="color:#C8BFB9;">Clínica de Estética</span>, <span style="color:#C8BFB9;">Salão de Beleza</span> ou <span style="color:#8A7BAF;font-weight:700;">Barbearia</span> em um negócio mais <em>organizado, lucrativo</em> e profissional com automação, fidelização de clientes e gestão completa em uma única plataforma.',
+    sub:         'Agenda online, controle de caixa, comissões dos barbeiros e comunicação via WhatsApp — tudo num sistema feito para o ritmo da barbearia.',
+    floatStat:   '+41% recorrência',
+    cardTitle:   'BeautyTech — Painel da Barbearia',
+    stat1: '22', stat1lbl: 'Clientes', stat2: 'R$1.240', stat3: '98%', stat3lbl: 'Confirmados',
+    appts: [
+      { name: 'Rafael Souza',  time: '09:00', tag: 'Degradê',  dot: 'green'  },
+      { name: 'Bruno Mendes',  time: '10:00', tag: 'Barba',    dot: 'yellow' },
+      { name: 'Lucas Neves',   time: '11:30', tag: 'Corte+Barba', dot: 'rose' },
+    ],
+    problemsTitle: 'Sua <span style="color:#C8BFB9;">clínica de estética</span>, <span style="color:#C8BFB9;">salão de beleza</span><br>ou <span style="color:#8A7BAF;font-weight:700;">barbearia</span> enfrenta algum destes desafios?',
+    problems: [
+      { icon: '📅', title: 'Fila e espera mal gerida',   desc: 'Clientes aguardam sem saber o horário. A bagunça na agenda afasta quem quer agendar online.' },
+      { icon: '💸', title: 'Comissão dos barbeiros',     desc: 'Controle manual de porcentagem por serviço gera erros, brigas e falta de confiança na equipe.' },
+      { icon: '📉', title: 'Clientes que não voltam',    desc: 'Sem régua de relacionamento, o cliente corta uma vez e vai para a barbearia da esquina.' },
+      { icon: '📊', title: 'Caixa sem controle',         desc: 'Não saber quanto entrou, saiu e sobrou dificulta a tomada de decisão e o crescimento.' },
+      { icon: '🔔', title: 'Faltas sem aviso',           desc: 'Confirmar horário manualmente toma tempo e ainda assim tem furo na agenda toda semana.' },
+      { icon: '📱', title: 'Gestão no WhatsApp pessoal', desc: 'Misturar vida pessoal com agendamentos cria confusão, perde mensagens e atrapalha o atendimento.' },
+    ],
+    benefitsTitle: 'Tudo que sua <span style="color:#C8BFB9;">Clínica de Estética</span>, <span style="color:#C8BFB9;">Salão de Beleza</span><br>ou <span style="color:#8A7BAF;font-weight:700;">Barbearia</span> precisa em um único lugar',
+    benefitsSub:   'Do agendamento ao fechamento de caixa — recursos pensados para a realidade das barbearias modernas.',
+    benefits: [
+      { title: 'Agendamento online 24h',            desc: 'Clientes agendam pelo link da barbearia a qualquer hora, sem precisar ligar ou mandar mensagem.' },
+      { title: 'Comissão automática por barbeiro',  desc: 'Configure percentual por serviço e profissional. O sistema calcula tudo e elimina conflitos.' },
+      { title: 'Confirmação automática via WhatsApp', desc: 'Lembrete 24h antes reduz faltas. Cliente confirma com um clique, sem trabalho manual.' },
+      { title: 'Controle de caixa diário',          desc: 'Entradas, saídas e relatório do dia em poucos segundos — sem planilha e sem papel.' },
+      { title: 'Histórico do cliente',              desc: 'Veja o último corte, preferências e frequência de visita de cada cliente antes de atender.' },
+      { title: 'Reativação de clientes inativos',   desc: 'Sistema identifica quem não aparece há X dias e dispara mensagem de retorno automaticamente.' },
+    ],
+    waMsg1: 'E aí Rafael! Seu horário amanhã às 09h com o Marcos para o degradê está confirmado ✂️',
+    waReply:'Confirmado! Valeu 🤙',
+    waMsg2: 'Ótimo! Te esperamos amanhã. Qualquer coisa é só chamar 🔥',
+    negocioLabel: 'Nome da Barbearia',
+    negocioPlaceholder: 'Ex: Barber House Prime',
+    formCardTitle: 'Acesso para Barbearias',
+    problemsFormTitle: 'Pronto para transformar<br>sua barbearia?',
+    testimonials: [
+      { text: '"Minhas faltas caíram mais de 50% depois que comecei a usar o lembrete automático do WhatsApp. A agenda ficou muito mais previsível."', author: '— Marcos Vieira, Prime Barber · MG' },
+      { text: '"O controle de comissão por barbeiro acabou com a maior dor de cabeça que eu tinha. Cada um vê o próprio extrato e não tem mais discussão."', author: '— Diego Faria, Steel Cuts · SP' },
+    ],
+  },
+
+  estetica: {
+    tag:         'Estética',
+    badge:       '✨ Plataforma para Clínicas de Estética, Salões de Beleza e Barbearia',
+    headline:    'Transforme sua <span style="color:#7C9E8F;font-weight:700;">Clínica de Estética</span>, <span style="color:#C8BFB9;">Salão de Beleza</span> ou <span style="color:#C8BFB9;">Barbearia</span> em um negócio mais <em>organizado, lucrativo</em> e profissional com automação, fidelização de clientes e gestão completa em uma única plataforma.',
+    sub:         'Gestão de agendamentos, prontuário de clientes, controle de procedimentos, financeiro e comunicação automática — tudo integrado para sua clínica crescer.',
+    floatStat:   '+38% fidelização',
+    cardTitle:   'BeautyTech — Painel da Clínica',
+    stat1: '11', stat1lbl: 'Hoje', stat2: 'R$2.380', stat3: '94%', stat3lbl: 'Presença',
+    appts: [
+      { name: 'Mariana Rocha',  time: '09:00', tag: 'Limpeza de Pele', dot: 'green'  },
+      { name: 'Patrícia Alves', time: '11:00', tag: 'Peeling',         dot: 'yellow' },
+      { name: 'Sandra Costa',   time: '14:30', tag: 'Drenagem',        dot: 'rose'   },
+    ],
+    problemsTitle: 'Sua <span style="color:#7C9E8F;font-weight:700;">clínica de estética</span>, <span style="color:#C8BFB9;">salão de beleza</span><br>ou <span style="color:#C8BFB9;">barbearia</span> enfrenta algum destes desafios?',
+    problems: [
+      { icon: '📋', title: 'Prontuário em papel',       desc: 'Perder o histórico de procedimentos de uma paciente compromete o atendimento e a segurança do tratamento.' },
+      { icon: '📅', title: 'Agenda com falhas',         desc: 'Horários duplicados, conflitos entre profissionais e confirmações manuais tomam tempo e geram estresse.' },
+      { icon: '💳', title: 'Pacotes sem controle',      desc: 'Controlar sessões de pacotes manualmente leva a erros, cobranças erradas e insatisfação.' },
+      { icon: '🔁', title: 'Retenção baixa',            desc: 'Sem acompanhamento ativo pós-procedimento, pacientes completam o tratamento e somem.' },
+      { icon: '📊', title: 'Financeiro confuso',        desc: 'Mistura de receitas, despesas com insumos e comissões sem visibilidade clara do resultado real.' },
+      { icon: '📱', title: 'Comunicação desorganizada', desc: 'Respostas no WhatsApp pessoal, lembretes esquecidos e ausência de follow-up profissional.' },
+    ],
+    benefitsTitle: 'Tudo que sua <span style="color:#7C9E8F;font-weight:700;">Clínica de Estética</span>, <span style="color:#C8BFB9;">Salão de Beleza</span><br>ou <span style="color:#C8BFB9;">Barbearia</span> precisa em um único lugar',
+    benefitsSub:   'Módulos pensados para estéticas: do agendamento ao acompanhamento de pacotes e prontuário de cada cliente.',
+    benefits: [
+      { title: 'Agendamento com confirmação automática', desc: 'Paciente agenda online, recebe lembrete por WhatsApp e confirma em 1 clique — sem trabalho manual.' },
+      { title: 'Prontuário digital por cliente',         desc: 'Registre procedimentos, observações e evolução. Histórico completo sempre acessível no sistema.' },
+      { title: 'Controle de pacotes e sessões',          desc: 'Gerencie pacotes por cliente: sessões realizadas, saldo restante e alertas de vencimento automáticos.' },
+      { title: 'Financeiro com controle de insumos',     desc: 'Receitas, despesas, comissões e custos de procedimentos — relatório claro do resultado real.' },
+      { title: 'Follow-up automático pós-procedimento',  desc: 'Mensagem personalizada dias após o procedimento reforça o cuidado e incentiva o retorno.' },
+      { title: 'Programa de fidelidade integrado',       desc: 'Pontuação por visita, desconto em datas especiais e reativação de pacientes inativos sem esforço.' },
+    ],
+    waMsg1: 'Oi Mariana! Seu procedimento de limpeza de pele está confirmado amanhã às 09h com a Dra. Paula ✨',
+    waReply:'Confirmado, obrigada! 🌸',
+    waMsg2: 'Ótimo! Chegue 5 minutos antes. Te esperamos com carinho 💆‍♀️',
+    negocioLabel: 'Nome da Clínica',
+    negocioPlaceholder: 'Ex: Clínica Bella Estética',
+    formCardTitle: 'Acesso para Clínicas',
+    problemsFormTitle: 'Pronto para transformar<br>sua clínica?',
+    testimonials: [
+      { text: '"O controle de pacotes por cliente era o que mais precisava. Antes eu perdia sessão e gerava confusão com as pacientes. Agora está tudo registrado."', author: '— Dra. Fernanda Luz, Clínica Luminus · GO' },
+      { text: '"O follow-up automático pós-procedimento foi um divisor de águas. Minhas pacientes voltam mais e ainda indicam. É como ter uma secretária 24h."', author: '— Carla Monteiro, Studio Glow · MG' },
+    ],
+  }
+};
+
+// ── Estado atual ─────────────────────────────────────────────────────────────
+let nichoAtual = 'salao';
+
+function applyNicho(nicho, animate) {
+  const d = NICHOS[nicho];
+  nichoAtual = nicho;
+
+  // Atualizar select de segmento
+  const selectSeg = document.getElementById('segmento');
+  if (nicho === 'salao') selectSeg.value = 'Salão de Beleza';
+  else if (nicho === 'barbearia') selectSeg.value = 'Barbearia';
+  else selectSeg.value = 'Clínica de Estética';
+
+  function setFade(ids, props) {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (animate) {
+        el.classList.add('fading');
+        setTimeout(() => {
+          setProps(el, id, props);
+          el.classList.remove('fading');
+        }, 280);
+      } else {
+        setProps(el, id, props);
       }
     });
-  }, { threshold: 0.12 });
-  revealEls.forEach(el => observer.observe(el));
+  }
 
-  // ── WhatsApp mask ──
-  const waInput = document.getElementById('whatsapp');
-  waInput.addEventListener('input', () => {
-    let v = waInput.value.replace(/\D/g, '').substring(0, 11);
-    if (v.length >= 7) {
-      v = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`;
-    } else if (v.length >= 3) {
-      v = `(${v.substring(0,2)}) ${v.substring(2)}`;
-    } else if (v.length > 0) {
-      v = `(${v}`;
+  function setProps(el, id, props) {
+    if (props[id] !== undefined) {
+      if (id === 'hero-headline' || id === 'benefits-title' || id === 'problems-title' || id === 'form-title') {
+        el.innerHTML = props[id];
+      } else {
+        el.textContent = props[id];
+      }
     }
-    waInput.value = v;
+  }
+
+  const textMap = {
+    'nav-nicho-tag':    d.tag,
+    'hero-badge':       d.badge,
+    'hero-headline':    d.headline,
+    'hero-sub':         d.sub,
+    'float-stat':       d.floatStat,
+    'card-title-bar':   d.cardTitle,
+    'stat1-num':        d.stat1,
+    'stat1-label':      d.stat1lbl,
+    'stat2-num':        d.stat2,
+    'stat3-num':        d.stat3,
+    'stat3-label':      d.stat3lbl,
+    'appt1-name':       d.appts[0].name,
+    'appt1-tag':        d.appts[0].tag,
+    'appt2-name':       d.appts[1].name,
+    'appt2-tag':        d.appts[1].tag,
+    'appt3-name':       d.appts[2].name,
+    'appt3-tag':        d.appts[2].tag,
+    'problems-title':   d.problemsTitle,
+    'benefits-title':   d.benefitsTitle,
+    'benefits-sub':     d.benefitsSub,
+    'form-title':       d.problemsFormTitle,
+    'form-card-title':  d.formCardTitle,
+  };
+
+  Object.keys(textMap).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const val = textMap[id];
+    const doUpdate = () => {
+      if (['hero-headline','benefits-title','problems-title','form-title'].includes(id)) {
+        el.innerHTML = val;
+      } else { el.textContent = val; }
+    };
+    if (animate) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(4px)';
+      el.style.transition = 'opacity .25s ease, transform .25s ease';
+      setTimeout(() => {
+        doUpdate();
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, 220);
+    } else { doUpdate(); }
   });
 
-  // ══════════════════════════════════════════════
-  // ⚙️  CONFIGURAÇÃO — edite apenas estas linhas
-  // ══════════════════════════════════════════════
-  const CFG = {
-    // ── EmailJS ──────────────────────────────────
-    // 1. Crie conta grátis em https://emailjs.com
-    // 2. Crie um Email Service (Gmail) e copie o Service ID
-    // 3. Crie um Email Template e copie o Template ID
-    // 4. Copie sua Public Key (Account → API Keys)
-    emailjs_public_key:  'COLE_SUA_PUBLIC_KEY_AQUI',
-    emailjs_service_id:  'COLE_SEU_SERVICE_ID_AQUI',
-    emailjs_template_id: 'COLE_SEU_TEMPLATE_ID_AQUI',
+  // Negocio label/placeholder
+  const negocioLabel = document.getElementById('negocio-label');
+  const negocioInput = document.getElementById('negocio');
+  if (negocioLabel) negocioLabel.textContent = d.negocioLabel;
+  if (negocioInput) negocioInput.placeholder = d.negocioPlaceholder;
 
-    // ── Destino ──────────────────────────────────
-    email_destino:    'websitelogx@gmail.com',
-    whatsapp_destino: '5534997824990',   // DDD + número, sem espaço
-  };
-  // ══════════════════════════════════════════════
+  // Problems grid
+  const pg = document.getElementById('problems-grid');
+  if (pg) {
+    const html = d.problems.map(p =>
+      '<div class="problem-item">' +
+        '<div class="problem-icon">' + p.icon + '</div>' +
+        '<div class="problem-title">' + p.title + '</div>' +
+        '<div class="problem-desc">' + p.desc + '</div>' +
+      '</div>'
+    ).join('');
+    pg.innerHTML = html;
+  }
 
-  // ── Form submit ──
-  const form = document.getElementById('lead-form');
-  const submitBtn = document.getElementById('submit-btn');
+  // Benefits list
+  const bl = document.getElementById('benefits-list');
+  if (bl) {
+    const html = d.benefits.map(b =>
+      '<div class="benefit-row">' +
+        '<div class="benefit-check">✓</div>' +
+        '<div class="benefit-text"><h4>' + b.title + '</h4><p>' + b.desc + '</p></div>' +
+      '</div>'
+    ).join('');
+    bl.innerHTML = html;
+  }
+
+  // WhatsApp preview
+  const wa = document.getElementById('wa-preview');
+  if (wa) {
+    wa.innerHTML =
+      '<div class="wa-msg out">' + d.waMsg1 + '<div class="wa-time">BeautyTech · 20:00 ✓✓</div></div>' +
+      '<div class="wa-msg in">' + d.waReply + '<div class="wa-time">20:03</div></div>' +
+      '<div class="wa-msg out">' + d.waMsg2 + '<div class="wa-time">20:04 ✓✓</div></div>';
+  }
+
+  // Testimonials
+  const tb = document.getElementById('testimonials-block');
+  if (tb) {
+    const html = d.testimonials.map(t =>
+      '<div class="testimonial">' +
+        '<p>' + t.text + '</p>' +
+        '<div class="testimonial-author">' + t.author + '</div>' +
+      '</div>'
+    ).join('');
+    tb.innerHTML = html;
+  }
+}
+
+// ── Botões de nicho ───────────────────────────────────────────────────────────
+document.querySelectorAll('.nicho-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nicho-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyNicho(btn.dataset.nicho, true);
+  });
+});
+
+// Init
+applyNicho('salao', false);
+
+// ── Nav scroll ───────────────────────────────────────────────────────────────
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ── Scroll reveal ────────────────────────────────────────────────────────────
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+revealEls.forEach(el => observer.observe(el));
+
+// ── WhatsApp mask ─────────────────────────────────────────────────────────────
+const waInput = document.getElementById('whatsapp');
+waInput.addEventListener('input', () => {
+  let v = waInput.value.replace(/\D/g, '').substring(0, 11);
+  if (v.length >= 7)      v = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
+  else if (v.length >= 3) v = '(' + v.substring(0,2) + ') ' + v.substring(2);
+  else if (v.length > 0)  v = '(' + v;
+  waInput.value = v;
+});
+
+// ── EmailJS ───────────────────────────────────────────────────────────────────
+(function(){
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+  s.onload = () => emailjs.init({ publicKey: CFG.emailjs_public_key });
+  document.head.appendChild(s);
+})();
+
+function mostrarSucesso() {
   const formState = document.getElementById('form-state');
   const successState = document.getElementById('success-state');
-
-  // Carrega EmailJS SDK
-  (function(){
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
-    s.onload = () => emailjs.init({ publicKey: CFG.emailjs_public_key });
-    document.head.appendChild(s);
-  })();
-
-  function mostrarSucesso() {
-    formState.style.opacity = '0';
-    formState.style.transform = 'scale(.96)';
-    formState.style.transition = 'all .3s ease';
-    setTimeout(() => {
-      formState.style.display = 'none';
-      successState.classList.add('active');
-      successState.style.opacity = '0';
-      successState.style.transform = 'translateY(10px)';
-      successState.style.transition = 'all .4s ease';
-      requestAnimationFrame(() => {
-        successState.style.opacity = '1';
-        successState.style.transform = 'translateY(0)';
-      });
-    }, 300);
-  }
-
-  function enviarWhatsApp(dados) {
-    const msg =
-      '🌸 *Novo Lead — BeautyTech*\n\n' +
-      '👤 *Nome:* ' + dados.nome + '\n' +
-      '💇 *Salão:* ' + dados.salao + '\n' +
-      '📱 *WhatsApp:* ' + dados.whatsapp + '\n' +
-      '📍 *Cidade:* ' + dados.cidade + '\n' +
-      '📧 *E-mail:* ' + dados.email + '\n\n' +
-      '✅ Interesse em teste gratuito de 15 dias.';
-    const url = 'https://wa.me/' + CFG.whatsapp_destino +
-                '?text=' + encodeURIComponent(msg);
-    window.open(url, '_blank');
-  }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const dados = {
-      nome:     document.getElementById('nome').value.trim(),
-      salao:    document.getElementById('salao').value.trim(),
-      whatsapp: document.getElementById('whatsapp').value.trim(),
-      cidade:   document.getElementById('cidade').value.trim(),
-      email:    document.getElementById('email').value.trim(),
-    };
-
-    // Validação
-    let ok = true;
-    form.querySelectorAll('input').forEach(input => {
-      if (!input.value.trim()) {
-        ok = false;
-        input.style.borderColor = '#E05050';
-        input.addEventListener('input', () => { input.style.borderColor = ''; }, { once: true });
-      }
+  formState.style.opacity = '0';
+  formState.style.transform = 'scale(.96)';
+  formState.style.transition = 'all .3s ease';
+  setTimeout(() => {
+    formState.style.display = 'none';
+    successState.classList.add('active');
+    successState.style.opacity = '0';
+    successState.style.transform = 'translateY(10px)';
+    successState.style.transition = 'all .4s ease';
+    requestAnimationFrame(() => {
+      successState.style.opacity = '1';
+      successState.style.transform = 'translateY(0)';
     });
-    if (!ok) return;
+  }, 300);
+}
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = '⏳ Enviando...';
+function enviarWhatsApp(dados) {
+  const seg = dados.segmento || NICHOS[nichoAtual].tag;
+  const emoji = seg.includes('Barbe') ? '✂️' : seg.includes('Est') ? '✨' : '🌸';
+  const msg =
+    emoji + ' *Novo Lead — BeautyTech (' + seg + ')*\n\n' +
+    '👤 *Nome:* ' + dados.nome + '\n' +
+    '🏢 *Negócio:* ' + dados.negocio + '\n' +
+    '📌 *Segmento:* ' + seg + '\n' +
+    '📱 *WhatsApp:* ' + dados.whatsapp + '\n' +
+    '📍 *Cidade:* ' + dados.cidade + '\n' +
+    '📧 *E-mail:* ' + dados.email + '\n\n' +
+    '✅ Interesse em teste gratuito de 15 dias.';
+  window.open('https://wa.me/' + CFG.whatsapp_destino + '?text=' + encodeURIComponent(msg), '_blank');
+}
 
-    // ── 1. Envia e-mail via EmailJS ──
-    const emailjsConfigurado = CFG.emailjs_public_key !== 'COLE_SUA_PUBLIC_KEY_AQUI';
+const form = document.getElementById('lead-form');
+const submitBtn = document.getElementById('submit-btn');
 
-    if (emailjsConfigurado) {
-      try {
-        await emailjs.send(CFG.emailjs_service_id, CFG.emailjs_template_id, {
-          to_email:        CFG.email_destino,
-          lead_nome:       dados.nome,
-          lead_salao:      dados.salao,
-          lead_whatsapp:   dados.whatsapp,
-          lead_cidade:     dados.cidade,
-          lead_email:      dados.email,
-          lead_data:       new Date().toLocaleString('pt-BR'),
-        });
-        console.log('✅ E-mail enviado com sucesso');
-      } catch (err) {
-        console.warn('⚠️ Erro no e-mail, abrindo WhatsApp como fallback:', err);
-        enviarWhatsApp(dados);
-      }
-    } else {
-      // EmailJS não configurado → abre WhatsApp direto
-      console.warn('EmailJS não configurado. Usando WhatsApp como canal principal.');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const dados = {
+    nome:      document.getElementById('nome').value.trim(),
+    negocio:   document.getElementById('negocio').value.trim(),
+    segmento:  document.getElementById('segmento').value.trim(),
+    whatsapp:  document.getElementById('whatsapp').value.trim(),
+    cidade:    document.getElementById('cidade').value.trim(),
+    email:     document.getElementById('email').value.trim(),
+  };
+
+  let ok = true;
+  form.querySelectorAll('input, select').forEach(input => {
+    if (!input.value.trim()) {
+      ok = false;
+      input.style.borderColor = '#E05050';
+      input.addEventListener('input', () => { input.style.borderColor = ''; }, { once: true });
+    }
+  });
+  if (!ok) return;
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = '⏳ Enviando...';
+
+  const emailjsConfigurado = CFG.emailjs_public_key !== 'COLE_SUA_PUBLIC_KEY_AQUI';
+  if (emailjsConfigurado) {
+    try {
+      await emailjs.send(CFG.emailjs_service_id, CFG.emailjs_template_id, {
+        to_email:        CFG.email_destino,
+        lead_nome:       dados.nome,
+        lead_negocio:    dados.negocio,
+        lead_segmento:   dados.segmento,
+        lead_whatsapp:   dados.whatsapp,
+        lead_cidade:     dados.cidade,
+        lead_email:      dados.email,
+        lead_data:       new Date().toLocaleString('pt-BR'),
+      });
+    } catch (err) {
       enviarWhatsApp(dados);
     }
+  } else {
+    enviarWhatsApp(dados);
+  }
 
-    mostrarSucesso();
-  });
+  mostrarSucesso();
+});
 </script>
 </body>
 </html>
