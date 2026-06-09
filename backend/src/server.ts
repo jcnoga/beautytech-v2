@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import { asaasModule } from "./modules/asaas.module.js";
 import { env } from "./config/env.js";
 import { checkDatabaseHealth, closeDatabaseConnection } from "./db/connection.js";
 import { startScheduler } from "./jobs/scheduler.js";
@@ -83,6 +84,7 @@ const prefix = env.API_PREFIX;
   await server.register(appointmentPhotosModule, { prefix });
   await server.register(protocolsModule,          { prefix });
   await server.register(demoModule,          { prefix });
+  await server.register(asaasModule,        { prefix });
 
   await server.listen({ port: env.PORT, host: env.HOST });
   console.log(`BeautyTech v2 rodando na porta ${env.PORT}`);
