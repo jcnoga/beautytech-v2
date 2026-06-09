@@ -2920,11 +2920,38 @@ function AutomationsPage() {
 }
 
 
+// --- UPGRADE BUTTON -----------------------------------------
+function UpgradeButton({ color }: any) {
+  const [loading, setLoading] = useState(false);
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      const r: any = await api.post("/billing/subscribe");
+      if (r?.data?.paymentUrl) {
+        window.open(r.data.paymentUrl, "_blank");
+      } else {
+        alert("Erro ao gerar link de pagamento. Tente novamente.");
+      }
+    } catch(e: any) {
+      alert("Erro: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <button onClick={handleUpgrade} disabled={loading}
+      style={{ fontSize:11, color, fontWeight:700, padding:"5px 12px", border:`1px solid ${color}40`, borderRadius:8, background:"transparent", cursor:"pointer", fontFamily:FB }}>
+      {loading ? "Aguarde..." : "Upgrade"}
+    </button>
+  );
+}
+
 // --- TRIAL BANNER --------------------------------------------
 function TrialBanner() {
   const [info, setInfo] = useState<any>(null);
   useEffect(() => {
-    api.get<any>("/plan-info").then((r: any) => setInfo(r.data)).catch(() => {});
+    const loadPlan = () => api.get<any>("/plan-info").then((r: any) => setInfo(r.data)).catch(() => setTimeout(loadPlan, 3000));
+    loadPlan();
   }, []);
   if (!info) return null;
   if (info.effectivePlan !== "trial" && info.effectivePlan !== "basic") return null;
@@ -2951,11 +2978,7 @@ function TrialBanner() {
         <div style={{ width:100, height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(days/15)*100))}%`, background:color, borderRadius:3 }} />
         </div>
-        <a href={`mailto:contato@websitelog.com.br,jcnvap@gmail.com?subject=${encodeURIComponent("Solicitacao de Upgrade - BeautyTech v2")}&body=${encodeURIComponent(
-          "Ola!\n\nGostaria de fazer o upgrade do meu plano no BeautyTech v2.\n\nInformacoes do meu salao:\n\nNome do salao: " + (info.name ?? "") + "\nE-mail: " + (info.email ?? "") + "\nDias de trial restantes: " + days + "\n\nPor favor, entre em contato para discutir os planos disponiveis.\n\nObrigado!"
-        )}`} style={{ fontSize:11, color, fontWeight:700, padding:"5px 12px", border:`1px solid ${color}40`, borderRadius:8, textDecoration:"none" }}>
-          {expired ? "Contatar" : "Upgrade"}
-        </a>
+        <UpgradeButton color={color} />
       </div>
     </div>
   );

@@ -19,7 +19,9 @@ export async function asaasModule(fastify: any) {
       headers: { "Content-Type": "application/json", "access_token": ASAAS_KEY },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return res.json();
+    const text = await res.text();
+    console.log(`[ASAAS] ${method} ${path} ${res.status}:`, text.substring(0, 200));
+    try { return text ? JSON.parse(text) : {}; } catch { return {}; }
   };
 
   // CRIAR OU BUSCAR CLIENTE NO ASAAS
