@@ -37,7 +37,8 @@ export async function asaasModule(fastify: any) {
       }
       return tenant.settings.asaasCustomerId;
     }
-    const existing = await asaasFetch("GET", `/customers?email=${encodeURIComponent(tenant.email)}`);
+    const asaasEmail = process.env.ASAAS_ENV === 'production' ? tenant.email : (process.env.ASAAS_TEST_EMAIL ?? tenant.email);
+    const existing = await asaasFetch("GET", `/customers?email=${encodeURIComponent(asaasEmail)}`);
     if (existing?.data?.length > 0) {
       const id = existing.data[0].id;
       if (cpfCnpj) await asaasFetch("PUT", `/customers/${id}`, { cpfCnpj });
@@ -46,7 +47,7 @@ export async function asaasModule(fastify: any) {
     }
     const created = await asaasFetch("POST", "/customers", {
       name: tenant.name,
-      email: tenant.email,
+      email: asaasEmail,
       phone: tenant.phone ?? undefined,
       cpfCnpj: cpfCnpj ?? undefined,
       notificationDisabled: false,
