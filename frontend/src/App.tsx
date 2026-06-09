@@ -495,8 +495,9 @@ function ClientsPage() {
   const loadLgpd = async (clientId: string) => {
     try {
       const r: any = await api.get("/consent-forms/" + clientId);
-      const rec = (r.data ?? [])[0];
-      setLgpdData(rec ?? null);
+      const arr = Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []);
+      const rec = arr[0] ?? null;
+      setLgpdData(rec);
     } catch(e) { setLgpdData(null); }
   };
   useEffect(() => { if (lgpdClient) loadLgpd(lgpdClient.id); }, [lgpdClient]);

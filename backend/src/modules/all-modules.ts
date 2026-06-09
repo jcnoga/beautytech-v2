@@ -1280,7 +1280,7 @@ export async function clientRecordsModule(fastify: any) {
 export async function consentFormsModule(fastify: any) {
   fastify.get("/consent-forms/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    const data = await db.execute(sql`SELECT * FROM consent_forms WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY created_at DESC`);
+    const data = await db.execute(sql`SELECT * FROM consent_forms WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY is_signed DESC, created_at DESC`);
     return reply.send({ success: true, data: (data as any).rows ?? [] });
   });
   fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req: any, reply: any) => {
