@@ -38,6 +38,7 @@ export async function asaasModule(fastify: any) {
       name: tenant.name,
       email: tenant.email,
       phone: tenant.phone ?? undefined,
+      cpfCnpj: tenant.settings?.cpfCnpj ?? "00000000000",
       notificationDisabled: false,
     });
     const id = created.id;
