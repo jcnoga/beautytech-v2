@@ -8,7 +8,7 @@ import { tenants } from "@db/schema/index";
 import { authenticate } from "@middleware/auth";
 
 export async function asaasModule(fastify: any) {
-  const ASAAS_KEY = process.env.ASAAS_API_KEY!;
+  const ASAAS_KEY = process.env.ASAAS_API_KEY ? (process.env.ASAAS_API_KEY.startsWith('$') ? process.env.ASAAS_API_KEY : '$' + process.env.ASAAS_API_KEY) : '';
   const ASAAS_URL = "https://sandbox.asaas.com/api/v3";
   console.log("[ASAAS] URL:", ASAAS_URL, "KEY:", ASAAS_KEY?.substring(0,20));
 
