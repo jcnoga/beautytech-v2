@@ -868,7 +868,7 @@ export async function authModule(fastify: FastifyInstance) {
       const defaultCategories = categoriesByType[resolvedBusinessType as keyof typeof categoriesByType]
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
-        slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"),
+        slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2,7),
         email,
         whatsapp: whatsapp ?? null,
         planTier: "trial",
