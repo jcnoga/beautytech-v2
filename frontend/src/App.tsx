@@ -746,6 +746,63 @@ function ClientsPage() {
   );
 }
 
+function PlanSettingsPanel({ saFetch }: any) {
+  const [settings, setSettings] = useState<any[]>([]);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [vals, setVals] = useState<any>({});
+  useEffect(() => {
+    saFetch("GET", "/super-admin/plan-settings").then((r: any) => {
+      const rows = r?.data ?? [];
+      setSettings(rows);
+      const v: any = {};
+      rows.forEach((s: any) => { v[s.key] = String(s.value); });
+      setVals(v);
+    }).catch(() => {});
+  }, []);
+  const save = async (key: string) => {
+    setSaving(key);
+    try { await saFetch("PATCH", `/super-admin/plan-settings/${key}`, { value: Number(vals[key]) || vals[key] }); }
+    finally { setSaving(null); }
+  };
+  const labels: any = {
+    free_max_clients: "Limite de clientes (Free)",
+    free_max_appointments_month: "Limite agendamentos/mes (Free)",
+    trial_days: "Dias de trial",
+    whatsapp_min_interval_seconds: "Intervalo minimo entre msgs (seg)",
+    whatsapp_max_interval_seconds: "Intervalo maximo entre msgs (seg)",
+    whatsapp_daily_limit_new: "Limite diario - numero novo (<7 dias)",
+    whatsapp_daily_limit_warm: "Limite diario - numero aquecido (7-30 dias)",
+    whatsapp_daily_limit_mature: "Limite diario - numero maduro (>30 dias)",
+    whatsapp_send_start_hour: "Hora inicio envio WhatsApp",
+    whatsapp_send_end_hour: "Hora fim envio WhatsApp",
+  };
+  const groups = [
+    { title: "Plano Gratuito", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
+    { title: "Anti-ban WhatsApp", keys: ["whatsapp_min_interval_seconds","whatsapp_max_interval_seconds","whatsapp_daily_limit_new","whatsapp_daily_limit_warm","whatsapp_daily_limit_mature","whatsapp_send_start_hour","whatsapp_send_end_hour"] },
+  ];
+  if (settings.length === 0) return null;
+  return (
+    <div style={{ marginTop:32 }}>
+      <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:20, fontFamily:FB }}>Configuracoes Globais</div>
+      {groups.map(g => (
+        <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}` }}>
+          <div style={{ fontSize:13, fontWeight:700, color:C.rose, marginBottom:16, fontFamily:FB }}>{g.title}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            {g.keys.map(key => (
+              <div key={key} style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ flex:1, fontSize:12, color:C.textMuted, fontFamily:FB }}>{labels[key] ?? key}</div>
+                <input type="number" value={vals[key] ?? ""} onChange={e => setVals((v: any) => ({ ...v, [key]: e.target.value }))}
+                  style={{ width:80, padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontFamily:FB, fontSize:13, textAlign:"center" }} />
+                <Btn small onClick={() => save(key)} disabled={saving === key}>{saving === key ? "..." : "Salvar"}</Btn>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 // --- WA BUTTON COM MENSAGENS POR STATUS ----------------------
 const WA_MESSAGES: Record<string, string[]> = {
@@ -2175,6 +2232,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           </div>
         )}
       </Modal>
+      <PlanSettingsPanel saFetch={saFetch} />
     </div>
   );
 }
@@ -2866,13 +2924,16 @@ function AutomationsPage() {
 function TrialBanner() {
   const [info, setInfo] = useState<any>(null);
   useEffect(() => {
-    api.get<any>("/auth/me").then((r: any) => setInfo(r.data)).catch(() => {});
+    api.get<any>("/plan-info").then((r: any) => setInfo(r.data)).catch(() => {});
   }, []);
-  if (!info || info.planTier !== "trial") return null;
-  const days = info.daysLeft ?? 0;
+  if (!info) return null;
+  if (info.effectivePlan !== "trial" && info.effectivePlan !== "basic") return null;
+  const days = info.trialDaysLeft ?? 0;
+  const isFree = info.effectivePlan === "basic" && info.planTier === "trial";
   const expired = days <= 0;
   const urgent  = days <= 3 && days > 0;
-  const color = expired ? C.ruby : urgent ? C.gold : C.sapphire;
+  const color = isFree ? C.textMuted : expired ? C.ruby : urgent ? C.gold : C.sapphire;
+  if (isFree && !expired) return null;
   return (
     <div style={{ background:`${color}12`, border:`1px solid ${color}30`, borderRadius:12, padding:"12px 20px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center", fontFamily:FB }}>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -2902,24 +2963,29 @@ function TrialBanner() {
 
 // --- SIDEBAR -------------------------------------------------
 const MENU = [
-  { id:"dashboard",     label:"Dashboard",    icon:"*" },
-  { id:"agenda",        label:"Agenda",        icon:"o" },
-  { id:"clients",       label:"Clientes",      icon:"o" },
-  { id:"professionals", label:"Profissionais", icon:"*" },
-  { id:"services",      label:"Servicos",      icon:"*" },
-  { id:"packages",      label:"Pacotes",       icon:"o" },
-  { id:"financial",     label:"Financeiro",    icon:"o" },
-  { id:"commissions",   label:"Comissoes",     icon:"o" },
-  { id:"crm",           label:"CRM",           icon:"o" },
-  { id:"fidelity",      label:"Fidelidade",    icon:"o" },
-  { id:"automations",   label:"Automacoes",    icon:"!" },
-  { id:"notifications", label:"Notificacoes",  icon:"!" },
-  { id:"whatsapp", label:"WhatsApp", icon:"W" },
+  { id:"dashboard",     label:"Dashboard",    icon:"*", premium:false },
+  { id:"agenda",        label:"Agenda",        icon:"o", premium:false },
+  { id:"clients",       label:"Clientes",      icon:"o", premium:false },
+  { id:"professionals", label:"Profissionais", icon:"*", premium:false },
+  { id:"services",      label:"Servicos",      icon:"*", premium:false },
+  { id:"packages",      label:"Pacotes",       icon:"o", premium:false },
+  { id:"financial",     label:"Financeiro",    icon:"o", premium:false },
+  { id:"commissions",   label:"Comissoes",     icon:"o", premium:true },
+  { id:"crm",           label:"CRM",           icon:"o", premium:true },
+  { id:"fidelity",      label:"Fidelidade",    icon:"o", premium:true },
+  { id:"automations",   label:"Automacoes",    icon:"!", premium:true },
+  { id:"notifications", label:"Notificacoes",  icon:"!", premium:true },
+  { id:"whatsapp",      label:"WhatsApp",      icon:"W", premium:true },
 ];
 
 function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   const themeId = useTheme();
   const [showThemes, setShowThemes] = useState(false);
+  const [planInfo, setPlanInfo] = useState<any>(null);
+  useEffect(() => {
+    api.get<any>("/plan-info").then((r: any) => setPlanInfo(r.data)).catch(() => {});
+  }, []);
+  const isFree = planInfo?.effectivePlan === "basic";
   return (
     <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB }}>
       <div style={{ padding:"28px 20px 24px", borderBottom:`1px solid ${C.border}` }}>
@@ -2930,12 +2996,14 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
         {MENU.map(m => {
           const active = page === m.id;
+          const locked = isFree && m.premium;
           return (
-            <button key={m.id} onClick={() => setPage(m.id)}
-              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : C.textMuted, fontSize:13, fontWeight: active ? 600 : 400, cursor:"pointer", marginBottom:2, transition:"all .15s", fontFamily: FB, textAlign:"left" }}>
+            <button key={m.id} onClick={() => { if (locked) { alert("Este recurso esta disponivel apenas no Plano Profissional. Faca upgrade para continuar."); return; } setPage(m.id); }}
+              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : locked ? C.textMuted : C.textMuted, fontSize:13, fontWeight: active ? 600 : 400, cursor: locked ? "not-allowed" : "pointer", marginBottom:2, transition:"all .15s", fontFamily: FB, textAlign:"left", opacity: locked ? 0.5 : 1 }}>
               <span style={{ fontSize:16, color: active ? C.rose : C.textMuted, opacity: active ? 1 : 0.5 }}>{m.icon}</span>
               {m.label}
-              {active && <div style={{ marginLeft:"auto", width:4, height:4, borderRadius:"50%", background: C.rose }} />}
+              {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>?</span>}
+              {active && !locked && <div style={{ marginLeft:"auto", width:4, height:4, borderRadius:"50%", background: C.rose }} />}
             </button>
           );
         })}

@@ -240,6 +240,16 @@ export async function appointmentsModule(fastify: FastifyInstance) {
 
   fastify.post("/appointments", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const planAppt = await getPlanInfo(tenantId);
+    if (planAppt.isFree) {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      const countData = await db.execute(sql`SELECT COUNT(*) as total FROM appointments WHERE tenant_id=${tenantId} AND scheduled_at >= ${firstDay.toISOString()} AND scheduled_at <= ${lastDay.toISOString()}`);
+      const countRows = (countData as any).rows ?? (Array.isArray(countData) ? countData : []);
+      const total = Number(countRows[0]?.total ?? countRows[0]?.count ?? 0);
+      if (total >= planAppt.maxAppointmentsMonth) return reply.status(403).send({ success: false, error: `Limite de ${planAppt.maxAppointmentsMonth} agendamentos/mes atingido no plano gratuito. Faca upgrade para continuar.` });
+    }
   const { services: svcs, ...body } = req.body as any;
 const values = {
   ...body,
