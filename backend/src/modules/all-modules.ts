@@ -1264,7 +1264,8 @@ export async function clientRecordsModule(fastify: any) {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
     const data = await db.execute(sql`INSERT INTO client_records (tenant_id,client_id,type,medications,medical_history,previous_procedures,skin_type,contraindications,notes,created_by) VALUES (${tenantId},${b.clientId},'anamnesis',${b.medications??null},${b.medicalHistory??null},${b.previousProcedures??null},${b.skinType??null},${b.contraindications??null},${b.notes??null},${userId}) RETURNING *`);
-    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+    const row = ((data as any).rows ?? (data as any) ?? [])[0] ?? (Array.isArray(data) ? (data as any)[0] : data);
+    return reply.status(201).send({ success: true, data: row });
   });
   fastify.patch("/client-records/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;

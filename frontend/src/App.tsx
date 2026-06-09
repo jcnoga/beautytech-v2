@@ -505,13 +505,13 @@ function ClientsPage() {
     try {
       if (!lgpdData) {
         const r: any = await api.post("/consent-forms", { clientId: lgpdClient.id, type: "lgpd", content: "Autorizo o uso dos meus dados pessoais conforme a LGPD (Lei 13.709/2018)." });
-        await api.post("/consent-forms/" + r.data.data.id + "/sign", { signedByName: lgpdClient.fullName });
+        await api.post("/consent-forms/" + r.data.id + "/sign", { signedByName: lgpdClient.fullName });
       } else if (!lgpdData.is_signed) {
         await api.post("/consent-forms/" + lgpdData.id + "/sign", { signedByName: lgpdClient.fullName });
       }
       await loadLgpd(lgpdClient.id);
       setLgpdSigning(false);
-    } catch(e: any) { alert("Erro: " + e.message); setLgpdSigning(false); }
+    } catch(e: any) { alert("Erro: " + e.message + " | " + JSON.stringify(e.response?.data)); setLgpdSigning(false); }
   };
   const [anamneseData, setAnamneseData] = useState<any>(null);
   const [anamneseForm, setAnamneseForm] = useState({ medications:"", medicalHistory:"", previousProcedures:"", skinType:"normal", contraindications:"", notes:"" });
