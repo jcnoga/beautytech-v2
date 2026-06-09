@@ -824,7 +824,7 @@ export async function authModule(fastify: FastifyInstance) {
     } catch(e: any) { console.error("auth/me error:", e.message, e.stack); return reply.status(500).send({ success: false, error: e.message }); }
   });
   fastify.post("/auth/register", async (req: any, reply) => {
-    const { salonName, ownerName, email, password, whatsapp, businessType } = req.body as any;
+    const { salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj } = req.body as any;
     if (!salonName || !ownerName || !email || !password) {
       return reply.status(400).send({ success: false, error: "Todos os campos s├âãÆ├åÔÇÖ├âÔÇÜ├é┬úo obrigat├âãÆ├åÔÇÖ├âÔÇÜ├é┬│rios" });
       return reply.status(400).send({ success: false, error: "Todos os campos s├âãÆ├åÔÇÖ├âÔÇÜ├é┬úo obrigat├âãÆ├åÔÇÖ├âÔÇÜ├é┬│rios" });
@@ -875,6 +875,7 @@ export async function authModule(fastify: FastifyInstance) {
         isActive: true,
         trialEndsAt,
         businessType: resolvedBusinessType,
+        settings: cpfCnpj ? { cpfCnpj } : {},
       }).returning();
       await db.insert(userProfiles).values({
         tenantId: tenant.id,

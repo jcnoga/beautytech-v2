@@ -225,6 +225,7 @@ function RegisterPage({ onBack }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
   const [businessType, setBusinessType] = useState("beauty_salon");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -235,7 +236,7 @@ function RegisterPage({ onBack }: any) {
       const res = await fetch(`${import.meta.env["VITE_API_URL"]}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ salonName, ownerName, email, password, whatsapp, businessType }),
+        body: JSON.stringify({ salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj: cpfCnpj.replace(/\D/g,"") || undefined }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -277,6 +278,7 @@ function RegisterPage({ onBack }: any) {
               <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
               <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="minimo 6 caracteres" required />
               <Inp label="WhatsApp" value={whatsapp} onChange={setWhatsapp} type="tel" placeholder="(34) 99999-9999" required />
+              <Inp label="CPF ou CNPJ" value={cpfCnpj} onChange={setCpfCnpj} placeholder="000.000.000-00 ou 00.000.000/0001-00" />
               {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
               <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, marginBottom:16 }}>
                 {loading ? "Cadastrando..." : "Criar Conta Gratis"}
