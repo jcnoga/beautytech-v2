@@ -12,6 +12,7 @@ export async function asaasModule(fastify: any) {
   const ASAAS_URL = process.env.ASAAS_ENV === "sandbox"
     ? "https://sandbox.asaas.com/api/v3"
     : "https://api.asaas.com/api/v3";
+  console.log("[ASAAS] ENV:", process.env.ASAAS_ENV, "URL:", ASAAS_URL);
 
   const asaasFetch = async (method: string, path: string, body?: any) => {
     const res = await fetch(`${ASAAS_URL}${path}`, {
