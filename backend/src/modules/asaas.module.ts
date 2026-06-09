@@ -54,6 +54,7 @@ export async function asaasModule(fastify: any) {
     if (!tenant.email) return reply.status(400).send({ success: false, error: "Email do salao nao configurado." });
 
     const customerId = await getOrCreateAsaasCustomer(tenant);
+    await asaasFetch("PUT", `/customers/${customerId}`, { cpfCnpj: "00000000000" });
 
     const charge = await asaasFetch("POST", "/payments", {
       customer: customerId,
