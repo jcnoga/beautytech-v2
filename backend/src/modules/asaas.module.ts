@@ -53,30 +53,25 @@ export async function asaasModule(fastify: any) {
 
     const customerId = await getOrCreateAsaasCustomer(tenant);
 
-    const subscription = await asaasFetch("POST", "/subscriptions", {
+    const charge = await asaasFetch("POST", "/payments", {
       customer: customerId,
-      billingType: "CREDIT_CARD",
+      billingType: "UNDEFINED",
       value: 49.90,
-      nextDueDate: new Date().toISOString().split("T")[0],
-      cycle: "MONTHLY",
-      description: "BeautyTech - Plano Profissional",
+      dueDate: new Date().toISOString().split("T")[0],
+      description: "BeautyTech - Plano Profissional (mensal)",
       externalReference: tenantId,
-      callback: {
-        successUrl: `https://beautytech-v2.vercel.app/payment-success`,
-        autoRedirect: true,
-      },
     });
 
-    if (!subscription.id) return reply.status(500).send({ success: false, error: "Erro ao criar assinatura no Asaas." });
+    console.log("[ASAAS] Payment created:", JSON.stringify(charge).substring(0, 300));
 
-    const paymentLink = await asaasFetch("GET", `/subscriptions/${subscription.id}/paymentBook`);
+    if (!charge.id) return reply.status(500).send({ success: false, error: "Erro ao criar cobranca no Asaas." });
 
     await db.update(tenants).set({
-      settings: { ...tenant.settings, asaasSubscriptionId: subscription.id },
+      settings: { ...tenant.settings, asaasChargeId: charge.id },
       updatedAt: new Date()
     }).where(eq(tenants.id, tenantId));
 
-    return reply.send({ success: true, data: { subscriptionId: subscription.id, paymentUrl: subscription.invoiceUrl ?? paymentLink?.invoiceUrl ?? null } });
+    return reply.send({ success: true, data: { chargeId: charge.id, paymentUrl: charge.invoiceUrl ?? charge.bankSlipUrl ?? null } });
   });
 
   // WEBHOOK ASAAS
