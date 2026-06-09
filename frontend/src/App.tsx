@@ -504,8 +504,9 @@ function ClientsPage() {
     setLgpdSigning(true);
     try {
       if (!lgpdData) {
-        const r: any = await api.post("/consent-forms", { clientId: lgpdClient.id, type: "lgpd", content: "Autorizo o uso dos meus dados pessoais conforme a LGPD (Lei 13.709/2018)." });
-        await api.post("/consent-forms/" + r.data.id + "/sign", { signedByName: lgpdClient.fullName });
+        const rPost: any = await api.post("/consent-forms", { clientId: lgpdClient.id, type: "lgpd", content: "Autorizo o uso dos meus dados pessoais conforme a LGPD (Lei 13.709/2018)." });
+        const newId = rPost?.data?.id ?? rPost?.id;
+        if (newId) await api.post("/consent-forms/" + newId + "/sign", { signedByName: lgpdClient.fullName });
       } else if (!lgpdData.is_signed) {
         await api.post("/consent-forms/" + lgpdData.id + "/sign", { signedByName: lgpdClient.fullName });
       }
