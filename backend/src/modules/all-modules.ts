@@ -1258,7 +1258,8 @@ export async function clientRecordsModule(fastify: any) {
   fastify.get("/client-records/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const data = await db.execute(sql`SELECT * FROM client_records WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY created_at DESC`);
-    return reply.send({ success: true, data: (data as any).rows ?? [] });
+    const rows2 = (data as any).rows ?? (Array.isArray(data) ? data : []);
+    return reply.send({ success: true, data: rows2 });
   });
   fastify.post("/client-records", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
