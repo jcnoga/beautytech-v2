@@ -8,7 +8,7 @@ import { tenants } from "@db/schema/index";
 import { authenticate } from "@middleware/auth";
 
 export async function asaasModule(fastify: any) {
-  const ASAAS_KEY = process.env.ASAAS_API_KEY ? (process.env.ASAAS_API_KEY.startsWith('$') ? process.env.ASAAS_API_KEY : '$' + process.env.ASAAS_API_KEY) : '';
+  const ASAAS_KEY = process.env.ASAAS_API_KEY || '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjE1MGM3NTEzLWRmMDQtNDhmZS1hZWQxLWJkYjMxODIyYWJlYzo6JGFhY2hfOTI2ZjBjZDQtNzM3MC00M2EwLWI5YzEtNTMzYTJkYzI0MGI5';
   const ASAAS_URL = "https://sandbox.asaas.com/api/v3";
   console.log("[ASAAS] URL:", ASAAS_URL, "KEY:", ASAAS_KEY?.substring(0,20));
 
