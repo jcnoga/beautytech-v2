@@ -1286,6 +1286,10 @@ export async function consentFormsModule(fastify: any) {
   fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
+    const existing = await db.execute(sql`SELECT * FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${b.clientId} AND is_signed=true LIMIT 1`);
+    const existRows = (existing as any).rows ?? (Array.isArray(existing) ? existing : []);
+    if (existRows.length > 0) return reply.status(201).send({ success: true, data: existRows[0] });
+    await db.execute(sql`DELETE FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${b.clientId} AND is_signed=false`);
     const data = await db.execute(sql`INSERT INTO consent_forms (tenant_id,client_id,type,content,created_by) VALUES (${tenantId},${b.clientId},${b.type??'lgpd'},${b.content??null},${userId}) RETURNING *`);
     const rows = (data as any).rows ?? (Array.isArray(data) ? data : [data]);
     return reply.status(201).send({ success: true, data: rows[0] ?? rows });
