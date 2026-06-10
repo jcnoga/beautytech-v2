@@ -78,6 +78,8 @@ export const tenants = pgTable("tenants", {
   maxUsers:     integer("max_users").notNull().default(3),
   maxClients:   integer("max_clients").notNull().default(100),
   businessType: varchar("business_type", { length: 50 }).notNull().default("beauty_salon"),
+  primaryColor: varchar("primary_color", { length: 20 }).default("#c9a96e"),
+  coverUrl:     text("cover_url"),
   ...audit,
 });
 

@@ -17,6 +17,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       addressState: tenants.addressState, addressStreet: tenants.addressStreet,
       phone: tenants.phone, whatsapp: tenants.whatsapp, logoUrl: tenants.logoUrl,
       instagram: tenants.instagram, businessHours: tenants.businessHours,
+      primaryColor: tenants.primaryColor, coverUrl: tenants.coverUrl,
     }).from(tenants).where(and(...cond)).orderBy(tenants.name);
     return reply.send({ success: true, data, total: data.length });
   });
