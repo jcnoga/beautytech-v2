@@ -39,7 +39,14 @@ const server = Fastify({ logger: { level: env.LOG_LEVEL } });
 
 async function bootstrap() {
   await server.register(helmet, { global: true });
-  await server.register(cors, { origin: env.CORS_ORIGINS, credentials: true });
+  await server.register(cors, {
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      const publicPaths = ["/api/v1/public/"];
+      cb(null, true);
+    },
+    credentials: true,
+  });
   server.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
   if (!body || (body as string).length === 0) { done(null, {}); return; }
   try { done(null, JSON.parse(body as string)); } catch(e: any) { done(e, undefined); }
