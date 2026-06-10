@@ -17,7 +17,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       addressState: tenants.addressState, addressStreet: tenants.addressStreet,
       phone: tenants.phone, whatsapp: tenants.whatsapp, logoUrl: tenants.logoUrl,
       instagram: tenants.instagram, businessHours: tenants.businessHours,
-      primaryColor: tenants.primaryColor, coverUrl: tenants.coverUrl,
+      primaryColor: tenants.primaryColor, coverUrl: tenants.coverUrl, galleryImages: tenants.galleryImages,
     }).from(tenants).where(and(...cond)).orderBy(tenants.name);
     return reply.send({ success: true, data, total: data.length });
   });
@@ -30,7 +30,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       addressZip: tenants.addressZip, phone: tenants.phone, whatsapp: tenants.whatsapp,
       logoUrl: tenants.logoUrl, instagram: tenants.instagram, facebook: tenants.facebook,
       website: tenants.website, businessHours: tenants.businessHours, googlePlaceId: tenants.googlePlaceId,
-      primaryColor: tenants.primaryColor, coverUrl: tenants.coverUrl,
+      primaryColor: tenants.primaryColor, coverUrl: tenants.coverUrl, galleryImages: tenants.galleryImages,
     }).from(tenants).where(and(eq(tenants.slug, req.params.slug), eq(tenants.isActive, true), isNull(tenants.deletedAt)));
     if (!tenant) return reply.status(404).send({ success: false, error: "Estabelecimento nao encontrado" });
     return reply.send({ success: true, data: tenant });

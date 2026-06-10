@@ -80,6 +80,7 @@ export const tenants = pgTable("tenants", {
   businessType: varchar("business_type", { length: 50 }).notNull().default("beauty_salon"),
   primaryColor: varchar("primary_color", { length: 20 }).default("#c9a96e"),
   coverUrl:     text("cover_url"),
+  galleryImages: jsonb("gallery_images").notNull().default([]),
   ...audit,
 });
 
