@@ -903,6 +903,14 @@ export async function authModule(fastify: FastifyInstance) {
         }))
       );
 
+      // Dispara e-mail de boas-vindas (fire and forget)
+      try {
+        const { sendWelcomeEmail } = await import('../modules/resend.module.js');
+        await sendWelcomeEmail(email, salonName);
+      } catch (emailErr: any) {
+        console.error('[REGISTER] Falha no email:', emailErr.message);
+      }
+
       return reply.status(201).send({
         success: true,
         data: {
