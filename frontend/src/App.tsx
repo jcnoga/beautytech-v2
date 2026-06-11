@@ -3122,7 +3122,6 @@ export default function App() {
   const [page, setPage] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   if (isSuperAdmin) return <SuperAdminApp />;
-  if (currentPage === "payment_success") return <PaymentSuccessPage onGoHome={() => setCurrentPage("dashboard")} />;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
