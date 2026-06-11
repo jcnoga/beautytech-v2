@@ -119,11 +119,9 @@ function Modal({ open, onClose, title, children, width = 540 }: any) {
       <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, width:"100%", maxWidth:width, maxHeight:"90vh", overflowY:"auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding:"20px 28px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div style={{ fontSize:18, fontWeight:700, color: C.text, fontFamily: FD }}>{title}</div>
-          <button onClick={() => setShowRegister(true)} style={{ background:"linear-gradient(135deg, #c9a96e22, #c9847a22)", border:"1.5px solid #c9a96e", color: C.rose, fontSize:13, cursor:"pointer", fontFamily: FB, fontWeight:700, padding:"10px 20px", borderRadius:10, marginTop:4, width:"100%", letterSpacing:"0.03em" }}>
-                ? Nao tem conta? Cadastre seu salao gratis
-              </button>
-          </div>
+          <button onClick={onClose} style={{ background:"none", border:"none", color: C.textMuted, fontSize:22, cursor:"pointer", lineHeight:1 }}>&times;</button>
         </div>
+        <div style={{ padding:"20px 28px" }}>{children}</div>
       </div>
     </div>
   );
