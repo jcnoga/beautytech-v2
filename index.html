@@ -970,9 +970,14 @@
       <div class="success-icon">✓</div>
       <div class="success-title">Solicitação Recebida!</div>
       <p class="success-sub">
-        Obrigado pelo seu interesse!<br><br>
-        Em breve entraremos em contato pelo WhatsApp informado para liberar seu acesso gratuito de 15 dias. 🌸
+        Obrigado! Sua mensagem foi enviada pelo WhatsApp e nossa equipe entrara em contato em breve.🌸<br><br>
+        Para começar agora, clique no link abaixo e crie sua conta gratuita:
       </p>
+      <div style="margin-top:24px;padding:16px;background:#f5f0eb;border-radius:12px;border:1px solid #C9847A40;">
+        <div style="font-size:12px;color:#9B8E87;margin-bottom:8px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;">Seu link de acesso</div>
+        <a href="https://beautytech-v2.vercel.app?tela=cadastro" target="_blank" style="color:#A05A52;font-weight:700;font-size:15px;word-break:break-all;">https://beautytech-v2.vercel.app</a>
+      </div>
+      <a href="https://beautytech-v2.vercel.app?tela=cadastro" target="_blank" style="display:inline-block;margin-top:20px;background:linear-gradient(135deg,#C9847A,#A05A52);color:#fff;padding:14px 32px;border-radius:100px;font-family:sans-serif;font-weight:700;font-size:1rem;text-decoration:none;box-shadow:0 6px 20px rgba(160,90,82,.3);">📲 Criar Minha Conta Gratuita →</a>
     </div>
   </div>
 </section>
@@ -995,9 +1000,10 @@
 // ⚙️  CONFIGURAÇÃO — edite apenas estas linhas
 // ═══════════════════════════════════════════════
 const CFG = {
-  emailjs_public_key:  'COLE_SUA_PUBLIC_KEY_AQUI',
-  emailjs_service_id:  'COLE_SEU_SERVICE_ID_AQUI',
-  emailjs_template_id: 'COLE_SEU_TEMPLATE_ID_AQUI',
+  emailjs_public_key:  'ZkNs2O6HgMI90_xsu',
+  emailjs_service_id:  'service_htsrx6q',
+  emailjs_template_id: 'template_yipj2uw',
+  emailjs_template_cliente: 'template_rnzenvs',
   email_destino:    'websitelogx@gmail.com',
   whatsapp_destino: '5534997824990',
   url_cadastro:     'https://beautytech-v2.vercel.app',
@@ -1390,37 +1396,32 @@ form.addEventListener('submit', async (e) => {
   submitBtn.disabled = true;
   submitBtn.textContent = '⏳ Enviando...';
 
-  const emailjsConfigurado = CFG.emailjs_public_key !== 'COLE_SUA_PUBLIC_KEY_AQUI';
-  if (emailjsConfigurado) {
-    try {
-      await emailjs.send(CFG.emailjs_service_id, CFG.emailjs_template_id, {
-        to_email:        CFG.email_destino,
-        lead_nome:       dados.nome,
-        lead_negocio:    dados.negocio,
-        lead_segmento:   dados.segmento,
-        lead_whatsapp:   dados.whatsapp,
-        lead_cidade:     dados.cidade,
-        lead_email:      dados.email,
-        lead_data:       new Date().toLocaleString('pt-BR'),
-      });
-    } catch (err) {
-      enviarWhatsApp(dados);
-    }
-  } else {
-    enviarWhatsApp(dados);
-  }
+  try {
+    const payload = {
+      lead_nome:    dados.nome,
+      lead_negocio: dados.negocio,
+      lead_segmento: dados.segmento,
+      lead_whatsapp: dados.whatsapp,
+      lead_cidade:  dados.cidade,
+      lead_email:   dados.email,
+      lead_data:    new Date().toLocaleString('pt-BR'),
+      to_email:     CFG.email_destino,
+    };
+    // Email para admin
+    await emailjs.send(CFG.emailjs_service_id, CFG.emailjs_template_id, payload);
+    // Email para cliente
+    await emailjs.send(CFG.emailjs_service_id, CFG.emailjs_template_cliente, {
+      ...payload,
+      to_email: dados.email,
+    });
+  } catch (err) { console.warn('EmailJS:', err); }
 
+  // Abre WhatsApp imediatamente (dentro do evento de clique - nao bloqueia popup)
+  const seg = dados.segmento || 'Salao';
+  const wppMsg = '*Novo Lead BeautyTech (' + seg + ')*\n\nNome: ' + dados.nome + '\nNegocio: ' + dados.negocio + '\nWhatsApp: ' + dados.whatsapp + '\nCidade: ' + dados.cidade + '\nEmail: ' + dados.email + '\n\nInteresse em teste gratuito de 15 dias.';
+  const wppUrl = 'https://wa.me/' + CFG.whatsapp_destino + '?text=' + encodeURIComponent(wppMsg);
   mostrarSucesso();
-
-  // Abre WhatsApp com os dados do lead
-  setTimeout(() => {
-    enviarWhatsApp(dados);
-  }, 900);
-
-  // Redireciona para cadastro no sistema
-  setTimeout(() => {
-    window.location.href = CFG.url_cadastro + '?tela=cadastro';
-  }, 3000);
+  setTimeout(() => { window.open(wppUrl, '_blank'); }, 2000);
 });
 </script>
 </body>

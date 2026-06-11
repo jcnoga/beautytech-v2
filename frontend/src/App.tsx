@@ -1,4 +1,4 @@
-import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
+﻿import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import PaymentSuccessPage from './PaymentSuccessPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
@@ -119,9 +119,220 @@ function Modal({ open, onClose, title, children, width = 540 }: any) {
       <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, width:"100%", maxWidth:width, maxHeight:"90vh", overflowY:"auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding:"20px 28px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div style={{ fontSize:18, fontWeight:700, color: C.text, fontFamily: FD }}>{title}</div>
-          <button onClick={onClose} style={{ background:"none", border:"none", color: C.textMuted, fontSize:22, cursor:"pointer", lineHeight:1 }}>&times;</button>
+          <button onClick={onClose} style={{ background:"none", border:"none", color: C.textMuted, cursor:"pointer", fontSize:24, lineHeight:1, padding:"0 4px" }}>?</button>
         </div>
-        <div style={{ padding:"20px 28px" }}>{children}</div>
+        <div style={{ padding:28 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Inp({ label, value, onChange, type="text", placeholder, required, grid }: any) {
+  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
+  return (
+    <div style={{ marginBottom:14, gridColumn: grid }}>
+      {label && <label style={{ fontSize:11, fontWeight:700, color: C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" }}>{label}{required&&" *"}</label>}
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} style={s} />
+    </div>
+  );
+}
+
+function Sel({ label, value, onChange, options, grid }: any) {
+  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
+  return (
+    <div style={{ marginBottom:14, gridColumn: grid }}>
+      {label && <label style={{ fontSize:11, fontWeight:700, color: C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" }}>{label}</label>}
+      <select value={value} onChange={e => onChange(e.target.value)} style={s}>
+        {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function Btn({ children, onClick, variant="primary", disabled, small, full }: any) {
+  const base: any = { border:"none", cursor: disabled ? "not-allowed" : "pointer", fontWeight:700, fontFamily: FB, borderRadius:10, transition:"all .15s", opacity: disabled ? 0.5 : 1, whiteSpace:"nowrap", width: full ? "100%" : "auto" };
+  const v: any = {
+    primary:   { ...base, background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, color:"#fff", padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
+    gold:      { ...base, background:`linear-gradient(135deg, ${C.gold}, ${C.goldDeep})`, color:"#111", padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
+    secondary: { ...base, background: C.surface, border:`1px solid ${C.border}`, color: C.textSec, padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
+    danger:    { ...base, background:`${C.ruby}18`, border:`1px solid ${C.ruby}30`, color: C.ruby, padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
+    ghost:     { ...base, background:"none", border:"none", color: C.rose, padding: small ? "7px 14px" : "10px 22px", fontSize: small ? 12 : 13 },
+  };
+  return <button onClick={onClick} disabled={disabled} style={v[variant]}>{children}</button>;
+}
+
+function Table({ cols, rows, onRow, emptyMsg = "Nenhum registro" }: any) {
+  return (
+    <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
+      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+        <thead>
+          <tr style={{ background: C.surface }}>
+            {cols.map((c: any) => <th key={c.key} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{c.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0
+            ? <tr><td colSpan={cols.length} style={{ padding:40, textAlign:"center", color: C.textMuted, fontFamily: FB }}>{emptyMsg}</td></tr>
+            : rows.map((r: any, i: number) => (
+              <tr key={r.id ?? i} onClick={() => onRow?.(r)}
+                style={{ borderBottom:`1px solid ${C.border}`, cursor: onRow ? "pointer" : "default" }}
+                onMouseEnter={e => onRow && ((e.currentTarget as HTMLElement).style.background = C.surface)}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "transparent")}>
+                {cols.map((c: any) => <td key={c.key} style={{ padding:"12px 16px", color: C.text, fontFamily: FB, verticalAlign:"middle" }}>{c.render ? c.render(r) : r[c.key]}</td>)}
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Search({ value, onChange, placeholder }: any) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:8, background: C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 14px", minWidth:260 }}>
+      <span style={{ color: C.textMuted, fontSize:14 }}>?</span>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder ?? "Buscar..."}
+        style={{ background:"none", border:"none", outline:"none", color: C.text, fontSize:13, width:"100%", fontFamily: FB }} />
+    </div>
+  );
+}
+
+function PageHeader({ title, sub, action }: any) {
+  return (
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
+      <div>
+        <h1 style={{ fontSize:26, fontWeight:700, color: C.text, margin:0, fontFamily: FD, letterSpacing:"-0.02em" }}>{title}</h1>
+        {sub && <p style={{ fontSize:13, color: C.textMuted, margin:"4px 0 0", fontFamily: FB }}>{sub}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function ProgressBar({ value, max, color = C.rose }: any) {
+  const pct = Math.min((value / (max || 1)) * 100, 100);
+  return (
+    <div style={{ height:6, background: C.border, borderRadius:3, overflow:"hidden" }}>
+      <div style={{ height:"100%", width:`${pct}%`, background:`linear-gradient(90deg, ${color}, ${color}CC)`, borderRadius:3, transition:"width .3s" }} />
+    </div>
+  );
+}
+
+// --- PAGES ---------------------------------------------------
+
+function RegisterPage({ onBack }: any) {
+  const [salonName, setSalonName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [businessType, setBusinessType] = useState("beauty_salon");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const submit = async () => {
+    setLoading(true); setError(""); setSuccess("");
+    try {
+      const res = await fetch(`${import.meta.env["VITE_API_URL"]}/api/v1/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj: cpfCnpj.replace(/\D/g,"") || undefined }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setSuccess("Salao cadastrado com sucesso! Faca login para continuar.");
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily: FB, padding:20 }}>
+      <div style={{ width:"100%", maxWidth:420 }}>
+        <div style={{ textAlign:"center", marginBottom:48 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
+            {[{v:"beauty_salon",l:"Salao de Beleza",i:"??"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"??"},{v:"barbershop",l:"Barbearia",i:"??"}].map(opt => (
+              <label key={opt.v} onClick={() => setBusinessType(opt.v)} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", borderRadius:10, border:`1px solid ${businessType === opt.v ? "#c9a96e" : "#2a2a2a"}`, background: businessType === opt.v ? "#c9a96e15" : "transparent", cursor:"pointer", transition:"all 0.2s" }}>
+                <span style={{ fontSize:20 }}>{opt.i}</span>
+                <span style={{ flex:1, fontSize:14, color: businessType === opt.v ? "#c9a96e" : "#a0998f", fontWeight: businessType === opt.v ? 600 : 400 }}>{opt.l}</span>
+                <span style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${businessType === opt.v ? "#c9a96e" : "#444"}`, background: businessType === opt.v ? "#c9a96e" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{businessType === opt.v ? <span style={{ width:8, height:8, borderRadius:"50%", background:"#0a0a0a", display:"block" }}></span> : null}</span>
+              </label>
+            ))}
+          </div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
+          <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
+        </div>
+        <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
+          {success ? (
+            <div>
+              <div style={{ background:`${C.sage}15`, border:`1px solid ${C.sage}30`, borderRadius:10, padding:"14px", color: C.sage, fontSize:13, marginBottom:20, textAlign:"center" }}>? {success}</div>
+              <button onClick={onBack} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB }}>Ir para o Login</button>
+            </div>
+          ) : (
+            <>
+              <Inp label="Nome do Salao" value={salonName} onChange={setSalonName} placeholder="Salao Bella Arte" required />
+              <Inp label="Seu Nome" value={ownerName} onChange={setOwnerName} placeholder="Maria da Silva" required />
+              <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
+              <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="minimo 6 caracteres" required />
+              <Inp label="WhatsApp" value={whatsapp} onChange={setWhatsapp} type="tel" placeholder="(34) 99999-9999" required />
+              <Inp label="CPF ou CNPJ" value={cpfCnpj} onChange={setCpfCnpj} placeholder="000.000.000-00 ou 00.000.000/0001-00" />
+              {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
+              <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, marginBottom:16 }}>
+                {loading ? "Cadastrando..." : "Criar Conta Gratis"}
+              </button>
+              <div style={{ textAlign:"center" }}>
+                <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:12, cursor:"pointer", fontFamily: FB }}>Ja tenho conta ? Fazer login</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginPage({ onLogin }: any) {
+  const [email, setEmail] = useState("admin@beautytech.com.br");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showRegister, setShowRegister] = useState(() => new URLSearchParams(window.location.search).get('tela') === 'cadastro');
+  if (showRegister) return <RegisterPage onBack={() => setShowRegister(false)} />;
+
+  const submit = async () => {
+    setLoading(true); setError("");
+    const { data, error: e } = await supabase.auth.signInWithPassword({ email, password });
+    if (e) setError(e.message);
+    else onLogin(data);
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily: FB, padding:20 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');`}</style>
+      <div style={{ width:"100%", maxWidth:420 }}>
+        <div style={{ textAlign:"center", marginBottom:48 }}>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12, fontFamily: FB }}>Sistema de Gestao</div>
+          <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
+        </div>
+        <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
+          <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="seu@email.com" />
+          <Inp label="Senha" value={password} onChange={setPassword} type="password" placeholder="????????" />
+          {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color: C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
+          <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, letterSpacing:"0.02em" }}>
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+          <div style={{ textAlign:"center", marginTop:16 }}>
+            <button onClick={() => setShowRegister(true)} style={{ background:"none", border:"1.5px solid #c9a96e", color: C.rose, fontSize:13, cursor:"pointer", fontFamily: FB, fontWeight:700, padding:"10px 20px", borderRadius:10, marginTop:4, width:"100%", background:"linear-gradient(135deg, #c9a96e22, #c9847a22)" }}>
+              ✨ Nao tem conta? Cadastre seu salao gratis
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
