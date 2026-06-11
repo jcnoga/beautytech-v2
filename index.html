@@ -58,33 +58,45 @@
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 200;
-    background: var(--charcoal);
+    background: linear-gradient(135deg, #1a1410 0%, #2a1f14 50%, #1a1410 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: .5rem;
-    padding: .45rem 1rem;
-    font-size: .72rem;
+    gap: .75rem;
+    padding: .75rem 1.5rem;
+    font-size: .78rem;
     font-weight: 500;
     letter-spacing: .04em;
-    color: rgba(250,246,242,.55);
+    color: rgba(250,246,242,.8);
+    border-bottom: 1px solid rgba(196,169,109,.3);
+    box-shadow: 0 2px 24px rgba(0,0,0,.5);
   }
-  .nicho-switcher span { color: rgba(250,246,242,.4); }
+  .nicho-switcher span { color: rgba(196,169,109,1); font-weight: 700; letter-spacing: .1em; font-size: .72rem; text-transform: uppercase; margin-right: .25rem; }
   .nicho-btn {
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.12);
-    color: rgba(250,246,242,.7);
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(196,169,109,.25);
+    color: rgba(250,246,242,.75);
     border-radius: 100px;
-    padding: .25rem .85rem;
+    padding: .45rem 1.3rem;
     cursor: pointer;
-    font-size: .72rem;
+    font-size: .82rem;
+    font-weight: 600;
     font-family: var(--font-body);
-    transition: all .2s;
+    letter-spacing: .03em;
+    transition: all .25s;
   }
-  .nicho-btn:hover, .nicho-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
+  .nicho-btn:hover {
+    background: rgba(196,169,109,.2);
+    border-color: rgba(196,169,109,.5);
     color: #fff;
+    transform: translateY(-1px);
+  }
+  .nicho-btn.active {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--accent) 100%);
+    border-color: var(--gold);
+    color: #fff;
+    box-shadow: 0 0 18px rgba(196,169,109,.5), 0 4px 12px rgba(0,0,0,.3);
+    transform: translateY(-1px);
   }
 
   /* ══════════════════ NAV ══════════════════ */
@@ -988,6 +1000,7 @@ const CFG = {
   emailjs_template_id: 'COLE_SEU_TEMPLATE_ID_AQUI',
   email_destino:    'websitelogx@gmail.com',
   whatsapp_destino: '5534997824990',
+  url_cadastro:     'https://beautytech-v2.vercel.app',
 };
 // ═══════════════════════════════════════════════
 
@@ -1398,6 +1411,16 @@ form.addEventListener('submit', async (e) => {
   }
 
   mostrarSucesso();
+
+  // Abre WhatsApp com os dados do lead
+  setTimeout(() => {
+    enviarWhatsApp(dados);
+  }, 900);
+
+  // Redireciona para cadastro no sistema
+  setTimeout(() => {
+    window.location.href = CFG.url_cadastro + '?tela=cadastro';
+  }, 3000);
 });
 </script>
 </body>
