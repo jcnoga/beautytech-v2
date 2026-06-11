@@ -1,4 +1,5 @@
 import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
+import PaymentSuccessPage from './PaymentSuccessPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
@@ -2948,6 +2949,19 @@ function UpgradeButton({ color }: any) {
       const r: any = await api.post("/billing/subscribe");
       if (r?.data?.paymentUrl) {
         window.open(r.data.paymentUrl, "_blank");
+        // Monitora retorno do pagamento
+        const checkReturn = setInterval(() => {
+          if (document.visibilityState === "visible") {
+            clearInterval(checkReturn);
+            setCurrentPage("payment_success");
+          }
+        }, 2000);
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            clearInterval(checkReturn);
+            setCurrentPage("payment_success");
+          }
+        }, { once: true });
       } else {
         alert("Erro: " + (r?.error ?? "Tente novamente."));
       }
@@ -3108,6 +3122,7 @@ export default function App() {
   const [page, setPage] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   if (isSuperAdmin) return <SuperAdminApp />;
+  if (currentPage === "payment_success") return <PaymentSuccessPage onGoHome={() => setCurrentPage("dashboard")} />;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

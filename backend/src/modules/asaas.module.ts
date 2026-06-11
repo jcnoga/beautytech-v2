@@ -93,9 +93,27 @@ export async function asaasModule(fastify: any) {
     const tenantId = payment.externalReference;
     if (["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"].includes(eventType)) {
       await db.update(tenants).set({ planTier: "pro", isActive: true, trialEndsAt: null, updatedAt: new Date() }).where(eq(tenants.id, tenantId));
+      try {
+        const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+        if (tenant?.email) {
+          const { sendProActivatedEmail } = await import("../modules/resend.module.js");
+          await sendProActivatedEmail(tenant.email, tenant.name ?? "");
+        }
+      } catch (e: any) {
+        console.error("[WEBHOOK] Erro ao enviar email pro ativado:", e.message);
+      }
     }
     if (["PAYMENT_OVERDUE", "SUBSCRIPTION_INACTIVATED"].includes(eventType)) {
       await db.update(tenants).set({ planTier: "basic", updatedAt: new Date() }).where(eq(tenants.id, tenantId));
+      try {
+        const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+        if (tenant?.email) {
+          const { sendPaymentOverdueEmail } = await import("../modules/resend.module.js");
+          await sendPaymentOverdueEmail(tenant.email, tenant.name ?? "");
+        }
+      } catch (e: any) {
+        console.error("[WEBHOOK] Erro ao enviar email pagamento vencido:", e.message);
+      }
     }
     return reply.send({ ok: true });
   });
