@@ -733,6 +733,7 @@
     .offer-pill { font-size: .78rem; padding: .55rem 1rem; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -1008,6 +1009,7 @@ const CFG = {
   whatsapp_destino: '5534997824990',
   url_cadastro:     'https://beautytech-v2.vercel.app',
 };
+emailjs.init({ publicKey: 'ZkNs2O6HgMI90_xsu' });
 // ═══════════════════════════════════════════════
 
 // ── Dados por nicho ──────────────────────────────────────────────────────────
@@ -1327,12 +1329,7 @@ waInput.addEventListener('input', () => {
 });
 
 // ── EmailJS ───────────────────────────────────────────────────────────────────
-(function(){
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
-  s.onload = () => emailjs.init({ publicKey: CFG.emailjs_public_key });
-  document.head.appendChild(s);
-})();
+// EmailJS inicializado via head
 
 function mostrarSucesso() {
   const formState = document.getElementById('form-state');
