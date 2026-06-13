@@ -31,6 +31,7 @@ export default function DiscoveryPage() {
   const [busca, setBusca] = useState("");
   const [buscaInput, setBuscaInput] = useState("");
   const [cidadeInput, setCidadeInput] = useState("");
+  const [trigger, setTrigger] = useState(0); 
 
   const buscarTenants = async (t: string, c: string, b: string) => {
     setLoading(true);
@@ -52,11 +53,12 @@ export default function DiscoveryPage() {
     setLoading(false);
   };
 
-  useEffect(() => { buscarTenants(tipo, cidade, busca); }, [tipo, cidade, busca]);
+useEffect(() => { buscarTenants(tipo, cidadeInput.trim(), buscaInput.trim()); }, [tipo, trigger]);
 
-  const handleBuscar = () => {
+const handleBuscar = () => {
     setCidade(cidadeInput.trim());
     setBusca(buscaInput.trim());
+    setTrigger(t => t + 1);
   };
 
   const labelTipo = (t: string) => {
