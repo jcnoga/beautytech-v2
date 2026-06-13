@@ -3118,6 +3118,9 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
 export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
+  // Rota pública de agendamento — renderiza antes de qualquer auth
+  const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
+  if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [page, setPage] = useState('dashboard');
