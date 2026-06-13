@@ -14,7 +14,7 @@ type Step = "servico" | "profissional" | "data" | "dados" | "confirmado";
 
 interface Tenant { id:string; name:string; slug:string; logoUrl?:string; primaryColor?:string; phone?:string; addressCity?:string; addressState?:string; businessHours?:any; }
 interface Service { id:string; name:string; durationMinutes:number; price:number; description?:string; }
-interface Professional { id:string; name:string; photoUrl?:string; specialty?:string; }
+interface Professional { id:string; fullName:string; displayName?:string; avatarUrl?:string; specialties?:string[]; color?:string; }
 interface Slot { time:string; available:boolean; }
 
 export default function BookingPage({ slug }: { slug: string }) {
@@ -190,11 +190,11 @@ export default function BookingPage({ slug }: { slug: string }) {
                     display:"flex",alignItems:"center",justifyContent:"center",
                     fontSize:18,flexShrink:0,overflow:"hidden",
                   }}>
-                    {p.photoUrl ? <img src={p.photoUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} /> : "👩"}
+                    {p.avatarUrl ? <img src={p.photoUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} /> : "👩"}
                   </div>
                   <div>
-                    <div style={{fontWeight:700,fontSize:15}}>{p.name}</div>
-                    {p.specialty && <div style={{color:C.textMuted,fontSize:12,marginTop:2}}>{p.specialty}</div>}
+                    <div style={{fontWeight:700,fontSize:15}}>{p.fullName}</div>
+                    {p.specialties?.[0] && <div style={{color:C.textMuted,fontSize:12,marginTop:2}}>{p.specialties?.[0]}</div>}
                   </div>
                 </div>
               ))}
