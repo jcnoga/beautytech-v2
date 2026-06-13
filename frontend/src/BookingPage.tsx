@@ -61,7 +61,7 @@ export default function BookingPage({ slug }: { slug: string }) {
       // 1. Registrar/buscar cliente
       const cr = await fetch(`${API}/api/v1/public/clients/register`, {
         method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ tenantSlug: slug, name: form.name, email: form.email, phone: form.phone }),
+        body: JSON.stringify({ tenantSlug: slug, fullName: form.name, email: form.email, whatsapp: form.phone }),
       }).then(r=>r.json());
       if (!cr.success) throw new Error(cr.error || "Erro ao registrar cliente");
       const clientId = cr.data.id;
