@@ -266,7 +266,7 @@ export default function BookingPage({ slug }: { slug: string }) {
             <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginBottom:20}}>
               <div style={{fontSize:12,color:C.textMuted,fontWeight:600,marginBottom:8}}>RESUMO</div>
               <div style={{fontSize:14,marginBottom:4}}><span style={{color:C.textMuted}}>Serviço:</span> <strong>{selService?.name}</strong></div>
-              <div style={{fontSize:14,marginBottom:4}}><span style={{color:C.textMuted}}>Profissional:</span> <strong>{selPro?.name}</strong></div>
+              <div style={{fontSize:14,marginBottom:4}}><span style={{color:C.textMuted}}>Profissional:</span> <strong>{selPro?.displayName || selPro?.fullName}</strong></div>
               <div style={{fontSize:14,marginBottom:4}}><span style={{color:C.textMuted}}>Data:</span> <strong>{new Date(selDate+"T12:00:00").toLocaleDateString("pt-BR")}</strong></div>
               <div style={{fontSize:14,marginBottom:4}}><span style={{color:C.textMuted}}>Horário:</span> <strong>{selTime}</strong></div>
               <div style={{fontSize:14,color:accent,fontWeight:700,marginTop:6}}>R$ {Number(selService?.price).toFixed(2)}</div>
@@ -334,7 +334,7 @@ export default function BookingPage({ slug }: { slug: string }) {
             }}>
               <div style={{fontSize:12,color:C.textMuted,fontWeight:600,marginBottom:12}}>DETALHES</div>
               <div style={{fontSize:14,marginBottom:6}}><span style={{color:C.textMuted}}>Serviço:</span> <strong>{selService?.name}</strong></div>
-              <div style={{fontSize:14,marginBottom:6}}><span style={{color:C.textMuted}}>Profissional:</span> <strong>{selPro?.name}</strong></div>
+              <div style={{fontSize:14,marginBottom:6}}><span style={{color:C.textMuted}}>Profissional:</span> <strong>{selPro?.displayName || selPro?.fullName}</strong></div>
               <div style={{fontSize:14,marginBottom:6}}><span style={{color:C.textMuted}}>Data:</span> <strong>{new Date(selDate+"T12:00:00").toLocaleDateString("pt-BR")}</strong></div>
               <div style={{fontSize:14,marginBottom:6}}><span style={{color:C.textMuted}}>Horário:</span> <strong>{selTime}</strong></div>
               <div style={{fontSize:14,color:accent,fontWeight:700,marginTop:8}}>R$ {Number(selService?.price).toFixed(2)}</div>
