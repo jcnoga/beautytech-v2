@@ -3163,7 +3163,6 @@ export default function App() {
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
   };
 
-  code C:\projetos\beautytech-v2\frontend\src\App.tsx
   if (discoveryMatch) return <DiscoveryPage />;
   // Returns condicionais DEPOIS de todos os hooks
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
