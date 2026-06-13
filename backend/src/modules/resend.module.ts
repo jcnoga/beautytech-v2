@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = "BeautyTech <onboarding@resend.dev>";
+const FROM = `${process.env.RESEND_FROM_NAME ?? "ZenSalon"} <${process.env.RESEND_FROM_EMAIL ?? "noreply@zensalon.com.br"}>`;
 
 // -- Boas-vindas no cadastro ----------------------------------
 export async function sendWelcomeEmail(to: string, salonName: string) {
@@ -14,19 +14,19 @@ export async function sendWelcomeEmail(to: string, salonName: string) {
         <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
           <div style="text-align:center;margin-bottom:32px;">
             <h1 style="font-size:28px;color:#1a0a2e;margin:0;">? BeautyTech</h1>
-            <p style="color:#6b5e8a;margin:4px 0 0;">Gestão inteligente para salões de beleza</p>
+            <p style="color:#6b5e8a;margin:4px 0 0;">Gestï¿½o inteligente para salï¿½es de beleza</p>
           </div>
-          <h2 style="color:#1a0a2e;">Olá, ${salonName}! ??</h2>
+          <h2 style="color:#1a0a2e;">Olï¿½, ${salonName}! ??</h2>
           <p style="color:#444;line-height:1.6;">
-            Sua conta foi criada com sucesso. Você está no <strong>período de teste gratuito de 7 dias</strong> com acesso completo à plataforma.
+            Sua conta foi criada com sucesso. Vocï¿½ estï¿½ no <strong>perï¿½odo de teste gratuito de 7 dias</strong> com acesso completo ï¿½ plataforma.
           </p>
           <div style="background:#f5f3ff;border-radius:12px;padding:20px;margin:24px 0;">
-            <p style="margin:0;color:#2d1b69;font-weight:600;">?? O que você pode fazer agora:</p>
+            <p style="margin:0;color:#2d1b69;font-weight:600;">?? O que vocï¿½ pode fazer agora:</p>
             <ul style="color:#444;line-height:2;margin:8px 0 0;padding-left:20px;">
               <li>Cadastrar seus profissionais</li>
-              <li>Configurar seus serviços e preços</li>
+              <li>Configurar seus serviï¿½os e preï¿½os</li>
               <li>Agendar os primeiros clientes</li>
-              <li>Ativar o WhatsApp automático</li>
+              <li>Ativar o WhatsApp automï¿½tico</li>
             </ul>
           </div>
           <div style="text-align:center;margin:32px 0;">
@@ -36,7 +36,7 @@ export async function sendWelcomeEmail(to: string, salonName: string) {
             </a>
           </div>
           <p style="color:#6b5e8a;font-size:13px;text-align:center;">
-            Dúvidas? Responda este e-mail ou fale no WhatsApp.<br>
+            Dï¿½vidas? Responda este e-mail ou fale no WhatsApp.<br>
             Equipe BeautyTech
           </p>
         </div>
@@ -54,7 +54,7 @@ export async function sendProActivatedEmail(to: string, salonName: string) {
     await resend.emails.send({
       from: FROM,
       to,
-      subject: `?? Plano Pro ativado — ${salonName}`,
+      subject: `?? Plano Pro ativado ï¿½ ${salonName}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
           <div style="text-align:center;margin-bottom:32px;">
@@ -66,14 +66,14 @@ export async function sendProActivatedEmail(to: string, salonName: string) {
             <p style="color:rgba(255,255,255,.8);margin:0;">${salonName}</p>
           </div>
           <p style="color:#444;line-height:1.6;">
-            Seu pagamento foi confirmado e o <strong>Plano Pro</strong> está ativo. Agora você tem acesso ilimitado a todos os recursos da plataforma.
+            Seu pagamento foi confirmado e o <strong>Plano Pro</strong> estï¿½ ativo. Agora vocï¿½ tem acesso ilimitado a todos os recursos da plataforma.
           </p>
           <div style="background:#f0fdf4;border-radius:12px;padding:20px;margin:24px 0;border-left:4px solid #22c55e;">
             <p style="margin:0;color:#166534;font-weight:600;">? Recursos Pro desbloqueados:</p>
             <ul style="color:#444;line-height:2;margin:8px 0 0;padding-left:20px;">
               <li>Clientes e agendamentos ilimitados</li>
-              <li>WhatsApp automático ativo</li>
-              <li>Relatórios financeiros completos</li>
+              <li>WhatsApp automï¿½tico ativo</li>
+              <li>Relatï¿½rios financeiros completos</li>
               <li>Campanhas de marketing</li>
               <li>Programa de fidelidade</li>
             </ul>
@@ -103,7 +103,7 @@ export async function sendPaymentOverdueEmail(to: string, salonName: string) {
     await resend.emails.send({
       from: FROM,
       to,
-      subject: `?? Pagamento pendente — ${salonName}`,
+      subject: `?? Pagamento pendente ï¿½ ${salonName}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
           <div style="text-align:center;margin-bottom:32px;">
@@ -114,7 +114,7 @@ export async function sendPaymentOverdueEmail(to: string, salonName: string) {
             <p style="color:#444;margin:0;">Seu plano Pro foi suspenso por falta de pagamento.</p>
           </div>
           <p style="color:#444;line-height:1.6;">
-            Olá, <strong>${salonName}</strong>. Identificamos um pagamento em atraso. Regularize para reativar todos os recursos Pro.
+            Olï¿½, <strong>${salonName}</strong>. Identificamos um pagamento em atraso. Regularize para reativar todos os recursos Pro.
           </p>
           <div style="text-align:center;margin:32px 0;">
             <a href="${process.env.FRONTEND_URL || "https://beautytech-v2.vercel.app"}"

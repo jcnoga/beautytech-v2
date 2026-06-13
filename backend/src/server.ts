@@ -4,6 +4,9 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { asaasModule } from "./modules/asaas.module.js";
+import { sendWelcomeEmail } from "./modules/email.module.js";
+
+
 import { publicBookingModule } from "./modules/appointments/appointments.routes.js";
 import { env } from "./config/env.js";
 import { checkDatabaseHealth, closeDatabaseConnection } from "./db/connection.js";
