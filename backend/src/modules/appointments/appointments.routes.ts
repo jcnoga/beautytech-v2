@@ -143,7 +143,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       .where(and(eq(tenants.slug, tenantSlug), eq(tenants.isActive, true)));
     if (!tenant) return reply.status(404).send({ success: false, error: "Estabelecimento nao encontrado" });
 
-    const [existing] = await db.select({ id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp })
+    const [existing] = await db.select({ id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp, email: clients.email })
       .from(clients).where(and(eq(clients.tenantId, tenant.id), eq(clients.whatsapp, whatsapp), isNull(clients.deletedAt)));
     if (existing) return reply.send({ success: true, data: { ...existing, isExisting: true } });
 
