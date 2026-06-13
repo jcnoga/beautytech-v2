@@ -1,4 +1,5 @@
 ﻿import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
+import BookingPage from './BookingPage';
 import PaymentSuccessPage from './PaymentSuccessPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
@@ -2924,7 +2925,7 @@ function AutomationsPage() {
 
 
 // --- UPGRADE BUTTON -----------------------------------------
-function UpgradeButton({ color }: any) {
+function UpgradeButton({ color, onPaymentSuccess }: any) {
   const [loading, setLoading] = useState(false);
   const [showCpf, setShowCpf] = useState(false);
   const [cpf, setCpf] = useState("");
@@ -2953,7 +2954,7 @@ function UpgradeButton({ color }: any) {
         const checkReturn = setInterval(() => {
           if (document.visibilityState === "visible") {
             clearInterval(checkReturn);
-            setCurrentPage("payment_success");
+            onPaymentSuccess?.();
           }
         }, 2000);
         document.addEventListener("visibilitychange", () => {
@@ -3033,7 +3034,7 @@ function TrialBanner() {
         <div style={{ width:100, height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(days/15)*100))}%`, background:color, borderRadius:3 }} />
         </div>
-        <UpgradeButton color={color} />
+        <UpgradeButton color={color} onPaymentSuccess={() => setCurrentPage('payment_success')} />
       </div>
     </div>
   );
@@ -3120,6 +3121,14 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [page, setPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+  const path = window.location.pathname;
+  if (path.startsWith('/agendar/')) return 'booking';
+  return 'app';
+});
+const bookingSlug = window.location.pathname.startsWith('/agendar/')
+  ? window.location.pathname.replace('/agendar/', '')
+  : '';
   const [loading, setLoading] = useState(true);
   if (isSuperAdmin) return <SuperAdminApp />;
 
@@ -3148,25 +3157,9 @@ export default function App() {
     </div>
   );
 
-  if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
-
-  const PAGES: any = {
-    dashboard:     DashboardPage,
-    agenda:        AgendaPage,
-    clients:       ClientsPage,
-    professionals: ProfessionalsPage,
-    services:      ServicesPage,
-    packages:      PackagesPage,
-    financial:     FinancialPage,
-    commissions:   CommissionsPage,
-    crm:           CRMPage,
-    fidelity:      FidelityPage,
-    automations:   AutomationsPage,
-    notifications: NotificationsPage,
-    whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
-  };
-  const PageComponent = PAGES[page] ?? DashboardPage;
-
+  if (currentPage === 'booking') return <BookingPage slug={bookingSlug} />;
+if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
+if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
   return (
     <>
       <style>{`
