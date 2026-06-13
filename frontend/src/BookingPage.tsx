@@ -15,7 +15,7 @@ type Step = "servico" | "profissional" | "data" | "dados" | "confirmado";
 interface Tenant { id:string; name:string; slug:string; logoUrl?:string; primaryColor?:string; phone?:string; addressCity?:string; addressState?:string; businessHours?:any; }
 interface Service { id:string; name:string; durationMinutes:number; price:number; description?:string; }
 interface Professional { id:string; fullName:string; displayName?:string; avatarUrl?:string; specialties?:string[]; color?:string; }
-interface Slot { time:string; available:boolean; }
+type Slot = string;
 
 export default function BookingPage({ slug }: { slug: string }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -226,19 +226,19 @@ export default function BookingPage({ slug }: { slug: string }) {
                 <label style={{fontSize:13,color:C.textMuted,fontWeight:600,display:"block",marginBottom:10}}>
                   Horários disponíveis
                 </label>
-                {slots.length === 0
+             {slots.length === 0
                   ? <p style={{color:C.textMuted,fontSize:13}}>Nenhum horário disponível nesta data.</p>
                   : <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-                      {slots.filter(s=>s.available).map(s => (
-                        <div key={s.time} onClick={()=>setSelTime(s.time)}
+                      {slots.map(s => (
+                        <div key={s} onClick={()=>setSelTime(s)}
                           style={{
                             padding:"10px 0",textAlign:"center",borderRadius:10,cursor:"pointer",
-                            border:`2px solid ${selTime===s.time?accent:C.border}`,
-                            background:selTime===s.time?`${accent}20`:C.card2,
-                            color:selTime===s.time?accent:C.text,
-                            fontWeight:selTime===s.time?700:400,fontSize:13,transition:"all .2s",
+                            border:`2px solid ${selTime===s?accent:C.border}`,
+                            background:selTime===s?`${accent}20`:C.card2,
+                            color:selTime===s?accent:C.text,
+                            fontWeight:selTime===s?700:400,fontSize:13,transition:"all .2s",
                           }}
-                        >{s.time}</div>
+                        >{s}</div>
                       ))}
                     </div>
                 }
