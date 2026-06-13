@@ -12,7 +12,7 @@ export default defineConfig({
         name:  "ZenSalon - Gestao de Salao",
         short_name: "ZenSalon",
         description: "Sistema de gestao para saloes de beleza",
-        theme_color: ""#C9847A",
+        theme_color: "#C9847A",
         background_color: "#0B0F1A",
         display: "standalone",
         orientation: "portrait",
