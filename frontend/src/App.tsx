@@ -3121,7 +3121,6 @@ export default function App() {
   const isSuperAdmin = window.location.pathname === '/super-admin';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
-  if (discoveryMatch) return <DiscoveryPage />;
 
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
@@ -3165,7 +3164,7 @@ export default function App() {
   };
 
   const PageComponent = PAGES[page] ?? DashboardPage;
-
+  if (discoveryMatch) return <DiscoveryPage />;
   // Returns condicionais DEPOIS de todos os hooks
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
   if (isSuperAdmin) return <SuperAdminApp />;
