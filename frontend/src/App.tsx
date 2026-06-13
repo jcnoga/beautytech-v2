@@ -3158,6 +3158,21 @@ if (loading) return (
   );
   if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
+const PAGES: any = {
+    dashboard:     DashboardPage,
+    agenda:        AgendaPage,
+    clients:       ClientsPage,
+    professionals: ProfessionalsPage,
+    services:      ServicesPage,
+    packages:      PackagesPage,
+    financial:     FinancialPage,
+    commissions:   CommissionsPage,
+    crm:           CRMPage,
+    fidelity:      FidelityPage,
+    automations:   AutomationsPage,
+    notifications: NotificationsPage,
+    whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
+  };
   const PageComponent = PAGES[page] ?? DashboardPage;
   return (
     <>
