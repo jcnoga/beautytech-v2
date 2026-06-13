@@ -3126,12 +3126,6 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<string>('app');
   const [loading, setLoading] = useState(true);
 
-  // Returns condicionais DEPOIS de todos os hooks
-  if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
-  if (isSuperAdmin) return <SuperAdminApp />;
-
-
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -3151,14 +3145,7 @@ export default function App() {
     setUser(null);
   };
 
-if (loading) return (
-    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>BeautyTech</div>
-    </div>
-  );
-  if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
-  if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
-const PAGES: any = {
+  const PAGES: any = {
     dashboard:     DashboardPage,
     agenda:        AgendaPage,
     clients:       ClientsPage,
@@ -3173,7 +3160,20 @@ const PAGES: any = {
     notifications: NotificationsPage,
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
   };
+
   const PageComponent = PAGES[page] ?? DashboardPage;
+
+  // Returns condicionais DEPOIS de todos os hooks
+  if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
+  if (isSuperAdmin) return <SuperAdminApp />;
+  if (loading) return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>BeautyTech</div>
+    </div>
+  );
+  if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
+  if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
+
   return (
     <>
       <style>{`
@@ -3196,9 +3196,6 @@ const PAGES: any = {
     </>
   );
 }
-
-
-
 
 
 
