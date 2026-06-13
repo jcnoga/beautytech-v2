@@ -210,15 +210,15 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       const proData = await db.select({ fullName: professionals.fullName })
         .from(professionals).where(eq(professionals.id, professionalId));
 
-      if (clientData[0]?.email) {
+if (clientData[0]?.email) {
         const { sendAppointmentReminderEmail } = await import("../email.module.js");
         await sendAppointmentReminderEmail({
           to: clientData[0].email,
           clientName: clientData[0].fullName ?? "Cliente",
-          tenantName: tenantData[0]?.name ?? "Salão",
+          tenantName: tenantData[0]?.name ?? "Salao",
           serviceName: service.name,
           date: new Date(scheduledAt).toLocaleDateString("pt-BR"),
-          time: selTime ?? time,
+          time: time,
           professionalName: proData[0]?.fullName ?? undefined,
         });
       }
