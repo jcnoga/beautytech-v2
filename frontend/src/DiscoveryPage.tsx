@@ -219,4 +219,10 @@ export default function DiscoveryPage() {
       <div style={{ textAlign: "center", padding: "32px 24px", borderTop: `1px solid ${C.border}`, marginTop: 40 }}>
         <div style={{ fontSize: "1rem", fontWeight: 800, color: C.primary, marginBottom: 4 }}>⚡ ZenSalon</div>
         <div style={{ fontSize: ".78rem", color: C.textMuted }}>
-          Sua plataforma de
+        Sua plataforma de agendamento online
+        </div>
+      </div>
+
+    </div>
+  );
+}
