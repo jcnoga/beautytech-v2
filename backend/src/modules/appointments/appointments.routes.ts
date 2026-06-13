@@ -201,6 +201,31 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       durationMinutes: service.durationMinutes, total: service.price,
     });
 
+// Dispara e-mail de confirmação (fire and forget)
+    try {
+      const clientData = await db.select({ email: clients.email, fullName: clients.fullName })
+        .from(clients).where(eq(clients.id, clientId));
+      const tenantData = await db.select({ name: tenants.name })
+        .from(tenants).where(eq(tenants.id, tenant.id));
+      const proData = await db.select({ fullName: professionals.fullName })
+        .from(professionals).where(eq(professionals.id, professionalId));
+
+      if (clientData[0]?.email) {
+        const { sendAppointmentReminderEmail } = await import("../../modules/email.module.js");
+        await sendAppointmentReminderEmail({
+          to: clientData[0].email,
+          clientName: clientData[0].fullName ?? "Cliente",
+          tenantName: tenantData[0]?.name ?? "Salão",
+          serviceName: service.name,
+          date: new Date(scheduledAt).toLocaleDateString("pt-BR"),
+          time: selTime ?? time,
+          professionalName: proData[0]?.fullName ?? undefined,
+        });
+      }
+    } catch (emailErr: any) {
+      console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", emailErr.message);
+    }
+
     return reply.status(201).send({
       success: true,
       data: { ...appointment, serviceName: service.name },
