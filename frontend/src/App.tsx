@@ -3151,15 +3151,14 @@ export default function App() {
     setUser(null);
   };
 
-  if (loading) return (
+if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>BeautyTech</div>
     </div>
   );
-
- //if (currentPage === 'booking') return <BookingPage slug={bookingSlug} />;
-if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
-if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
+  if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
+  if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
+  const PageComponent = PAGES[page] ?? DashboardPage;
   return (
     <>
       <style>{`
