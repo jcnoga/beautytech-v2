@@ -342,7 +342,7 @@ export default function BookingPage({ slug }: { slug: string }) {
             <p style={{color:C.textMuted,fontSize:12,marginBottom:24}}>
               Você receberá um lembrete por e-mail 24h antes do horário.
             </p>
-            <button onClick={() => window.location.href = "/"}
+            <button onClick={() => window.location.reload()}
               style={{...btnStyle(true),width:"100%",justifyContent:"center"}}>
               Voltar ao início
             </button>
