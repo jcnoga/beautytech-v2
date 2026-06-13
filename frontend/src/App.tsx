@@ -1,4 +1,5 @@
-﻿import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
+﻿import DiscoveryPage from './DiscoveryPage';
+import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import BookingPage from './BookingPage';
 import PaymentSuccessPage from './PaymentSuccessPage';
 // ============================================================
@@ -3119,6 +3120,8 @@ export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
+  const discoveryMatch = window.location.pathname === '/buscar';
+  if (discoveryMatch) return <DiscoveryPage />;
 
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
