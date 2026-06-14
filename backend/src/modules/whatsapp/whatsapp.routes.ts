@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { authenticate } from "../../middleware/auth.js";
 import { db } from "../../db/connection.js";
+import { sendOwnerNotificationEmail } from "../email.module.js";
 import { tenants } from "../../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import {
@@ -37,16 +38,17 @@ export async function whatsappModule(fastify: FastifyInstance) {
 
         // Notificar dono do SaaS quando salao conectar pela primeira vez
         if (isConnected && currentTenant?.whatsappStatus !== "connected") {
+          const phone = data.number ?? "desconhecido";
+          const name = currentTenant?.name ?? tenantId;
+          const hora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+          // Tentar WhatsApp
           const ownerPhone = process.env["NOTIFY_OWNER_PHONE"];
           const apiUrl = process.env["WHATSAPP_API_URL"];
           const apiKey = process.env["WHATSAPP_API_KEY"];
           const instance = process.env["WHATSAPP_INSTANCE"];
           if (ownerPhone && apiUrl && apiKey && instance) {
             try {
-              const phone = data.number ?? "desconhecido";
-              const name = currentTenant?.name ?? tenantId;
-              const hora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-              const msg = "?? *Salao Conectado!*\n\n" +
+              const msg = "* Salao Conectado!*\n\n" +
                 "*Salao:* " + name + "\n" +
                 "*Numero:* " + phone + "\n" +
                 "*Horario:* " + hora;
@@ -56,9 +58,11 @@ export async function whatsappModule(fastify: FastifyInstance) {
                 body: JSON.stringify({ number: ownerPhone, text: msg }),
               });
             } catch (e) {
-              console.error("Erro ao notificar dono:", e);
+              console.error("Erro ao notificar dono via WhatsApp:", e);
             }
           }
+          // Sempre enviar e-mail
+          await sendOwnerNotificationEmail(name, phone, hora);
         }
       }
 
