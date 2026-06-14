@@ -166,3 +166,39 @@ export async function sendOwnerNotificationEmail(salonName: string, phone: strin
     console.error("[RESEND] Erro notificacao dono:", e.message);
   }
 }
+
+// -- Confirmacao de agendamento para o cliente ----------------
+export async function sendAppointmentReminderEmail({ to, clientName, tenantName, serviceName, date, time, professionalName }: {
+  to: string; clientName: string; tenantName: string; serviceName: string; date: string; time: string; professionalName?: string;
+}) {
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "Agendamento confirmado - " + tenantName,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <h1 style="font-size:24px;color:#1a0a2e;margin:0;">${tenantName}</h1>
+          </div>
+          <div style="background:#f0fdf4;border-radius:12px;padding:24px;border-left:4px solid #22c55e;margin-bottom:24px;">
+            <h2 style="color:#166534;margin:0 0 16px;">Agendamento Confirmado!</h2>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr><td style="color:#666;padding:6px 0;width:130px;">Cliente:</td><td style="color:#1a0a2e;font-weight:700;">${clientName}</td></tr>
+              <tr><td style="color:#666;padding:6px 0;">Servico:</td><td style="color:#1a0a2e;font-weight:700;">${serviceName}</td></tr>
+              ${professionalName ? `<tr><td style="color:#666;padding:6px 0;">Profissional:</td><td style="color:#1a0a2e;">${professionalName}</td></tr>` : ""}
+              <tr><td style="color:#666;padding:6px 0;">Data:</td><td style="color:#1a0a2e;font-weight:700;">${date}</td></tr>
+              <tr><td style="color:#666;padding:6px 0;">Horario:</td><td style="color:#1a0a2e;font-weight:700;">${time}</td></tr>
+            </table>
+          </div>
+          <p style="color:#6b5e8a;font-size:12px;text-align:center;">
+            Voce receberá um lembrete 24h antes do horario.<br>${tenantName}
+          </p>
+        </div>
+      `,
+    });
+    console.log("[RESEND] Confirmacao agendamento enviada para " + to);
+  } catch (e: any) {
+    console.error("[RESEND] Erro confirmacao agendamento:", e.message);
+  }
+}

@@ -211,7 +211,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
         .from(professionals).where(eq(professionals.id, professionalId));
 
 if (clientData[0]?.email) {
-        const { sendAppointmentReminderEmail } = await import("../email.module.js");
+        const { sendAppointmentReminderEmail } = await import("../resend.module.js");
         await sendAppointmentReminderEmail({
           to: clientData[0].email,
           clientName: clientData[0].fullName ?? "Cliente",
