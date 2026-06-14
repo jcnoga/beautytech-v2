@@ -65,6 +65,11 @@ const PERIODS = [
   { id: "annual",     label: "Anual",     discount: 20 },
 ];
 
+const WHATSAPP = '5534997824990';
+
+const PLAN_LABELS: any = { basic: 'Básico', pro: 'Pro', super: 'Super' };
+const PERIOD_LABELS: any = { monthly: 'Mensal', semiannual: 'Semestral', annual: 'Anual' };
+
 export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, period: string) => void }) {
   const [period, setPeriod] = useState("monthly");
   const disc = PERIODS.find(p => p.id === period)?.discount ?? 0;
@@ -161,7 +166,12 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
               </div>
             )}
 
-            <button disabled={plan.disabled} onClick={() => onUpgrade?.(plan.id, period)}
+            <button disabled={plan.disabled} onClick={() => {
+              if (!plan.disabled) {
+                const msg = encodeURIComponent(Olá! Quero assinar o Plano  () do ZenSalon. Pode me ajudar?);
+                window.open(https://wa.me/?text=, '_blank');
+              }
+            }}
               style={{ width:"100%", padding:"13px", borderRadius:12, background:plan.disabled?"transparent":plan.highlight?C.gold:"transparent", border:`1px solid ${plan.disabled?C.border:plan.highlight?C.gold:plan.color}`, color:plan.disabled?C.textMuted:plan.highlight?"#0a0a0a":plan.color, fontSize:14, fontWeight:700, cursor:plan.disabled?"default":"pointer", fontFamily:FB }}>
               {plan.cta}
             </button>
@@ -188,4 +198,5 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
     </div>
   );
 }
+
 
