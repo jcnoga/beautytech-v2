@@ -3119,6 +3119,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
 export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
+  const isSubdomain = !['localhost','beautytech-v2.vercel.app'].includes(window.location.hostname) && window.location.hostname !== 'localhost';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
 
@@ -3163,6 +3164,7 @@ export default function App() {
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
   };
 
+  if (isSubdomain) return <LandingPage />;
   if (discoveryMatch) return <DiscoveryPage />;
   // Returns condicionais DEPOIS de todos os hooks
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
@@ -3197,6 +3199,7 @@ export default function App() {
     </>
   );
 }
+
 
 
 
