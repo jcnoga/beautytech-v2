@@ -58,6 +58,10 @@ export default function TenantSettingsPage() {
       await api.patch<any>("/auth/me/profile", form);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      // Recarrega dados do tenant
+      const updated = await api.get<any>("/auth/me");
+      const t = updated.data ?? updated;
+      setForm((p: any) => ({ ...p, primaryColor: t.primaryColor ?? p.primaryColor, name: t.name ?? p.name }));
     } catch(e) { console.error(e); }
     finally { setSaving(false); }
   };
@@ -212,3 +216,4 @@ export default function TenantSettingsPage() {
     </div>
   );
 }
+
