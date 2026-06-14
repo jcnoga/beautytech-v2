@@ -3165,6 +3165,7 @@ export default function App() {
   };
 
   if (isSubdomain) return <LandingPage />;
+  const PageComponent = PAGES[page] ?? PAGES["dashboard"];
   if (discoveryMatch) return <DiscoveryPage />;
   // Returns condicionais DEPOIS de todos os hooks
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
@@ -3199,6 +3200,7 @@ export default function App() {
     </>
   );
 }
+
 
 
 
