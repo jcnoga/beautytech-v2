@@ -3217,19 +3217,18 @@ export default function App() {
   };
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname);
+  if (isSuperAdmin) return <SuperAdminApp />;
   if (isRootDomain) return <HomePage />;
   if (isSubdomain) return <LandingPage />;
   const PageComponent = PAGES[page] ?? PAGES["dashboard"];
   if (discoveryMatch) return <DiscoveryPage />;
   // Returns condicionais DEPOIS de todos os hooks
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
-  if (isSuperAdmin) return <SuperAdminApp />;
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>BeautyTech</div>
     </div>
   );
-  if (!user) return <LoginPage onLogin={(d: any) => setUser(d.user)} />;
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
 
   return (
