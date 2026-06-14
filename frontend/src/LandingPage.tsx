@@ -100,7 +100,7 @@ export default function LandingPage() {
 
         {/* CTAs */}
         <div style={{ display:"flex", gap:16, flexWrap:"wrap", justifyContent:"center" }}>
-          <a href={`/agendar/${tenant.slug}`}
+          <a href={`https://beautytech-v2.vercel.app/agendar/${tenant.slug}`}
             style={{ display:"inline-block", padding:"14px 32px", background:primary, color:"#0f0f0f", borderRadius:50, fontWeight:700, fontSize:15, textDecoration:"none", letterSpacing:"0.05em" }}>
             Agendar Agora
           </a>
@@ -159,3 +159,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
