@@ -1,6 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-
-const API = import.meta.env["VITE_API_URL"];
+import { api } from "./api/client";
 
 const C = {
   bg: "#0f0f0f", card: "#1a1a1a", border: "rgba(255,255,255,0.08)",
@@ -15,13 +14,8 @@ function Inp({ label, value, onChange, placeholder, type = "text" }: any) {
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</label>
-      <input
-        type={type}
-        value={value ?? ""}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{ width: "100%", padding: "10px 14px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, fontFamily: FB, outline: "none", boxSizing: "border-box" }}
-      />
+      <input type={type} value={value ?? ""} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ width: "100%", padding: "10px 14px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, fontFamily: FB, outline: "none", boxSizing: "border-box" }} />
     </div>
   );
 }
@@ -32,25 +26,13 @@ export default function TenantSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState("identity");
-
-  const getToken = () => {
-    for (const k of Object.keys(localStorage)) {
-      if (k.includes("supabase") || k.includes("auth-token")) {
-        try { const v = JSON.parse(localStorage.getItem(k) ?? "{}"); if (v?.access_token) return v.access_token; } catch {}
-      }
-    }
-    return sessionStorage.getItem("beautytech_token") ?? "";
-  };
-  const token = getToken();
+  const [uploading, setUploading] = useState(false);
 
   const f = (key: string) => (val: string) => setForm((p: any) => ({ ...p, [key]: val }));
 
   useEffect(() => {
-    fetch(`${API}/api/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(r => r.json())
-      .then(data => {
+    api.get<any>("/auth/me")
+      .then((data: any) => {
         const t = data.data ?? data;
         setForm({
           name: t.name ?? "",
@@ -76,14 +58,48 @@ export default function TenantSettingsPage() {
     setSaving(true);
     setSaved(false);
     try {
-      const res = await fetch(`${API}/api/v1/auth/me/profile`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 3000); }
+      await api.patch<any>("/auth/me/profile", form);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch(e) { console.error(e); }
     finally { setSaving(false); }
+  };
+
+  const handleLogoUpload = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Converte para base64 e usa como URL temporária
+        const url = reader.result as string;
+        setForm((p: any) => ({ ...p, logoUrl: url }));
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch(e) {
+      console.error(e);
+      setUploading(false);
+    }
+  };
+
+  const handleCoverUpload = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = reader.result as string;
+        setForm((p: any) => ({ ...p, coverUrl: url }));
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch(e) {
+      console.error(e);
+      setUploading(false);
+    }
   };
 
   const TABS = [
@@ -107,7 +123,7 @@ export default function TenantSettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 28, borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             style={{ padding: "10px 20px", background: "none", border: "none", borderBottom: `2px solid ${activeTab === tab.id ? C.gold : "transparent"}`, color: activeTab === tab.id ? C.gold : C.textMuted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FB, marginBottom: -1 }}>
@@ -161,20 +177,48 @@ export default function TenantSettingsPage() {
         {/* LANDING PAGE */}
         {activeTab === "landing" && (
           <div>
-            <Inp label="URL da Logo" value={form.logoUrl} onChange={f("logoUrl")} placeholder="https://..." />
-            {form.logoUrl && (
-              <div style={{ marginBottom: 16 }}>
-                <img src={form.logoUrl} alt="Logo" style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", border: `2px solid ${C.gold}` }} />
+            {/* Logo */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em" }}>Logo do estabelecimento</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                {form.logoUrl ? (
+                  <img src={form.logoUrl} alt="Logo" style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", border: `2px solid ${C.gold}` }} />
+                ) : (
+                  <div style={{ width: 80, height: 80, borderRadius: "50%", background: `${C.gold}20`, border: `2px dashed ${C.gold}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>✂</div>
+                )}
+                <div>
+                  <label style={{ display: "inline-block", padding: "10px 20px", background: `${C.gold}20`, border: `1px solid ${C.gold}40`, borderRadius: 10, color: C.gold, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FB }}>
+                    {uploading ? "Carregando..." : "📁 Escolher imagem"}
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: "none" }} />
+                  </label>
+                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>PNG, JPG ou SVG. Recomendado: 200x200px</div>
+                </div>
               </div>
-            )}
-            <Inp label="URL da Foto de Capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
-            {form.coverUrl && (
-              <div style={{ marginBottom: 16 }}>
-                <img src={form.coverUrl} alt="Cover" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 12 }} />
+              <div style={{ marginTop: 12 }}>
+                <Inp label="Ou cole a URL da logo" value={form.logoUrl} onChange={f("logoUrl")} placeholder="https://..." />
               </div>
-            )}
+            </div>
+
+            {/* Cover */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em" }}>Foto de capa</label>
+              {form.coverUrl && (
+                <img src={form.coverUrl} alt="Cover" style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 12, marginBottom: 10 }} />
+              )}
+              <div>
+                <label style={{ display: "inline-block", padding: "10px 20px", background: `${C.gold}20`, border: `1px solid ${C.gold}40`, borderRadius: 10, color: C.gold, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FB }}>
+                  {uploading ? "Carregando..." : "📁 Escolher capa"}
+                  <input type="file" accept="image/*" onChange={handleCoverUpload} style={{ display: "none" }} />
+                </label>
+                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>Recomendado: 1200x600px</div>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <Inp label="Ou cole a URL da capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
+              </div>
+            </div>
+
             <div style={{ background: `${C.gold}12`, border: `1px solid ${C.gold}30`, borderRadius: 12, padding: "12px 16px", fontSize: 12, color: C.textMuted }}>
-              💡 Use links de imagens do Google Drive, Imgur, ou qualquer URL pública. A landing page em <strong style={{ color: C.gold }}>beautytech.zensalon.com.br</strong> será atualizada automaticamente.
+              💡 A landing page em <strong style={{ color: C.gold }}>beautytech.zensalon.com.br</strong> será atualizada automaticamente após salvar.
             </div>
           </div>
         )}
@@ -189,12 +233,12 @@ export default function TenantSettingsPage() {
         </div>
       </div>
 
-      {/* Preview da landing */}
+      {/* Preview */}
       <div style={{ marginTop: 24, background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 24 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 16 }}>Preview da Landing Page</div>
         <div style={{ background: "#080808", borderRadius: 12, padding: "32px 20px", textAlign: "center", backgroundImage: form.coverUrl ? `linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.8)), url(${form.coverUrl})` : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
           {form.logoUrl
-            ? <img src={form.logoUrl} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover", border: `2px solid ${form.primaryColor}`, marginBottom: 12 }} />
+            ? <img src={form.logoUrl} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover", border: `2px solid ${form.primaryColor}`, marginBottom: 12, display: "block", margin: "0 auto 12px" }} />
             : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${form.primaryColor}22`, border: `2px solid ${form.primaryColor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto 12px" }}>✂</div>
           }
           <div style={{ fontSize: 11, color: form.primaryColor, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Salão de Beleza</div>
@@ -209,4 +253,3 @@ export default function TenantSettingsPage() {
     </div>
   );
 }
-
