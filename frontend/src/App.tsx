@@ -1,4 +1,5 @@
 ﻿import LandingPage from './LandingPage';
+import PricingPage from './PricingPage';
 import HomePage from './HomePage';
 import DiscoveryPage from './DiscoveryPage';
 import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
@@ -3057,6 +3058,7 @@ const MENU = [
   { id:"fidelity",      label:"Fidelidade",    icon:"o", premium:true },
   { id:"automations",   label:"Automacoes",    icon:"!", premium:true },
   { id:"notifications", label:"Notificacoes",  icon:"!", premium:true },
+  { id:"pricing",     label:"Planos",        icon:"$", premium:false },
   { id:"whatsapp",      label:"WhatsApp",      icon:"W", premium:true },
 ];
 
@@ -3164,6 +3166,7 @@ export default function App() {
     automations:   AutomationsPage,
     notifications: NotificationsPage,
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
+    pricing: PricingPage,
   };
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname);
@@ -3204,6 +3207,8 @@ export default function App() {
     </>
   );
 }
+
+
 
 
 
