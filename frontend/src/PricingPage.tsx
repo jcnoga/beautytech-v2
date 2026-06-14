@@ -168,8 +168,8 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
 
             <button disabled={plan.disabled} onClick={() => {
               if (!plan.disabled) {
-                const msg = encodeURIComponent(Olá! Quero assinar o Plano  () do ZenSalon. Pode me ajudar?);
-                window.open(https://wa.me/?text=, '_blank');
+                const msg = encodeURIComponent('Olá! Quero assinar o Plano ' + PLAN_LABELS[plan.id] + ' (' + PERIOD_LABELS[period] + ') do ZenSalon. Pode me ajudar?');
+                window.open('https://wa.me/' + WHATSAPP + '?text=' + msg, '_blank');
               }
             }}
               style={{ width:"100%", padding:"13px", borderRadius:12, background:plan.disabled?"transparent":plan.highlight?C.gold:"transparent", border:`1px solid ${plan.disabled?C.border:plan.highlight?C.gold:plan.color}`, color:plan.disabled?C.textMuted:plan.highlight?"#0a0a0a":plan.color, fontSize:14, fontWeight:700, cursor:plan.disabled?"default":"pointer", fontFamily:FB }}>
@@ -198,5 +198,6 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
     </div>
   );
 }
+
 
 
