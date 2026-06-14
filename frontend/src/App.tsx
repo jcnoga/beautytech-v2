@@ -3085,7 +3085,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
           const locked = isFree && m.premium;
           return (
             <button key={m.id} onClick={() => { if (locked) { alert("Este recurso esta disponivel apenas no Plano Profissional. Faca upgrade para continuar."); return; } setPage(m.id); }}
-              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : locked ? C.textMuted : C.textMuted, fontSize:13, fontWeight: active ? 600 : 400, cursor: locked ? "not-allowed" : "pointer", marginBottom:2, transition:"all .15s", fontFamily: FB, textAlign:"left", opacity: locked ? 0.5 : 1 }}>
+              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : locked ? C.textMuted : C.textMuted, fontSize:14, fontWeight: active ? 600 : 400, cursor: locked ? "not-allowed" : "pointer", marginBottom:2, transition:"all .15s", fontFamily: FB, textAlign:"left", opacity: locked ? 0.5 : 1 }}>
               <span style={{ fontSize:16, color: active ? C.rose : C.textMuted, opacity: active ? 1 : 0.5 }}>{m.icon}</span>
               {m.label}
               {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>?</span>}
@@ -3210,6 +3210,7 @@ export default function App() {
     </>
   );
 }
+
 
 
 
