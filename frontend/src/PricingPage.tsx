@@ -4,6 +4,7 @@ const C = {
   bg: "#0a0a0a", card: "#111", border: "rgba(255,255,255,0.08)",
   gold: "#c9a96e", rose: "#e8a598", sage: "#7eb8a0",
   text: "#f0ece4", textMuted: "rgba(255,255,255,0.35)",
+  ruby: "#e05c5c",
 };
 const FB = "'Outfit', sans-serif";
 const FD = "'Playfair Display', serif";
@@ -13,26 +14,38 @@ const PLANS = [
     id: "free", name: "Free", color: "rgba(255,255,255,0.35)",
     monthly: 0, professionals: "1 profissional",
     highlight: false, disabled: true, cta: "Plano atual",
+    description: "Grátis para sempre",
+    includes: ["1 profissional","Até 30 clientes","Até 50 agendamentos/mês","Agendamento básico","Gestão de serviços"],
+    locked: ["CRM avançado","Automações WhatsApp","Comissões","Fidelidade","Relatórios avançados","Campanhas"],
   },
   {
     id: "basic", name: "Básico", color: "#e8a598",
     monthly: 39.90, professionals: "Até 1 profissional",
     highlight: false, cta: "Assinar Básico",
+    description: "Para autônomos",
+    includes: [],
+    locked: [],
   },
   {
     id: "pro", name: "Pro", color: "#c9a96e",
     monthly: 59.90, professionals: "Até 5 profissionais",
     highlight: true, cta: "Assinar Pro",
+    description: "Para salões em crescimento",
+    includes: [],
+    locked: [],
   },
   {
     id: "super", name: "Super", color: "#7eb8a0",
     monthly: 99.90, professionals: "Até 12 profissionais",
     highlight: false, cta: "Assinar Super",
+    description: "Para grandes operações",
+    includes: [],
+    locked: [],
   },
 ];
 
-const FEATURES = [
-  "Agendamento online",
+const ALL_FEATURES = [
+  "Agendamento online ilimitado",
   "Cadastro ilimitado de clientes",
   "CRM completo",
   "Gestão financeira",
@@ -70,7 +83,7 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
         <div style={{ fontSize:11, letterSpacing:"0.3em", color:C.gold, textTransform:"uppercase", marginBottom:12 }}>Planos & Preços</div>
         <h1 style={{ fontFamily:FD, fontSize:"clamp(32px,5vw,52px)", color:C.text, fontWeight:700, marginBottom:16 }}>Escolha o plano ideal</h1>
         <p style={{ fontSize:15, color:C.textMuted, maxWidth:520, margin:"0 auto" }}>
-          Todos os planos incluem acesso completo a todas as funcionalidades.<br/>O único limite é o número de profissionais.
+          30 dias grátis com acesso completo. Após o trial, escolha um plano ou continue no Free com limitações.
         </p>
       </div>
 
@@ -92,8 +105,10 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
             {plan.highlight && (
               <div style={{ position:"absolute", top:-12, left:"50%", transform:"translateX(-50%)", background:C.gold, color:"#0a0a0a", fontSize:10, fontWeight:700, padding:"4px 16px", borderRadius:20, letterSpacing:"0.1em", whiteSpace:"nowrap" }}>MAIS POPULAR</div>
             )}
+
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:12, fontWeight:700, color:plan.color, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>{plan.name}</div>
+              <div style={{ fontSize:12, fontWeight:700, color:plan.color, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>{plan.name}</div>
+              <div style={{ fontSize:11, color:C.textMuted, marginBottom:12 }}>{plan.description}</div>
               {plan.monthly === 0 ? (
                 <div style={{ fontSize:36, fontWeight:700, color:C.text, fontFamily:FD }}>Grátis</div>
               ) : (
@@ -111,6 +126,32 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
               <div style={{ fontSize:13, color:plan.color, marginTop:8, fontWeight:600 }}>{plan.professionals}</div>
             </div>
 
+            {/* Features do Free */}
+            {plan.id === "free" && (
+              <div style={{ marginBottom:20 }}>
+                {plan.includes.map((f, i) => (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:C.text, marginBottom:6 }}>
+                    <span style={{ color:C.sage }}>✓</span>{f}
+                  </div>
+                ))}
+                {plan.locked.map((f, i) => (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:C.textMuted, marginBottom:6, opacity:0.5 }}>
+                    <span style={{ color:C.ruby }}>✕</span>{f}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Planos pagos — acesso total */}
+            {plan.id !== "free" && (
+              <div style={{ marginBottom:20, background:`${plan.color}10`, borderRadius:10, padding:"12px 14px" }}>
+                <div style={{ fontSize:12, color:plan.color, fontWeight:700, marginBottom:6 }}>✦ Acesso completo a tudo</div>
+                <div style={{ fontSize:11, color:C.textMuted, lineHeight:1.6 }}>
+                  Todas as funcionalidades desbloqueadas.<br/>Limite apenas de profissionais.
+                </div>
+              </div>
+            )}
+
             <button disabled={plan.disabled} onClick={() => onUpgrade?.(plan.id, period)}
               style={{ width:"100%", padding:"13px", borderRadius:12, background:plan.disabled?"transparent":plan.highlight?C.gold:"transparent", border:`1px solid ${plan.disabled?C.border:plan.highlight?C.gold:plan.color}`, color:plan.disabled?C.textMuted:plan.highlight?"#0a0a0a":plan.color, fontSize:14, fontWeight:700, cursor:plan.disabled?"default":"pointer", fontFamily:FB }}>
               {plan.cta}
@@ -119,22 +160,21 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
         ))}
       </div>
 
-      {/* Todas as features incluídas */}
+      {/* Todas as features incluídas nos planos pagos */}
       <div style={{ maxWidth:800, margin:"0 auto 48px", background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:36 }}>
-        <h2 style={{ fontFamily:FD, fontSize:24, color:C.text, marginBottom:8, textAlign:"center" }}>Tudo incluído em todos os planos</h2>
-        <p style={{ fontSize:13, color:C.textMuted, textAlign:"center", marginBottom:28 }}>Sem limitação de funcionalidades. O único diferencial é o número de profissionais.</p>
+        <h2 style={{ fontFamily:FD, fontSize:24, color:C.text, marginBottom:8, textAlign:"center" }}>Tudo incluído nos planos pagos</h2>
+        <p style={{ fontSize:13, color:C.textMuted, textAlign:"center", marginBottom:28 }}>Acesso completo a todas as funcionalidades. O único diferencial é o número de profissionais.</p>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px,1fr))", gap:12 }}>
-          {FEATURES.map((f, i) => (
+          {ALL_FEATURES.map((f, i) => (
             <div key={i} style={{ display:"flex", alignItems:"center", gap:10, fontSize:13, color:C.text }}>
-              <span style={{ color:C.sage, fontSize:16 }}>✓</span>
-              {f}
+              <span style={{ color:C.sage, fontSize:16 }}>✓</span>{f}
             </div>
           ))}
         </div>
       </div>
 
       <div style={{ textAlign:"center", fontSize:12, color:C.textMuted }}>
-        30 dias grátis · Sem cartão de crédito · Cancele a qualquer momento · Suporte via WhatsApp
+        30 dias grátis com acesso total · Sem cartão de crédito · Cancele a qualquer momento
       </div>
     </div>
   );
