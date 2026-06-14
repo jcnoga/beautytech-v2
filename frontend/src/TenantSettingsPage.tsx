@@ -33,7 +33,15 @@ export default function TenantSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState("identity");
 
-  const token = localStorage.getItem("sb-token") || sessionStorage.getItem("beautytech_token") || "";
+  const getToken = () => {
+    for (const k of Object.keys(localStorage)) {
+      if (k.includes("supabase") || k.includes("auth-token")) {
+        try { const v = JSON.parse(localStorage.getItem(k) ?? "{}"); if (v?.access_token) return v.access_token; } catch {}
+      }
+    }
+    return sessionStorage.getItem("beautytech_token") ?? "";
+  };
+  const token = getToken();
 
   const f = (key: string) => (val: string) => setForm((p: any) => ({ ...p, [key]: val }));
 
@@ -201,3 +209,4 @@ export default function TenantSettingsPage() {
     </div>
   );
 }
+
