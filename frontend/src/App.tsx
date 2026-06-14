@@ -3193,11 +3193,14 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
-
+const logout = async () => {
+  await supabase.auth.signOut();
+  setUser(null);
+  setToken(null);
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = '/';
+};
   const PAGES: any = {
     dashboard:     DashboardPage,
     agenda:        AgendaPage,
@@ -3252,6 +3255,7 @@ export default function App() {
     </>
   );
 }
+
 
 
 
