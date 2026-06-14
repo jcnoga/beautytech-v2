@@ -34,6 +34,7 @@ export default function TenantSettingsPage() {
     api.get<any>("/auth/me").then((data: any) => {
       const t = data.data ?? data;
       setForm({
+        slug: t.slug ?? "",
         name: t.name ?? "",
         logoUrl: t.logoUrl ?? "",
         coverUrl: t.coverUrl ?? "",
@@ -206,7 +207,7 @@ export default function TenantSettingsPage() {
           <div style={{ fontSize:22, fontWeight:700, color:"#fff", fontFamily:FD }}>{form.name||"Nome do Salão"}</div>
           {form.addressCity && <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:6 }}>📍 {form.addressCity}{form.addressState?`, ${form.addressState}`:""}</div>}
           <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:16 }}>
-            <a href={`https://beautytech-v2.vercel.app/agendar/${encodeURIComponent(form.name||"")}`} target="_blank"
+            <a href={`https://beautytech-v2.vercel.app/agendar/${form.slug||"beautytech"}`} target="_blank"
               style={{ padding:"8px 20px", background:form.primaryColor||C.gold, color:"#0f0f0f", borderRadius:50, fontSize:11, fontWeight:700, textDecoration:"none" }}>Agendar Agora</a>
             {form.whatsapp && <a href={`https://wa.me/55${form.whatsapp.replace(/\D/g,"")}`} target="_blank"
               style={{ padding:"8px 20px", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:50, fontSize:11, textDecoration:"none" }}>WhatsApp</a>}
@@ -216,4 +217,6 @@ export default function TenantSettingsPage() {
     </div>
   );
 }
+
+
 
