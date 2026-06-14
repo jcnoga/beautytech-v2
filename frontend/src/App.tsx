@@ -3064,6 +3064,7 @@ const MENU = [
   { id:"whatsapp",      label:"WhatsApp",      icon:"W", premium:true },
 ];
 
+$sidebar = @'
 function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   const themeId = useTheme();
   const [showThemes, setShowThemes] = useState(false);
@@ -3074,10 +3075,14 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   const isFree = planInfo?.effectivePlan === "basic";
   return (
     <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB }}>
-      <div style={{ padding:"28px 20px 24px", borderBottom:`1px solid ${C.border}` }}>
-        <div style={{ fontSize:11, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:6 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
-        <div style={{ fontSize:22, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.02em" }}>BeautyTech</div>
-        <div style={{ fontSize:10, color: C.textMuted, marginTop:2, letterSpacing:"0.1em" }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
+      <div style={{ padding:"20px 16px", borderBottom:`1px solid ${C.border}`, textAlign:"center" }}>
+        {tenantInfo?.logoUrl ? (
+          <img src={tenantInfo.logoUrl} alt="Logo" style={{ width:"72px", height:"72px", borderRadius:"50%", objectFit:"cover", border:`2px solid ${C.rose}`, display:"block", margin:"0 auto 10px" }} />
+        ) : (
+          <div style={{ width:72, height:72, borderRadius:"50%", background:`${C.rose}20`, border:`2px solid ${C.rose}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 10px" }}>✂</div>
+        )}
+        <div style={{ fontSize:17, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:2 }}>{tenantInfo?.name ?? "ZenSalon"}</div>
+        <div style={{ fontSize:10, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
       </div>
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
         {MENU.map(m => {
@@ -3120,7 +3125,11 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
     </div>
   );
 }
+'@
 
+$app = Get-Content "C:\projetos\beautytech-v2\frontend\src\App.tsx" -Raw
+$app = $app -replace '(?s)function Sidebar\(\{ page.*?\}\s*\}', $sidebar
+Set-Content "C:\projetos\beautytech-v2\frontend\src\App.tsx" $app -Encoding UTF8
 // --- APP -----------------------------------------------------
 export default function App() {
   useTheme();
@@ -3210,6 +3219,8 @@ export default function App() {
     </>
   );
 }
+
+
 
 
 
