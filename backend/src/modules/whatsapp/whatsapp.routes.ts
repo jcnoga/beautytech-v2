@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { authenticate } from "../../middleware/auth.js";
 import { db } from "../../db/connection.js";
-import { sendOwnerNotificationEmail } from "../email.module.js";
+import { sendOwnerNotificationEmail } from "../resend.module.js";
 import { tenants } from "../../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import {
