@@ -835,6 +835,19 @@ export async function authModule(fastify: FastifyInstance) {
       isActive:    tenants.isActive,
       trialEndsAt: tenants.trialEndsAt,
       businessType: tenants.businessType,
+      slug:          tenants.slug,
+        logoUrl:       tenants.logoUrl,
+        coverUrl:      tenants.coverUrl,
+        primaryColor:  tenants.primaryColor,
+        whatsapp:      tenants.whatsapp,
+        instagram:     tenants.instagram,
+        facebook:      tenants.facebook,
+        phone:         tenants.phone,
+        website:       tenants.website,
+        addressStreet: tenants.addressStreet,
+        addressCity:   tenants.addressCity,
+        addressState:  tenants.addressState,
+        addressZip:    tenants.addressZip,
     }).from(tenants).where(eq(tenants.id, tenantId));
     if (!tenant) return reply.status(404).send({ success: false, error: "Tenant nao encontrado" });
     const now = new Date();
