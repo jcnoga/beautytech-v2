@@ -197,6 +197,26 @@ export default function TenantSettingsPage() {
       </div>
 
       <div style={{ marginTop:24, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16 }}>🔗 Sua URL Pública de Agendamento</div>
+        <div style={{ background:C.surface, borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+          <span style={{ flex:1, fontSize:13, color:C.gold, fontFamily:"monospace", wordBreak:"break-all" }}>
+            {`https://www.zensalon.com.br/agendar/${form.slug||"beautytech"}`}
+          </span>
+          <button onClick={() => { navigator.clipboard.writeText(`https://www.zensalon.com.br/agendar/${form.slug||"beautytech"}`); alert("URL copiada!"); }}
+            style={{ padding:"8px 16px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:8, color:C.gold, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:FB, whiteSpace:"nowrap" }}>
+            📋 Copiar
+          </button>
+          <a href={`https://www.zensalon.com.br/agendar/${form.slug||"beautytech"}`} target="_blank"
+            style={{ padding:"8px 16px", background:`${C.sage}20`, border:`1px solid ${C.sage}40`, borderRadius:8, color:C.sage, fontSize:12, fontWeight:700, textDecoration:"none", whiteSpace:"nowrap" }}>
+            🔗 Abrir
+          </a>
+        </div>
+        <div style={{ fontSize:11, color:C.textMuted }}>
+          Compartilhe este link com seus clientes para que eles possam agendar online.
+        </div>
+      </div>
+
+      <div style={{ marginTop:24, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
         <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16 }}>Preview da Landing Page</div>
         <div style={{ background:"#080808", borderRadius:12, padding:"32px 20px", textAlign:"center", backgroundImage:form.coverUrl?`linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.8)), url(${form.coverUrl})`:"none", backgroundSize:"cover", backgroundPosition:"center" }}>
           {form.logoUrl
@@ -207,7 +227,7 @@ export default function TenantSettingsPage() {
           <div style={{ fontSize:22, fontWeight:700, color:"#fff", fontFamily:FD }}>{form.name||"Nome do Salão"}</div>
           {form.addressCity && <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:6 }}>📍 {form.addressCity}{form.addressState?`, ${form.addressState}`:""}</div>}
           <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:16 }}>
-            <a href={`https://beautytech-v2.vercel.app/agendar/${form.slug||"beautytech"}`} target="_blank"
+            <a href={`https://www.zensalon.com.br/agendar/${form.slug||"beautytech"}`} target="_blank"
               style={{ padding:"8px 20px", background:form.primaryColor||C.gold, color:"#0f0f0f", borderRadius:50, fontSize:11, fontWeight:700, textDecoration:"none" }}>Agendar Agora</a>
             {form.whatsapp && <a href={`https://wa.me/55${form.whatsapp.replace(/\D/g,"")}`} target="_blank"
               style={{ padding:"8px 20px", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:50, fontSize:11, textDecoration:"none" }}>WhatsApp</a>}
