@@ -3064,72 +3064,7 @@ const MENU = [
   { id:"whatsapp",      label:"WhatsApp",      icon:"W", premium:true },
 ];
 
-$sidebar = @'
-function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
-  const themeId = useTheme();
-  const [showThemes, setShowThemes] = useState(false);
-  const [planInfo, setPlanInfo] = useState<any>(null);
-  useEffect(() => {
-    api.get<any>("/plan-info").then((r: any) => setPlanInfo(r.data)).catch(() => {});
-  }, []);
-  const isFree = planInfo?.effectivePlan === "basic";
-  return (
-    <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB }}>
-      <div style={{ padding:"20px 16px", borderBottom:`1px solid ${C.border}`, textAlign:"center" }}>
-        {tenantInfo?.logoUrl ? (
-          <img src={tenantInfo.logoUrl} alt="Logo" style={{ width:"72px", height:"72px", borderRadius:"50%", objectFit:"cover", border:`2px solid ${C.rose}`, display:"block", margin:"0 auto 10px" }} />
-        ) : (
-          <div style={{ width:72, height:72, borderRadius:"50%", background:`${C.rose}20`, border:`2px solid ${C.rose}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 10px" }}>✂</div>
-        )}
-        <div style={{ fontSize:17, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:2 }}>{tenantInfo?.name ?? "ZenSalon"}</div>
-        <div style={{ fontSize:10, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
-      </div>
-      <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
-        {MENU.map(m => {
-          const active = page === m.id;
-          const locked = isFree && m.premium;
-          return (
-            <button key={m.id} onClick={() => { if (locked) { alert("Este recurso esta disponivel apenas no Plano Profissional. Faca upgrade para continuar."); return; } setPage(m.id); }}
-              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : locked ? C.textMuted : C.textMuted, fontSize:14, fontWeight: active ? 600 : 400, cursor: locked ? "not-allowed" : "pointer", marginBottom:2, transition:"all .15s", fontFamily: FB, textAlign:"left", opacity: locked ? 0.5 : 1 }}>
-              <span style={{ fontSize:16, color: active ? C.rose : C.textMuted, opacity: active ? 1 : 0.5 }}>{m.icon}</span>
-              {m.label}
-              {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>?</span>}
-              {active && !locked && <div style={{ marginLeft:"auto", width:4, height:4, borderRadius:"50%", background: C.rose }} />}
-            </button>
-          );
-        })}
-      </nav>
-      <div style={{ padding:"16px 20px", borderTop:`1px solid ${C.border}` }}>
-        <div style={{ marginBottom:10 }}>
-          <button onClick={() => setShowThemes(s => !s)}
-            style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"7px 12px", cursor:"pointer", color:C.textSec, fontSize:11, fontFamily:FB }}>
-            <span>{THEMES[themeId === "auto" ? getSystemTheme() : themeId]?.icon ?? "N"} {THEMES[themeId]?.name ?? "Noir"}</span>
-            <span style={{ fontSize:9, opacity:0.6 }}>TEMA</span>
-          </button>
-          {showThemes && (
-            <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:10, marginTop:4, overflow:"hidden" }}>
-              {["noir","sakura","dourado","esmeralda","violeta","auto"].map(id => (
-                <button key={id} onClick={() => { setGlobalTheme(id); setShowThemes(false); }}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"8px 12px", background:themeId===id?`${C.rose}15`:"none", border:"none", borderBottom:`1px solid ${C.border}`, color:themeId===id?C.rose:C.textSec, fontSize:12, cursor:"pointer", fontFamily:FB, textAlign:"left" as const }}>
-                  <span>{THEMES[id]?.icon}</span>
-                  <span>{THEMES[id]?.name}</span>
-                  {themeId===id && <span style={{ marginLeft:"auto", color:C.rose, fontSize:10 }}>Ativo</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ fontSize:11, color:C.textMuted, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.email}</div>
-        <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:12, cursor:"pointer", padding:0, fontFamily:FB }}>Sair</button>
-      </div>
-    </div>
-  );
-}
-'@
 
-$app = Get-Content "C:\projetos\beautytech-v2\frontend\src\App.tsx" -Raw
-$app = $app -replace '(?s)function Sidebar\(\{ page.*?\}\s*\}', $sidebar
-Set-Content "C:\projetos\beautytech-v2\frontend\src\App.tsx" $app -Encoding UTF8
 // --- APP -----------------------------------------------------
 export default function App() {
   useTheme();
