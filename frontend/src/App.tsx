@@ -1,4 +1,6 @@
-﻿import DiscoveryPage from './DiscoveryPage';
+﻿import LandingPage from './LandingPage';
+import HomePage from './HomePage';
+import DiscoveryPage from './DiscoveryPage';
 import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import BookingPage from './BookingPage';
 import PaymentSuccessPage from './PaymentSuccessPage';
@@ -3202,6 +3204,7 @@ export default function App() {
     </>
   );
 }
+
 
 
 
