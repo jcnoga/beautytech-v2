@@ -78,6 +78,15 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:FB, padding:"40px 20px" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap'); *{box-sizing:border-box;}`}</style>
 
+      {/* Banner Trial */}
+      <div style={{ maxWidth:1000, margin:'0 auto 32px', background:'linear-gradient(135deg, #c9a96e18, #c9a96e08)', border:'1px solid #c9a96e40', borderRadius:16, padding:'16px 24px', display:'flex', alignItems:'center', gap:14 }}>
+        <span style={{ fontSize:28 }}>🎉</span>
+        <div>
+          <div style={{ fontSize:14, fontWeight:700, color:'#c9a96e', marginBottom:4 }}>Você está no período de trial gratuito!</div>
+          <div style={{ fontSize:12, color:'rgba(255,255,255,0.5)', lineHeight:1.5 }}>Durante 30 dias você tem acesso TOTAL a todas as funcionalidades, sem nenhuma limitação. Aproveite para conhecer tudo antes de escolher seu plano.</div>
+        </div>
+      </div>
+
       {/* Header */}
       <div style={{ textAlign:"center", marginBottom:48 }}>
         <div style={{ fontSize:11, letterSpacing:"0.3em", color:C.gold, textTransform:"uppercase", marginBottom:12 }}>Planos & Preços</div>
@@ -179,3 +188,4 @@ export default function PricingPage({ onUpgrade }: { onUpgrade?: (plan: string, 
     </div>
   );
 }
+
