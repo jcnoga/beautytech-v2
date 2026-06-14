@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+content = '''import { FastifyInstance } from "fastify";
 import { authenticate } from "../../middleware/auth.js";
 import { db } from "../../db/connection.js";
 import { tenants } from "../../db/schema/index.js";
@@ -124,3 +124,9 @@ export async function whatsappModule(fastify: FastifyInstance) {
     }
   });
 }
+'''
+
+path = r"C:\projetos\beautytech-v2\backend\src\modules\whatsapp\whatsapp.routes.ts"
+with open(path, "w", encoding="utf-8", newline="\n") as f:
+    f.write(content)
+print("OK - whatsapp.routes.ts atualizado")

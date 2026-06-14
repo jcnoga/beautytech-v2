@@ -2100,6 +2100,17 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     )},
     { key:"trialEndsAt", label:"Vencimento", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{fmtDate(t.trialEndsAt)}</span> },
     { key:"createdAt", label:"Cadastro", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{fmtDate(t.createdAt)}</span> },
+    { key:"whatsapp_status", label:"WhatsApp", render: (t: any) => {
+      const connected = t.whatsapp_status === "connected";
+      return (
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ width:8, height:8, borderRadius:"50%", background: connected ? "#4CAF50" : "#666", flexShrink:0 }} />
+          <span style={{ fontSize:11, color: connected ? "#4CAF50" : C.textMuted }}>
+            {connected ? (t.whatsapp_phone ?? "Conectado") : "Desconectado"}
+          </span>
+        </div>
+      );
+    }},
     { key:"action", label:"Acoes", render: (t: any) => (
       <div style={{ display:"flex", gap:6 }}>
         <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); }}>Gerenciar</Btn>
@@ -2183,6 +2194,34 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 <div>
                   <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Vencimento</div>
                   <div style={{ fontSize:13, color:C.text }}>{fmtDate(selected.trialEndsAt)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Status WhatsApp */}
+            <div style={{ background:C.surface, borderRadius:12, padding:16, marginBottom:20 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>WhatsApp</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Status</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <div style={{ width:10, height:10, borderRadius:"50%", background: selected.whatsapp_status === "connected" ? "#4CAF50" : "#666" }} />
+                    <span style={{ fontSize:13, color: selected.whatsapp_status === "connected" ? "#4CAF50" : C.textMuted, fontWeight:600 }}>
+                      {selected.whatsapp_status === "connected" ? "Conectado" : "Desconectado"}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Numero</div>
+                  <div style={{ fontSize:13, color:C.text }}>{selected.whatsapp_phone ?? "-"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Modo</div>
+                  <div style={{ fontSize:13, color:C.text }}>{selected.whatsapp_mode ?? "manual"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", marginBottom:4 }}>Conectado em</div>
+                  <div style={{ fontSize:12, color:C.textMuted }}>{selected.whatsapp_connected_at ? new Date(selected.whatsapp_connected_at).toLocaleString("pt-BR") : "-"}</div>
                 </div>
               </div>
             </div>

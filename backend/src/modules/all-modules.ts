@@ -1142,7 +1142,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
     const { search, status } = req.query as any;
     const cond: any[] = [isNull(tenants.deletedAt)];
     if (search) cond.push(ilike(tenants.name, `%${search}%`));
-    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
+    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers, whatsapp_status: tenants.whatsappStatus, whatsapp_phone: tenants.whatsappPhone, whatsapp_connected_at: tenants.whatsappConnectedAt, whatsapp_mode: tenants.whatsappMode }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
     const now = new Date();
     const enriched = data.map(t => {
       const trialEnd = t.trialEndsAt ? new Date(t.trialEndsAt) : null;
