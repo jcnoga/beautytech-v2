@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { api } from "./api/client";
+import { api, supabase } from "./api/client";
 
 const C = {
   bg: "#0f0f0f", card: "#1a1a1a", border: "rgba(255,255,255,0.08)",
@@ -65,23 +65,26 @@ export default function TenantSettingsPage() {
     finally { setSaving(false); }
   };
 
+  const uploadImage = async (file: File, path: string): Promise<string> => {
+    const ext = file.name.split(".").pop();
+    const fileName = `${path}-${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from("tenant-assets")
+      .upload(fileName, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from("tenant-assets").getPublicUrl(fileName);
+    return publicUrl;
+  };
+
   const handleLogoUpload = async (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Converte para base64 e usa como URL temporária
-        const url = reader.result as string;
-        setForm((p: any) => ({ ...p, logoUrl: url }));
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch(e) {
-      console.error(e);
-      setUploading(false);
-    }
+      const url = await uploadImage(file, "logo");
+      setForm((p: any) => ({ ...p, logoUrl: url }));
+    } catch(e) { console.error(e); }
+    finally { setUploading(false); }
   };
 
   const handleCoverUpload = async (e: any) => {
@@ -89,17 +92,10 @@ export default function TenantSettingsPage() {
     if (!file) return;
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const url = reader.result as string;
-        setForm((p: any) => ({ ...p, coverUrl: url }));
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch(e) {
-      console.error(e);
-      setUploading(false);
-    }
+      const url = await uploadImage(file, "cover");
+      setForm((p: any) => ({ ...p, coverUrl: url }));
+    } catch(e) { console.error(e); }
+    finally { setUploading(false); }
   };
 
   const TABS = [
@@ -253,3 +249,4 @@ export default function TenantSettingsPage() {
     </div>
   );
 }
+
