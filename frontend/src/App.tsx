@@ -3164,6 +3164,8 @@ export default function App() {
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
   };
 
+  const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname);
+  if (isRootDomain) return <HomePage />;
   if (isSubdomain) return <LandingPage />;
   const PageComponent = PAGES[page] ?? PAGES["dashboard"];
   if (discoveryMatch) return <DiscoveryPage />;
@@ -3200,6 +3202,7 @@ export default function App() {
     </>
   );
 }
+
 
 
 
