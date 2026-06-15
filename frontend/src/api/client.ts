@@ -8,30 +8,15 @@ export const supabase = createClient(
 class ApiClient {
   private readonly baseUrl = `${import.meta.env["VITE_API_URL"] ?? "http://localhost:3000"}/api/v1`;
 
-  private getToken(): string {
-    // Tenta chave direta do Supabase (formato session object)
-    const key = Object.keys(localStorage).find(k => k.startsWith("sb-") && k.endsWith("-auth-token"));
-    if (key) {
-      try {
-        const s = JSON.parse(localStorage.getItem(key) ?? "{}");
-        const token = s?.access_token ?? s?.session?.access_token;
-        if (token) return token;
-      } catch {}
-    }
-    // Fallback: busca por wthheg (chave antiga)
-    const key2 = Object.keys(localStorage).find(k => k.includes("wthheg"));
-    if (key2) {
-      try {
-        const s = JSON.parse(localStorage.getItem(key2) ?? "{}");
-        const token = s?.access_token ?? s?.session?.access_token;
-        if (token) return token;
-      } catch {}
-    }
+  private async getToken(): Promise<string> {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) return token;
     throw new Error("Sessao expirada");
   }
 
   private async request<T>(method: string, endpoint: string, body?: unknown, params?: Record<string, any>): Promise<T> {
-    const token = this.getToken();
+    const token = await this.getToken();
     let url = `${this.baseUrl}${endpoint}`;
     if (params) {
       const qs = new URLSearchParams();
