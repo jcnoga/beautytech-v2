@@ -3231,6 +3231,7 @@ const logout = async () => {
     </div>
   );
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
+  if (!user) return <LoginPage onLogin={(data: any) => { setUser(data.user); }} />;
 
   return (
     <>
