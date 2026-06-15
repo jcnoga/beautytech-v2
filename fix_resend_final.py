@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+﻿content = '''import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = `${process.env.RESEND_FROM_NAME ?? "ZenSalon"} <${process.env.RESEND_FROM_EMAIL ?? "noreply@zensalon.com.br"}>`;
@@ -114,3 +114,6 @@ export async function sendAppointmentReminderEmail({ to, clientName, tenantName,
     console.log("[RESEND] Confirmacao agendamento enviada para " + to);
   } catch (e: any) { console.error("[RESEND] Erro confirmacao agendamento:", e.message); }
 }
+'''
+open('C:/projetos/beautytech-v2/backend/src/modules/resend.module.ts', 'w', encoding='utf-8').write(content)
+print("OK - resend.module.ts reescrito limpo")
