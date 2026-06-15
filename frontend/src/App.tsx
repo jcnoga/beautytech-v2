@@ -3196,7 +3196,6 @@ export default function App() {
 const logout = async () => {
   await supabase.auth.signOut();
   setUser(null);
-  setToken(null);
   localStorage.clear();
   sessionStorage.clear();
   window.location.href = '/';
