@@ -250,7 +250,12 @@ export default function DiscoveryPage() {
 
       <div style={{ textAlign: "center", padding: "32px 24px", borderTop: `1px solid ${C.border}`, marginTop: 40 }}>
         <div style={{ fontSize: "1rem", fontWeight: 800, color: C.primary, marginBottom: 4 }}>ZenSalon</div>
-        <div style={{ fontSize: ".78rem", color: C.textMuted }}>Sua plataforma de agendamento online</div>
+        <div style={{ fontSize: ".78rem", color: C.textMuted, marginBottom: 8 }}>Sua plataforma de agendamento online</div>
+        <div style={{ fontSize: ".78rem", color: C.textMuted, display:"flex", flexDirection:"column", gap:4 }}>
+          <a href="https://www.websitelog.com.br" target="_blank" style={{ color: C.primary, textDecoration:"none" }}>www.websitelog.com.br</a>
+          <a href="mailto:websitelogx@gmail.com" style={{ color: C.textMuted, textDecoration:"none" }}>websitelogx@gmail.com</a>
+          <a href="https://wa.me/5534997824990" target="_blank" style={{ color: C.textMuted, textDecoration:"none" }}>WhatsApp: (34) 99782-4990</a>
+        </div>
       </div>
     </div>
   );

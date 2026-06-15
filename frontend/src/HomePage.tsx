@@ -70,6 +70,13 @@ export default function HomePage() {
         <p style={{ fontSize:11, color:"rgba(255,255,255,0.2)", letterSpacing:"0.1em" }}>
           ZENSALON · GESTÃO INTELIGENTE PARA SALÕES, BARBEARIAS E CLÍNICAS
         </p>
+        <p style={{ fontSize:11, color:"rgba(255,255,255,0.2)", marginTop:6, display:"flex", justifyContent:"center", gap:12, flexWrap:"wrap" }}>
+          <a href="https://www.websitelog.com.br" target="_blank" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none" }}>www.websitelog.com.br</a>
+          <span>|</span>
+          <a href="mailto:websitelogx@gmail.com" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none" }}>websitelogx@gmail.com</a>
+          <span>|</span>
+          <a href="https://wa.me/5534997824990" target="_blank" style={{ color:"rgba(255,255,255,0.3)", textDecoration:"none" }}>WhatsApp: (34) 99782-4990</a>
+        </p>
       </div>
     </div>
   );
