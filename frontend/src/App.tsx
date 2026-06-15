@@ -101,8 +101,8 @@ function KpiCard({ icon, label, value, sub, color = C.rose, trend }: any) {
   return (
     <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius: 20, padding:"22px 24px", position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", top:-24, right:-16, fontSize:90, opacity:0.04 }}>{icon}</div>
-      <div style={{ fontSize:26, marginBottom:6 }}>{icon}</div>
-      <div style={{ fontSize:12, color: C.textMuted, marginBottom:4, fontFamily: FB, letterSpacing:"0.06em", textTransform:"uppercase" }}>{label}</div>
+      <div style={{ fontSize:32, marginBottom:8 }}>{icon}</div>
+      <div style={{ fontSize:14, color: C.textMuted, marginBottom:6, fontFamily: FB, letterSpacing:"0.06em", textTransform:"uppercase" }}>{label}</div>
       <div style={{ fontSize:28, fontWeight:700, color, fontFamily: FD, letterSpacing:"-0.02em" }}>{value}</div>
       {(sub || trend !== undefined) && (
         <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:6 }}>
@@ -170,10 +170,10 @@ function Btn({ children, onClick, variant="primary", disabled, small, full }: an
 function Table({ cols, rows, onRow, emptyMsg = "Nenhum registro" }: any) {
   return (
     <div style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
-      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:15 }}>
         <thead>
           <tr style={{ background: C.surface }}>
-            {cols.map((c: any) => <th key={c.key} style={{ padding:"10px 16px", textAlign:"left", color: C.textMuted, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{c.label}</th>)}
+            {cols.map((c: any) => <th key={c.key} style={{ padding:"14px 16px", textAlign:"left", color: C.text, fontSize:13, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", fontFamily: FB }}>{c.label}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -820,12 +820,12 @@ function PlanSettingsPanel({ saFetch }: any) {
     <div style={{ marginTop:32 }}>
       <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:20, fontFamily:FB }}>Configuracoes Globais</div>
       {groups.map(g => (
-        <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, opacity: g.disabled ? 0.5 : 1 }}>
-          <div style={{ fontSize:13, fontWeight:700, color: g.disabled ? "#888" : C.rose, marginBottom:16, fontFamily:FB }}>{g.title}{g.disabled ? " 🔒" : ""}</div>
+        <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, opacity: g.disabled ? 0.75 : 1 }}>
+          <div style={{ fontSize:16, fontWeight:700, color: g.disabled ? "#888" : C.rose, marginBottom:20, fontFamily:FB }}>{g.title}{g.disabled ? " 🔒" : ""}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
             {g.keys.map(key => (
               <div key={key} style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ flex:1, fontSize:12, color:C.textMuted, fontFamily:FB }}>{labels[key] ?? key}</div>
+                <div style={{ flex:1, fontSize:14, color:C.text, fontFamily:FB }}>{labels[key] ?? key}</div>
                 <input type="number" value={vals[key] ?? ""} onChange={e => !g.disabled && setVals((v: any) => ({ ...v, [key]: e.target.value }))}
                   disabled={g.disabled}
                   style={{ width:80, padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background: g.disabled ? "#333" : C.bg, color: g.disabled ? "#666" : C.text, fontFamily:FB, fontSize:13, textAlign:"center", cursor: g.disabled ? "not-allowed" : "text" }} />
@@ -2166,7 +2166,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
         </div>
       </div>
 
-      <div style={{ padding:32 }}>
+      <div style={{ padding:"32px 48px 32px 32px" }}>
         <PageHeader title="Painel Super Admin" sub="Gestao de saloes, trials e acessos" />
 
         {/* KPIs */}
@@ -3148,8 +3148,8 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
         ) : (
           <div style={{ width:72, height:72, borderRadius:"50%", background:`${C.rose}20`, border:`2px solid ${C.rose}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 10px" }}>✂</div>
         )}
-        <div style={{ fontSize:17, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:2 }}>{tenantInfo?.name ?? "ZenSalon"}</div>
-        <div style={{ fontSize:10, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
+        <div style={{ fontSize:20, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:4 }}>{tenantInfo?.name ?? "ZenSalon"}</div>
+        <div style={{ fontSize:13, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
       </div>
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
         {MENU.map(m => {
@@ -3157,7 +3157,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
           const locked = isFree && m.premium;
           return (
             <button key={m.id} onClick={() => { if (locked) { alert("Este recurso esta disponivel apenas no Plano Profissional. Faca upgrade para continuar."); return; } setPage(m.id); }}
-              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : locked ? C.textMuted : C.textMuted, fontSize:14, fontWeight: active ? 600 : 400, cursor: locked ? "not-allowed" : "pointer", marginBottom:2, transition:"all .15s", fontFamily: FB, textAlign:"left", opacity: locked ? 0.5 : 1 }}>
+              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : locked ? C.textMuted : C.textMuted, fontSize:16, fontWeight: active ? 600 : 400, cursor: locked ? "not-allowed" : "pointer", marginBottom:4, transition:"all .15s", fontFamily: FB, textAlign:"left", opacity: locked ? 0.5 : 1 }}>
               <span style={{ fontSize:16, color: active ? C.rose : C.textMuted, opacity: active ? 1 : 0.5 }}>{m.icon}</span>
               {m.label}
               {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>?</span>}
@@ -3186,8 +3186,8 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
             </div>
           )}
         </div>
-        <div style={{ fontSize:11, color:C.textMuted, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.email}</div>
-        <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:12, cursor:"pointer", padding:0, fontFamily:FB }}>Sair</button>
+        <div style={{ fontSize:11, color:C.textMuted, marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontSize:13 }}>{user?.email}</div>
+        <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:14, cursor:"pointer", padding:0, fontFamily:FB }}>Sair</button>
       </div>
     </div>
   );
