@@ -224,7 +224,7 @@ export default function DiscoveryPage() {
                     </div>
                     {(t.addressCity || t.addressStreet) && (
                       <div style={{ fontSize: ".8rem", color: C.textMuted, marginBottom: 8 }}>
-                        \uD83D\uDCCD {[t.addressStreet, t.addressCity, t.addressState].filter(Boolean).join(", ")}
+                        📍 {[t.addressStreet, t.addressCity, t.addressState].filter(Boolean).join(", ")}
                       </div>
                     )}
                     {t.distKm != null && (
