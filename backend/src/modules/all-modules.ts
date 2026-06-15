@@ -858,7 +858,8 @@ export async function authModule(fastify: FastifyInstance) {
     } catch(e: any) { console.error("auth/me error:", e.message, e.stack); return reply.status(500).send({ success: false, error: e.message }); }
   });
   fastify.post("/auth/register", async (req: any, reply) => {
-    const { salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj } = req.body as any;
+    const { salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj,
+      addressStreet, addressCity, addressState, addressZip, hasWifi, hasParking } = req.body as any;
     if (!salonName || !ownerName || !email || !password) {
       return reply.status(400).send({ success: false, error: "Todos os campos sâ”œÃ¢Ã£Ã†â”œÃ¥Ã”Ã‡Ã–â”œÃ¢Ã”Ã‡Ãœâ”œÃ©â”¬Ãºo obrigatâ”œÃ¢Ã£Ã†â”œÃ¥Ã”Ã‡Ã–â”œÃ¢Ã”Ã‡Ãœâ”œÃ©â”¬â”‚rios" });
       return reply.status(400).send({ success: false, error: "Todos os campos sâ”œÃ¢Ã£Ã†â”œÃ¥Ã”Ã‡Ã–â”œÃ¢Ã”Ã‡Ãœâ”œÃ©â”¬Ãºo obrigatâ”œÃ¢Ã£Ã†â”œÃ¥Ã”Ã‡Ã–â”œÃ¢Ã”Ã‡Ãœâ”œÃ©â”¬â”‚rios" });
@@ -909,6 +910,12 @@ export async function authModule(fastify: FastifyInstance) {
         isActive: true,
         trialEndsAt,
         businessType: resolvedBusinessType,
+        addressStreet: addressStreet ?? null,
+        addressCity: addressCity ?? null,
+        addressState: addressState ?? null,
+        addressZip: addressZip ?? null,
+        hasWifi: hasWifi ?? false,
+        hasParking: hasParking ?? false,
         settings: cpfCnpj ? { cpfCnpj } : {},
       }).returning();
       await db.insert(userProfiles).values({
@@ -936,6 +943,26 @@ export async function authModule(fastify: FastifyInstance) {
           sortOrder: i + 1,
         }))
       );
+
+      // Geocoding automatico via Nominatim (fire and forget)
+      if (addressCity || addressStreet) {
+        (async () => {
+          try {
+            const q = [addressStreet, addressCity, addressState, "Brasil"].filter(Boolean).join(", ");
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
+              headers: { "User-Agent": "ZenSalon/1.0 (contato@zensalon.com.br)" }
+            });
+            const geoJson = await geoRes.json();
+            if (geoJson?.[0]) {
+              await db.update(tenants).set({
+                lat: geoJson[0].lat,
+                lng: geoJson[0].lon,
+              }).where(eq(tenants.id, tenant.id));
+              console.log(`[GEO] ${salonName}: ${geoJson[0].lat}, ${geoJson[0].lon}`);
+            }
+          } catch (e: any) { console.error("[GEO] Erro geocoding:", e.message); }
+        })();
+      }
 
       // Dispara e-mail de boas-vindas (fire and forget)
       try {
