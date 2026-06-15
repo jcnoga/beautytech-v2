@@ -808,8 +808,10 @@ function PlanSettingsPanel({ saFetch }: any) {
     whatsapp_daily_limit_mature: "Limite diario - numero maduro (>30 dias)",
     whatsapp_send_start_hour: "Hora inicio envio WhatsApp",
     whatsapp_send_end_hour: "Hora fim envio WhatsApp",
+  ai_monthly_budget_brl: "Limite mensal IA por tenant (R$)",
   };
   const groups = [
+    { title: "Inteligencia Artificial (em breve)", keys: ["ai_monthly_budget_brl"], disabled: true },
     { title: "Plano Gratuito", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
     { title: "Anti-ban WhatsApp", keys: ["whatsapp_min_interval_seconds","whatsapp_max_interval_seconds","whatsapp_daily_limit_new","whatsapp_daily_limit_warm","whatsapp_daily_limit_mature","whatsapp_send_start_hour","whatsapp_send_end_hour"] },
   ];
@@ -818,14 +820,15 @@ function PlanSettingsPanel({ saFetch }: any) {
     <div style={{ marginTop:32 }}>
       <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:20, fontFamily:FB }}>Configuracoes Globais</div>
       {groups.map(g => (
-        <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}` }}>
-          <div style={{ fontSize:13, fontWeight:700, color:C.rose, marginBottom:16, fontFamily:FB }}>{g.title}</div>
+        <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, opacity: g.disabled ? 0.5 : 1 }}>
+          <div style={{ fontSize:13, fontWeight:700, color: g.disabled ? "#888" : C.rose, marginBottom:16, fontFamily:FB }}>{g.title}{g.disabled ? " 🔒" : ""}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
             {g.keys.map(key => (
               <div key={key} style={{ display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ flex:1, fontSize:12, color:C.textMuted, fontFamily:FB }}>{labels[key] ?? key}</div>
-                <input type="number" value={vals[key] ?? ""} onChange={e => setVals((v: any) => ({ ...v, [key]: e.target.value }))}
-                  style={{ width:80, padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontFamily:FB, fontSize:13, textAlign:"center" }} />
+                <input type="number" value={vals[key] ?? ""} onChange={e => !g.disabled && setVals((v: any) => ({ ...v, [key]: e.target.value }))}
+                  disabled={g.disabled}
+                  style={{ width:80, padding:"6px 10px", borderRadius:8, border:`1px solid ${C.border}`, background: g.disabled ? "#333" : C.bg, color: g.disabled ? "#666" : C.text, fontFamily:FB, fontSize:13, textAlign:"center", cursor: g.disabled ? "not-allowed" : "text" }} />
                 <Btn small onClick={() => save(key)} disabled={saving === key}>{saving === key ? "..." : "Salvar"}</Btn>
               </div>
             ))}
