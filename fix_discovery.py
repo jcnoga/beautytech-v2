@@ -1,4 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+﻿content = open('C:/projetos/beautytech-v2/frontend/src/DiscoveryPage.tsx', encoding='utf-8').read()
+
+new_content = '''import { useEffect, useState, useCallback } from "react";
 
 const API = (import.meta as any).env?.VITE_API_URL ?? "";
 
@@ -7,13 +9,13 @@ const C = {
   primary: "#C9847A", text: "#E2E8F0", textMuted: "#94A3B8",
   border: "#2A3150", green: "#22C55E",
 };
-const FB = "'Inter', sans-serif";
+const FB = "\'Inter\', sans-serif";
 
 const TIPOS = [
-  { id: "", label: "Todos", icon: "\u2B50" },
-  { id: "beauty_salon", label: "Salao de Beleza", icon: "\u2702\uFE0F" },
-  { id: "barbershop", label: "Barbearia", icon: "\uD83D\uDC88" },
-  { id: "aesthetics_clinic", label: "Clinica de Estetica", icon: "\uD83D\uDC86" },
+  { id: "", label: "Todos", icon: "\\u2B50" },
+  { id: "beauty_salon", label: "Salao de Beleza", icon: "\\u2702\\uFE0F" },
+  { id: "barbershop", label: "Barbearia", icon: "\\uD83D\\uDC88" },
+  { id: "aesthetics_clinic", label: "Clinica de Estetica", icon: "\\uD83D\\uDC86" },
 ];
 
 interface Tenant {
@@ -109,8 +111,8 @@ export default function DiscoveryPage() {
   };
 
   const iconTipo = (t: string) => {
-    const m: any = { beauty_salon: "\u2702\uFE0F", barbershop: "\uD83D\uDC88", aesthetics_clinic: "\uD83D\uDC86" };
-    return m[t] || "\uD83C\uDFE0";
+    const m: any = { beauty_salon: "\\u2702\\uFE0F", barbershop: "\\uD83D\\uDC88", aesthetics_clinic: "\\uD83D\\uDC86" };
+    return m[t] || "\\uD83C\\uDFE0";
   };
 
   return (
@@ -120,8 +122,8 @@ export default function DiscoveryPage() {
       <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontSize: "1.3rem", fontWeight: 800, color: C.primary }}>ZenSalon</div>
         <div style={{ fontSize: ".8rem", color: C.textMuted }}>
-          {geoStatus === "ok" && "\uD83D\uDCCD Usando sua localizacao"}
-          {geoStatus === "denied" && "\uD83D\uDCCD Localizacao negada — mostrando todos"}
+          {geoStatus === "ok" && "\\uD83D\\uDCCD Usando sua localizacao"}
+          {geoStatus === "denied" && "\\uD83D\\uDCCD Localizacao negada — mostrando todos"}
           {geoStatus === "none" && "Encontre o melhor para voce"}
         </div>
       </div>
@@ -189,7 +191,7 @@ export default function DiscoveryPage() {
           <div style={{ textAlign: "center", padding: "60px 0", color: C.textMuted }}>Carregando...</div>
         ) : tenants.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: "3rem", marginBottom: 16 }}>\uD83D\uDD0D</div>
+            <div style={{ fontSize: "3rem", marginBottom: 16 }}>\\uD83D\\uDD0D</div>
             <div style={{ color: C.textMuted }}>Nenhum estabelecimento encontrado.</div>
             <div style={{ color: C.textMuted, fontSize: ".85rem", marginTop: 8 }}>Tente buscar em outra cidade ou sem filtros.</div>
           </div>
@@ -224,7 +226,7 @@ export default function DiscoveryPage() {
                     </div>
                     {(t.addressCity || t.addressStreet) && (
                       <div style={{ fontSize: ".8rem", color: C.textMuted, marginBottom: 8 }}>
-                        \uD83D\uDCCD {[t.addressStreet, t.addressCity, t.addressState].filter(Boolean).join(", ")}
+                        \\uD83D\\uDCCD {[t.addressStreet, t.addressCity, t.addressState].filter(Boolean).join(", ")}
                       </div>
                     )}
                     {t.distKm != null && (
@@ -255,3 +257,7 @@ export default function DiscoveryPage() {
     </div>
   );
 }
+'''
+
+open('C:/projetos/beautytech-v2/frontend/src/DiscoveryPage.tsx', 'w', encoding='utf-8').write(new_content)
+print("OK - DiscoveryPage reescrita")
