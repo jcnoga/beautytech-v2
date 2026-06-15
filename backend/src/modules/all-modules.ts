@@ -798,7 +798,7 @@ export async function productsModule(fastify: FastifyInstance) {
 export async function authModule(fastify: FastifyInstance) {
     fastify.patch("/auth/me/profile", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    const { name, logoUrl, coverUrl, primaryColor, whatsapp, instagram, facebook, phone, addressStreet, addressCity, addressState, addressZip, website, businessHours } = req.body as any;
+    const { name, logoUrl, coverUrl, primaryColor, whatsapp, instagram, facebook, phone, addressStreet, addressCity, addressState, addressZip, website, businessHours, hasWifi, hasParking } = req.body as any;
     const updateData: any = { updatedAt: new Date() };
     if (name !== undefined)          updateData.name = name;
     if (logoUrl !== undefined)        updateData.logoUrl = logoUrl;
@@ -814,7 +814,28 @@ export async function authModule(fastify: FastifyInstance) {
     if (addressZip !== undefined)     updateData.addressZip = addressZip;
     if (website !== undefined)        updateData.website = website;
     if (businessHours !== undefined)  updateData.businessHours = businessHours;
+    if (hasWifi !== undefined)        updateData.hasWifi = hasWifi;
+    if (hasParking !== undefined)     updateData.hasParking = hasParking;
     const [updated] = await db.update(tenants).set(updateData).where(eq(tenants.id, tenantId)).returning();
+    // Geocoding automatico se endereco foi alterado (fire and forget)
+    if (addressCity || addressStreet) {
+      (async () => {
+        try {
+          const city  = addressCity  ?? updated.addressCity;
+          const state = addressState ?? updated.addressState;
+          const street = addressStreet ?? updated.addressStreet;
+          const q = [street, city, state, "Brasil"].filter(Boolean).join(", ");
+          const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
+            headers: { "User-Agent": "ZenSalon/1.0 (contato@zensalon.com.br)" }
+          });
+          const geoJson = await geoRes.json();
+          if (geoJson?.[0]) {
+            await db.update(tenants).set({ lat: geoJson[0].lat, lng: geoJson[0].lon }).where(eq(tenants.id, tenantId));
+            console.log(`[GEO] ${updated.name}: ${geoJson[0].lat}, ${geoJson[0].lon}`);
+          }
+        } catch (e: any) { console.error("[GEO] Erro geocoding:", e.message); }
+      })();
+    }
     return reply.send({ success: true, data: updated });
   });
   fastify.patch("/auth/me/settings", { preHandler: [authenticate] }, async (req: any, reply: any) => {
