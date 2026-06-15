@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = `${process.env.RESEND_FROM_NAME ?? "ZenSalon"} <${process.env.RESEND_FROM_EMAIL ?? "noreply@zensalon.com.br"}>`;
+const FROM = `${process.env.RESEND_FROM_NAME 🎉 "ZenSalon"} <${process.env.RESEND_FROM_EMAIL 🎉 "noreply@zensalon.com.br"}>`;
 
 // -- Boas-vindas no cadastro ----------------------------------
 export async function sendWelcomeEmail(to: string, salonName: string) {
@@ -9,19 +9,19 @@ export async function sendWelcomeEmail(to: string, salonName: string) {
     await resend.emails.send({
       from: FROM,
       to,
-      subject: `Bem-vindo ao BeautyTech, ${salonName}! ??`,
+      subject: `Bem-vindo ao BeautyTech, ${salonName}!`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
           <div style="text-align:center;margin-bottom:32px;">
-            <h1 style="font-size:28px;color:#1a0a2e;margin:0;">? BeautyTech</h1>
+            <h1 style="font-size:28px;color:#1a0a2e;margin:0;">✨ BeautyTech</h1>
             <p style="color:#6b5e8a;margin:4px 0 0;">Gest�o inteligente para sal�es de beleza</p>
           </div>
-          <h2 style="color:#1a0a2e;">Ol�, ${salonName}! ??</h2>
+          <h2 style="color:#1a0a2e;">Ol�, ${salonName}! 🎉</h2>
           <p style="color:#444;line-height:1.6;">
             Sua conta foi criada com sucesso. Voc� est� no <strong>per�odo de teste gratuito de 7 dias</strong> com acesso completo � plataforma.
           </p>
           <div style="background:#f5f3ff;border-radius:12px;padding:20px;margin:24px 0;">
-            <p style="margin:0;color:#2d1b69;font-weight:600;">?? O que voc� pode fazer agora:</p>
+            <p style="margin:0;color:#2d1b69;font-weight:600;">🎉 O que voc� pode fazer agora:</p>
             <ul style="color:#444;line-height:2;margin:8px 0 0;padding-left:20px;">
               <li>Cadastrar seus profissionais</li>
               <li>Configurar seus servi�os e pre�os</li>
@@ -32,11 +32,11 @@ export async function sendWelcomeEmail(to: string, salonName: string) {
           <div style="text-align:center;margin:32px 0;">
             <a href="${process.env.FRONTEND_URL || "https://beautytech-v2.vercel.app"}"
                style="background:linear-gradient(135deg,#2d1b69,#4a2c9e);color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;font-size:16px;">
-              Acessar meu painel ?
+              Acessar meu painel →
             </a>
           </div>
           <p style="color:#6b5e8a;font-size:13px;text-align:center;">
-            D�vidas? Responda este e-mail ou fale no WhatsApp.<br>
+            D�vidas✨ Responda este e-mail ou fale no WhatsApp.<br>
             Equipe BeautyTech
           </p>
         </div>
@@ -54,14 +54,14 @@ export async function sendProActivatedEmail(to: string, salonName: string) {
     await resend.emails.send({
       from: FROM,
       to,
-      subject: `?? Plano Pro ativado � ${salonName}`,
+      subject: `🎉 Plano Pro ativado � ${salonName}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
           <div style="text-align:center;margin-bottom:32px;">
-            <h1 style="font-size:28px;color:#1a0a2e;margin:0;">? BeautyTech</h1>
+            <h1 style="font-size:28px;color:#1a0a2e;margin:0;">✨ BeautyTech</h1>
           </div>
           <div style="text-align:center;padding:32px;background:linear-gradient(135deg,#2d1b69,#4a2c9e);border-radius:16px;margin-bottom:24px;">
-            <div style="font-size:48px;">??</div>
+            <div style="font-size:48px;">🎉</div>
             <h2 style="color:#ffd700;margin:8px 0;">Plano Pro Ativado!</h2>
             <p style="color:rgba(255,255,255,.8);margin:0;">${salonName}</p>
           </div>
@@ -69,7 +69,7 @@ export async function sendProActivatedEmail(to: string, salonName: string) {
             Seu pagamento foi confirmado e o <strong>Plano Pro</strong> est� ativo. Agora voc� tem acesso ilimitado a todos os recursos da plataforma.
           </p>
           <div style="background:#f0fdf4;border-radius:12px;padding:20px;margin:24px 0;border-left:4px solid #22c55e;">
-            <p style="margin:0;color:#166534;font-weight:600;">? Recursos Pro desbloqueados:</p>
+            <p style="margin:0;color:#166534;font-weight:600;">✨ Recursos Pro desbloqueados:</p>
             <ul style="color:#444;line-height:2;margin:8px 0 0;padding-left:20px;">
               <li>Clientes e agendamentos ilimitados</li>
               <li>WhatsApp autom�tico ativo</li>
@@ -81,11 +81,11 @@ export async function sendProActivatedEmail(to: string, salonName: string) {
           <div style="text-align:center;margin:32px 0;">
             <a href="${process.env.FRONTEND_URL || "https://beautytech-v2.vercel.app"}"
                style="background:linear-gradient(135deg,#2d1b69,#4a2c9e);color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;font-size:16px;">
-              Acessar meu painel ?
+              Acessar meu painel →
             </a>
           </div>
           <p style="color:#6b5e8a;font-size:13px;text-align:center;">
-            Obrigado por escolher o BeautyTech! ??<br>
+            Obrigado por escolher o BeautyTech! 🎉<br>
             Equipe BeautyTech
           </p>
         </div>
@@ -103,14 +103,14 @@ export async function sendPaymentOverdueEmail(to: string, salonName: string) {
     await resend.emails.send({
       from: FROM,
       to,
-      subject: `?? Pagamento pendente � ${salonName}`,
+      subject: `⚠️ Pagamento pendente � ${salonName}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
           <div style="text-align:center;margin-bottom:32px;">
-            <h1 style="font-size:28px;color:#1a0a2e;margin:0;">? BeautyTech</h1>
+            <h1 style="font-size:28px;color:#1a0a2e;margin:0;">✨ BeautyTech</h1>
           </div>
           <div style="background:#fef2f2;border-radius:12px;padding:20px;margin-bottom:24px;border-left:4px solid #ef4444;">
-            <h2 style="color:#991b1b;margin:0 0 8px;">?? Pagamento pendente</h2>
+            <h2 style="color:#991b1b;margin:0 0 8px;">⚠️ Pagamento pendente</h2>
             <p style="color:#444;margin:0;">Seu plano Pro foi suspenso por falta de pagamento.</p>
           </div>
           <p style="color:#444;line-height:1.6;">
@@ -119,7 +119,7 @@ export async function sendPaymentOverdueEmail(to: string, salonName: string) {
           <div style="text-align:center;margin:32px 0;">
             <a href="${process.env.FRONTEND_URL || "https://beautytech-v2.vercel.app"}"
                style="background:#ef4444;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;font-size:16px;">
-              Regularizar pagamento ?
+              Regularizar pagamento →
             </a>
           </div>
           <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe BeautyTech</p>
@@ -169,7 +169,7 @@ export async function sendOwnerNotificationEmail(salonName: string, phone: strin
 
 // -- Confirmacao de agendamento para o cliente ----------------
 export async function sendAppointmentReminderEmail({ to, clientName, tenantName, serviceName, date, time, professionalName }: {
-  to: string; clientName: string; tenantName: string; serviceName: string; date: string; time: string; professionalName?: string;
+  to: string; clientName: string; tenantName: string; serviceName: string; date: string; time: string; professionalName✨: string;
 }) {
   try {
     await resend.emails.send({
@@ -186,7 +186,7 @@ export async function sendAppointmentReminderEmail({ to, clientName, tenantName,
             <table style="width:100%;border-collapse:collapse;">
               <tr><td style="color:#666;padding:6px 0;width:130px;">Cliente:</td><td style="color:#1a0a2e;font-weight:700;">${clientName}</td></tr>
               <tr><td style="color:#666;padding:6px 0;">Servico:</td><td style="color:#1a0a2e;font-weight:700;">${serviceName}</td></tr>
-              ${professionalName ? `<tr><td style="color:#666;padding:6px 0;">Profissional:</td><td style="color:#1a0a2e;">${professionalName}</td></tr>` : ""}
+              ${professionalName ✨ `<tr><td style="color:#666;padding:6px 0;">Profissional:</td><td style="color:#1a0a2e;">${professionalName}</td></tr>` : ""}
               <tr><td style="color:#666;padding:6px 0;">Data:</td><td style="color:#1a0a2e;font-weight:700;">${date}</td></tr>
               <tr><td style="color:#666;padding:6px 0;">Horario:</td><td style="color:#1a0a2e;font-weight:700;">${time}</td></tr>
             </table>
