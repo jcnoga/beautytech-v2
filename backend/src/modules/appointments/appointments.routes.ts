@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { eq, and, isNull, gte, lte } from "drizzle-orm";
+import { eq, and, isNull, gte, lte, sql } from "drizzle-orm";
 import { db } from "@db/connection";
 import { tenants, services, professionals, clients, appointments, appointmentServices } from "@db/schema/index";
 
