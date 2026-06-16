@@ -248,11 +248,7 @@ export default function BookingPage({ slug }: { slug: string }) {
                       })}
                     </div>
                   );
-                })()}}
-                        >{s}</div>
-                      ))}
-                    </div>
-                }
+                })()}
               </div>
             )}
             <div style={{display:"flex",gap:10,marginTop:20}}>
