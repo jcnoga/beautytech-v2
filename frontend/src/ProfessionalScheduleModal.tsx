@@ -191,9 +191,9 @@ function ProfessionalScheduleModal({ professional, token, onClose }: any) {
                         </div>
                         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                         <span style={{ fontSize:12, color:"#e05c5c" }}>Almoco</span>
-                        <input type="time" value={day.break_start??""} onChange={e=>setSchedule(s=>s.map((d,i)=>i===idx?{...d,break_start:e.target.value||null}:d))} style={{ padding:"4px 8px", borderRadius:6, border:"1px solid rgba(224,92,92,0.4)", background:"rgba(224,92,92,0.08)", color:"#e05c5c", fontSize:12, width:76 }} />
+                        <input type="time" value={day.break_start??""} onChange={e=>setSchedule(s=>s.map((d,i)=>i===idx?{...d,break_start:e.target.value||null}:d))} style={{ padding:"4px 8px", borderRadius:6, border:"1px solid rgba(224,92,92,0.4)", background:"rgba(224,92,92,0.08)", color:"#e05c5c", fontSize:12, width:90 }} />
                         <span style={{ fontSize:11, color:"#e05c5c" }}>-</span>
-                        <input type="time" value={day.break_end??""} onChange={e=>setSchedule(s=>s.map((d,i)=>i===idx?{...d,break_end:e.target.value||null}:d))} style={{ padding:"4px 8px", borderRadius:6, border:"1px solid rgba(224,92,92,0.4)", background:"rgba(224,92,92,0.08)", color:"#e05c5c", fontSize:12, width:76 }} />
+                        <input type="time" value={day.break_end??""} onChange={e=>setSchedule(s=>s.map((d,i)=>i===idx?{...d,break_end:e.target.value||null}:d))} style={{ padding:"4px 8px", borderRadius:6, border:"1px solid rgba(224,92,92,0.4)", background:"rgba(224,92,92,0.08)", color:"#e05c5c", fontSize:12, width:90 }} />
                       </div>
                         <button onClick={()=>replicateSchedule(day.day_of_week)}
                           style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${C.gold}40`, background:"transparent", color:C.gold, fontSize:11, cursor:"pointer", fontFamily:FB }}>
