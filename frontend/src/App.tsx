@@ -1863,7 +1863,8 @@ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
           <div key={col.key} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:16, minHeight:300 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <div style={{ fontSize:12, fontWeight:700, color: col.color, textTransform:"uppercase", letterSpacing:"0.06em", fontFamily: FB }}>{col.label}</div>
-              <div style={{ fontSize:11, background:`${col.color}20`, color: col.color, padding:"1px 8px", borderRadius:20, fontWeight:700 }}>{byStatus(col.key).length}</div>
+              <div style={{ fontSize:11, background:`${col.color}20`, color: col.color, padding:"1px 8px", borderRadius:20, fontWeight:700 }}>{byStatus(col.key).length}
+              <button onClick={() => setScheduleProf(p)} style={{ padding:"8px 12px", borderRadius:8, border:"1px solid rgba(201,169,110,0.4)", background:"rgba(201,169,110,0.1)", color:"#c9a96e", fontSize:12, cursor:"pointer", fontWeight:600, marginTop:12, width:"100%" }}>Servicos &amp; Agenda</button></div>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {byStatus(col.key).map((lead: any, i: number) => (
