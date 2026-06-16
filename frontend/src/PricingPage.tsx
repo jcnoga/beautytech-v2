@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "./api/client";
 
 const C = {
   bg: "#0a0a0a", card: "#111", border: "rgba(255,255,255,0.08)",
@@ -52,14 +53,21 @@ const PERIODS = [
 
 const API = (import.meta as any).env?.VITE_API_URL || "https://beautytech-v2-production.up.railway.app/api/v1";
 
-export default function PricingPage({ token, currentPlan }: { token?: string; currentPlan?: string }) {
+export default function PricingPage({ currentPlan }: { token?: string; currentPlan?: string }) {
   const [period, setPeriod] = useState("monthly");
   const [loading, setLoading] = useState<string | null>(null);
   const [status, setStatus] = useState<any>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   const disc = PERIODS.find(p => p.id === period)?.discount ?? 0;
   const months = PERIODS.find(p => p.id === period)?.months ?? 1;
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setToken(session?.access_token ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     if (!token) return;
