@@ -812,7 +812,10 @@ function PlanSettingsPanel({ saFetch }: any) {
   };
   const groups = [
     { title: "Inteligencia Artificial (em breve)", keys: ["ai_monthly_budget_brl"], disabled: true },
-    { title: "Plano Gratuito", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
+    { title: "Plano Gratuito & Trial", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
+    { title: "Plano Basico", keys: ["plan_basic_monthly","plan_basic_semiannual","plan_basic_annual","plan_basic_max_users"] },
+    { title: "Plano Pro", keys: ["plan_pro_monthly","plan_pro_semiannual","plan_pro_annual","plan_pro_max_users"] },
+    { title: "Plano Super", keys: ["plan_super_monthly","plan_super_semiannual","plan_super_annual","plan_super_max_users"] },
     { title: "Anti-ban WhatsApp", keys: ["whatsapp_min_interval_seconds","whatsapp_max_interval_seconds","whatsapp_daily_limit_new","whatsapp_daily_limit_warm","whatsapp_daily_limit_mature","whatsapp_send_start_hour","whatsapp_send_end_hour"] },
   ];
   if (settings.length === 0) return null;
