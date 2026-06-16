@@ -1,11 +1,11 @@
-﻿// BeautyTech v2 - 2026-06-01
+// BeautyTech v2 - 2026-06-01
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { asaasModule } from "./modules/asaas.module.js";
 import { sendWelcomeEmail } from "./modules/email.module.js";
-
+import { billingRoutes } from "./modules/billing/billing.routes.js";
 
 import { publicBookingModule } from "./modules/appointments/appointments.routes.js";
 import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
@@ -38,7 +38,6 @@ import {
   protocolsModule,
 } from "./modules/all-modules.js";
 
-
 const server = Fastify({ logger: { level: env.LOG_LEVEL } });
 
 async function bootstrap() {
@@ -46,15 +45,14 @@ async function bootstrap() {
   await server.register(cors, {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
-      const publicPaths = ["/api/v1/public/"];
       cb(null, true);
     },
     credentials: true,
   });
   server.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
-  if (!body || (body as string).length === 0) { done(null, {}); return; }
-  try { done(null, JSON.parse(body as string)); } catch(e: any) { done(e, undefined); }
-});
+    if (!body || (body as string).length === 0) { done(null, {}); return; }
+    try { done(null, JSON.parse(body as string)); } catch(e: any) { done(e, undefined); }
+  });
   await server.register(rateLimit, { max: env.RATE_LIMIT_MAX, timeWindow: env.RATE_LIMIT_WINDOW });
 
   server.decorate("authenticate", authenticate);
@@ -71,34 +69,32 @@ async function bootstrap() {
     };
   });
 
-  // Registrar todos os mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³dulos com prefixo /api/v1
-const prefix = env.API_PREFIX;
-  await server.register(authModule,          { prefix });
-  await server.register(clientsModule,       { prefix });
-
-  await server.register(professionalsModule, { prefix });
-  await server.register(appointmentsModule,  { prefix });
-  await server.register(servicesModule,      { prefix });
-  await server.register(packagesModule,      { prefix });
-  await server.register(financialModule,     { prefix });
-  await server.register(commissionsModule,   { prefix });
-  await server.register(dashboardModule,     { prefix });
-  console.log("Rotas registradas:", server.printRoutes());
-  await server.register(crmModule,           { prefix });
-  await server.register(loyaltyModule,       { prefix });
-  await server.register(campaignsModule,     { prefix });
-  await server.register(productsModule,      { prefix });
-  await server.register(superAdminModule,    { prefix });
-  await server.register(automationsModule,   { prefix });
-  await server.register(whatsappModule,     { prefix });
-  await server.register(clientRecordsModule, { prefix });
-  await server.register(consentFormsModule,   { prefix });
-  await server.register(appointmentPhotosModule, { prefix });
+  const prefix = env.API_PREFIX;
+  await server.register(authModule,               { prefix });
+  await server.register(clientsModule,            { prefix });
+  await server.register(professionalsModule,      { prefix });
+  await server.register(appointmentsModule,       { prefix });
+  await server.register(servicesModule,           { prefix });
+  await server.register(packagesModule,           { prefix });
+  await server.register(financialModule,          { prefix });
+  await server.register(commissionsModule,        { prefix });
+  await server.register(dashboardModule,          { prefix });
+  await server.register(crmModule,                { prefix });
+  await server.register(loyaltyModule,            { prefix });
+  await server.register(campaignsModule,          { prefix });
+  await server.register(productsModule,           { prefix });
+  await server.register(superAdminModule,         { prefix });
+  await server.register(automationsModule,        { prefix });
+  await server.register(whatsappModule,           { prefix });
+  await server.register(clientRecordsModule,      { prefix });
+  await server.register(consentFormsModule,       { prefix });
+  await server.register(appointmentPhotosModule,  { prefix });
   await server.register(protocolsModule,          { prefix });
-  await server.register(demoModule,          { prefix });
-  await server.register(asaasModule,        { prefix });
-  await server.register(publicBookingModule, { prefix });
-  await server.register(tenantPublicModule,  { prefix });
+  await server.register(demoModule,               { prefix });
+  await server.register(billingRoutes,            { prefix });
+  await server.register(asaasModule,              { prefix });
+  await server.register(publicBookingModule,      { prefix });
+  await server.register(tenantPublicModule,       { prefix });
 
   await server.listen({ port: env.PORT, host: env.HOST });
   console.log(`BeautyTech v2 rodando na porta ${env.PORT}`);
@@ -115,5 +111,3 @@ bootstrap().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
-

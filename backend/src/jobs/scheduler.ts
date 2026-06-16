@@ -1,8 +1,9 @@
 import cron from 'node-cron';
 import { db } from '../db/connection.js';
 import { appointments, clients, tenants, messageTemplates, notifications } from '../db/schema/index.js';
-import { eq, and, gte, lte, isNull, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, isNull } from 'drizzle-orm';
 import { processWhatsAppQueue } from './whatsapp-worker.js';
+import { checkSubscriptionNotifications } from './subscription-notifications.js';
 
 function formatMessage(template: string, data: Record<string, string>): string {
   return template
@@ -60,12 +61,14 @@ async function checkBirthdays() {
   for (const tenant of activeTenants) {
     const [tmpl] = await db.select().from(messageTemplates).where(and(eq(messageTemplates.tenantId, tenant.id), eq(messageTemplates.trigger, 'birthday'), eq(messageTemplates.isActive, true))).limit(1);
     if (!tmpl) continue;
-    const birthdayClients = await db.select().from(clients).where(and(eq(clients.tenantId, tenant.id), eq(clients.isActive, true), isNull(clients.deletedAt), sql`EXTRACT(MONTH FROM birth_date) =  AND EXTRACT(DAY FROM birth_date) = `));
-    for (const client of birthdayClients) {
+    const birthdayClients = await db.execute(
+      require('drizzle-orm').sql`SELECT * FROM clients WHERE tenant_id = ${tenant.id} AND is_active = true AND deleted_at IS NULL AND EXTRACT(MONTH FROM birth_date) = ${month} AND EXTRACT(DAY FROM birth_date) = ${day}`
+    );
+    for (const client of (birthdayClients.rows as any[])) {
       if (!client.whatsapp) continue;
-      const msg = formatMessage(tmpl.message, { nome: client.fullName.split(' ')[0] });
+      const msg = formatMessage(tmpl.message, { nome: client.full_name.split(' ')[0] });
       await db.insert(notifications).values({ tenantId: tenant.id, clientId: client.id, channel: 'whatsapp', message: msg, status: 'pending' });
-      console.log('[Scheduler] Aniversario gerado para ' + client.fullName);
+      console.log('[Scheduler] Aniversario gerado para ' + client.full_name);
     }
   }
 }
@@ -88,17 +91,25 @@ async function checkReactivation() {
 export function startScheduler() {
   console.log('[Scheduler] Iniciando jobs automaticos...');
 
+  // WhatsApp worker - a cada 5 minutos
   cron.schedule('*/5 * * * *', async () => {
     try { await processWhatsAppQueue(); } catch(e) { console.error('[Scheduler] Erro worker:', e); }
   });
 
+  // Lembretes de agendamento - a cada hora
   cron.schedule('0 * * * *', async () => {
     try { await checkAppointmentReminders(); } catch(e) { console.error('[Scheduler] Erro lembretes:', e); }
   });
 
+  // Aniversarios e reativacao - todo dia 9h
   cron.schedule('0 9 * * *', async () => {
     try { await checkBirthdays(); } catch(e) { console.error('[Scheduler] Erro aniversarios:', e); }
     try { await checkReactivation(); } catch(e) { console.error('[Scheduler] Erro reativacao:', e); }
+  });
+
+  // Notificacoes de vencimento de plano - todo dia 8h
+  cron.schedule('0 8 * * *', async () => {
+    try { await checkSubscriptionNotifications(); } catch(e) { console.error('[Scheduler] Erro vencimentos:', e); }
   });
 
   console.log('[Scheduler] Jobs registrados com sucesso.');
