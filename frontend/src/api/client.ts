@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 
 export const supabase = createClient(
   import.meta.env["VITE_SUPABASE_URL"],
@@ -139,3 +139,4 @@ export const notificationsApi = {
   retry:      (id: string) => api.post<any>('/automations/notifications/' + id + '/retry'),
   markSent:   (id: string) => api.post<any>('/automations/notifications/' + id + '/sent'),
 };
+
