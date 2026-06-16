@@ -76,13 +76,15 @@ export async function professionalScheduleRoutes(fastify: any) {
     const { days } = req.body as any; // array de { dayOfWeek, isWorking, startTime, endTime, slotMinutes }
     for (const day of days) {
       await db.execute(sql`
-        INSERT INTO professional_schedules (tenant_id, professional_id, day_of_week, is_working, start_time, end_time, slot_minutes)
-        VALUES (${tenantId}, ${req.params.id}, ${day.dayOfWeek}, ${day.isWorking}, ${day.startTime}, ${day.endTime}, ${day.slotMinutes ?? 30})
+        INSERT INTO professional_schedules (tenant_id, professional_id, day_of_week, is_working, start_time, end_time, slot_minutes, break_start, break_end)
+        VALUES (${tenantId}, ${req.params.id}, ${day.dayOfWeek}, ${day.isWorking}, ${day.startTime}, ${day.endTime}, ${day.slotMinutes ?? 30}, ${day.breakStart ?? null}, ${day.breakEnd ?? null})
         ON CONFLICT (professional_id, day_of_week) DO UPDATE SET
           is_working = EXCLUDED.is_working,
           start_time = EXCLUDED.start_time,
           end_time = EXCLUDED.end_time,
           slot_minutes = EXCLUDED.slot_minutes,
+          break_start = EXCLUDED.break_start,
+          break_end = EXCLUDED.break_end,
           updated_at = now()
       `);
     }

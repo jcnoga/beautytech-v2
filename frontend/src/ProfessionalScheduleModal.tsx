@@ -54,7 +54,7 @@ function ProfessionalScheduleModal({ professional, token, onClose }: any) {
     setSaving(true);
     await fetch(`${API}/professionals/${professional.id}/schedules`, {
       method:"POST", headers:{...h,"Content-Type":"application/json"},
-      body: JSON.stringify({ days: schedule.map((d:any) => ({ dayOfWeek: d.day_of_week, isWorking: d.is_working, startTime: d.start_time, endTime: d.end_time, slotMinutes: d.slot_minutes??30 })) })
+      body: JSON.stringify({ days: schedule.map((d:any) => ({ dayOfWeek: d.day_of_week, isWorking: d.is_working, startTime: d.start_time, endTime: d.end_time, slotMinutes: d.slot_minutes??30, breakStart: d.break_start??null, breakEnd: d.break_end??null })) })
     });
     setSaving(false);
     alert("Jornada salva!");
@@ -63,7 +63,7 @@ function ProfessionalScheduleModal({ professional, token, onClose }: any) {
   const replicateSchedule = (fromDay: number) => {
     const src = schedule.find((d:any) => d.day_of_week === fromDay);
     if (!src) return;
-    setSchedule(s => s.map((d:any) => d.day_of_week === 0 || d.day_of_week === 6 ? d : { ...d, is_working: src.is_working, start_time: src.start_time, end_time: src.end_time, slot_minutes: src.slot_minutes }));
+    setSchedule(s => s.map((d:any) => d.day_of_week === 0 || d.day_of_week === 6 ? d : { ...d, is_working: src.is_working, start_time: src.start_time, end_time: src.end_time, slot_minutes: src.slot_minutes, break_start: src.break_start, break_end: src.break_end }));
   };
 
   const addBlock = async () => {

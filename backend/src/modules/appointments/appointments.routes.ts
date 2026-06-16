@@ -165,6 +165,17 @@ export async function publicBookingModule(fastify: FastifyInstance) {
         const aeMin = ae.getUTCHours()  * 60 + ae.getUTCMinutes();
         return slotStart < aeMin && slotEnd > asMin;
       });
+      // Verifica intervalo de almoco
+      const breakStart = schedRows[0]?.break_start;
+      const breakEnd   = schedRows[0]?.break_end;
+      const conflictsBreak = breakStart && breakEnd ? (() => {
+        const [bsh, bsm] = breakStart.split(":").map(Number);
+        const [beh, bem] = breakEnd.split(":").map(Number);
+        const bsMin = bsh * 60 + bsm;
+        const beMin = beh * 60 + bem;
+        return slotStart < beMin && slotEnd > bsMin;
+      })() : false;
+
       const conflictsBlock = blocks.some((b) => {
         const bStart = new Date(b.starts_at);
         const bEnd   = new Date(b.ends_at);
@@ -173,7 +184,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
         const slotDateEnd   = new Date(`${date}T${String(Math.floor(slotEnd/60)).padStart(2,"0")}:${String(slotEnd%60).padStart(2,"0")}:00-03:00`);
         return slotDateStart < bEnd && slotDateEnd > bStart;
       });
-      return !conflictsAppt && !conflictsBlock;
+      return !conflictsAppt && !conflictsBlock && !conflictsBreak;
     });
 
     return reply.send({ success: true, data: available, date, total: available.length });
