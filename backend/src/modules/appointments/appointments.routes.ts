@@ -119,17 +119,35 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       isNull(appointments.deletedAt)
     ));
 
+    // Busca bloqueios manuais
+    const blocksResult = await db.execute(sql`
+      SELECT starts_at, ends_at FROM professional_blocks
+      WHERE professional_id = ${professionalId}
+      AND tenant_id = ${tenant.id}
+      AND starts_at <= ${dayEnd}
+      AND ends_at >= ${dayStart}
+    `);
+    const blocks = (blocksResult as any).rows ?? (Array.isArray(blocksResult) ? blocksResult : []);
+
     const available = slots.filter(slot => {
       const [sh, sm] = slot.split(":").map(Number);
       const slotStart = sh * 60 + sm;
       const slotEnd   = slotStart + slotDuration;
-      return !existingAppts.some(appt => {
+      const conflictsAppt = existingAppts.some(appt => {
         const as_ = new Date(appt.scheduledAt);
         const ae  = appt.endsAt ? new Date(appt.endsAt) : new Date(as_.getTime() + appt.durationMinutes * 60000);
         const asMin = as_.getUTCHours() * 60 + as_.getUTCMinutes();
         const aeMin = ae.getUTCHours()  * 60 + ae.getUTCMinutes();
         return slotStart < aeMin && slotEnd > asMin;
       });
+      const conflictsBlock = blocks.some((b) => {
+        const bStart = new Date(b.starts_at);
+        const bEnd   = new Date(b.ends_at);
+        const bStartMin = bStart.getUTCHours() * 60 + bStart.getUTCMinutes();
+        const bEndMin   = bEnd.getUTCHours()   * 60 + bEnd.getUTCMinutes();
+        return slotStart < bEndMin && slotEnd > bStartMin;
+      });
+      return !conflictsAppt && !conflictsBlock;
     });
 
     return reply.send({ success: true, data: available, date, total: available.length });
