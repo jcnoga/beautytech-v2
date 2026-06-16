@@ -1,5 +1,6 @@
 import LandingPage from './LandingPage';
 import PricingPage from './PricingPage';
+import ProfessionalScheduleModal from './ProfessionalScheduleModal';
 import TenantSettingsPage from './TenantSettingsPage';
 import HomePage from './HomePage';
 import DiscoveryPage from './DiscoveryPage';
@@ -1291,6 +1292,7 @@ function ProfessionalsPage() {
   return (
     <div>
       <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Nova Profissional</Btn>} />
+        {scheduleProf && <ProfessionalScheduleModal professional={scheduleProf} token={(() => { const k = Object.keys(localStorage).find(k=>k.includes('auth-token')); return k ? JSON.parse(localStorage.getItem(k)||'{}')?.access_token : ''; })()} onClose={() => setScheduleProf(null)} />}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
         {data.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB }}>Nenhum profissional cadastrado.</div>}
         {data.map((p: any, i: number) => (
