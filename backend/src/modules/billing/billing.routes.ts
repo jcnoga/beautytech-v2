@@ -13,7 +13,7 @@ import {
 
 export async function billingRoutes(fastify: any) {
   const ASAAS_KEY = process.env.ASAAS_API_KEY ?? "";
-  const ASAAS_URL = "https://api.asaas.com/api/v3";
+  const ASAAS_URL = "https://api.asaas.com/v3";
   const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? "";
 
   if (!ASAAS_KEY) {
@@ -118,7 +118,7 @@ export async function billingRoutes(fastify: any) {
     const subscription = await asaasFetch("POST", "/subscriptions", {
       customer:          customerId,
       billingType:       "UNDEFINED",
-      value:             PLANS[tier].monthlyPrice * (1 - PLANS[tier].monthlyPrice === 0 ? 0 : 0),
+      value:             calcPlanAmount(tier, period),
       nextDueDate:       dueDate,
       cycle:             ASAAS_CYCLE[period],
       description:       `BeautyTech - Plano ${PLANS[tier].name} (${period})`,
@@ -260,3 +260,4 @@ export async function billingRoutes(fastify: any) {
     return reply.send({ ok: true });
   });
 }
+
