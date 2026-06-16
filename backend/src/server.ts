@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 // asaasModule substituido por billingRoutes
 import { sendWelcomeEmail } from "./modules/email.module.js";
 import { billingRoutes } from "./modules/billing/billing.routes.js";
+import { professionalScheduleRoutes } from "./modules/professionals/professional-schedule.routes.js";
 import { loadPlansFromDb } from "./modules/billing/billing.service.js";
 
 import { publicBookingModule } from "./modules/appointments/appointments.routes.js";
@@ -93,6 +94,7 @@ async function bootstrap() {
   await server.register(protocolsModule,          { prefix });
   await server.register(demoModule,               { prefix });
   await server.register(billingRoutes,            { prefix });
+  await server.register(professionalScheduleRoutes, { prefix });
   // asaasModule desativado - substituido por billingRoutes
   await server.register(publicBookingModule,      { prefix });
   await server.register(tenantPublicModule,       { prefix });
