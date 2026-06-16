@@ -64,9 +64,13 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
   const months = PERIODS.find(p => p.id === period)?.months ?? 1;
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setToken(session?.access_token ?? null);
-    });
+    const key = Object.keys(localStorage).find(k => k.includes('auth-token'));
+    if (key) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+        setToken(parsed?.access_token ?? null);
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {
