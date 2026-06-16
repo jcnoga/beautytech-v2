@@ -1,4 +1,4 @@
-// ============================================================
+new_content = """// ============================================================
 // BILLING SERVICE - Planos, Prorate e Assinaturas
 // ============================================================
 import { db } from "@db/connection.js";
@@ -103,3 +103,6 @@ export function calcProrate(
   const credit = totalPaid * remainingRatio;
   return parseFloat(credit.toFixed(2));
 }
+"""
+open('backend/src/modules/billing/billing.service.ts', 'w', encoding='utf-8').write(new_content)
+print('OK')

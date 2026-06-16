@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 // asaasModule substituido por billingRoutes
 import { sendWelcomeEmail } from "./modules/email.module.js";
 import { billingRoutes } from "./modules/billing/billing.routes.js";
+import { loadPlansFromDb } from "./modules/billing/billing.service.js";
 
 import { publicBookingModule } from "./modules/appointments/appointments.routes.js";
 import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
@@ -96,6 +97,7 @@ async function bootstrap() {
   await server.register(publicBookingModule,      { prefix });
   await server.register(tenantPublicModule,       { prefix });
 
+  await loadPlansFromDb();
   await server.listen({ port: env.PORT, host: env.HOST });
   console.log(`BeautyTech v2 rodando na porta ${env.PORT}`);
   startScheduler();
