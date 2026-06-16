@@ -85,14 +85,17 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
   const totalPrice = (monthly: number) => price(monthly) * months;
 
   const handleSubscribe = async (planId: string) => {
-    if (!token) { setMsg({ type: "err", text: "Voce precisa estar logado para assinar." }); return; }
+    const lsKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
+    const lsToken = lsKey ? JSON.parse(localStorage.getItem(lsKey) || '{}')?.access_token : null;
+    const activeToken = lsToken || token;
+    if (!activeToken) { setMsg({ type: "err", text: "Voce precisa estar logado para assinar." }); return; }
     if (planId === "free") return;
     setLoading(planId);
     setMsg(null);
     try {
       const res = await fetch(`${API}/billing/subscribe`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${activeToken}` },
         body: JSON.stringify({ tier: planId, period }),
       });
       const data = await res.json();
@@ -101,7 +104,7 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
         if (data.data.creditApplied > 0) text += ` Credito de R$${Number(data.data.creditApplied).toFixed(2)} aplicado.`;
         if (data.data.paymentUrl) { text += " Redirecionando para pagamento..."; window.open(data.data.paymentUrl, "_blank"); }
         setMsg({ type: "ok", text });
-        const s = await fetch(`${API}/billing/status`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+        const s = await fetch(`${API}/billing/status`, { headers: { Authorization: `Bearer ${activeToken}` } }).then(r => r.json());
         if (s.success) setStatus(s.data);
       } else {
         setMsg({ type: "err", text: data.error ?? "Erro ao processar assinatura." });
@@ -121,7 +124,7 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
       const data = await res.json();
       if (data.success) {
         setMsg({ type: "ok", text: "Assinatura cancelada. Acesso mantido ate o fim do periodo." });
-        const s = await fetch(`${API}/billing/status`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+        const s = await fetch(`${API}/billing/status`, { headers: { Authorization: `Bearer ${activeToken}` } }).then(r => r.json());
         if (s.success) setStatus(s.data);
       } else {
         setMsg({ type: "err", text: data.error ?? "Erro ao cancelar." });
