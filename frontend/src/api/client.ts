@@ -77,10 +77,12 @@ export const professionalsApi = {
 };
 
 export const servicesApi = {
-  list:       (p?: any) => api.get<any>("/services", p),
-  categories: () => api.get<any>("/service-categories"),
-  create:     (dto: any) => api.post<any>("/services", dto),
-  update:     (id: string, dto: any) => api.patch<any>(`/services/${id}`, dto),
+  list:           (p?: any) => api.get<any>("/services", p),
+  categories:     () => api.get<any>("/service-categories"),
+  create:         (dto: any) => api.post<any>("/services", dto),
+  update:         (id: string, dto: any) => api.patch<any>(`/services/${id}`, dto),
+  createCategory: (dto: any) => api.post<any>("/service-categories", dto),
+  deleteCategory: (id: string) => api.delete(`/service-categories/${id}`),
 };
 
 export const packagesApi = {

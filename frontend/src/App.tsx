@@ -1480,15 +1480,15 @@ function ServicesPage() {
   );
 
   const tabStyle = (tab: string) => ({
-    padding: "8px 20px",
+    padding: "10px 24px",
     borderRadius: 8,
     border: "none",
     cursor: "pointer",
     fontFamily: FB,
-    fontSize: 13,
-    fontWeight: 600,
+    fontSize: 15,
+    fontWeight: 700,
     background: activeTab === tab ? C.rose : "transparent",
-    color: activeTab === tab ? "#fff" : C.textMuted,
+    color: activeTab === tab ? "#fff" : C.text,
     transition: "all 0.2s",
   });
 
