@@ -1211,6 +1211,7 @@ function AgendaPage() {
 // --- PROFISSIONAIS --------------------------------------------
 function ProfessionalsPage() {
   const [data, setData] = useState<any[]>([]);
+  const [scheduleProf, setScheduleProf] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
