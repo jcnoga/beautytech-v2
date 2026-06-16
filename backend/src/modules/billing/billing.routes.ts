@@ -12,7 +12,7 @@ import {
 } from "./billing.service.js";
 
 export async function billingRoutes(fastify: any) {
-  const ASAAS_KEY = process.env.ASAAS_API_KEY ?? "";
+  const ASAAS_KEY = (process.env.ASAAS_API_KEY ?? "").startsWith("$") ? process.env.ASAAS_API_KEY! : `$${process.env.ASAAS_API_KEY ?? ""}`;
   const ASAAS_URL = "https://api.asaas.com/v3";
   const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? "";
 
@@ -260,4 +260,5 @@ export async function billingRoutes(fastify: any) {
     return reply.send({ ok: true });
   });
 }
+
 
