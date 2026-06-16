@@ -105,7 +105,7 @@ export default function TenantSettingsPage() {
         <p style={{ fontSize:13, color:C.textMuted }}>Personalize as informações do seu estabelecimento</p>
       </div>
 
-      <div style={{ display:"flex", gap:4, marginBottom:28, borderBottom:`1px solid ${C.border}` }}>
+      <div style={{ display:"flex", gap:4, marginBottom:28, borderBottom:`1px solid ${C.border}`, background:C.card, borderRadius:"12px 12px 0 0", padding:"4px 4px 0 4px" }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             style={{ padding:"10px 20px", background:"none", border:"none", borderBottom:`2px solid ${activeTab===tab.id?C.gold:"transparent"}`, color:activeTab===tab.id?C.gold:C.textMuted, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB, marginBottom:-1 }}>
