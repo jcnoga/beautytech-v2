@@ -1,4 +1,4 @@
-﻿import LandingPage from './LandingPage';
+import LandingPage from './LandingPage';
 import PricingPage from './PricingPage';
 import TenantSettingsPage from './TenantSettingsPage';
 import HomePage from './HomePage';
@@ -359,7 +359,7 @@ function LoginPage({ onLogin }: any) {
           </button>
           <div style={{ textAlign:"center", marginTop:16 }}>
             <button onClick={() => setShowRegister(true)} style={{ background:"none", border:"1.5px solid #c9a96e", color: C.rose, fontSize:13, cursor:"pointer", fontFamily: FB, fontWeight:700, padding:"10px 20px", borderRadius:10, marginTop:4, width:"100%", background:"linear-gradient(135deg, #c9a96e22, #c9847a22)" }}>
-              ✨ Nao tem conta? Cadastre seu salao gratis
+              ? Nao tem conta? Cadastre seu salao gratis
             </button>
           </div>
         </div>
@@ -821,7 +821,7 @@ function PlanSettingsPanel({ saFetch }: any) {
       <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:20, fontFamily:FB }}>Configuracoes Globais</div>
       {groups.map(g => (
         <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, opacity: g.disabled ? 0.75 : 1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color: g.disabled ? "#888" : C.rose, marginBottom:20, fontFamily:FB }}>{g.title}{g.disabled ? " 🔒" : ""}</div>
+          <div style={{ fontSize:16, fontWeight:700, color: g.disabled ? "#888" : C.rose, marginBottom:20, fontFamily:FB }}>{g.title}{g.disabled ? " ??" : ""}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
             {g.keys.map(key => (
               <div key={key} style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -3126,7 +3126,7 @@ const MENU = [
   { id:"automations",   label:"Automacoes",    icon:"!", premium:true },
   { id:"notifications", label:"Notificacoes",  icon:"!", premium:true },
   { id:"pricing",     label:"Planos",        icon:"$", premium:false },
-  { id:"settings",    label:"Configuracoes", icon:"⚙", premium:false },
+  { id:"settings",    label:"Configuracoes", icon:"?", premium:false },
   { id:"whatsapp",      label:"WhatsApp",      icon:"W", premium:true },
 ];
 
@@ -3146,7 +3146,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
         {tenantInfo?.logoUrl ? (
           <img src={tenantInfo.logoUrl} alt="Logo" style={{ width:"72px", height:"72px", borderRadius:"50%", objectFit:"cover", border:`2px solid ${C.rose}`, display:"block", margin:"0 auto 10px" }} />
         ) : (
-          <div style={{ width:72, height:72, borderRadius:"50%", background:`${C.rose}20`, border:`2px solid ${C.rose}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 10px" }}>✂</div>
+          <div style={{ width:72, height:72, borderRadius:"50%", background:`${C.rose}20`, border:`2px solid ${C.rose}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 10px" }}>?</div>
         )}
         <div style={{ fontSize:20, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:4 }}>{tenantInfo?.name ?? "ZenSalon"}</div>
         <div style={{ fontSize:13, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
@@ -3277,11 +3277,12 @@ const logout = async () => {
       <Sidebar page={page} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft:220, padding:36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner />
-        <PageComponent />
+        <PageComponent token={token} currentPlan={tenantData?.planTier ?? "free"} />
       </main>
     </>
   );
 }
+
 
 
 
