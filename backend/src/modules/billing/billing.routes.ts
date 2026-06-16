@@ -13,7 +13,7 @@ import {
 
 export async function billingRoutes(fastify: any) {
   const ASAAS_KEY = (process.env.ASAAS_API_KEY ?? "").startsWith("$") ? process.env.ASAAS_API_KEY! : `$${process.env.ASAAS_API_KEY ?? ""}`;
-  const ASAAS_URL = "https://api.asaas.com/v3";
+  const ASAAS_URL = process.env.ASAAS_ENV === "production" ? "https://api.asaas.com/v3" : "https://sandbox.asaas.com/api/v3";
   const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? "";
 
   if (!ASAAS_KEY) {
