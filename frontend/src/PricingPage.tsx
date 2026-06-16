@@ -68,6 +68,8 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
   const disc = PERIODS.find(p => p.id === period)?.discount ?? 0;
   const months = PERIODS.find(p => p.id === period)?.months ?? 1;
 
+  const [dynamicPlans, setDynamicPlans] = useState<any>(null);
+
   useEffect(() => {
     fetch(`${API}/billing/plans`)
       .then(r => r.json())
@@ -80,9 +82,10 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
               monthly:    plan.monthlyPrice,
               semiannual: parseFloat((plan.monthlyPrice * 0.9).toFixed(2)),
               annual:     parseFloat((plan.monthlyPrice * 0.8).toFixed(2)),
+              professionals: plan.professionals,
             };
           });
-          if (Object.keys(p).length > 0) setPlanPrices(p);
+          if (Object.keys(p).length > 0) { setPlanPrices(p); setDynamicPlans(d.data); }
         }
       }).catch(() => {});
   }, []);
@@ -295,7 +298,7 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
                     )}
                   </>
                 )}
-                <div style={{ fontSize:13, color:plan.color, marginTop:8, fontWeight:600 }}>{plan.professionals}</div>
+                <div style={{ fontSize:13, color:plan.color, marginTop:8, fontWeight:600 }}>{dynamicPlans?.[plan.id]?.professionals ? `Ate ${dynamicPlans[plan.id].professionals} profissional${dynamicPlans[plan.id].professionals > 1 ? "is" : ""}` : plan.professionals}</div>
               </div>
 
               {plan.id === "free" && (
