@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
-import { asaasModule } from "./modules/asaas.module.js";
+// asaasModule substituido por billingRoutes
 import { sendWelcomeEmail } from "./modules/email.module.js";
 import { billingRoutes } from "./modules/billing/billing.routes.js";
 
@@ -92,7 +92,7 @@ async function bootstrap() {
   await server.register(protocolsModule,          { prefix });
   await server.register(demoModule,               { prefix });
   await server.register(billingRoutes,            { prefix });
-  await server.register(asaasModule,              { prefix });
+  // asaasModule desativado - substituido por billingRoutes
   await server.register(publicBookingModule,      { prefix });
   await server.register(tenantPublicModule,       { prefix });
 
@@ -111,3 +111,4 @@ bootstrap().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
