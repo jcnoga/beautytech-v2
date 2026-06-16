@@ -337,7 +337,19 @@ export async function servicesModule(fastify: FastifyInstance) {
     const cond = [eq(services.tenantId, tenantId), isNull(services.deletedAt)];
     if (isActive !== undefined) cond.push(eq(services.isActive, isActive === "true"));
     if (categoryId) cond.push(eq(services.categoryId, categoryId));
-    const data = await db.select().from(services).where(and(...cond)).orderBy(services.sortOrder);
+    const data = await db
+      .select({
+        id: services.id, tenantId: services.tenantId, name: services.name,
+        description: services.description, price: services.price,
+        durationMinutes: services.durationMinutes, categoryId: services.categoryId,
+        isActive: services.isActive, isOnlineBookable: services.isOnlineBookable,
+        sortOrder: services.sortOrder, createdAt: services.createdAt,
+        categoryName: serviceCategories.name,
+      })
+      .from(services)
+      .leftJoin(serviceCategories, eq(services.categoryId, serviceCategories.id))
+      .where(and(...cond))
+      .orderBy(services.sortOrder);
     return reply.send({ success: true, data, total: data.length });
   });
 
