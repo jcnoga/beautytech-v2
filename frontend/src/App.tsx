@@ -3277,11 +3277,12 @@ const logout = async () => {
       <Sidebar page={page} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft:220, padding:36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner />
-        <PageComponent token={token} currentPlan={tenantData?.planTier ?? "free"} />
+        <PageComponent />
       </main>
     </>
   );
 }
+
 
 
 
