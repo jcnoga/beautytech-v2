@@ -109,8 +109,9 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
       } else {
         setMsg({ type: "err", text: data.error ?? "Erro ao processar assinatura." });
       }
-    } catch {
-      setMsg({ type: "err", text: "Erro de conexao. Tente novamente." });
+    } catch(e: any) {
+      console.error("BILLING ERROR:", e);
+      setMsg({ type: "err", text: "Erro: " + (e?.message || String(e)) });
     } finally {
       setLoading(null);
     }
