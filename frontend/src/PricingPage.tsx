@@ -59,9 +59,33 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
   const [status, setStatus] = useState<any>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [planPrices, setPlanPrices] = useState<any>({
+    basic: { monthly: 39.90, semiannual: 35.91, annual: 31.92 },
+    pro:   { monthly: 59.90, semiannual: 53.91, annual: 47.92 },
+    super: { monthly: 99.90, semiannual: 89.91, annual: 79.92 },
+  });
 
   const disc = PERIODS.find(p => p.id === period)?.discount ?? 0;
   const months = PERIODS.find(p => p.id === period)?.months ?? 1;
+
+  useEffect(() => {
+    fetch(`${API}/billing/plans`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data) {
+          const p: any = {};
+          Object.entries(d.data).forEach(([tier, plan]: any) => {
+            if (tier === "free") return;
+            p[tier] = {
+              monthly:    plan.monthlyPrice,
+              semiannual: parseFloat((plan.monthlyPrice * 0.9).toFixed(2)),
+              annual:     parseFloat((plan.monthlyPrice * 0.8).toFixed(2)),
+            };
+          });
+          if (Object.keys(p).length > 0) setPlanPrices(p);
+        }
+      }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const key = Object.keys(localStorage).find(k => k.includes('auth-token'));
@@ -81,8 +105,17 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
       .catch(() => {});
   }, [token]);
 
-  const price = (monthly: number) => monthly === 0 ? 0 : monthly * (1 - disc / 100);
-  const totalPrice = (monthly: number) => price(monthly) * months;
+  const price = (planId: string, monthly: number) => {
+    if (monthly === 0) return 0;
+    if (planPrices[planId]) {
+      const p = planPrices[planId];
+      if (period === "semiannual") return p.semiannual;
+      if (period === "annual") return p.annual;
+      return p.monthly;
+    }
+    return monthly * (1 - disc / 100);
+  };
+  const totalPrice = (planId: string, monthly: number) => price(planId, monthly) * months;
 
   const handleSubscribe = async (planId: string) => {
     const lsKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
@@ -247,12 +280,12 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
                   <>
                     <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
                       <span style={{ fontSize:13, color:C.textMuted }}>R$</span>
-                      <span style={{ fontSize:40, fontWeight:700, color:C.text, fontFamily:FD, lineHeight:1 }}>{price(plan.monthly).toFixed(2).replace(".",",")}</span>
+                      <span style={{ fontSize:40, fontWeight:700, color:C.text, fontFamily:FD, lineHeight:1 }}>{price(plan.id, plan.monthly).toFixed(2).replace(".",",")}</span>
                       <span style={{ fontSize:12, color:C.textMuted }}>/mes</span>
                     </div>
                     {period !== "monthly" && (
                       <div style={{ fontSize:11, color:C.textMuted, marginTop:4 }}>
-                        Total: R${totalPrice(plan.monthly).toFixed(2).replace(".",",")} / {period==="semiannual"?"6 meses":"12 meses"}
+                        Total: R${totalPrice(plan.id, plan.monthly).toFixed(2).replace(".",",")} / {period==="semiannual"?"6 meses":"12 meses"}
                       </div>
                     )}
                     {disc > 0 && (
