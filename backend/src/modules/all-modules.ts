@@ -1622,6 +1622,84 @@ export async function protocolsModule(fastify: any) {
   });
 }
 
+// PROTOCOL SESSIONS MODULE
+export async function protocolSessionsModule(fastify: any) {
+  fastify.get("/protocol-sessions/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sql`SELECT ps.*, p.name as protocol_name, pr.name as professional_name FROM protocol_sessions ps LEFT JOIN protocols p ON p.id=ps.protocol_id LEFT JOIN professionals pr ON pr.id=ps.performed_by WHERE ps.tenant_id=${tenantId} AND ps.client_id=${req.params.clientId} ORDER BY ps.session_number ASC`);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.post("/protocol-sessions", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId, userId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sql`INSERT INTO protocol_sessions (tenant_id,client_id,protocol_id,session_number,performed_at,performed_by,evolution,observations,status,created_by) VALUES (${tenantId},${b.clientId},${b.protocolId},${b.sessionNumber},${b.performedAt??null},${b.performedBy??null},${b.evolution??null},${b.observations??null},${b.status??"scheduled"},${userId}) RETURNING *`);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.patch("/protocol-sessions/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sql`UPDATE protocol_sessions SET performed_at=COALESCE(${b.performedAt??null},performed_at),performed_by=COALESCE(${b.performedBy??null},performed_by),evolution=COALESCE(${b.evolution??null},evolution),observations=COALESCE(${b.observations??null},observations),status=COALESCE(${b.status??null},status),updated_at=now() WHERE id=${req.params.id} AND tenant_id=${tenantId} RETURNING *`);
+    return reply.send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.delete("/protocol-sessions/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    await db.execute(sql`DELETE FROM protocol_sessions WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
+    return reply.status(204).send();
+  });
+}
+
+// TREATMENT PACKAGES MODULE
+export async function treatmentPackagesModule(fastify: any) {
+  fastify.get("/treatment-packages", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sql`SELECT tp.*, p.name as protocol_name FROM treatment_packages tp LEFT JOIN protocols p ON p.id=tp.protocol_id WHERE tp.tenant_id=${tenantId} AND tp.is_active=true ORDER BY tp.created_at DESC`);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.post("/treatment-packages", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId, userId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sql`INSERT INTO treatment_packages (tenant_id,name,description,protocol_id,total_sessions,validity_days,price,created_by) VALUES (${tenantId},${b.name},${b.description??null},${b.protocolId??null},${b.totalSessions??5},${b.validityDays??365},${b.price??0},${userId}) RETURNING *`);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.patch("/treatment-packages/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const b = req.body as any;
+    const data = await db.execute(sql`UPDATE treatment_packages SET name=COALESCE(${b.name??null},name),description=COALESCE(${b.description??null},description),total_sessions=COALESCE(${b.totalSessions??null},total_sessions),price=COALESCE(${b.price??null},price),is_active=COALESCE(${b.isActive??null},is_active),updated_at=now() WHERE id=${req.params.id} AND tenant_id=${tenantId} RETURNING *`);
+    return reply.send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.delete("/treatment-packages/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    await db.execute(sql`UPDATE treatment_packages SET is_active=false,updated_at=now() WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
+    return reply.status(204).send();
+  });
+}
+
+// PACKAGE SESSIONS MODULE
+export async function packageSessionsModule(fastify: any) {
+  fastify.get("/package-sessions/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sql`SELECT ps.*, tp.name as package_name, tp.total_sessions FROM package_sessions ps LEFT JOIN treatment_packages tp ON tp.id=ps.package_id WHERE ps.tenant_id=${tenantId} AND ps.client_id=${req.params.clientId} ORDER BY ps.created_at DESC`);
+    return reply.send({ success: true, data: (data as any).rows ?? [] });
+  });
+  fastify.post("/package-sessions", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId, userId } = req.tenantContext;
+    const b = req.body as any;
+    const expiresAt = b.expiresAt ?? null;
+    const data = await db.execute(sql`INSERT INTO package_sessions (tenant_id,client_id,package_id,sessions_contracted,sessions_used,started_at,expires_at,status,created_by) VALUES (${tenantId},${b.clientId},${b.packageId},${b.sessionsContracted??0},0,now(),${expiresAt},${b.status??"active"},${userId}) RETURNING *`);
+    return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.patch("/package-sessions/:id/use", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const data = await db.execute(sql`UPDATE package_sessions SET sessions_used=sessions_used+1,updated_at=now() WHERE id=${req.params.id} AND tenant_id=${tenantId} AND sessions_used < sessions_contracted RETURNING *`);
+    return reply.send({ success: true, data: ((data as any).rows??[])[0] });
+  });
+  fastify.delete("/package-sessions/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    await db.execute(sql`DELETE FROM package_sessions WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
+    return reply.status(204).send();
+  });
+}
+
 export { whatsappModule } from './whatsapp/whatsapp.routes.js';
 
 

@@ -38,6 +38,9 @@ import {
   consentFormsModule,
   appointmentPhotosModule,
   protocolsModule,
+  protocolSessionsModule,
+  treatmentPackagesModule,
+  packageSessionsModule,
 } from "./modules/all-modules.js";
 
 const server = Fastify({ logger: { level: env.LOG_LEVEL } });
@@ -92,6 +95,9 @@ async function bootstrap() {
   await server.register(consentFormsModule,       { prefix });
   await server.register(appointmentPhotosModule,  { prefix });
   await server.register(protocolsModule,          { prefix });
+  await server.register(protocolSessionsModule,   { prefix });
+  await server.register(treatmentPackagesModule,  { prefix });
+  await server.register(packageSessionsModule,    { prefix });
   await server.register(demoModule,               { prefix });
   await server.register(billingRoutes,            { prefix });
   await server.register(professionalScheduleRoutes, { prefix });
