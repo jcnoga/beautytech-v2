@@ -347,17 +347,26 @@ function ForgotPasswordPage({ onBack }: any) {
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily:"Playfair Display, serif" }}>ZenSalon</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Recuperar senha</div>
+          <div style={{ fontSize:16, color: C.textMuted, marginTop:8 }}>Recuperar senha</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHighlight}`, borderRadius:16, padding:32 }}>
-          <Inp label="E-mail cadastrado" value={email} onChange={setEmail} type="email" />
-          {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}40`, borderRadius:8, padding:"10px 14px", color: C.ruby, fontSize:13, marginBottom:16 }}>{error}</div>}
-          {msg && <div style={{ background:`#10b98115`, border:`1px solid #10b98140`, borderRadius:8, padding:"10px 14px", color:"#10b981", fontSize:13, marginBottom:16 }}>{msg}</div>}
-          <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"14px", background: loading ? "#888" : C.rosaBase, color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:600, cursor: loading ? "not-allowed" : "pointer", marginBottom:12, opacity:1 }}>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:14, fontWeight:600, color: C.text, marginBottom:8, letterSpacing:"0.05em" }}>E-MAIL CADASTRADO</div>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              style={{ width:"100%", padding:"12px 14px", background:"#1a1f2e", border:`1px solid ${C.borderHighlight}`, borderRadius:8, color: C.text, fontSize:15, boxSizing:"border-box" }}
+            />
+          </div>
+          {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}40`, borderRadius:8, padding:"12px 14px", color: C.ruby, fontSize:14, marginBottom:16 }}>{error}</div>}
+          {msg && <div style={{ background:`#10b98115`, border:`1px solid #10b98140`, borderRadius:8, padding:"12px 14px", color:"#10b981", fontSize:14, marginBottom:16 }}>{msg}</div>}
+          <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"14px", background: C.rosaBase, color:"#fff", border:"none", borderRadius:10, fontSize:16, fontWeight:600, cursor: loading ? "not-allowed" : "pointer", marginBottom:16, opacity: loading ? 0.7 : 1 }}>
             {loading ? "Enviando..." : "Enviar e-mail de recuperacao"}
           </button>
           <div style={{ textAlign:"center" }}>
-            <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:13, cursor:"pointer" }}>
+            <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:15, cursor:"pointer", textDecoration:"underline" }}>
               Voltar ao login
             </button>
           </div>
