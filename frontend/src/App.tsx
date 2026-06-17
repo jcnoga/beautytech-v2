@@ -3667,6 +3667,7 @@ export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
   const isSubdomain = !['localhost','beautytech-v2.vercel.app'].includes(window.location.hostname) && window.location.hostname !== 'localhost';
+  const sobreMatch = window.location.pathname === '/sobre';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
 
@@ -3718,6 +3719,7 @@ const logout = async () => {
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname);
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
+  if (sobreMatch) return <LandingPageSobre />;
   if (discoveryMatch) return <DiscoveryPage />;
   if (isRootDomain) return <HomePage />;
   if (isSubdomain) return <LandingPage />;
