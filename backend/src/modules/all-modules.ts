@@ -1430,7 +1430,7 @@ export async function demoModule(fastify: FastifyInstance) {
     const demoProfIds = demoProfs.map((p: any) => p.id);
 
     // 4. Deleta agendamentos demo e seus vinculos PRIMEIRO (antes de clientes e profissionais)
-    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
+    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (internal_notes='demo' OR professional_id = ANY(${demoProfIds}) OR client_id = ANY(${demoClientIds}))`);
     const demoApptIds = ((demoAppts as any).rows ?? []).map((r: any) => r.id);
     for (const apptId of demoApptIds) {
       await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id=${apptId}`);
