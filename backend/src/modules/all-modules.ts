@@ -1572,6 +1572,12 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.delete(financialTransactions).where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.createdBy, tenantId)));
     await db.delete(leads).where(and(eq(leads.tenantId, tenantId), sql`${leads.name} LIKE 'Demo %'`));
     await db.delete(clients).where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
+    // Limpa dependencias dos servicos demo antes de deletar
+    await db.execute(sql`DELETE FROM appointment_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
+    await db.execute(sql`DELETE FROM professional_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
+    // Limpa dependencias dos servicos demo antes de deletar
+    await db.execute(sql`DELETE FROM appointment_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
+    await db.execute(sql`DELETE FROM professional_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.delete(services).where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
     await db.delete(professionals).where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
 
