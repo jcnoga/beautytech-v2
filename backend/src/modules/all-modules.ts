@@ -1555,7 +1555,7 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.insert(leads).values([
       { tenantId, name: "Demo Lead Maria", whatsapp: "(34) 98002-0001", source: "instagram", status: "new" as const },
       { tenantId, name: "Demo Lead Paula", whatsapp: "(34) 98002-0002", source: "indicacao", status: "contacted" as const },
-      { tenantId, name: "Demo Lead Sandra", whatsapp: "(34) 98002-0003", source: "google", status: "qualified" as const },
+      { tenantId, name: "Demo Lead Sandra", whatsapp: "(34) 98002-0003", source: "google", status: "new" as const },
     ]);
 
     // ---- PACOTES LEGADO ----
