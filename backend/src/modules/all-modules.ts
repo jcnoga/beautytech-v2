@@ -1626,7 +1626,7 @@ export async function demoModule(fastify: FastifyInstance) {
       }
     }
 
-    return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos!", clientes: insertedClients.length, profissionais: insertedProfs.length, servicos: insertedSvcs.length, protocolos: protos.length }});
+    return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos para " + btype + "!", clientes: insertedClients.length, profissionais: insertedProfs.length, servicos: insertedSvcs.length }});
   });
 
   fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply: any) => {
