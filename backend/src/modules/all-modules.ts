@@ -1429,19 +1429,32 @@ export async function demoModule(fastify: FastifyInstance) {
       .where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
     const demoProfIds = demoProfs.map((p: any) => p.id);
 
-    // 4. Deleta agendamentos e suas dependencias PRIMEIRO
-    const apptWhere = ["internal_notes='demo'"];
-    if (demoClientIds.length > 0) apptWhere.push(`client_id IN ('${demoClientIds.join("','")}')`);
-    if (demoProfIds.length > 0) apptWhere.push(`professional_id IN ('${demoProfIds.join("','")}')`);
-    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (${sql.raw(apptWhere.join(' OR '))})`);
-    const demoApptIds = ((demoAppts as any).rows ?? []).map((r: any) => r.id);
-    for (const apptId of demoApptIds) {
-      await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id=${apptId}`);
-      await db.execute(sql`DELETE FROM appointment_photos WHERE appointment_id=${apptId}`);
-    }
-    if (demoApptIds.length > 0) {
-      await db.execute(sql`DELETE FROM appointments WHERE id IN ('${sql.raw(demoApptIds.join("','"))}')`);
-    }
+    // 4. Deleta agendamentos vinculados a clientes ou profissionais demo, ou marcados como demo
+    await db.execute(sql`
+      DELETE FROM appointment_services WHERE appointment_id IN (
+        SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (
+          internal_notes='demo'
+          OR client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])
+          OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')
+        )
+      )
+    `);
+    await db.execute(sql`
+      DELETE FROM appointment_photos WHERE appointment_id IN (
+        SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (
+          internal_notes='demo'
+          OR client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])
+          OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')
+        )
+      )
+    `);
+    await db.execute(sql`
+      DELETE FROM appointments WHERE tenant_id=${tenantId} AND (
+        internal_notes='demo'
+        OR client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])
+        OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')
+      )
+    `);
 
     // 5. Deleta todas as dependencias dos clientes demo
     if (demoClientIds.length > 0) {
