@@ -1622,6 +1622,30 @@ function ServicesPage() {
   const [saving, setSaving] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
   const [activeTab, setActiveTab] = useState("services");
+  const [protocols, setProtocols] = useState<any[]>([]);
+  const [showProtoForm, setShowProtoForm] = useState(false);
+  const [savingProto, setSavingProto] = useState(false);
+  const [protoForm, setProtoForm] = useState({ name:"", description:"", totalSessions:"1", intervalDays:"7" });
+  const fp = (k: string) => (v: any) => setProtoForm(p => ({ ...p, [k]:v }));
+  const loadProtocols = () => api.get("/protocols").then((r: any) => setProtocols(r.data ?? [])).catch(console.error);
+  const saveProto = async () => {
+    if (!protoForm.name.trim()) return alert("Informe o nome do protocolo");
+    setSavingProto(true);
+    try {
+      const r: any = await api.post("/protocols", { name: protoForm.name, description: protoForm.description, totalSessions: parseInt(protoForm.totalSessions), intervalDays: parseInt(protoForm.intervalDays) });
+      setProtocols(p => [...p, r.data]);
+      setShowProtoForm(false);
+      setProtoForm({ name:"", description:"", totalSessions:"1", intervalDays:"7" });
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSavingProto(false); }
+  };
+  const deleteProto = async (id: string) => {
+    if (!confirm("Desativar este protocolo?")) return;
+    try {
+      await api.delete("/protocols/" + id);
+      setProtocols(p => p.filter((x: any) => x.id !== id));
+    } catch(e: any) { alert("Erro: " + e.message); }
+  };
   const [form, setForm] = useState({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true });
   const [catForm, setCatForm] = useState({ name:"", description:"" });
   const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]:v }));
@@ -1629,6 +1653,7 @@ function ServicesPage() {
 
   const load = () => {
     setLoading(true);
+    loadProtocols();
     Promise.all([servicesApi.list(), servicesApi.categories()])
       .then(([s, c]: any) => { setData(s.data ?? []); setCategories(c.data ?? []); })
       .catch(console.error).finally(() => setLoading(false));
@@ -1739,6 +1764,49 @@ function ServicesPage() {
             <div style={{ display:"flex", gap:10, marginTop:8 }}>
               <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
               <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Criar Servico"}</Btn>
+            </div>
+          </Modal>
+        </div>
+      )}
+      {activeTab === "protocols" && (
+        <div>
+          <PageHeader title="Protocolos de Tratamento" sub={`${protocols.length} protocolos`} actions={
+            <Btn onClick={() => setShowProtoForm(true)}>+ Novo Protocolo</Btn>
+          } />
+          {protocols.length === 0 ? (
+            <div style={{ color:C.textMuted, fontSize:14, padding:32, textAlign:"center" }}>Nenhum protocolo cadastrado. Crie o primeiro!</div>
+          ) : (
+            <div style={{ display:"grid", gap:12 }}>
+              {protocols.map((p: any) => (
+                <div key={p.id} style={{ background:C.card, borderRadius:12, padding:20, border:"1px solid "+C.border, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div>
+                    <div style={{ fontWeight:700, color:C.text, fontSize:15 }}>{p.name}</div>
+                    {p.description && <div style={{ fontSize:13, color:C.textMuted, marginTop:4 }}>{p.description}</div>}
+                    <div style={{ display:"flex", gap:16, marginTop:8 }}>
+                      <div style={{ fontSize:12, color:C.rose }}>{p.total_sessions ?? 1} sessoes</div>
+                      <div style={{ fontSize:12, color:C.textMuted }}>Intervalo: {p.interval_days ?? 7} dias</div>
+                      <Badge label={p.is_active ? "Ativo" : "Inativo"} color={p.is_active ? "#10b981" : C.textMuted} size="sm" />
+                    </div>
+                  </div>
+                  <Btn small variant="danger" onClick={() => deleteProto(p.id)}>Desativar</Btn>
+                </div>
+              ))}
+            </div>
+          )}
+          <Modal open={showProtoForm} onClose={() => setShowProtoForm(false)} title="Novo Protocolo">
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div style={{ gridColumn:"1/-1" }}>
+                <Inp label="Nome do protocolo" value={protoForm.name} onChange={fp("name")} required />
+              </div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <Inp label="Descricao (opcional)" value={protoForm.description} onChange={fp("description")} />
+              </div>
+              <Inp label="Numero de sessoes" value={protoForm.totalSessions} onChange={fp("totalSessions")} type="number" />
+              <Inp label="Intervalo entre sessoes (dias)" value={protoForm.intervalDays} onChange={fp("intervalDays")} type="number" />
+            </div>
+            <div style={{ display:"flex", gap:10, marginTop:16 }}>
+              <Btn variant="secondary" onClick={() => setShowProtoForm(false)}>Cancelar</Btn>
+              <Btn onClick={saveProto} disabled={savingProto}>{savingProto ? "Salvando..." : "Salvar Protocolo"}</Btn>
             </div>
           </Modal>
         </div>
