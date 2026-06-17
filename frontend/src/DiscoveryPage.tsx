@@ -133,7 +133,7 @@ export default function DiscoveryPage() {
             Agende com os melhores da sua cidade
           </h1>
           <p style={{ color: C.textMuted, fontSize: ".95rem", marginBottom: 28 }}>
-            Salões, barbearias e clínicas de estética perto de você
+            Salões de Beleza, Barbearias e Clínicas de Estética perto de você
           </p>
 
           <div style={{ display: "flex", gap: 8, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8 }}>
