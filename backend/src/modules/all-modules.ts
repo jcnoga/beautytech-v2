@@ -1542,12 +1542,12 @@ export async function demoModule(fastify: FastifyInstance) {
     const [defaultAccount] = await db.select().from(financialAccounts).where(and(eq(financialAccounts.tenantId, tenantId), eq(financialAccounts.isDefault, true)));
     if (defaultAccount) {
       await db.insert(financialTransactions).values([
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[0].price, description: "Demo - " + insertedSvcs[0].name, category: "servico", transactionDate: yesterday, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[1].price, description: "Demo - " + insertedSvcs[1].name, category: "servico", transactionDate: lastWeek, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[2].price, description: "Demo - " + insertedSvcs[2].name, category: "servico", transactionDate: lastWeek, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[3].price, description: "Demo - " + insertedSvcs[3].name, category: "servico", transactionDate: lastMonth, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "120", description: "Demo - Produtos e insumos", category: "insumo", transactionDate: lastWeek, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "80", description: "Demo - Material descartavel", category: "insumo", transactionDate: yesterday, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[0].price, description: "Demo - " + insertedSvcs[0].name, category: "servico", transactionDate: yesterday, dueDate: yesterday, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[1].price, description: "Demo - " + insertedSvcs[1].name, category: "servico", transactionDate: lastWeek, dueDate: lastWeek, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[2].price, description: "Demo - " + insertedSvcs[2].name, category: "servico", transactionDate: lastWeek, dueDate: lastWeek, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[3].price, description: "Demo - " + insertedSvcs[3].name, category: "servico", transactionDate: lastMonth, dueDate: lastMonth, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "120", description: "Demo - Produtos e insumos", category: "insumo", transactionDate: lastWeek, dueDate: lastWeek, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "80", description: "Demo - Material descartavel", category: "insumo", transactionDate: yesterday, dueDate: yesterday, createdBy: tenantId },
       ]);
     }
 
