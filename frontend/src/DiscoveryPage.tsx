@@ -11,9 +11,9 @@ const FB = "'Inter', sans-serif";
 
 const TIPOS = [
   { id: "", label: "Todos", icon: "\u2B50" },
-  { id: "beauty_salon", label: "Salao de Beleza", icon: "\u2702\uFE0F" },
+  { id: "beauty_salon", label: "Salão de Beleza", icon: "\u2702\uFE0F" },
   { id: "barbershop", label: "Barbearia", icon: "\uD83D\uDC88" },
-  { id: "aesthetics_clinic", label: "Clinica de Estetica", icon: "\uD83D\uDC86" },
+  { id: "aesthetics_clinic", label: "Clínica de Estética", icon: "\uD83D\uDC86" },
 ];
 
 interface Tenant {
@@ -104,7 +104,7 @@ export default function DiscoveryPage() {
   const handleBuscar = () => buscarTenants();
 
   const labelTipo = (t: string) => {
-    const m: any = { beauty_salon: "Salao de Beleza", barbershop: "Barbearia", aesthetics_clinic: "Clinica de Estetica" };
+    const m: any = { beauty_salon: "Salão de Beleza", barbershop: "Barbearia", aesthetics_clinic: "Clínica de Estética" };
     return m[t] || t;
   };
 
@@ -122,7 +122,7 @@ export default function DiscoveryPage() {
         <div style={{ fontSize: ".8rem", color: C.textMuted }}>
           {geoStatus === "ok" && "\uD83D\uDCCD Usando sua localizacao"}
           {geoStatus === "denied" && "\uD83D\uDCCD Localizacao negada — mostrando todos"}
-          {geoStatus === "none" && "Encontre o melhor para voce"}
+          {geoStatus === "none" && "Encontre o melhor para você"}
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export default function DiscoveryPage() {
             Agende com os melhores da sua cidade
           </h1>
           <p style={{ color: C.textMuted, fontSize: ".95rem", marginBottom: 28 }}>
-            Saloes, barbearias e clinicas de estetica perto de voce
+            Salões, barbearias e clínicas de estética perto de você
           </p>
 
           <div style={{ display: "flex", gap: 8, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8 }}>
@@ -229,7 +229,7 @@ export default function DiscoveryPage() {
                     )}
                     {t.distKm != null && (
                       <div style={{ fontSize: ".75rem", color: C.green, marginBottom: 8, fontWeight: 600 }}>
-                        {t.distKm < 1 ? `${Math.round(t.distKm*1000)}m de voce` : `${t.distKm.toFixed(1)}km de voce`}
+                        {t.distKm < 1 ? `${Math.round(t.distKm*1000)}m de você` : `${t.distKm.toFixed(1)}km de você`}
                       </div>
                     )}
                     <a href={`/agendar/${t.slug}`} style={{
