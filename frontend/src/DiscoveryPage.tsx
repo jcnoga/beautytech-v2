@@ -189,7 +189,7 @@ export default function DiscoveryPage() {
           <div style={{ textAlign: "center", padding: "60px 0", color: C.textMuted }}>Carregando...</div>
         ) : tenants.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: "3rem", marginBottom: 16 }}>\uD83D\uDD0D</div>
+            <div style={{ fontSize: "3rem", marginBottom: 16 }}>{"🔍"}</div>
             <div style={{ color: C.textMuted }}>Nenhum estabelecimento encontrado.</div>
             <div style={{ color: C.textMuted, fontSize: ".85rem", marginTop: 8 }}>Tente buscar em outra cidade ou sem filtros.</div>
           </div>
