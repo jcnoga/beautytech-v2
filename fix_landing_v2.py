@@ -1,4 +1,7 @@
-import { useState } from "react";
+# -*- coding: utf-8 -*-
+path = r"C:\projetos\beautytech-v2\frontend\src\LandingPageSobre.tsx"
+
+content = '''import { useState } from "react";
 
 export default function LandingPageSobre() {
   const [period, setPeriod] = useState("mensal");
@@ -264,3 +267,10 @@ export default function LandingPageSobre() {
     </div>
   );
 }
+'''
+
+with open(path, "w", encoding="utf-8") as f:
+    f.write(content)
+
+import os
+print("OK - " + str(os.path.getsize(path)) + " bytes")
