@@ -326,12 +326,55 @@ function RegisterPage({ onBack }: any) {
   );
 }
 
+function ForgotPasswordPage({ onBack }: any) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    setLoading(true); setError(""); setMsg("");
+    const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/?reset=1"
+    });
+    if (e) setError(e.message);
+    else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ width:"100%", maxWidth:420 }}>
+        <div style={{ textAlign:"center", marginBottom:48 }}>
+          <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily:"Playfair Display, serif" }}>ZenSalon</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Recuperar senha</div>
+        </div>
+        <div style={{ background: C.card, border:`1px solid ${C.borderHighlight}`, borderRadius:16, padding:32 }}>
+          <Inp label="E-mail cadastrado" value={email} onChange={setEmail} type="email" />
+          {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}40`, borderRadius:8, padding:"10px 14px", color: C.ruby, fontSize:13, marginBottom:16 }}>{error}</div>}
+          {msg && <div style={{ background:`#10b98115`, border:`1px solid #10b98140`, borderRadius:8, padding:"10px 14px", color:"#10b981", fontSize:13, marginBottom:16 }}>{msg}</div>}
+          <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"14px", background: C.rosaBase, color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:600, cursor:"pointer", marginBottom:12 }}>
+            {loading ? "Enviando..." : "Enviar e-mail de recuperacao"}
+          </button>
+          <div style={{ textAlign:"center" }}>
+            <button onClick={onBack} style={{ background:"none", border:"none", color: C.textMuted, fontSize:13, cursor:"pointer" }}>
+              Voltar ao login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LoginPage({ onLogin }: any) {
   const [email, setEmail] = useState("admin@beautytech.com.br");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
   const [showRegister, setShowRegister] = useState(() => new URLSearchParams(window.location.search).get('tela') === 'cadastro');
+  if (showForgot) return <ForgotPasswordPage onBack={() => setShowForgot(false)} />;
   if (showRegister) return <RegisterPage onBack={() => setShowRegister(false)} />;
 
   const submit = async () => {
@@ -358,6 +401,11 @@ function LoginPage({ onLogin }: any) {
           <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg, ${C.rose}, ${C.roseDeep})`, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily: FB, letterSpacing:"0.02em" }}>
             {loading ? "Entrando..." : "Entrar"}
           </button>
+          <div style={{ textAlign:"center", marginTop:8 }}>
+            <button onClick={() => setShowForgot(true)} style={{ background:"none", border:"none", color: C.textMuted, fontSize:13, cursor:"pointer" }}>
+              Esqueci minha senha
+            </button>
+          </div>
           <div style={{ textAlign:"center", marginTop:16 }}>
             <button onClick={() => setShowRegister(true)} style={{ background:"none", border:"1.5px solid #c9a96e", color: C.rose, fontSize:13, cursor:"pointer", fontFamily: FB, fontWeight:700, padding:"10px 20px", borderRadius:10, marginTop:4, width:"100%", background:"linear-gradient(135deg, #c9a96e22, #c9847a22)" }}>
               ? Nao tem conta? Cadastre seu salao gratis
