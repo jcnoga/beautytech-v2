@@ -1416,45 +1416,168 @@ export async function demoModule(fastify: FastifyInstance) {
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const insertedProfs = await db.insert(professionals).values([
+    // Detectar tipo de negocio
+    const [tenantData] = await db.select({ businessType: tenants.businessType }).from(tenants).where(eq(tenants.id, tenantId));
+    const btype = tenantData?.businessType ?? "beauty_salon";
+    const isClinic = btype === "aesthetics_clinic";
+    const isBarber = btype === "barbershop";
+
+    // Profissionais por nicho
+    const profData = isClinic ? [
+      { tenantId, fullName: "Dra. Marina Demo Santos", commissionPct: "50", monthlyGoal: "8000", isActive: true },
+      { tenantId, fullName: "Julia Demo Costa", commissionPct: "45", monthlyGoal: "6000", isActive: true },
+    ] : isBarber ? [
+      { tenantId, fullName: "Carlos Demo Silva", commissionPct: "50", monthlyGoal: "5000", isActive: true },
+      { tenantId, fullName: "Pedro Demo Barbosa", commissionPct: "45", monthlyGoal: "4000", isActive: true },
+    ] : [
       { tenantId, fullName: "Marina Demo Santos", commissionPct: "50", monthlyGoal: "5000", isActive: true },
       { tenantId, fullName: "Julia Demo Costa", commissionPct: "45", monthlyGoal: "4000", isActive: true },
-    ]).returning();
+    ];
+    const insertedProfs = await db.insert(professionals).values(profData).returning();
 
-    const insertedSvcs = await db.insert(services).values([
+    // Servicos por nicho
+    const svcData = isClinic ? [
       { tenantId, name: "Demo Limpeza de Pele", durationMinutes: 60, price: "150", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Microagulhamento", durationMinutes: 90, price: "280", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Peeling", durationMinutes: 45, price: "120", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Radiofrequencia", durationMinutes: 60, price: "200", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Criolipolise", durationMinutes: 120, price: "450", isActive: true, isOnlineBookable: false },
-    ]).returning();
+    ] : isBarber ? [
+      { tenantId, name: "Demo Corte Masculino", durationMinutes: 30, price: "35", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Barba Completa", durationMinutes: 30, price: "25", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Degrade", durationMinutes: 40, price: "45", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Corte + Barba", durationMinutes: 60, price: "55", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Sobrancelha", durationMinutes: 15, price: "15", isActive: true, isOnlineBookable: false },
+    ] : [
+      { tenantId, name: "Demo Corte Feminino", durationMinutes: 45, price: "80", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Coloracao", durationMinutes: 120, price: "180", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Escova", durationMinutes: 60, price: "60", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Manicure", durationMinutes: 60, price: "40", isActive: true, isOnlineBookable: true },
+      { tenantId, name: "Demo Pedicure", durationMinutes: 60, price: "50", isActive: true, isOnlineBookable: false },
+    ];
+    const insertedSvcs = await db.insert(services).values(svcData).returning();
 
-    const insertedClients = await db.insert(clients).values([
+    // Clientes por nicho
+    const clientData = isBarber ? [
+      { tenantId, fullName: "Andre Demo Silva", whatsapp: "(34) 98001-0001", email: "andre.demo@email.com", gender: "male" as const, segment: "active", tags: ["demo"], totalVisits: 18, totalSpent: "630" },
+      { tenantId, fullName: "Bruno Demo Santos", whatsapp: "(34) 98001-0002", email: "bruno.demo@email.com", gender: "male" as const, segment: "vip", tags: ["demo"], totalVisits: 45, totalSpent: "2250", isVip: true },
+      { tenantId, fullName: "Carlos Demo Rocha", whatsapp: "(34) 98001-0003", email: "carlos.demo@email.com", gender: "male" as const, segment: "new", tags: ["demo"], totalVisits: 2, totalSpent: "70" },
+      { tenantId, fullName: "Daniel Demo Lima", whatsapp: "(34) 98001-0004", email: "daniel.demo@email.com", gender: "male" as const, segment: "at_risk", tags: ["demo"], totalVisits: 6, totalSpent: "210" },
+      { tenantId, fullName: "Eduardo Demo Ferreira", whatsapp: "(34) 98001-0005", email: "eduardo.demo@email.com", gender: "male" as const, segment: "loyal", tags: ["demo"], totalVisits: 60, totalSpent: "3300", isVip: true },
+    ] : [
       { tenantId, fullName: "Ana Demo Silva", whatsapp: "(34) 98001-0001", email: "ana.demo@email.com", gender: "female" as const, segment: "active", tags: ["demo"], totalVisits: 12, totalSpent: "1500" },
       { tenantId, fullName: "Beatriz Demo Santos", whatsapp: "(34) 98001-0002", email: "beatriz.demo@email.com", gender: "female" as const, segment: "vip", tags: ["demo"], totalVisits: 38, totalSpent: "4800", isVip: true },
       { tenantId, fullName: "Carla Demo Rocha", whatsapp: "(34) 98001-0003", email: "carla.demo@email.com", gender: "female" as const, segment: "new", tags: ["demo"], totalVisits: 2, totalSpent: "200" },
       { tenantId, fullName: "Daniela Demo Lima", whatsapp: "(34) 98001-0004", email: "daniela.demo@email.com", gender: "female" as const, segment: "at_risk", tags: ["demo"], totalVisits: 5, totalSpent: "450" },
       { tenantId, fullName: "Elena Demo Ferreira", whatsapp: "(34) 98001-0005", email: "elena.demo@email.com", gender: "female" as const, segment: "loyal", tags: ["demo"], totalVisits: 72, totalSpent: "9800", isVip: true },
-    ]).returning();
+    ];
+    const insertedClients = await db.insert(clients).values(clientData).returning();
 
+    // Agendamentos demo
     await db.insert(appointments).values([
       { tenantId, clientId: insertedClients[0].id, professionalId: insertedProfs[0].id, status: "confirmed" as const, scheduledAt: new Date(tomorrow.getTime() + 1 * 60 * 60 * 1000), endsAt: new Date(tomorrow.getTime() + 2 * 60 * 60 * 1000), durationMinutes: 60, totalPrice: insertedSvcs[0].price, subtotal: insertedSvcs[0].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
-      { tenantId, clientId: insertedClients[1].id, professionalId: insertedProfs[1].id, status: "pending" as const, scheduledAt: new Date(tomorrow.getTime() + 3 * 60 * 60 * 1000), endsAt: new Date(tomorrow.getTime() + 4 * 60 * 60 * 1000), durationMinutes: 90, totalPrice: insertedSvcs[1].price, subtotal: insertedSvcs[1].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
+      { tenantId, clientId: insertedClients[1].id, professionalId: insertedProfs[1].id, status: "pending" as const, scheduledAt: new Date(tomorrow.getTime() + 3 * 60 * 60 * 1000), endsAt: new Date(tomorrow.getTime() + 4 * 60 * 60 * 1000), durationMinutes: 60, totalPrice: insertedSvcs[1].price, subtotal: insertedSvcs[1].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
       { tenantId, clientId: insertedClients[2].id, professionalId: insertedProfs[0].id, status: "completed" as const, scheduledAt: yesterday, endsAt: new Date(yesterday.getTime() + 45 * 60 * 1000), durationMinutes: 45, totalPrice: insertedSvcs[2].price, subtotal: insertedSvcs[2].price, source: "online" as const, internalNotes: "demo", createdBy: tenantId },
       { tenantId, clientId: insertedClients[3].id, professionalId: insertedProfs[1].id, status: "completed" as const, scheduledAt: lastWeek, endsAt: new Date(lastWeek.getTime() + 60 * 60 * 1000), durationMinutes: 60, totalPrice: insertedSvcs[3].price, subtotal: insertedSvcs[3].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
       { tenantId, clientId: insertedClients[4].id, professionalId: insertedProfs[0].id, status: "confirmed" as const, scheduledAt: new Date(tomorrow.getTime() + 5 * 60 * 60 * 1000), endsAt: new Date(tomorrow.getTime() + 7 * 60 * 60 * 1000), durationMinutes: 120, totalPrice: insertedSvcs[4].price, subtotal: insertedSvcs[4].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
     ]);
 
+    // Financeiro demo
     const [defaultAccount] = await db.select().from(financialAccounts).where(and(eq(financialAccounts.tenantId, tenantId), eq(financialAccounts.isDefault, true)));
     if (defaultAccount) {
       await db.insert(financialTransactions).values([
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: "150", description: "Demo - Limpeza de Pele", category: "servico", transactionDate: yesterday, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: "280", description: "Demo - Microagulhamento", category: "servico", transactionDate: lastWeek, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: "450", description: "Demo - Criolipolise", category: "servico", transactionDate: lastWeek, createdBy: tenantId },
-        { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "120", description: "Demo - Produtos esteticos", category: "insumo", transactionDate: lastWeek, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[0].price, description: "Demo - " + insertedSvcs[0].name, category: "servico", transactionDate: yesterday, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[1].price, description: "Demo - " + insertedSvcs[1].name, category: "servico", transactionDate: lastWeek, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[2].price, description: "Demo - " + insertedSvcs[2].name, category: "servico", transactionDate: lastWeek, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "120", description: "Demo - Produtos e insumos", category: "insumo", transactionDate: lastWeek, createdBy: tenantId },
         { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "80", description: "Demo - Material descartavel", category: "insumo", transactionDate: yesterday, createdBy: tenantId },
       ]);
     }
+
+    // CRM leads
+    await db.insert(leads).values([
+      { tenantId, name: "Demo Lead Maria", whatsapp: "(34) 98002-0001", source: "instagram", status: "new" as const },
+      { tenantId, name: "Demo Lead Paula", whatsapp: "(34) 98002-0002", source: "indicacao", status: "contacted" as const },
+      { tenantId, name: "Demo Lead Sandra", whatsapp: "(34) 98002-0003", source: "google", status: "qualified" as const },
+    ]);
+
+    // Pacotes legado
+    await db.insert(packages).values([
+      { tenantId, clientId: insertedClients[0].id, name: "Demo Pacote 5x " + insertedSvcs[0].name, totalSessions: 5, usedSessions: 2, remainingSessions: 3, totalValue: String(Number(insertedSvcs[0].price) * 5 * 0.9), status: "active" as const },
+      { tenantId, clientId: insertedClients[1].id, name: "Demo Pacote 10x " + insertedSvcs[1].name, totalSessions: 10, usedSessions: 7, remainingSessions: 3, totalValue: String(Number(insertedSvcs[1].price) * 10 * 0.85), status: "active" as const },
+    ]);
+
+    // Dados especificos de clinica
+    if (isClinic) {
+      await db.execute(sql`INSERT INTO client_records (tenant_id, client_id, type, allergies, medications, skin_type, main_complaint, aesthetic_history, pregnancy, pre_existing_conditions, contraindications, clinical_observations, treatment_evolution, notes) VALUES
+        (${tenantId}, ${insertedClients[0].id}, 'aesthetic', ARRAY['Niquel','Latex'], 'Anticoncepcional oral', 'mista', 'Manchas e poros dilatados', 'Limpeza de pele ha 6 meses', false, 'Nenhuma', 'Nenhuma', 'Pele sensivel na regiao do nariz', 'Evolucao positiva apos 2 sessoes', 'Cliente assidua'),
+        (${tenantId}, ${insertedClients[1].id}, 'aesthetic', ARRAY[]::text[], 'Nenhum', 'oleosa', 'Flacidez facial', 'Radiofrequencia com bons resultados', false, 'Hipotireoidismo controlado', 'Gestacao e marcapasso', 'Oleosidade moderada', 'Excelente resposta ao protocolo', 'VIP'),
+        (${tenantId}, ${insertedClients[2].id}, 'aesthetic', ARRAY['Dipirona'], 'Nenhum', 'seca', 'Primeiras rugas', 'Sem procedimentos anteriores', false, 'Nenhuma', 'Nenhuma', 'Pele ressecada', 'Primeira sessao realizada', 'Cliente nova')`);
+
+      const insertedProtocols = await db.execute(sql`INSERT INTO protocols (tenant_id, name, description, total_sessions, interval_days, nicho, is_active) VALUES
+        (${tenantId}, 'Demo Limpeza de Pele', 'Protocolo completo de limpeza profunda', 4, 15, 'clinic', true),
+        (${tenantId}, 'Demo Microagulhamento', 'Protocolo de rejuvenescimento e cicatrizacao', 6, 21, 'clinic', true),
+        (${tenantId}, 'Demo Radiofrequencia', 'Protocolo de firmeza e reducao de flacidez', 8, 14, 'clinic', true)
+        RETURNING id, name`);
+      const protos = (insertedProtocols as any).rows ?? [];
+
+      if (protos.length > 0) {
+        await db.execute(sql`INSERT INTO protocol_sessions (tenant_id, client_id, protocol_id, session_number, performed_at, performed_by, evolution, observations, status) VALUES
+          (${tenantId}, ${insertedClients[0].id}, ${protos[0].id}, 1, ${lastWeek.toISOString()}, ${insertedProfs[0].id}, 'Pele respondeu bem. Reducao visivel de poros.', 'Mascara calmante pos-procedimento', 'completed'),
+          (${tenantId}, ${insertedClients[0].id}, ${protos[0].id}, 2, ${yesterday.toISOString()}, ${insertedProfs[0].id}, 'Melhora significativa nas manchas.', 'Recomendado protetor solar FPS 50', 'completed'),
+          (${tenantId}, ${insertedClients[1].id}, ${protos[1].id}, 1, ${lastWeek.toISOString()}, ${insertedProfs[1].id}, 'Primeira sessao. Leve eritema esperado.', 'Cuidados pos-procedimento orientados', 'completed'),
+          (${tenantId}, ${insertedClients[1].id}, ${protos[1].id}, 2, ${yesterday.toISOString()}, ${insertedProfs[1].id}, 'Melhora na textura da pele.', 'Evolucao excelente', 'completed')`);
+
+        const insertedTreatmentPkgs = await db.execute(sql`INSERT INTO treatment_packages (tenant_id, name, description, protocol_id, total_sessions, validity_days, price, is_active) VALUES
+          (${tenantId}, 'Demo Pacote Limpeza 4 sessoes', 'Pacote completo de limpeza de pele', ${protos[0].id}, 4, 180, 500, true),
+          (${tenantId}, 'Demo Pacote Microagulhamento 6 sessoes', 'Pacote rejuvenescimento facial', ${protos[1].id}, 6, 365, 1500, true),
+          (${tenantId}, 'Demo Pacote Anual Radiofrequencia', 'Manutencao anual de firmeza', ${protos[2].id}, 12, 365, 2200, true)
+          RETURNING id`);
+        const pkgs = (insertedTreatmentPkgs as any).rows ?? [];
+
+        if (pkgs.length > 0) {
+          const exp1 = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString();
+          const exp2 = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+          await db.execute(sql`INSERT INTO package_sessions (tenant_id, client_id, package_id, sessions_contracted, sessions_used, started_at, expires_at, status) VALUES
+            (${tenantId}, ${insertedClients[0].id}, ${pkgs[0].id}, 4, 2, now(), ${exp1}, 'active'),
+            (${tenantId}, ${insertedClients[1].id}, ${pkgs[1].id}, 6, 2, now(), ${exp2}, 'active'),
+            (${tenantId}, ${insertedClients[4].id}, ${pkgs[2].id}, 12, 5, now(), ${exp2}, 'active')`);
+        }
+      }
+    }
+
+    return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos para " + btype + "!", clientes: insertedClients.length, profissionais: insertedProfs.length, servicos: insertedSvcs.length }});
+  });
+
+  fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+
+    const demoClients = await db.select({ id: clients.id }).from(clients).where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
+    const demoClientIds = demoClients.map(c => c.id);
+
+    if (demoClientIds.length > 0) {
+      for (const clientId of demoClientIds) {
+        await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM client_records WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM appointment_photos WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+      }
+      await db.delete(appointments).where(and(eq(appointments.tenantId, tenantId), sql`${appointments.internalNotes} = 'demo'`));
+      await db.delete(packages).where(and(eq(packages.tenantId, tenantId), sql`${packages.clientId} = ANY(${demoClientIds})`));
+    }
+
+    await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.delete(financialTransactions).where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.createdBy, tenantId)));
+    await db.delete(leads).where(and(eq(leads.tenantId, tenantId), sql`${leads.name} LIKE 'Demo %'`));
+    await db.delete(clients).where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
+    await db.delete(services).where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
+    await db.delete(professionals).where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
+
+    return reply.send({ success: true, data: { message: "Dados de demonstracao removidos!" }});
+  });
+}
 
     await db.insert(leads).values([
       { tenantId, name: "Demo Lead Maria", whatsapp: "(34) 98002-0001", source: "instagram", status: "new" as const },
