@@ -1409,12 +1409,96 @@ export async function superAdminModule(fastify: FastifyInstance) {
   });
 }
 export async function demoModule(fastify: FastifyInstance) {
+
+  // ============================================================
+  // HELPER: limpa todos os dados demo do tenant em cascade
+  // ============================================================
+  async function clearDemoData(tenantId: string) {
+    // 1. Pega IDs dos clientes demo
+    const demoClients = await db.select({ id: clients.id }).from(clients)
+      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
+    const demoClientIds = demoClients.map((c: any) => c.id);
+
+    // 2. Pega IDs dos servicos demo
+    const demoSvcs = await db.select({ id: services.id }).from(services)
+      .where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
+    const demoSvcIds = demoSvcs.map((s: any) => s.id);
+
+    // 3. Pega IDs dos profissionais demo
+    const demoProfs = await db.select({ id: professionals.id }).from(professionals)
+      .where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
+    const demoProfIds = demoProfs.map((p: any) => p.id);
+
+    // 4. Deleta dependencias dos clientes demo
+    if (demoClientIds.length > 0) {
+      for (const clientId of demoClientIds) {
+        await db.execute(sql`DELETE FROM appointment_photos WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM client_records WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM loyalty_transactions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referred_client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referrer_client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM reviews WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+      }
+      // Deleta agendamentos demo e seus vinculos
+      const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
+      const demoApptIds = ((demoAppts as any).rows ?? []).map((r: any) => r.id);
+      for (const apptId of demoApptIds) {
+        await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id=${apptId}`);
+      }
+      await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
+      // Pacotes legado
+      await db.execute(sql`DELETE FROM packages WHERE tenant_id=${tenantId} AND client_id = ANY(${demoClientIds})`);
+    }
+
+    // 5. Deleta dependencias dos servicos demo
+    if (demoSvcIds.length > 0) {
+      for (const svcId of demoSvcIds) {
+        await db.execute(sql`DELETE FROM appointment_services WHERE service_id=${svcId}`);
+        await db.execute(sql`DELETE FROM professional_services WHERE service_id=${svcId}`);
+      }
+    }
+
+    // 6. Deleta dependencias dos profissionais demo
+    if (demoProfIds.length > 0) {
+      for (const profId of demoProfIds) {
+        await db.execute(sql`DELETE FROM professional_services WHERE professional_id=${profId}`);
+        await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id=${profId}`);
+        await db.execute(sql`DELETE FROM commissions WHERE tenant_id=${tenantId} AND professional_id=${profId}`);
+      }
+    }
+
+    // 7. Deleta tabelas de clinica
+    await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+
+    // 8. Deleta financeiro demo
+    await db.execute(sql`DELETE FROM financial_transactions WHERE tenant_id=${tenantId} AND description LIKE 'Demo -%'`);
+
+    // 9. Deleta leads demo
+    await db.execute(sql`DELETE FROM leads WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+
+    // 10. Deleta servicos, profissionais e clientes demo
+    await db.execute(sql`DELETE FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
+    await db.execute(sql`DELETE FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['"demo"']::jsonb[]`);
+  }
+
+  // ============================================================
+  // POST /demo/seed ? insere dados demo por nicho (idempotente)
+  // ============================================================
   fastify.post("/demo/seed", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Limpa dados demo existentes antes de inserir (idempotente)
+    await clearDemoData(tenantId);
 
     // Detectar tipo de negocio
     const [tenantData] = await db.select({ businessType: tenants.businessType }).from(tenants).where(eq(tenants.id, tenantId));
@@ -1422,20 +1506,20 @@ export async function demoModule(fastify: FastifyInstance) {
     const isClinic = btype === "aesthetics_clinic";
     const isBarber = btype === "barbershop";
 
-    // Profissionais por nicho
+    // ---- PROFISSIONAIS ----
     const profData = isClinic ? [
-      { tenantId, fullName: "Dra. Marina Demo Santos", commissionPct: "50", monthlyGoal: "8000", isActive: true },
-      { tenantId, fullName: "Julia Demo Costa", commissionPct: "45", monthlyGoal: "6000", isActive: true },
+      { tenantId, fullName: "Dra. Marina Demo Santos", specialization: "Esteticista", commissionPct: "50", monthlyGoal: "8000", isActive: true },
+      { tenantId, fullName: "Julia Demo Costa", specialization: "Auxiliar de Estetica", commissionPct: "45", monthlyGoal: "6000", isActive: true },
     ] : isBarber ? [
-      { tenantId, fullName: "Carlos Demo Silva", commissionPct: "50", monthlyGoal: "5000", isActive: true },
-      { tenantId, fullName: "Pedro Demo Barbosa", commissionPct: "45", monthlyGoal: "4000", isActive: true },
+      { tenantId, fullName: "Carlos Demo Silva", specialization: "Barbeiro", commissionPct: "50", monthlyGoal: "5000", isActive: true },
+      { tenantId, fullName: "Pedro Demo Barbosa", specialization: "Barbeiro Senior", commissionPct: "45", monthlyGoal: "4000", isActive: true },
     ] : [
-      { tenantId, fullName: "Marina Demo Santos", commissionPct: "50", monthlyGoal: "5000", isActive: true },
-      { tenantId, fullName: "Julia Demo Costa", commissionPct: "45", monthlyGoal: "4000", isActive: true },
+      { tenantId, fullName: "Marina Demo Santos", specialization: "Cabeleireira", commissionPct: "50", monthlyGoal: "5000", isActive: true },
+      { tenantId, fullName: "Julia Demo Costa", specialization: "Manicure", commissionPct: "45", monthlyGoal: "4000", isActive: true },
     ];
     const insertedProfs = await db.insert(professionals).values(profData).returning();
 
-    // Servicos por nicho
+    // ---- SERVICOS ----
     const svcData = isClinic ? [
       { tenantId, name: "Demo Limpeza de Pele", durationMinutes: 60, price: "150", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Microagulhamento", durationMinutes: 90, price: "280", isActive: true, isOnlineBookable: true },
@@ -1447,7 +1531,7 @@ export async function demoModule(fastify: FastifyInstance) {
       { tenantId, name: "Demo Barba Completa", durationMinutes: 30, price: "25", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Degrade", durationMinutes: 40, price: "45", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Corte + Barba", durationMinutes: 60, price: "55", isActive: true, isOnlineBookable: true },
-      { tenantId, name: "Demo Sobrancelha", durationMinutes: 15, price: "15", isActive: true, isOnlineBookable: false },
+      { tenantId, name: "Demo Sobrancelha", durationMinutes: 15, price: "15", isActive: true, isOnlineBookable: true },
     ] : [
       { tenantId, name: "Demo Corte Feminino", durationMinutes: 45, price: "80", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Coloracao", durationMinutes: 120, price: "180", isActive: true, isOnlineBookable: true },
@@ -1457,7 +1541,7 @@ export async function demoModule(fastify: FastifyInstance) {
     ];
     const insertedSvcs = await db.insert(services).values(svcData).returning();
 
-    // Clientes por nicho
+    // ---- CLIENTES ----
     const clientData = isBarber ? [
       { tenantId, fullName: "Andre Demo Silva", whatsapp: "(34) 98001-0001", email: "andre.demo@email.com", gender: "male" as const, segment: "active", tags: ["demo"], totalVisits: 18, totalSpent: "630" },
       { tenantId, fullName: "Bruno Demo Santos", whatsapp: "(34) 98001-0002", email: "bruno.demo@email.com", gender: "male" as const, segment: "vip", tags: ["demo"], totalVisits: 45, totalSpent: "2250", isVip: true },
@@ -1473,41 +1557,56 @@ export async function demoModule(fastify: FastifyInstance) {
     ];
     const insertedClients = await db.insert(clients).values(clientData).returning();
 
-    // Agendamentos demo
-    await db.insert(appointments).values([
-      { tenantId, clientId: insertedClients[0].id, professionalId: insertedProfs[0].id, status: "confirmed" as const, scheduledAt: new Date(tomorrow.getTime() + 1 * 60 * 60 * 1000), endsAt: new Date(tomorrow.getTime() + 2 * 60 * 60 * 1000), durationMinutes: 60, totalPrice: insertedSvcs[0].price, subtotal: insertedSvcs[0].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
-      { tenantId, clientId: insertedClients[1].id, professionalId: insertedProfs[1].id, status: "pending" as const, scheduledAt: new Date(tomorrow.getTime() + 3 * 60 * 60 * 1000), endsAt: new Date(tomorrow.getTime() + 4 * 60 * 60 * 1000), durationMinutes: 60, totalPrice: insertedSvcs[1].price, subtotal: insertedSvcs[1].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
-      { tenantId, clientId: insertedClients[2].id, professionalId: insertedProfs[0].id, status: "completed" as const, scheduledAt: yesterday, endsAt: new Date(yesterday.getTime() + 45 * 60 * 1000), durationMinutes: 45, totalPrice: insertedSvcs[2].price, subtotal: insertedSvcs[2].price, source: "online" as const, internalNotes: "demo", createdBy: tenantId },
-      { tenantId, clientId: insertedClients[3].id, professionalId: insertedProfs[1].id, status: "completed" as const, scheduledAt: lastWeek, endsAt: new Date(lastWeek.getTime() + 60 * 60 * 1000), durationMinutes: 60, totalPrice: insertedSvcs[3].price, subtotal: insertedSvcs[3].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
-      { tenantId, clientId: insertedClients[4].id, professionalId: insertedProfs[0].id, status: "confirmed" as const, scheduledAt: new Date(tomorrow.getTime() + 5 * 60 * 60 * 1000), endsAt: new Date(tomorrow.getTime() + 7 * 60 * 60 * 1000), durationMinutes: 120, totalPrice: insertedSvcs[4].price, subtotal: insertedSvcs[4].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
-    ]);
+    // ---- AGENDAMENTOS ----
+    const insertedAppts = await db.insert(appointments).values([
+      { tenantId, clientId: insertedClients[0].id, professionalId: insertedProfs[0].id, status: "confirmed" as const, scheduledAt: new Date(tomorrow.getTime() + 9 * 3600000), endsAt: new Date(tomorrow.getTime() + 10 * 3600000), durationMinutes: 60, totalPrice: insertedSvcs[0].price, subtotal: insertedSvcs[0].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
+      { tenantId, clientId: insertedClients[1].id, professionalId: insertedProfs[1].id, status: "pending" as const, scheduledAt: new Date(tomorrow.getTime() + 11 * 3600000), endsAt: new Date(tomorrow.getTime() + 13 * 3600000), durationMinutes: 120, totalPrice: insertedSvcs[1].price, subtotal: insertedSvcs[1].price, source: "online" as const, internalNotes: "demo", createdBy: tenantId },
+      { tenantId, clientId: insertedClients[2].id, professionalId: insertedProfs[0].id, status: "completed" as const, scheduledAt: yesterday, endsAt: new Date(yesterday.getTime() + 45 * 60000), durationMinutes: 45, totalPrice: insertedSvcs[2].price, subtotal: insertedSvcs[2].price, source: "online" as const, internalNotes: "demo", createdBy: tenantId },
+      { tenantId, clientId: insertedClients[3].id, professionalId: insertedProfs[1].id, status: "completed" as const, scheduledAt: lastWeek, endsAt: new Date(lastWeek.getTime() + 60 * 60000), durationMinutes: 60, totalPrice: insertedSvcs[3].price, subtotal: insertedSvcs[3].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
+      { tenantId, clientId: insertedClients[4].id, professionalId: insertedProfs[0].id, status: "confirmed" as const, scheduledAt: new Date(tomorrow.getTime() + 14 * 3600000), endsAt: new Date(tomorrow.getTime() + 16 * 3600000), durationMinutes: 120, totalPrice: insertedSvcs[4].price, subtotal: insertedSvcs[4].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
+      { tenantId, clientId: insertedClients[0].id, professionalId: insertedProfs[0].id, status: "completed" as const, scheduledAt: lastMonth, endsAt: new Date(lastMonth.getTime() + 60 * 60000), durationMinutes: 60, totalPrice: insertedSvcs[0].price, subtotal: insertedSvcs[0].price, source: "manual" as const, internalNotes: "demo", createdBy: tenantId },
+    ]).returning();
 
-    // Financeiro demo
+    // Vincular servicos aos agendamentos
+    for (let i = 0; i < insertedAppts.length; i++) {
+      const svcIdx = i % insertedSvcs.length;
+      await db.execute(sql`INSERT INTO appointment_services (appointment_id, service_id, price) VALUES (${insertedAppts[i].id}, ${insertedSvcs[svcIdx].id}, ${insertedSvcs[svcIdx].price})`);
+    }
+
+    // Vincular servicos aos profissionais
+    for (const prof of insertedProfs) {
+      for (const svc of insertedSvcs.slice(0, 3)) {
+        await db.execute(sql`INSERT INTO professional_services (professional_id, service_id, tenant_id) VALUES (${prof.id}, ${svc.id}, ${tenantId}) ON CONFLICT DO NOTHING`);
+      }
+    }
+
+    // ---- FINANCEIRO ----
     const [defaultAccount] = await db.select().from(financialAccounts).where(and(eq(financialAccounts.tenantId, tenantId), eq(financialAccounts.isDefault, true)));
     if (defaultAccount) {
       await db.insert(financialTransactions).values([
         { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[0].price, description: "Demo - " + insertedSvcs[0].name, category: "servico", transactionDate: yesterday, createdBy: tenantId },
         { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[1].price, description: "Demo - " + insertedSvcs[1].name, category: "servico", transactionDate: lastWeek, createdBy: tenantId },
         { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[2].price, description: "Demo - " + insertedSvcs[2].name, category: "servico", transactionDate: lastWeek, createdBy: tenantId },
+        { tenantId, accountId: defaultAccount.id, type: "revenue" as const, amount: insertedSvcs[3].price, description: "Demo - " + insertedSvcs[3].name, category: "servico", transactionDate: lastMonth, createdBy: tenantId },
         { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "120", description: "Demo - Produtos e insumos", category: "insumo", transactionDate: lastWeek, createdBy: tenantId },
         { tenantId, accountId: defaultAccount.id, type: "expense" as const, amount: "80", description: "Demo - Material descartavel", category: "insumo", transactionDate: yesterday, createdBy: tenantId },
       ]);
     }
 
-    // CRM leads
+    // ---- CRM LEADS ----
     await db.insert(leads).values([
       { tenantId, name: "Demo Lead Maria", whatsapp: "(34) 98002-0001", source: "instagram", status: "new" as const },
       { tenantId, name: "Demo Lead Paula", whatsapp: "(34) 98002-0002", source: "indicacao", status: "contacted" as const },
       { tenantId, name: "Demo Lead Sandra", whatsapp: "(34) 98002-0003", source: "google", status: "qualified" as const },
     ]);
 
-    // Pacotes legado
+    // ---- PACOTES LEGADO ----
     await db.insert(packages).values([
       { tenantId, clientId: insertedClients[0].id, name: "Demo Pacote 5x " + insertedSvcs[0].name, totalSessions: 5, usedSessions: 2, remainingSessions: 3, totalValue: String(Number(insertedSvcs[0].price) * 5 * 0.9), status: "active" as const },
       { tenantId, clientId: insertedClients[1].id, name: "Demo Pacote 10x " + insertedSvcs[1].name, totalSessions: 10, usedSessions: 7, remainingSessions: 3, totalValue: String(Number(insertedSvcs[1].price) * 10 * 0.85), status: "active" as const },
     ]);
 
-    // Dados especificos de clinica
+    // ---- DADOS ESPECIFICOS DE CLINICA ----
     if (isClinic) {
       await db.execute(sql`INSERT INTO client_records (tenant_id, client_id, type, allergies, medications, skin_type, main_complaint, aesthetic_history, pregnancy, pre_existing_conditions, contraindications, clinical_observations, treatment_evolution, notes) VALUES
         (${tenantId}, ${insertedClients[0].id}, 'aesthetic', ARRAY['Niquel','Latex'], 'Anticoncepcional oral', 'mista', 'Manchas e poros dilatados', 'Limpeza de pele ha 6 meses', false, 'Nenhuma', 'Nenhuma', 'Pele sensivel na regiao do nariz', 'Evolucao positiva apos 2 sessoes', 'Cliente assidua'),
@@ -1549,45 +1648,17 @@ export async function demoModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos para " + btype + "!", clientes: insertedClients.length, profissionais: insertedProfs.length, servicos: insertedSvcs.length }});
   });
 
+  // ============================================================
+  // DELETE /demo/clear ? limpa todos os dados demo em cascade
+  // ============================================================
   fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-
-    const demoClients = await db.select({ id: clients.id }).from(clients).where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
-    const demoClientIds = demoClients.map(c => c.id);
-
-    if (demoClientIds.length > 0) {
-      for (const clientId of demoClientIds) {
-        await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM client_records WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM appointment_photos WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-      }
-      await db.delete(appointments).where(and(eq(appointments.tenantId, tenantId), sql`${appointments.internalNotes} = 'demo'`));
-      await db.delete(packages).where(and(eq(packages.tenantId, tenantId), sql`${packages.clientId} = ANY(${demoClientIds})`));
-    }
-
-    await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-    await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-    await db.delete(financialTransactions).where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.createdBy, tenantId)));
-    await db.delete(leads).where(and(eq(leads.tenantId, tenantId), sql`${leads.name} LIKE 'Demo %'`));
-    await db.delete(clients).where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
-    // Limpa dependencias dos servicos demo antes de deletar
-    await db.execute(sql`DELETE FROM appointment_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
-    await db.execute(sql`DELETE FROM professional_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
-    // Limpa dependencias dos servicos demo antes de deletar
-    await db.execute(sql`DELETE FROM appointment_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
-    await db.execute(sql`DELETE FROM professional_services WHERE tenant_id=${tenantId} AND service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
-    await db.delete(services).where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
-    await db.delete(professionals).where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
-
-    return reply.send({ success: true, data: { message: "Dados de demonstracao removidos!" }});
+    await clearDemoData(tenantId);
+    return reply.send({ success: true, data: { message: "Todos os dados de demonstracao removidos com sucesso!" }});
   });
 }
 
 
-
-// CLIENT RECORDS MODULE
 export async function clientRecordsModule(fastify: any) {
   fastify.get("/client-records/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
