@@ -1771,7 +1771,7 @@ function ServicesPage() {
       )}
       {activeTab === "protocols" && (
         <div>
-          <PageHeader title="Protocolos de Tratamento" sub={`${protocols.length} protocolos`} actions={
+          <PageHeader title="Protocolos de Tratamento" sub={`${protocols.length} protocolos`} action={
             <Btn onClick={() => setShowProtoForm(true)}>+ Novo Protocolo</Btn>
           } />
           {protocols.length === 0 ? (
