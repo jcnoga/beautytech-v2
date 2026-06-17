@@ -3303,23 +3303,54 @@ function TrialBanner() {
 }
 
 // --- SIDEBAR -------------------------------------------------
-const MENU = [
-  { id:"dashboard",     label:"Dashboard",    icon:"*", premium:false },
-  { id:"agenda",        label:"Agenda",        icon:"o", premium:false },
-  { id:"clients",       label:"Clientes",      icon:"o", premium:false },
-  { id:"professionals", label:"Profissionais", icon:"*", premium:false },
-  { id:"services",      label:"Servicos",      icon:"*", premium:false },
-  { id:"packages",      label:"Pacotes",       icon:"o", premium:false },
-  { id:"financial",     label:"Financeiro",    icon:"o", premium:false },
-  { id:"commissions",   label:"Comissoes",     icon:"o", premium:true },
-  { id:"crm",           label:"CRM",           icon:"o", premium:true },
-  { id:"fidelity",      label:"Fidelidade",    icon:"o", premium:true },
-  { id:"automations",   label:"Automacoes",    icon:"!", premium:true },
-  { id:"notifications", label:"Notificacoes",  icon:"!", premium:true },
-  { id:"pricing",     label:"Planos",        icon:"$", premium:false },
-  { id:"settings",    label:"Configuracoes", icon:"?", premium:false },
-  { id:"whatsapp",      label:"WhatsApp",      icon:"W", premium:true },
+const MENU_GROUPS = [
+  {
+    group: "VISAO GERAL",
+    items: [
+      { id:"dashboard", label:"Dashboard", icon:"*", premium:false },
+    ]
+  },
+  {
+    group: "OPERACIONAL",
+    items: [
+      { id:"agenda",        label:"Agenda",        icon:"o", premium:false },
+      { id:"clients",       label:"Clientes",      icon:"o", premium:false },
+      { id:"professionals", label:"Profissionais", icon:"*", premium:false },
+    ]
+  },
+  {
+    group: "SERVICOS",
+    items: [
+      { id:"services",  label:"Servicos", icon:"*", premium:false },
+      { id:"packages",  label:"Pacotes",  icon:"o", premium:false },
+    ]
+  },
+  {
+    group: "FINANCEIRO",
+    items: [
+      { id:"financial",   label:"Financeiro", icon:"o", premium:false },
+      { id:"commissions", label:"Comissoes",  icon:"o", premium:true },
+    ]
+  },
+  {
+    group: "RELACIONAMENTO",
+    items: [
+      { id:"crm",           label:"CRM",          icon:"o", premium:true },
+      { id:"fidelity",      label:"Fidelidade",   icon:"o", premium:true },
+      { id:"whatsapp",      label:"WhatsApp",     icon:"W", premium:true },
+      { id:"automations",   label:"Automacoes",   icon:"!", premium:true },
+      { id:"notifications", label:"Notificacoes", icon:"!", premium:true },
+    ]
+  },
+  {
+    group: "SISTEMA",
+    items: [
+      { id:"pricing",  label:"Planos",        icon:"$", premium:false },
+      { id:"settings", label:"Configuracoes", icon:"?", premium:false },
+    ]
+  },
 ];
+const MENU = MENU_GROUPS.flatMap(g => g.items);
 
 
 
@@ -3343,19 +3374,28 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
         <div style={{ fontSize:13, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
       </div>
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
-        {MENU.map(m => {
-          const active = page === m.id;
-          const locked = isFree && m.premium;
-          return (
-            <button key={m.id} onClick={() => { if (locked) { alert("Este recurso esta disponivel apenas no Plano Profissional. Faca upgrade para continuar."); return; } setPage(m.id); }}
-              style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderRadius:10, border:"none", background: active ? `${C.rose}12` : "transparent", color: active ? C.rose : locked ? C.textMuted : C.textMuted, fontSize:16, fontWeight: active ? 600 : 400, cursor: locked ? "not-allowed" : "pointer", marginBottom:4, transition:"all .15s", fontFamily: FB, textAlign:"left", opacity: locked ? 0.5 : 1 }}>
-              <span style={{ fontSize:16, color: active ? C.rose : C.textMuted, opacity: active ? 1 : 0.5 }}>{m.icon}</span>
-              {m.label}
-              {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>?</span>}
-              {active && !locked && <div style={{ marginLeft:"auto", width:4, height:4, borderRadius:"50%", background: C.rose }} />}
-            </button>
-          );
-        })}
+        {MENU_GROUPS.map((group: any, gi: number) => (
+          <div key={gi}>
+            <div style={{ fontSize:9, fontWeight:700, color: C.textMuted, letterSpacing:"0.15em", padding:"12px 10px 4px", opacity:0.6 }}>
+              {group.group}
+            </div>
+            {group.items.map((m: any) => {
+              const active = page === m.id;
+              const locked = isFree && m.premium;
+              return (
+                <button key={m.id} onClick={() => { if (locked) { alert("Este recurso requer plano pago. Acesse Planos para fazer upgrade."); return; } setPage(m.id); }}
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 12px", marginBottom:2, borderRadius:10, border:"none", background: active ? `${C.rose}18` : "transparent", color: locked ? C.textMuted : active ? C.rose : C.text, cursor: locked ? "not-allowed" : "pointer", fontSize:14, fontWeight: active ? 600 : 400, textAlign:"left", opacity: locked ? 0.5 : 1, transition:"all 0.15s" }}>
+                  {m.label}
+                  {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>🔒</span>}
+                  {active && !locked && <div style={{ marginLeft:"auto", width:6, height:6, borderRadius:"50%", background: C.rose }} />}
+                </button>
+              );
+            })}
+            {gi < MENU_GROUPS.length - 1 && (
+              <div style={{ height:1, background: C.border, margin:"6px 10px" }} />
+            )}
+          </div>
+        ))}
       </nav>
       <div style={{ padding:"16px 20px", borderTop:`1px solid ${C.border}` }}>
         <div style={{ marginBottom:10 }}>
