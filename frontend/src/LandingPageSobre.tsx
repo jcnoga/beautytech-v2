@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 export default function LandingPageSobre() {
   const [period, setPeriod] = useState("mensal");
@@ -60,20 +60,20 @@ export default function LandingPageSobre() {
       <div style={{ minHeight:"80vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"100px 24px 60px", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201,132,122,0.1) 0%, transparent 70%)", pointerEvents:"none" }} />
         <div style={{ fontSize:".68rem", fontWeight:700, letterSpacing:".12em", textTransform:"uppercase" as const, color:C.rose, marginBottom:16 }}>Sistema de Gestao Online</div>
-        <h1 style={{ fontFamily:FD, fontSize:"clamp(2rem,5vw,3.2rem)", fontWeight:800, lineHeight:1.1, maxWidth:680, marginBottom:18 }}>
+        <h1 style={{ fontFamily:FD, fontSize:"clamp(1.6rem,4vw,2.4rem)", fontWeight:800, lineHeight:1.1, maxWidth:680, marginBottom:18 }}>
           Seu salao cheio,<br />sua agenda <span style={{ color:C.rose }}>no controle.</span>
         </h1>
         <p style={{ fontSize:".95rem", color:C.textMuted, maxWidth:440, marginBottom:32, lineHeight:1.65 }}>
-          Agendamento online, financeiro, WhatsApp automatico e muito mais — tudo em uma plataforma.
+          Agendamento online, financeiro, WhatsApp automatico e muito mais â€” tudo em uma plataforma.
         </p>
         <div style={{ display:"flex", gap:12, flexWrap:"wrap" as const, justifyContent:"center", marginBottom:28 }}>
           <a href="/register" style={{ padding:"12px 28px", borderRadius:50, fontSize:".875rem", fontWeight:700, textDecoration:"none", background:C.rose, color:"#fff", transition:"all .2s" }}>Criar conta gratis</a>
           <a href="/buscar" style={{ padding:"12px 28px", borderRadius:50, fontSize:".875rem", fontWeight:700, textDecoration:"none", border:`1px solid ${C.border}`, color:C.text }}>Ver saloes</a>
         </div>
         <div style={{ display:"flex", gap:20, fontSize:".75rem", color:C.textMuted, flexWrap:"wrap" as const, justifyContent:"center" }}>
-          <span>✓ 14 dias gratis, sem cartao</span>
-          <span>✓ Configuracao em minutos</span>
-          <span>✓ Suporte via WhatsApp</span>
+          <span>âœ“ 14 dias gratis, sem cartao</span>
+          <span>âœ“ Configuracao em minutos</span>
+          <span>âœ“ Suporte via WhatsApp</span>
         </div>
       </div>
 
@@ -149,12 +149,12 @@ export default function LandingPageSobre() {
             <ul style={{ listStyle:"none", padding:0, marginBottom:20 }}>
               {freeFeatures.map(i => (
                 <li key={i} style={{ fontSize:".78rem", padding:"6px 0", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>✓</span>{i}
+                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>âœ“</span>{i}
                 </li>
               ))}
               {freeLocked.map(i => (
                 <li key={i} style={{ fontSize:".78rem", padding:"6px 0", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:8, color:C.textMuted, opacity:.5 }}>
-                  <span style={{ fontWeight:700, flexShrink:0 }}>×</span>{i}
+                  <span style={{ fontWeight:700, flexShrink:0 }}>Ã—</span>{i}
                 </li>
               ))}
             </ul>
@@ -174,7 +174,7 @@ export default function LandingPageSobre() {
             <ul style={{ listStyle:"none", padding:0, marginBottom:20 }}>
               {["1 profissional",...planFeatures].map(i => (
                 <li key={i} style={{ fontSize:".78rem", padding:"6px 0", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>✓</span>{i}
+                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>âœ“</span>{i}
                 </li>
               ))}
             </ul>
@@ -195,7 +195,7 @@ export default function LandingPageSobre() {
             <ul style={{ listStyle:"none", padding:0, marginBottom:20 }}>
               {["Ate 3 profissionais",...planFeatures].map(i => (
                 <li key={i} style={{ fontSize:".78rem", padding:"6px 0", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>✓</span>{i}
+                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>âœ“</span>{i}
                 </li>
               ))}
             </ul>
@@ -215,7 +215,7 @@ export default function LandingPageSobre() {
             <ul style={{ listStyle:"none", padding:0, marginBottom:20 }}>
               {["Ate 10 profissionais",...planFeatures].map(i => (
                 <li key={i} style={{ fontSize:".78rem", padding:"6px 0", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>✓</span>{i}
+                  <span style={{ color:C.sage, fontWeight:700, flexShrink:0 }}>âœ“</span>{i}
                 </li>
               ))}
             </ul>
