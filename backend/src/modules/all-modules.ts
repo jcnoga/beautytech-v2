@@ -1444,6 +1444,7 @@ export async function demoModule(fastify: FastifyInstance) {
         await db.execute(sql`DELETE FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
         await db.execute(sql`DELETE FROM client_records WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
         await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM notifications WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
         await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
         await db.execute(sql`DELETE FROM loyalty_transactions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
         await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referred_id=${clientId}`);
