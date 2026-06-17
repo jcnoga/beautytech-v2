@@ -1414,88 +1414,30 @@ export async function demoModule(fastify: FastifyInstance) {
   // HELPER: limpa todos os dados demo do tenant em cascade
   // ============================================================
   async function clearDemoData(tenantId: string) {
-    // 1. Pega IDs dos clientes demo
-    const demoClients = await db.select({ id: clients.id }).from(clients)
-      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`));
-    const demoClientIds = demoClients.map((c: any) => c.id);
-
-    // 2. Pega IDs dos servicos demo
-    const demoSvcs = await db.select({ id: services.id }).from(services)
-      .where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
-    const demoSvcIds = demoSvcs.map((s: any) => s.id);
-
-    // 3. Pega IDs dos profissionais demo
-    const demoProfs = await db.select({ id: professionals.id }).from(professionals)
-      .where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
-    const demoProfIds = demoProfs.map((p: any) => p.id);
-
-    // 4. Deleta agendamentos vinculados a clientes ou profissionais demo, ou marcados como demo
-    await db.execute(sql`
-      DELETE FROM appointment_services WHERE appointment_id IN (
-        SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (
-          internal_notes='demo'
-          OR client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])
-          OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')
-        )
-      )
-    `);
-    await db.execute(sql`
-      DELETE FROM appointment_photos WHERE appointment_id IN (
-        SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (
-          internal_notes='demo'
-          OR client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])
-          OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')
-        )
-      )
-    `);
-    await db.execute(sql`
-      DELETE FROM appointments WHERE tenant_id=${tenantId} AND (
-        internal_notes='demo'
-        OR client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])
-        OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')
-      )
-    `);
-
-    // 5. Deleta todas as dependencias dos clientes demo
-    if (demoClientIds.length > 0) {
-      const cids = `'${demoClientIds.join("','")}'`;
-      await db.execute(sql`DELETE FROM notifications WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM loyalty_transactions WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM referrals WHERE referred_id IN (${sql.raw(cids)}) OR referrer_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM reviews WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM package_sessions WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM packages WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM protocol_sessions WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM client_records WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM consent_forms WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM appointment_photos WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM gift_cards WHERE purchased_by_id IN (${sql.raw(cids)}) OR used_by_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`DELETE FROM financial_transactions WHERE client_id IN (${sql.raw(cids)})`);
-      await db.execute(sql`UPDATE leads SET converted_to = NULL WHERE converted_to IN (${sql.raw(cids)})`);
-    }
-
-    // 6. Deleta dependencias dos servicos demo
-    if (demoSvcIds.length > 0) {
-      const sids = `'${demoSvcIds.join("','")}'`;
-      await db.execute(sql`DELETE FROM professional_services WHERE service_id IN (${sql.raw(sids)})`);
-    }
-
-    // 7. Deleta dependencias dos profissionais demo
-    if (demoProfIds.length > 0) {
-      const pids = `'${demoProfIds.join("','")}'`;
-      await db.execute(sql`DELETE FROM professional_services WHERE professional_id IN (${sql.raw(pids)})`);
-      await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id IN (${sql.raw(pids)})`);
-      await db.execute(sql`DELETE FROM commissions WHERE professional_id IN (${sql.raw(pids)})`);
-    }
-
-    // 8. Deleta tabelas clinica
-    await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND package_id IN (SELECT id FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
-    await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-    await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND protocol_id IN (SELECT id FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
-    await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-
-    // 9. Deleta financeiro, leads, servicos, profissionais e clientes demo
+    await db.execute(sql`DELETE FROM commissions WHERE tenant_id=${tenantId} AND (appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo') OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'))`);
+    await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo')`);
+    await db.execute(sql`DELETE FROM appointment_photos WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo')`);
+    await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
+    await db.execute(sql`DELETE FROM notifications WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM loyalty_transactions WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM referrals WHERE referred_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]) OR referrer_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM reviews WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM package_sessions WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM packages WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM protocol_sessions WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM client_records WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM consent_forms WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM appointment_photos WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM gift_cards WHERE purchased_by_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]) OR used_by_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
     await db.execute(sql`DELETE FROM financial_transactions WHERE tenant_id=${tenantId} AND description LIKE 'Demo -%'`);
+    await db.execute(sql`UPDATE leads SET converted_to = NULL WHERE converted_to IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
+    await db.execute(sql`DELETE FROM professional_services WHERE professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')`);
+    await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')`);
+    await db.execute(sql`DELETE FROM professional_services WHERE service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
+    await db.execute(sql`DELETE FROM package_sessions WHERE package_id IN (SELECT id FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
+    await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.execute(sql`DELETE FROM protocol_sessions WHERE protocol_id IN (SELECT id FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
+    await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM leads WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
