@@ -581,6 +581,72 @@ function ClientsPage() {
   const [selected, setSelected] = useState<any>(null);
   const [anamneseClient, setAnamneseClient] = useState<any>(null);
   const [lgpdClient, setLgpdClient] = useState<any>(null);
+  const [clinicClient, setClinicClient] = useState<any>(null);
+  const [clinicTab, setClinicTab] = useState("prontuario");
+  const [clinicRecord, setClinicRecord] = useState<any>(null);
+  const [clinicRecordForm, setClinicRecordForm] = useState({ mainComplaint:"", aestheticHistory:"", medications:"", skinType:"", pregnancy:false, preExistingConditions:"", contraindications:"", clinicalObservations:"", treatmentEvolution:"", notes:"" });
+  const [savingClinic, setSavingClinic] = useState(false);
+  const [clinicProtocols, setClinicProtocols] = useState<any[]>([]);
+  const [clinicSessions, setClinicSessions] = useState<any[]>([]);
+  const [clinicPackages, setClinicPackages] = useState<any[]>([]);
+  const [clinicPkgSessions, setClinicPkgSessions] = useState<any[]>([]);
+  const [clinicPhotos, setClinicPhotos] = useState<any[]>([]);
+  const [allProtocols, setAllProtocols] = useState<any[]>([]);
+  const [allPackages, setAllPackages] = useState<any[]>([]);
+  const [newSession, setNewSession] = useState({ protocolId:"", sessionNumber:"1", evolution:"", observations:"", performedAt:"" });
+  const [newPkgSession, setNewPkgSession] = useState({ packageId:"", sessionsContracted:"5" });
+  const loadClinicData = async (clientId: string) => {
+    try {
+      const [rec, sess, pkgSess, photos, protos, pkgs] = await Promise.all([
+        api.get("/client-records/" + clientId),
+        api.get("/protocol-sessions/" + clientId),
+        api.get("/package-sessions/" + clientId),
+        api.get("/appointment-photos/" + clientId),
+        api.get("/protocols"),
+        api.get("/treatment-packages"),
+      ]);
+      const recArr = Array.isArray((rec as any).data) ? (rec as any).data : [];
+      const r = recArr[0] ?? null;
+      setClinicRecord(r);
+      if (r) setClinicRecordForm({ mainComplaint: r.main_complaint??"", aestheticHistory: r.aesthetic_history??"", medications: r.medications??"", skinType: r.skin_type??"", pregnancy: r.pregnancy??false, preExistingConditions: r.pre_existing_conditions??"", contraindications: r.contraindications??"", clinicalObservations: r.clinical_observations??"", treatmentEvolution: r.treatment_evolution??"", notes: r.notes??"" });
+      setClinicSessions(Array.isArray((sess as any).data) ? (sess as any).data : []);
+      setClinicPkgSessions(Array.isArray((pkgSess as any).data) ? (pkgSess as any).data : []);
+      setClinicPhotos(Array.isArray((photos as any).data) ? (photos as any).data : []);
+      setAllProtocols(Array.isArray((protos as any).data) ? (protos as any).data : []);
+      setAllPackages(Array.isArray((pkgs as any).data) ? (pkgs as any).data : []);
+    } catch(e) { console.error(e); }
+  };
+  const saveClinicRecord = async () => {
+    setSavingClinic(true);
+    try {
+      const payload = { clientId: clinicClient.id, type:"aesthetic", mainComplaint: clinicRecordForm.mainComplaint, aestheticHistory: clinicRecordForm.aestheticHistory, medications: clinicRecordForm.medications, skinType: clinicRecordForm.skinType, pregnancy: clinicRecordForm.pregnancy, preExistingConditions: clinicRecordForm.preExistingConditions, contraindications: clinicRecordForm.contraindications, clinicalObservations: clinicRecordForm.clinicalObservations, treatmentEvolution: clinicRecordForm.treatmentEvolution, notes: clinicRecordForm.notes };
+      if (clinicRecord) await api.patch("/client-records/" + clinicRecord.id, payload);
+      else await api.post("/client-records", payload);
+      await loadClinicData(clinicClient.id);
+      alert("Prontuario salvo!");
+    } catch(e: any) { alert("Erro: " + e.message); }
+    finally { setSavingClinic(false); }
+  };
+  const addSession = async () => {
+    try {
+      await api.post("/protocol-sessions", { clientId: clinicClient.id, protocolId: newSession.protocolId, sessionNumber: parseInt(newSession.sessionNumber), evolution: newSession.evolution, observations: newSession.observations, performedAt: newSession.performedAt || null, status:"completed" });
+      setNewSession({ protocolId:"", sessionNumber:"1", evolution:"", observations:"", performedAt:"" });
+      await loadClinicData(clinicClient.id);
+    } catch(e: any) { alert("Erro: " + e.message); }
+  };
+  const addPkgSession = async () => {
+    try {
+      await api.post("/package-sessions", { clientId: clinicClient.id, packageId: newPkgSession.packageId, sessionsContracted: parseInt(newPkgSession.sessionsContracted) });
+      setNewPkgSession({ packageId:"", sessionsContracted:"5" });
+      await loadClinicData(clinicClient.id);
+    } catch(e: any) { alert("Erro: " + e.message); }
+  };
+  const useSession = async (id: string) => {
+    try {
+      await api.patch("/package-sessions/" + id + "/use", {});
+      await loadClinicData(clinicClient.id);
+    } catch(e: any) { alert("Erro: " + e.message); }
+  };
   const [lgpdData, setLgpdData] = useState<any>(null);
   const [lgpdSigning, setLgpdSigning] = useState(false);
   const loadLgpd = async (clientId: string) => {
@@ -617,6 +683,7 @@ function ClientsPage() {
       if (rec) setAnamneseForm({ medications: rec.medications??"", medicalHistory: rec.medical_history??"", previousProcedures: rec.previous_procedures??"", skinType: rec.skin_type??"normal", contraindications: rec.contraindications??"", notes: rec.notes??"" });
     } catch(e) { setAnamneseData(null); }
   };
+  useEffect(() => { if (clinicClient) { loadClinicData(clinicClient.id); setClinicTab("prontuario"); } }, [clinicClient]);
   useEffect(() => { if (anamneseClient) loadAnamnese(anamneseClient.id); }, [anamneseClient]);
   const saveAnamnese = async () => {
     setSavingAnamnese(true);
@@ -757,6 +824,7 @@ function ClientsPage() {
     { key:"lastVisitAt", label:"Ultima Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
     { key:"action", label:"", render: (c: any) => (
       <div style={{ display:"flex", gap:6 }}>
+        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setClinicClient(c); }} style={{ background:"#7c3aed22", color:"#7c3aed", border:"1px solid #7c3aed44" }}>Clinica</Btn>
         <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn>
         <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setAnamneseClient(c); }}>Anamnese</Btn>
         <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setLgpdClient(c); }}>LGPD</Btn>
@@ -819,6 +887,108 @@ function ClientsPage() {
           <Btn variant="secondary" onClick={() => setAnamneseClient(null)}>Cancelar</Btn>
           <Btn onClick={saveAnamnese} disabled={savingAnamnese}>{savingAnamnese ? "Salvando..." : "Salvar Anamnese"}</Btn>
         </div>
+      </Modal>
+      <Modal open={!!clinicClient} onClose={() => setClinicClient(null)} title={"Prontuario - " + (clinicClient?.fullName ?? "")}>
+        <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
+          {["prontuario","sessoes","pacotes","fotos"].map(t => (
+            <button key={t} onClick={() => setClinicTab(t)} style={{ padding:"6px 14px", borderRadius:8, border:"none", background: clinicTab===t ? "#7c3aed" : C.bg, color: clinicTab===t ? "#fff" : C.textMuted, cursor:"pointer", fontSize:13, fontWeight: clinicTab===t ? 600 : 400, textTransform:"capitalize" }}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>
+          ))}
+        </div>
+        {clinicTab === "prontuario" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <Inp label="Queixa principal" value={clinicRecordForm.mainComplaint} onChange={v => setClinicRecordForm(p => ({...p, mainComplaint:v}))} />
+            <Inp label="Historico estetico" value={clinicRecordForm.aestheticHistory} onChange={v => setClinicRecordForm(p => ({...p, aestheticHistory:v}))} />
+            <Inp label="Medicamentos em uso" value={clinicRecordForm.medications} onChange={v => setClinicRecordForm(p => ({...p, medications:v}))} />
+            <Inp label="Tipo de pele" value={clinicRecordForm.skinType} onChange={v => setClinicRecordForm(p => ({...p, skinType:v}))} />
+            <Inp label="Doencas pre-existentes" value={clinicRecordForm.preExistingConditions} onChange={v => setClinicRecordForm(p => ({...p, preExistingConditions:v}))} />
+            <Inp label="Contraindicacoes" value={clinicRecordForm.contraindications} onChange={v => setClinicRecordForm(p => ({...p, contraindications:v}))} />
+            <Inp label="Observacoes clinicas" value={clinicRecordForm.clinicalObservations} onChange={v => setClinicRecordForm(p => ({...p, clinicalObservations:v}))} />
+            <Inp label="Evolucao do tratamento" value={clinicRecordForm.treatmentEvolution} onChange={v => setClinicRecordForm(p => ({...p, treatmentEvolution:v}))} />
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <input type="checkbox" checked={clinicRecordForm.pregnancy} onChange={e => setClinicRecordForm(p => ({...p, pregnancy:e.target.checked}))} id="preg" />
+              <label htmlFor="preg" style={{ color:C.text, fontSize:14 }}>Gestante</label>
+            </div>
+            <div style={{ display:"flex", gap:10, marginTop:8 }}>
+              <Btn variant="secondary" onClick={() => setClinicClient(null)}>Fechar</Btn>
+              <Btn onClick={saveClinicRecord} disabled={savingClinic}>{savingClinic ? "Salvando..." : "Salvar Prontuario"}</Btn>
+            </div>
+          </div>
+        )}
+        {clinicTab === "sessoes" && (
+          <div>
+            <div style={{ background:C.bg, borderRadius:10, padding:16, marginBottom:16 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:10 }}>Registrar Nova Sessao</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                <div>
+                  <div style={{ fontSize:11, color:C.textMuted, marginBottom:4 }}>PROTOCOLO</div>
+                  <select value={newSession.protocolId} onChange={e => setNewSession(p => ({...p, protocolId:e.target.value}))} style={{ width:"100%", padding:"8px 10px", background:C.card, border:"1px solid "+C.border, borderRadius:8, color:C.text, fontSize:13 }}>
+                    <option value="">Selecione...</option>
+                    {allProtocols.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <Inp label="Numero da sessao" value={newSession.sessionNumber} onChange={v => setNewSession(p => ({...p, sessionNumber:v}))} type="number" />
+                <Inp label="Data realizada" value={newSession.performedAt} onChange={v => setNewSession(p => ({...p, performedAt:v}))} type="date" />
+                <Inp label="Evolucao" value={newSession.evolution} onChange={v => setNewSession(p => ({...p, evolution:v}))} />
+              </div>
+              <Btn onClick={addSession} style={{ marginTop:10 }}>+ Adicionar Sessao</Btn>
+            </div>
+            {clinicSessions.length === 0 ? <div style={{ color:C.textMuted, fontSize:13 }}>Nenhuma sessao registrada.</div> : clinicSessions.map((s: any) => (
+              <div key={s.id} style={{ background:C.card, borderRadius:10, padding:14, marginBottom:8, border:"1px solid "+C.border }}>
+                <div style={{ display:"flex", justifyContent:"space-between" }}>
+                  <div style={{ fontWeight:600, color:C.text, fontSize:14 }}>Sessao #{s.session_number} — {s.protocol_name ?? "?"}</div>
+                  <div style={{ fontSize:12, color:C.textMuted }}>{s.performed_at ? new Date(s.performed_at).toLocaleDateString("pt-BR") : "Nao realizada"}</div>
+                </div>
+                {s.evolution && <div style={{ fontSize:13, color:C.textMuted, marginTop:4 }}>{s.evolution}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        {clinicTab === "pacotes" && (
+          <div>
+            <div style={{ background:C.bg, borderRadius:10, padding:16, marginBottom:16 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:10 }}>Contratar Pacote</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                <div>
+                  <div style={{ fontSize:11, color:C.textMuted, marginBottom:4 }}>PACOTE</div>
+                  <select value={newPkgSession.packageId} onChange={e => setNewPkgSession(p => ({...p, packageId:e.target.value}))} style={{ width:"100%", padding:"8px 10px", background:C.card, border:"1px solid "+C.border, borderRadius:8, color:C.text, fontSize:13 }}>
+                    <option value="">Selecione...</option>
+                    {allPackages.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.total_sessions} sessoes)</option>)}
+                  </select>
+                </div>
+                <Inp label="Sessoes contratadas" value={newPkgSession.sessionsContracted} onChange={v => setNewPkgSession(p => ({...p, sessionsContracted:v}))} type="number" />
+              </div>
+              <Btn onClick={addPkgSession} style={{ marginTop:10 }}>+ Contratar</Btn>
+            </div>
+            {clinicPkgSessions.length === 0 ? <div style={{ color:C.textMuted, fontSize:13 }}>Nenhum pacote contratado.</div> : clinicPkgSessions.map((s: any) => (
+              <div key={s.id} style={{ background:C.card, borderRadius:10, padding:14, marginBottom:8, border:"1px solid "+C.border }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div style={{ fontWeight:600, color:C.text, fontSize:14 }}>{s.package_name ?? "Pacote"}</div>
+                  <Btn small onClick={() => useSession(s.id)} disabled={s.sessions_remaining <= 0}>Usar Sessao</Btn>
+                </div>
+                <div style={{ display:"flex", gap:16, marginTop:8 }}>
+                  <div style={{ textAlign:"center" }}><div style={{ fontSize:20, fontWeight:700, color:"#10b981" }}>{s.sessions_remaining}</div><div style={{ fontSize:10, color:C.textMuted }}>RESTANTES</div></div>
+                  <div style={{ textAlign:"center" }}><div style={{ fontSize:20, fontWeight:700, color:C.text }}>{s.sessions_used}</div><div style={{ fontSize:10, color:C.textMuted }}>USADAS</div></div>
+                  <div style={{ textAlign:"center" }}><div style={{ fontSize:20, fontWeight:700, color:C.textMuted }}>{s.sessions_contracted}</div><div style={{ fontSize:10, color:C.textMuted }}>TOTAL</div></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {clinicTab === "fotos" && (
+          <div>
+            {clinicPhotos.length === 0 ? <div style={{ color:C.textMuted, fontSize:13 }}>Nenhuma foto registrada.</div> : (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                {clinicPhotos.map((p: any) => (
+                  <div key={p.id} style={{ background:C.card, borderRadius:10, padding:12, border:"1px solid "+C.border }}>
+                    {p.public_url && <img src={p.public_url} alt={p.description} style={{ width:"100%", borderRadius:8, objectFit:"cover", maxHeight:180 }} />}
+                    <div style={{ fontSize:12, color:C.textMuted, marginTop:6 }}>{p.type === "before" ? "ANTES" : p.type === "after" ? "DEPOIS" : p.type} — {new Date(p.taken_at).toLocaleDateString("pt-BR")}</div>
+                    {p.description && <div style={{ fontSize:13, color:C.text }}>{p.description}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
       <Modal open={showForm} onClose={() => setShowForm(false)} title={selected ? "Editar Cliente" : "Nova Cliente"}>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
