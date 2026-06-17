@@ -1483,7 +1483,7 @@ export async function demoModule(fastify: FastifyInstance) {
     // 10. Deleta servicos, profissionais e clientes demo
     await db.execute(sql`DELETE FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
-    await db.execute(sql`DELETE FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['"demo"']::jsonb[]`);
+    await db.execute(sql`DELETE FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]`);
   }
 
   // ============================================================
