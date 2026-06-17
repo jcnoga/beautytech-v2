@@ -353,7 +353,7 @@ function ForgotPasswordPage({ onBack }: any) {
           <Inp label="E-mail cadastrado" value={email} onChange={setEmail} type="email" />
           {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}40`, borderRadius:8, padding:"10px 14px", color: C.ruby, fontSize:13, marginBottom:16 }}>{error}</div>}
           {msg && <div style={{ background:`#10b98115`, border:`1px solid #10b98140`, borderRadius:8, padding:"10px 14px", color:"#10b981", fontSize:13, marginBottom:16 }}>{msg}</div>}
-          <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"14px", background: C.rosaBase, color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:600, cursor:"pointer", marginBottom:12 }}>
+          <button onClick={submit} disabled={loading} style={{ width:"100%", padding:"14px", background: loading ? "#888" : C.rosaBase, color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:600, cursor: loading ? "not-allowed" : "pointer", marginBottom:12, opacity:1 }}>
             {loading ? "Enviando..." : "Enviar e-mail de recuperacao"}
           </button>
           <div style={{ textAlign:"center" }}>
