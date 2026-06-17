@@ -806,7 +806,7 @@ function ClientsPage() {
     { key:"fullName", label:"Cliente", render: (c: any) => (
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
         <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg, ${C.rose}40, ${C.gold}40)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>
-          {(c.fullName ?? "?")[0].toUpperCase()}
+          {(c.fullName || "?")[0].toUpperCase()}
         </div>
         <div>
           <div style={{ fontWeight:600, color: C.text, display:"flex", alignItems:"center", gap:6 }}>
