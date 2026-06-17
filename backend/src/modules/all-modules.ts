@@ -1500,14 +1500,14 @@ export async function demoModule(fastify: FastifyInstance) {
     ];
     // Categorias demo por nicho
     const catData = isClinic ? [
-      { tenantId, name: "Demo Tratamentos Faciais", type: "service", color: "#6ec9ba", sortOrder: 1, isActive: true },
-      { tenantId, name: "Demo Tratamentos Corporais", type: "service", color: "#9b59b6", sortOrder: 2, isActive: true },
+      { tenantId, name: "Demo Tratamentos Faciais", color: "#6ec9ba", sortOrder: 1, isActive: true },
+      { tenantId, name: "Demo Tratamentos Corporais", color: "#9b59b6", sortOrder: 2, isActive: true },
     ] : isBarber ? [
-      { tenantId, name: "Demo Cortes", type: "service", color: "#3498db", sortOrder: 1, isActive: true },
-      { tenantId, name: "Demo Barba", type: "service", color: "#e67e22", sortOrder: 2, isActive: true },
+      { tenantId, name: "Demo Cortes", color: "#3498db", sortOrder: 1, isActive: true },
+      { tenantId, name: "Demo Barba", color: "#e67e22", sortOrder: 2, isActive: true },
     ] : [
-      { tenantId, name: "Demo Cabelo", type: "service", color: "#e91e8c", sortOrder: 1, isActive: true },
-      { tenantId, name: "Demo Unhas", type: "service", color: "#9b59b6", sortOrder: 2, isActive: true },
+      { tenantId, name: "Demo Cabelo", color: "#e91e8c", sortOrder: 1, isActive: true },
+      { tenantId, name: "Demo Unhas", color: "#9b59b6", sortOrder: 2, isActive: true },
     ];
     const insertedCats = await db.insert(serviceCategories).values(catData).returning();
 
