@@ -1438,8 +1438,8 @@ export async function demoModule(fastify: FastifyInstance) {
         await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
         await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
         await db.execute(sql`DELETE FROM loyalty_transactions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referred_client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referrer_client_id=${clientId}`);
+        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referred_id=${clientId}`);
+        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referrer_id=${clientId}`);
         await db.execute(sql`DELETE FROM reviews WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
       }
       // Deleta agendamentos demo e seus vinculos
