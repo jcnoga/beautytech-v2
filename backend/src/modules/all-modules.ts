@@ -1528,7 +1528,7 @@ export async function demoModule(fastify: FastifyInstance) {
     // Vincular servicos aos agendamentos
     for (let i = 0; i < insertedAppts.length; i++) {
       const svcIdx = i % insertedSvcs.length;
-      await db.execute(sql`INSERT INTO appointment_services (appointment_id, service_id, price) VALUES (${insertedAppts[i].id}, ${insertedSvcs[svcIdx].id}, ${insertedSvcs[svcIdx].price})`);
+      await db.execute(sql`INSERT INTO appointment_services (appointment_id, service_id, price, tenant_id) VALUES (${insertedAppts[i].id}, ${insertedSvcs[svcIdx].id}, ${insertedSvcs[svcIdx].price}, ${tenantId})`);
     }
 
     // Vincular servicos aos profissionais
