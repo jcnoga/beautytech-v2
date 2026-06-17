@@ -1440,6 +1440,7 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM leads WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.execute(sql`DELETE FROM service_categories WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
     await db.execute(sql`DELETE FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]`);
   }
@@ -1497,7 +1498,25 @@ export async function demoModule(fastify: FastifyInstance) {
       { tenantId, name: "Demo Manicure", durationMinutes: 60, price: "40", isActive: true, isOnlineBookable: true },
       { tenantId, name: "Demo Pedicure", durationMinutes: 60, price: "50", isActive: true, isOnlineBookable: false },
     ];
-    const insertedSvcs = await db.insert(services).values(svcData).returning();
+    // Categorias demo por nicho
+    const catData = isClinic ? [
+      { tenantId, name: "Demo Tratamentos Faciais", type: "service", color: "#6ec9ba", sortOrder: 1, isActive: true },
+      { tenantId, name: "Demo Tratamentos Corporais", type: "service", color: "#9b59b6", sortOrder: 2, isActive: true },
+    ] : isBarber ? [
+      { tenantId, name: "Demo Cortes", type: "service", color: "#3498db", sortOrder: 1, isActive: true },
+      { tenantId, name: "Demo Barba", type: "service", color: "#e67e22", sortOrder: 2, isActive: true },
+    ] : [
+      { tenantId, name: "Demo Cabelo", type: "service", color: "#e91e8c", sortOrder: 1, isActive: true },
+      { tenantId, name: "Demo Unhas", type: "service", color: "#9b59b6", sortOrder: 2, isActive: true },
+    ];
+    const insertedCats = await db.insert(serviceCategories).values(catData).returning();
+
+    // Vincula categorias aos servicos
+    const svcDataWithCat = svcData.map((s, i) => ({
+      ...s,
+      categoryId: insertedCats[i < 3 ? 0 : 1].id,
+    }));
+    const insertedSvcs = await db.insert(services).values(svcDataWithCat).returning();
 
     // ---- CLIENTES ----
     const clientData = isBarber ? [
