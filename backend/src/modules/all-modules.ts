@@ -1430,43 +1430,49 @@ export async function demoModule(fastify: FastifyInstance) {
     const demoProfIds = demoProfs.map((p: any) => p.id);
 
     // 4. Deleta agendamentos e suas dependencias PRIMEIRO
-    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (internal_notes='demo'${demoClientIds.length > 0 ? sql` OR client_id = ANY(${demoClientIds})` : sql``}${demoProfIds.length > 0 ? sql` OR professional_id = ANY(${demoProfIds})` : sql``})`);
+    const apptWhere = ["internal_notes='demo'"];
+    if (demoClientIds.length > 0) apptWhere.push(`client_id IN ('${demoClientIds.join("','")}')`);
+    if (demoProfIds.length > 0) apptWhere.push(`professional_id IN ('${demoProfIds.join("','")}')`);
+    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (${sql.raw(apptWhere.join(' OR '))})`);
     const demoApptIds = ((demoAppts as any).rows ?? []).map((r: any) => r.id);
     for (const apptId of demoApptIds) {
       await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id=${apptId}`);
+      await db.execute(sql`DELETE FROM appointment_photos WHERE appointment_id=${apptId}`);
     }
     if (demoApptIds.length > 0) {
-      await db.execute(sql`DELETE FROM appointment_photos WHERE appointment_id = ANY(${demoApptIds})`);
-      await db.execute(sql`DELETE FROM appointments WHERE id = ANY(${demoApptIds})`);
+      await db.execute(sql`DELETE FROM appointments WHERE id IN ('${sql.raw(demoApptIds.join("','"))}')`);
     }
 
     // 5. Deleta todas as dependencias dos clientes demo
     if (demoClientIds.length > 0) {
-      await db.execute(sql`DELETE FROM notifications WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM loyalty_transactions WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM referrals WHERE referred_id = ANY(${demoClientIds}) OR referrer_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM reviews WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM package_sessions WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM packages WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM protocol_sessions WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM client_records WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM consent_forms WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM appointment_photos WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM gift_cards WHERE purchased_by_id = ANY(${demoClientIds}) OR used_by_id = ANY(${demoClientIds})`);
-      await db.execute(sql`DELETE FROM financial_transactions WHERE client_id = ANY(${demoClientIds})`);
-      await db.execute(sql`UPDATE leads SET converted_to = NULL WHERE converted_to = ANY(${demoClientIds})`);
+      const cids = `'${demoClientIds.join("','")}'`;
+      await db.execute(sql`DELETE FROM notifications WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM loyalty_transactions WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM referrals WHERE referred_id IN (${sql.raw(cids)}) OR referrer_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM reviews WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM package_sessions WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM packages WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM protocol_sessions WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM client_records WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM consent_forms WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM appointment_photos WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM gift_cards WHERE purchased_by_id IN (${sql.raw(cids)}) OR used_by_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`DELETE FROM financial_transactions WHERE client_id IN (${sql.raw(cids)})`);
+      await db.execute(sql`UPDATE leads SET converted_to = NULL WHERE converted_to IN (${sql.raw(cids)})`);
     }
 
     // 6. Deleta dependencias dos servicos demo
     if (demoSvcIds.length > 0) {
-      await db.execute(sql`DELETE FROM professional_services WHERE service_id = ANY(${demoSvcIds})`);
+      const sids = `'${demoSvcIds.join("','")}'`;
+      await db.execute(sql`DELETE FROM professional_services WHERE service_id IN (${sql.raw(sids)})`);
     }
 
     // 7. Deleta dependencias dos profissionais demo
     if (demoProfIds.length > 0) {
-      await db.execute(sql`DELETE FROM professional_services WHERE professional_id = ANY(${demoProfIds})`);
-      await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id = ANY(${demoProfIds})`);
-      await db.execute(sql`DELETE FROM commissions WHERE professional_id = ANY(${demoProfIds})`);
+      const pids = `'${demoProfIds.join("','")}'`;
+      await db.execute(sql`DELETE FROM professional_services WHERE professional_id IN (${sql.raw(pids)})`);
+      await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id IN (${sql.raw(pids)})`);
+      await db.execute(sql`DELETE FROM commissions WHERE professional_id IN (${sql.raw(pids)})`);
     }
 
     // 8. Deleta tabelas clinica
