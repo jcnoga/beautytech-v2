@@ -1429,62 +1429,55 @@ export async function demoModule(fastify: FastifyInstance) {
       .where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
     const demoProfIds = demoProfs.map((p: any) => p.id);
 
-    // 4. Deleta agendamentos demo e seus vinculos PRIMEIRO (antes de clientes e profissionais)
-    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (internal_notes='demo' OR professional_id = ANY(${demoProfIds}) OR client_id = ANY(${demoClientIds}))`);
+    // 4. Deleta agendamentos e suas dependencias PRIMEIRO
+    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND (internal_notes='demo'${demoClientIds.length > 0 ? sql` OR client_id = ANY(${demoClientIds})` : sql``}${demoProfIds.length > 0 ? sql` OR professional_id = ANY(${demoProfIds})` : sql``})`);
     const demoApptIds = ((demoAppts as any).rows ?? []).map((r: any) => r.id);
     for (const apptId of demoApptIds) {
       await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id=${apptId}`);
     }
-    await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
+    if (demoApptIds.length > 0) {
+      await db.execute(sql`DELETE FROM appointment_photos WHERE appointment_id = ANY(${demoApptIds})`);
+      await db.execute(sql`DELETE FROM appointments WHERE id = ANY(${demoApptIds})`);
+    }
 
-    // 5. Deleta dependencias dos clientes demo
+    // 5. Deleta todas as dependencias dos clientes demo
     if (demoClientIds.length > 0) {
-      for (const clientId of demoClientIds) {
-        await db.execute(sql`DELETE FROM appointment_photos WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM client_records WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM notifications WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM loyalty_transactions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referred_id=${clientId}`);
-        await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referrer_id=${clientId}`);
-        await db.execute(sql`DELETE FROM reviews WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-      }
-      // Pacotes legado
-      if (demoClientIds.length > 0) {
-        await db.execute(sql`DELETE FROM packages WHERE tenant_id=${tenantId} AND client_id = ANY(${demoClientIds})`);
-      }
+      await db.execute(sql`DELETE FROM notifications WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM loyalty_transactions WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM referrals WHERE referred_id = ANY(${demoClientIds}) OR referrer_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM reviews WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM package_sessions WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM packages WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM protocol_sessions WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM client_records WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM consent_forms WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM appointment_photos WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM gift_cards WHERE purchased_by_id = ANY(${demoClientIds}) OR used_by_id = ANY(${demoClientIds})`);
+      await db.execute(sql`DELETE FROM financial_transactions WHERE client_id = ANY(${demoClientIds})`);
+      await db.execute(sql`UPDATE leads SET converted_to = NULL WHERE converted_to = ANY(${demoClientIds})`);
     }
 
-    // 5. Deleta dependencias dos servicos demo
+    // 6. Deleta dependencias dos servicos demo
     if (demoSvcIds.length > 0) {
-      for (const svcId of demoSvcIds) {
-        await db.execute(sql`DELETE FROM appointment_services WHERE service_id=${svcId}`);
-        await db.execute(sql`DELETE FROM professional_services WHERE service_id=${svcId}`);
-      }
+      await db.execute(sql`DELETE FROM professional_services WHERE service_id = ANY(${demoSvcIds})`);
     }
 
-    // 6. Deleta dependencias dos profissionais demo
+    // 7. Deleta dependencias dos profissionais demo
     if (demoProfIds.length > 0) {
-      for (const profId of demoProfIds) {
-        await db.execute(sql`DELETE FROM professional_services WHERE professional_id=${profId}`);
-        await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id=${profId}`);
-        await db.execute(sql`DELETE FROM commissions WHERE tenant_id=${tenantId} AND professional_id=${profId}`);
-      }
+      await db.execute(sql`DELETE FROM professional_services WHERE professional_id = ANY(${demoProfIds})`);
+      await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id = ANY(${demoProfIds})`);
+      await db.execute(sql`DELETE FROM commissions WHERE professional_id = ANY(${demoProfIds})`);
     }
 
-    // 7. Deleta tabelas de clinica
+    // 8. Deleta tabelas clinica
+    await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND package_id IN (SELECT id FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND protocol_id IN (SELECT id FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
 
-    // 8. Deleta financeiro demo
+    // 9. Deleta financeiro, leads, servicos, profissionais e clientes demo
     await db.execute(sql`DELETE FROM financial_transactions WHERE tenant_id=${tenantId} AND description LIKE 'Demo -%'`);
-
-    // 9. Deleta leads demo
     await db.execute(sql`DELETE FROM leads WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-
-    // 10. Deleta servicos, profissionais e clientes demo
     await db.execute(sql`DELETE FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
     await db.execute(sql`DELETE FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]`);
