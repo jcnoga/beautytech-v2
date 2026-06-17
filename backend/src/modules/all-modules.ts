@@ -1452,7 +1452,9 @@ export async function demoModule(fastify: FastifyInstance) {
         await db.execute(sql`DELETE FROM reviews WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
       }
       // Pacotes legado
-      await db.execute(sql`DELETE FROM packages WHERE tenant_id=${tenantId} AND client_id = ANY(${demoClientIds})`);
+      if (demoClientIds.length > 0) {
+        await db.execute(sql`DELETE FROM packages WHERE tenant_id=${tenantId} AND client_id = ANY(${demoClientIds})`);
+      }
     }
 
     // 5. Deleta dependencias dos servicos demo
