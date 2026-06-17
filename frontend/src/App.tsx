@@ -1,4 +1,4 @@
-﻿import LandingPage from './LandingPage';
+import LandingPage from './LandingPage';
 import PricingPage from './PricingPage';
 import ProfessionalScheduleModal from './ProfessionalScheduleModal';
 import TenantSettingsPage from './TenantSettingsPage';
@@ -1588,7 +1588,7 @@ function ProfessionalsPage() {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <Badge label={p.isActive ? "Ativo" : "Inativo"} color={p.isActive ? C.sage : C.textMuted} />
               <Badge label={p.acceptsOnlineBooking ? "Agendamento Online" : "Presencial"} color={p.acceptsOnlineBooking ? C.sapphire : C.textMuted} />
-              <button onClick={() => setScheduleProf(p)} style={{ padding:"8px 12px", borderRadius:8, border:"1px solid rgba(201,169,110,0.4)", background:"rgba(201,169,110,0.1)", color:"#c9a96e", fontSize:12, cursor:"pointer", fontWeight:600, marginTop:12, width:"100%" }}>âš™ Servicos e Agenda</button>
+              <button onClick={() => setScheduleProf(p)} style={{ padding:"8px 12px", borderRadius:8, border:"1px solid rgba(201,169,110,0.4)", background:"rgba(201,169,110,0.1)", color:"#c9a96e", fontSize:12, cursor:"pointer", fontWeight:600, marginTop:12, width:"100%" }}>Servicos e Agenda</button>
             </div>
           </div>
         ))}
