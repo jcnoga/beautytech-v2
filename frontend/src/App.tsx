@@ -1749,6 +1749,7 @@ function ServicesPage() {
       <div style={{ display:"flex", gap:8, marginBottom:20 }}>
         <button style={tabStyle("services")} onClick={() => setActiveTab("services")}>Servicos</button>
         <button style={tabStyle("categories")} onClick={() => setActiveTab("categories")}>Categorias</button>
+        <button style={tabStyle("protocols")} onClick={() => setActiveTab("protocols")}>Protocolos</button>
       </div>
       {activeTab === "services" && (
         <div>
