@@ -980,7 +980,7 @@ export async function authModule(fastify: FastifyInstance) {
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2,7),
         email,
         whatsapp: whatsapp ?? null,
-        planTier: "trial",
+        planTier: "free",
         isActive: true,
         trialEndsAt,
         businessType: resolvedBusinessType,
