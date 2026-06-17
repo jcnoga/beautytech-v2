@@ -97,7 +97,7 @@ export async function clientsModule(fastify: FastifyInstance) {
   fastify.post("/clients", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const chkC = await checkClientLimit(tenantId);
-    if (!chkC.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${chkC.current}/${chkC.limit} clientes. Faça upgrade.`, code: "PLAN_LIMIT_CLIENTS" });
+    if (!chkC.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${chkC.current}/${chkC.limit} clientes. Faï¿½a upgrade.`, code: "PLAN_LIMIT_CLIENTS" });
     const plan = await getPlanInfo(tenantId);
     if (plan.isFree) {
       const countData = await db.execute(sql`SELECT COUNT(*) as total FROM clients WHERE tenant_id=${tenantId} AND deleted_at IS NULL`);
@@ -1543,86 +1543,6 @@ export async function demoModule(fastify: FastifyInstance) {
             (${tenantId}, ${insertedClients[1].id}, ${pkgs[1].id}, 6, 2, now(), ${exp2}, 'active'),
             (${tenantId}, ${insertedClients[4].id}, ${pkgs[2].id}, 12, 5, now(), ${exp2}, 'active')`);
         }
-      }
-    }
-
-    return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos para " + btype + "!", clientes: insertedClients.length, profissionais: insertedProfs.length, servicos: insertedSvcs.length }});
-  });
-
-  fastify.delete("/demo/clear", { preHandler: [authenticate] }, async (req: any, reply: any) => {
-    const { tenantId } = req.tenantContext;
-
-    const demoClients = await db.select({ id: clients.id }).from(clients).where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
-    const demoClientIds = demoClients.map(c => c.id);
-
-    if (demoClientIds.length > 0) {
-      for (const clientId of demoClientIds) {
-        await db.execute(sql`DELETE FROM package_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM protocol_sessions WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM client_records WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-        await db.execute(sql`DELETE FROM appointment_photos WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
-      }
-      await db.delete(appointments).where(and(eq(appointments.tenantId, tenantId), sql`${appointments.internalNotes} = 'demo'`));
-      await db.delete(packages).where(and(eq(packages.tenantId, tenantId), sql`${packages.clientId} = ANY(${demoClientIds})`));
-    }
-
-    await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-    await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-    await db.delete(financialTransactions).where(and(eq(financialTransactions.tenantId, tenantId), eq(financialTransactions.createdBy, tenantId)));
-    await db.delete(leads).where(and(eq(leads.tenantId, tenantId), sql`${leads.name} LIKE 'Demo %'`));
-    await db.delete(clients).where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
-    await db.delete(services).where(and(eq(services.tenantId, tenantId), sql`${services.name} LIKE 'Demo %'`));
-    await db.delete(professionals).where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
-
-    return reply.send({ success: true, data: { message: "Dados de demonstracao removidos!" }});
-  });
-}
-
-    await db.insert(leads).values([
-      { tenantId, name: "Demo Lead Maria", whatsapp: "(34) 98002-0001", source: "instagram", status: "new" as const },
-      { tenantId, name: "Demo Lead Paula", whatsapp: "(34) 98002-0002", source: "indicacao", status: "contacted" as const },
-      { tenantId, name: "Demo Lead Sandra", whatsapp: "(34) 98002-0003", source: "google", status: "qualified" as const },
-    ]);
-
-    await db.insert(packages).values([
-      { tenantId, clientId: insertedClients[0].id, name: "Demo Pacote Limpeza 5x", totalSessions: 5, usedSessions: 2, remainingSessions: 3, totalValue: "650", status: "active" as const },
-      { tenantId, clientId: insertedClients[1].id, name: "Demo Pacote Microagulhamento 10x", totalSessions: 10, usedSessions: 7, remainingSessions: 3, totalValue: "2500", status: "active" as const },
-    ]);
-
-    await db.execute(sql`INSERT INTO client_records (tenant_id, client_id, type, allergies, medications, skin_type, main_complaint, aesthetic_history, pregnancy, pre_existing_conditions, contraindications, clinical_observations, treatment_evolution, notes) VALUES
-      (${tenantId}, ${insertedClients[0].id}, 'aesthetic', ARRAY['Niquel','Latex'], 'Anticoncepcional oral', 'mista', 'Manchas e poros dilatados', 'Limpeza de pele ha 6 meses', false, 'Nenhuma', 'Nenhuma', 'Pele sensivel na regiao do nariz', 'Evolucao positiva apos 2 sessoes', 'Cliente assidua'),
-      (${tenantId}, ${insertedClients[1].id}, 'aesthetic', ARRAY[]::text[], 'Nenhum', 'oleosa', 'Flacidez facial', 'Radiofrequencia com bons resultados', false, 'Hipotireoidismo controlado', 'Gestacao e marcapasso', 'Oleosidade moderada', 'Excelente resposta ao protocolo', 'VIP'),
-      (${tenantId}, ${insertedClients[2].id}, 'aesthetic', ARRAY['Dipirona'], 'Nenhum', 'seca', 'Primeiras rugas', 'Sem procedimentos anteriores', false, 'Nenhuma', 'Nenhuma', 'Pele ressecada', 'Primeira sessao realizada', 'Cliente nova')`);
-
-    const insertedProtocols = await db.execute(sql`INSERT INTO protocols (tenant_id, name, description, total_sessions, interval_days, nicho, is_active) VALUES
-      (${tenantId}, 'Demo Limpeza de Pele', 'Protocolo completo de limpeza profunda', 4, 15, 'clinic', true),
-      (${tenantId}, 'Demo Microagulhamento', 'Protocolo de rejuvenescimento e cicatrizacao', 6, 21, 'clinic', true),
-      (${tenantId}, 'Demo Radiofrequencia', 'Protocolo de firmeza e reducao de flacidez', 8, 14, 'clinic', true)
-      RETURNING id, name`);
-    const protos = (insertedProtocols as any).rows ?? [];
-
-    if (protos.length > 0) {
-      await db.execute(sql`INSERT INTO protocol_sessions (tenant_id, client_id, protocol_id, session_number, performed_at, performed_by, evolution, observations, status) VALUES
-        (${tenantId}, ${insertedClients[0].id}, ${protos[0].id}, 1, ${lastWeek.toISOString()}, ${insertedProfs[0].id}, 'Pele respondeu bem. Reducao visivel de poros.', 'Mascara calmante pos-procedimento', 'completed'),
-        (${tenantId}, ${insertedClients[0].id}, ${protos[0].id}, 2, ${yesterday.toISOString()}, ${insertedProfs[0].id}, 'Melhora significativa nas manchas.', 'Recomendado protetor solar FPS 50', 'completed'),
-        (${tenantId}, ${insertedClients[1].id}, ${protos[1].id}, 1, ${lastWeek.toISOString()}, ${insertedProfs[1].id}, 'Primeira sessao. Leve eritema esperado.', 'Orientada sobre cuidados pos-procedimento', 'completed'),
-        (${tenantId}, ${insertedClients[1].id}, ${protos[1].id}, 2, ${yesterday.toISOString()}, ${insertedProfs[1].id}, 'Melhora na textura da pele.', 'Evolucao excelente', 'completed')`);
-
-      const insertedTreatmentPkgs = await db.execute(sql`INSERT INTO treatment_packages (tenant_id, name, description, protocol_id, total_sessions, validity_days, price, is_active) VALUES
-        (${tenantId}, 'Demo Pacote Limpeza 4 sessoes', 'Pacote completo de limpeza de pele', ${protos[0].id}, 4, 180, 500, true),
-        (${tenantId}, 'Demo Pacote Microagulhamento 6 sessoes', 'Pacote rejuvenescimento facial', ${protos[1].id}, 6, 365, 1500, true),
-        (${tenantId}, 'Demo Pacote Anual Radiofrequencia', 'Manutencao anual de firmeza', ${protos[2].id}, 12, 365, 2200, true)
-        RETURNING id, name`);
-      const pkgs = (insertedTreatmentPkgs as any).rows ?? [];
-
-      if (pkgs.length > 0) {
-        const exp1 = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000);
-        const exp2 = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-        await db.execute(sql`INSERT INTO package_sessions (tenant_id, client_id, package_id, sessions_contracted, sessions_used, started_at, expires_at, status) VALUES
-          (${tenantId}, ${insertedClients[0].id}, ${pkgs[0].id}, 4, 2, now(), ${exp1.toISOString()}, 'active'),
-          (${tenantId}, ${insertedClients[1].id}, ${pkgs[1].id}, 6, 2, now(), ${exp2.toISOString()}, 'active'),
-          (${tenantId}, ${insertedClients[4].id}, ${pkgs[2].id}, 12, 5, now(), ${exp2.toISOString()}, 'active')`);
       }
     }
 
