@@ -1429,7 +1429,15 @@ export async function demoModule(fastify: FastifyInstance) {
       .where(and(eq(professionals.tenantId, tenantId), sql`${professionals.fullName} LIKE '%Demo%'`));
     const demoProfIds = demoProfs.map((p: any) => p.id);
 
-    // 4. Deleta dependencias dos clientes demo
+    // 4. Deleta agendamentos demo e seus vinculos PRIMEIRO (antes de clientes e profissionais)
+    const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
+    const demoApptIds = ((demoAppts as any).rows ?? []).map((r: any) => r.id);
+    for (const apptId of demoApptIds) {
+      await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id=${apptId}`);
+    }
+    await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
+
+    // 5. Deleta dependencias dos clientes demo
     if (demoClientIds.length > 0) {
       for (const clientId of demoClientIds) {
         await db.execute(sql`DELETE FROM appointment_photos WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
@@ -1442,13 +1450,6 @@ export async function demoModule(fastify: FastifyInstance) {
         await db.execute(sql`DELETE FROM referrals WHERE tenant_id=${tenantId} AND referrer_id=${clientId}`);
         await db.execute(sql`DELETE FROM reviews WHERE tenant_id=${tenantId} AND client_id=${clientId}`);
       }
-      // Deleta agendamentos demo e seus vinculos
-      const demoAppts = await db.execute(sql`SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
-      const demoApptIds = ((demoAppts as any).rows ?? []).map((r: any) => r.id);
-      for (const apptId of demoApptIds) {
-        await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id=${apptId}`);
-      }
-      await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
       // Pacotes legado
       await db.execute(sql`DELETE FROM packages WHERE tenant_id=${tenantId} AND client_id = ANY(${demoClientIds})`);
     }
