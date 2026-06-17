@@ -1416,7 +1416,7 @@ export async function demoModule(fastify: FastifyInstance) {
   async function clearDemoData(tenantId: string) {
     // 1. Pega IDs dos clientes demo
     const demoClients = await db.select({ id: clients.id }).from(clients)
-      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['"demo"']::jsonb[]`));
+      .where(and(eq(clients.tenantId, tenantId), sql`${clients.tags} @> ARRAY['demo']::text[]`));
     const demoClientIds = demoClients.map((c: any) => c.id);
 
     // 2. Pega IDs dos servicos demo
