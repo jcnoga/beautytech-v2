@@ -469,7 +469,8 @@ function DashboardPage() {
           const profs = profsRes.data ?? [];
           const svcs = svcsRes.data ?? [];
           setTenantName(meRes.data?.name ?? meRes.name ?? '');
-          if (profs.length === 0 || svcs.length === 0) {
+          const isImp = !!sessionStorage.getItem("impersonation_token");
+          if (!isImp && (profs.length === 0 || svcs.length === 0)) {
             setShowOnboarding(true);
           }
         } catch {}
@@ -2606,7 +2607,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const impersonateTenant = async (id: string, name: string) => {
     if (!window.confirm(`Acessar painel de "${name}" como administrador?`)) return;
     try {
-      const res = await fetch(`${API}/api/v1/super-admin/tenants/${id}/impersonate`, {
+      const res = await fetch(`${base}/api/v1/super-admin/tenants/${id}/impersonate`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
       });
@@ -2615,9 +2616,9 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       sessionStorage.setItem("impersonation_token", json.token);
       sessionStorage.setItem("impersonation_tenant_name", name);
       sessionStorage.setItem("impersonation_sa_token", token ?? "");
-      window.location.href = "/";
-    } catch (err) {
-      alert("Erro ao acessar tenant");
+      window.location.href = "/?impersonating=1";
+    } catch (err: any) {
+      alert("Erro: " + (err?.message ?? String(err)));
     }
   };
 
@@ -3809,7 +3810,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
 export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
-  const isSubdomain = !['localhost','beautytech-v2.vercel.app'].includes(window.location.hostname) && window.location.hostname !== 'localhost';
+  const isSubdomain = !['localhost','beautytech-v2.vercel.app','zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !sessionStorage.getItem('impersonation_token') && !new URLSearchParams(window.location.search).get('impersonating');
   const sobreMatch = window.location.pathname === '/sobre';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
@@ -3862,7 +3863,7 @@ const logout = async () => {
     auditlogs: AuditLogsPage,
   };
 
-  const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname);
+  const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
   if (sobreMatch) return <LandingPageSobre />;
