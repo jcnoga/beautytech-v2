@@ -6,6 +6,7 @@ import HomePage from './HomePage';
 import DiscoveryPage from './DiscoveryPage';
 import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import BookingPage from './BookingPage';
+import AuditLogsPage from './AuditLogsPage';
 import OnboardingWizard from './OnboardingWizard';
 import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
@@ -3609,6 +3610,7 @@ const MENU_GROUPS = [
     items: [
       { id:"pricing",  label:"Planos",        icon:"$", premium:false },
       { id:"settings", label:"Configuracoes", icon:"?", premium:false },
+      { id:"auditlogs", label:"Log de Acoes",  icon:"L", premium:false },
     ]
   },
 ];
@@ -3737,6 +3739,7 @@ const logout = async () => {
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
     pricing: PricingPage,
     settings: TenantSettingsPage,
+    auditlogs: AuditLogsPage,
   };
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname);
