@@ -135,6 +135,9 @@ export default function BookingPage({ slug }: { slug: string }) {
   return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:FB,color:C.text}}>
 
+      {/* HERO COM FOTO DE FUNDO */}
+      {tenant && <BookingHero tenant={tenant} accent={accent} />}
+
       {/* HEADER */}
       <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"16px 24px",display:"flex",alignItems:"center",gap:12}}>
         {tenant.logoUrl
