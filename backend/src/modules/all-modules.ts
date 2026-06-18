@@ -1552,7 +1552,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
         impersonatedBy: superAdminEmail,
         tenantName: tenant.name,
       },
-      process.env.JWT_SECRET!,
+      process.env.SUPER_ADMIN_SECRET!,
       { expiresIn: "2h" }
     );
 
