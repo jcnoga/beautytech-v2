@@ -8,6 +8,8 @@
 import type { FastifyInstance } from "fastify";
 import { eq, and, ilike, isNull, desc, gte, lte, sql, count } from "drizzle-orm";
 import { db } from "@db/connection";
+import postgres from "postgres";
+const _rawClient = postgres(process.env.POSTGRES_URL!, { prepare: false, ssl: { rejectUnauthorized: false } });
 import {
   clients, professionals, appointments, appointmentServices,
   services, serviceCategories, packages, giftCards,
@@ -1531,15 +1533,12 @@ export async function superAdminModule(fastify: FastifyInstance) {
     const tenantId = req.params.id;
     const superAdminEmail = req.superAdmin.email;
 
-    const { Pool } = await import("pg");
-    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const tenantRows = await pgPool.query("SELECT id::text, name, email FROM tenants WHERE id::text = $1 LIMIT 1", [tenantId]);
-    const tenant = tenantRows.rows[0];
-    if (!tenant) { await pgPool.end(); return reply.status(404).send({ success: false, error: "Tenant not found", debug: tenantId }); }
+    const tenantRows = await _rawClient`SELECT id::text, name, email FROM tenants WHERE id::text = ${tenantId} LIMIT 1`;
+    const tenant = tenantRows[0];
+    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant not found", debug: tenantId });
 
-    const userRows = await pgPool.query("SELECT id::text, email, role FROM users WHERE tenant_id::text = $1 AND role = $2 LIMIT 1", [tenantId, "admin"]);
-    const adminUser = userRows.rows[0];
-    await pgPool.end();
+    const userRows = await _rawClient`SELECT id::text, email, role FROM users WHERE tenant_id::text = ${tenantId} AND role = ${"admin"} LIMIT 1`;
+    const adminUser = userRows[0];
     if (!adminUser) return reply.status(404).send({ success: false, error: "Admin user not found for this tenant" });
 
     const jwt = await import("jsonwebtoken");
