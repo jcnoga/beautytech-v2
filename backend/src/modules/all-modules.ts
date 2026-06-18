@@ -1531,7 +1531,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
     const tenantId = req.params.id;
     const superAdminEmail = req.superAdmin.email;
 
-    const tenantResult = await db.execute(sql`SELECT id, name, email FROM tenants WHERE id = ${tenantId} LIMIT 1`);
+    const tenantResult = await db.execute(sql`SELECT id, name, email FROM tenants WHERE id::text = ${tenantId}::text LIMIT 1`);
     const tenant = ((tenantResult as any).rows ?? [])[0];
     if (!tenant) return reply.status(404).send({ success: false, error: "Tenant not found" });
 
