@@ -20,6 +20,36 @@ import {
 import { authenticate, requireOwner, requireManager, requireFinancial } from "@middleware/auth";
 
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼ HELPER ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
+
+// ============================================================
+// AUDIT LOG HELPER
+// ============================================================
+async function auditLog(params: {
+  tenantId: string;
+  userId?: string;
+  action: string;
+  tableName?: string;
+  recordId?: string;
+  oldData?: any;
+  newData?: any;
+  ipAddress?: string;
+}) {
+  try {
+    await db.insert(auditLogs).values({
+      tenantId:  params.tenantId,
+      userId:    params.userId ?? null,
+      action:    params.action,
+      tableName: params.tableName ?? null,
+      recordId:  params.recordId ?? null,
+      oldData:   params.oldData ?? null,
+      newData:   params.newData ?? null,
+      ipAddress: params.ipAddress ?? null,
+    });
+  } catch (e) {
+    console.error("auditLog error:", e);
+  }
+}
+
 function paginate(page = 1, limit = 20) {
   return { limit: Number(limit), offset: (Number(page) - 1) * Number(limit) };
 }
@@ -106,6 +136,7 @@ export async function clientsModule(fastify: FastifyInstance) {
       if (total >= plan.maxClients) return reply.status(403).send({ success: false, error: `Limite de ${plan.maxClients} clientes atingido no plano gratuito. Faca upgrade para continuar.` });
     }
     const [client] = await db.insert(clients).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    auditLog({ tenantId, userId, action: "client.created", tableName: "clients", recordId: client.id, newData: { fullName: client.fullName, whatsapp: client.whatsapp } });
     return reply.status(201).send({ success: true, data: client });
   });
 
@@ -185,6 +216,7 @@ export async function professionalsModule(fastify: FastifyInstance) {
       console.error("Erro ao gerar grade automatica:", e);
     }
 
+    auditLog({ tenantId, userId, action: "professional.created", tableName: "professionals", recordId: prof.id, newData: { fullName: prof.fullName } });
     return reply.status(201).send({ success: true, data: prof });
   });
 
@@ -1515,7 +1547,22 @@ export async function demoModule(fastify: FastifyInstance) {
   // POST /demo/seed ? insere dados demo por nicho (idempotente)
   // ============================================================
   
-    fastify.post("/demo/seed", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+  
+  // ============================================================
+  // GET /audit-logs - Log de acoes do tenant
+  // ============================================================
+  fastify.get("/audit-logs", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const { page, limit } = req.query as any;
+    const { limit: l, offset } = paginate(page, limit ?? 50);
+    const data = await db.select().from(auditLogs)
+      .where(eq(auditLogs.tenantId, tenantId))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(l).offset(offset);
+    return reply.send({ success: true, data, total: data.length });
+  });
+
+  fastify.post("/demo/seed", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
