@@ -1537,7 +1537,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
     const tenant = tenantRows[0];
     if (!tenant) return reply.status(404).send({ success: false, error: "Tenant not found", debug: tenantId });
 
-    const userRows = await _rawClient`SELECT id::text, email, role FROM users WHERE tenant_id::text = ${tenantId} AND role = ${"admin"} LIMIT 1`;
+    const userRows = await _rawClient`SELECT id::text, email, role FROM user_profiles WHERE tenant_id::text = ${tenantId} AND role = ${"admin"} LIMIT 1`;
     const adminUser = userRows[0];
     if (!adminUser) return reply.status(404).send({ success: false, error: "Admin user not found for this tenant" });
 
