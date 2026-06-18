@@ -2671,7 +2671,34 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); }} emptyMsg="Nenhum salao encontrado." />
         }
       </div>
-
+{saTab === "logs" && (
+  <div>
+    {logsLoading && <div style={{textAlign:"center",padding:60,color:C.textMuted}}>Carregando...</div>}
+    {!logsLoading && saLogs.length === 0 && <div style={{textAlign:"center",padding:60,color:C.textMuted}}>Nenhum log encontrado.</div>}
+    {!logsLoading && saLogs.length > 0 && (
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead><tr style={{background:C.surface}}>
+            {["Data/Hora","Salao","Acao","Tabela","Detalhes"].map(h => (
+              <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:".08em"}}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {saLogs.map((log: any, i: number) => (
+              <tr key={log.id ?? i} style={{borderTop:`1px solid ${C.border}`}}>
+                <td style={{padding:"12px 16px",fontSize:12,color:C.textMuted,whiteSpace:"nowrap"}}>{log.createdAt ? new Date(log.createdAt).toLocaleString("pt-BR") : "-"}</td>
+                <td style={{padding:"12px 16px",fontSize:12,color:C.text}}>{log.tenantName ?? "-"}</td>
+                <td style={{padding:"12px 16px"}}><span style={{fontSize:12,fontWeight:700,color:C.rose,padding:"3px 10px",borderRadius:20,background:`${C.rose}15`}}>{log.action}</span></td>
+                <td style={{padding:"12px 16px",fontSize:12,color:C.textMuted}}>{log.tableName ?? "-"}</td>
+                <td style={{padding:"12px 16px",fontSize:12,color:C.textMuted,maxWidth:280,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{log.newData ? JSON.stringify(log.newData).substring(0,80) : "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)}
       {/* Modal Gerenciar Tenant */}
       <Modal open={!!selected} onClose={() => setSelected(null)} title={`Gerenciar: ${selected?.name}`} width={480}>
         {selected && (
