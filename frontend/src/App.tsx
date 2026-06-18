@@ -3462,7 +3462,7 @@ function UpgradeButton({ color, onPaymentSuccess }: any) {
         document.addEventListener("visibilitychange", () => {
           if (document.visibilityState === "visible") {
             clearInterval(checkReturn);
-            setCurrentPage("payment_success");
+            onPaymentSuccess?.();
           }
         }, { once: true });
       } else {
