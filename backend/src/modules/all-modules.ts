@@ -330,6 +330,7 @@ const [appt] = await db.insert(appointments).values(values).returning();
     if (svcs?.length) {
       await db.insert(appointmentServices).values(svcs.map((s: any) => ({ ...s, appointmentId: appt.id, tenantId })));
     }
+    auditLog({ tenantId, userId, action: "appointment.created", tableName: "appointments", recordId: appt.id, newData: { scheduledAt: appt.scheduledAt, totalPrice: appt.totalPrice } });
     return reply.status(201).send({ success: true, data: appt });
   });
 
