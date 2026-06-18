@@ -6,6 +6,7 @@ import HomePage from './HomePage';
 import DiscoveryPage from './DiscoveryPage';
 import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import BookingPage from './BookingPage';
+import SuperAdminLogsModal from './SuperAdminLogsModal';
 import AuditLogsPage from './AuditLogsPage';
 import OnboardingWizard from './OnboardingWizard';
 import LandingPageSobre from './LandingPageSobre';
@@ -2470,6 +2471,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [saTab, setSaTab]     = useState<string>("tenants");
   const [saLogs, setSaLogs]   = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
   const [stats, setStats]     = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [search, setSearch]   = useState("");
@@ -2626,6 +2628,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           <Badge label="SUPER ADMIN" color={C.gold} />
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+          <button onClick={() => setShowLogs(true)} style={{ background:"none", border:`1px solid ${C.gold}40`, borderRadius:8, color:C.gold, fontSize:12, cursor:"pointer", fontFamily:FB, padding:"6px 14px" }}>Log de Acoes</button>
           <a href="/" style={{ fontSize:12, color:C.textMuted, textDecoration:"none" }}>? Sistema</a>
           <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:12, cursor:"pointer", fontFamily:FB }}>Sair</button>
         </div>
@@ -2807,6 +2810,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           </div>
         )}
       </Modal>
+      {showLogs && <SuperAdminLogsModal base={base} token={token} onClose={() => setShowLogs(false)} />}
       <PlanSettingsPanel saFetch={saFetch} />
     </div>
   );
