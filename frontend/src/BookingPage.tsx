@@ -12,10 +12,39 @@ const FB = "'Inter', sans-serif";
 
 type Step = "servico" | "profissional" | "data" | "dados" | "confirmado";
 
-interface Tenant { id:string; name:string; slug:string; logoUrl?:string; primaryColor?:string; phone?:string; addressCity?:string; addressState?:string; businessHours?:any; }
+interface Tenant { id:string; name:string; slug:string; logoUrl?:string; coverUrl?:string; primaryColor?:string; phone?:string; addressCity?:string; addressState?:string; businessHours?:any; businessType?:string; whatsapp?:string; }
 interface Service { id:string; name:string; durationMinutes:number; price:number; description?:string; }
 interface Professional { id:string; fullName:string; displayName?:string; avatarUrl?:string; specialties?:string[]; color?:string; }
 type Slot = string;
+
+
+const COVER_DEFAULTS: any = {
+  beauty_salon:      "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200&q=80",
+  barbershop:        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1200&q=80",
+  aesthetics_clinic: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80",
+};
+
+function BookingHero({ tenant, accent }: { tenant: Tenant; accent: string }) {
+  const cover = tenant.coverUrl || COVER_DEFAULTS[tenant.businessType ?? "beauty_salon"] || COVER_DEFAULTS.beauty_salon;
+  const city = [tenant.addressCity, tenant.addressState].filter(Boolean).join(", ");
+  return (
+    <div style={{
+      position: "relative", height: 220, overflow: "hidden",
+      background: `url(${cover}) center/cover no-repeat`,
+    }}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)" }} />
+      <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", padding: "0 24px", textAlign: "center" as const }}>
+        {tenant.logoUrl && (
+          <img src={tenant.logoUrl} alt={tenant.name}
+            style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover" as const, border: `3px solid ${accent}`, marginBottom: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.4)" }} />
+        )}
+        <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: "0 0 4px", fontFamily: "'Outfit', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>{tenant.name}</h1>
+        {city && <div style={{ fontSize: ".8rem", color: "rgba(255,255,255,0.75)", marginBottom: 6 }}>📍 {city}</div>}
+        <div style={{ fontSize: ".78rem", color: accent, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase" as const }}>Agendamento Online</div>
+      </div>
+    </div>
+  );
+}
 
 export default function BookingPage({ slug }: { slug: string }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
