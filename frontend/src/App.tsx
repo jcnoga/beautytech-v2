@@ -492,8 +492,57 @@ function DashboardPage() {
 
   const k = kpis ?? MOCK_KPIS;
 
+  const impToken = sessionStorage.getItem("impersonation_token");
+  const impTenantName = sessionStorage.getItem("impersonation_tenant_name");
+  const impSaToken = sessionStorage.getItem("impersonation_sa_token");
+
   return (
     <div>
+      {impToken && (
+        <div style={{
+          background: "#FF6B00",
+          color: "#fff",
+          padding: "10px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          fontFamily: "Outfit, sans-serif",
+          fontSize: 14,
+          fontWeight: 600,
+          position: "sticky",
+          top: 0,
+          zIndex: 9999,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:18 }}>👁️</span>
+            <span>Modo Impersonation — Você está acessando como <strong>{impTenantName}</strong></span>
+          </div>
+          <button
+            onClick={() => {
+              const saToken = impSaToken ?? "";
+              sessionStorage.removeItem("impersonation_token");
+              sessionStorage.removeItem("impersonation_tenant_name");
+              sessionStorage.removeItem("impersonation_sa_token");
+              sessionStorage.setItem("sa_token", saToken);
+              window.location.href = "/super-admin";
+            }}
+            style={{
+              background: "rgba(255,255,255,0.2)",
+              border: "1px solid rgba(255,255,255,0.5)",
+              color: "#fff",
+              padding: "6px 16px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 13,
+              fontFamily: "Outfit, sans-serif"
+            }}
+          >
+            Sair da Impersonation
+          </button>
+        </div>
+      )}
       <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} action={
         <div style={{ display:"flex", gap:8 }}>
           <Btn small variant="gold" onClick={async () => {
@@ -2554,6 +2603,24 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     finally { setSaving(false); }
   };
 
+  const impersonateTenant = async (id: string, name: string) => {
+    if (!window.confirm(`Acessar painel de "${name}" como administrador?`)) return;
+    try {
+      const res = await fetch(`${API}/api/v1/super-admin/tenants/${id}/impersonate`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
+      });
+      const json = await res.json();
+      if (!json.success) { alert("Erro: " + (json.error ?? "Falha na impersonation")); return; }
+      sessionStorage.setItem("impersonation_token", json.token);
+      sessionStorage.setItem("impersonation_tenant_name", name);
+      sessionStorage.setItem("impersonation_sa_token", token ?? "");
+      window.location.href = "/";
+    } catch (err) {
+      alert("Erro ao acessar tenant");
+    }
+  };
+
   const deleteTenant = async (id: string, name: string) => {
     if (!window.confirm(`Tem certeza que deseja DELETAR o salao "${name}"? Esta acao nao pode ser desfeita.`)) return;
     await saFetch("DELETE", `/super-admin/tenants/${id}`);
@@ -2613,6 +2680,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           : <Btn small variant="gold"   onClick={(e: any) => { e.stopPropagation(); unblock(t.id); }}>Liberar</Btn>
         }
         <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); deleteTenant(t.id, t.name); }}>Deletar</Btn>
+        <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); impersonateTenant(t.id, t.name); }}>Acessar como</Btn>
       </div>
     )},
   ];
@@ -3770,7 +3838,9 @@ const logout = async () => {
   await supabase.auth.signOut();
   setUser(null);
   localStorage.clear();
-  sessionStorage.clear();
+  sessionStorage.removeItem("impersonation_token");
+  sessionStorage.removeItem("impersonation_tenant_name");
+  sessionStorage.removeItem("impersonation_sa_token");
   window.location.href = '/';
 };
   const PAGES: any = {
@@ -3806,7 +3876,8 @@ const logout = async () => {
     </div>
   );
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
-  if (!user) return <LoginPage onLogin={(data: any) => { setUser(data.user); }} />;
+  const isImpersonating = !!sessionStorage.getItem("impersonation_token");
+  if (!user && !isImpersonating) return <LoginPage onLogin={(data: any) => { setUser(data.user); }} />;
 
   return (
     <>

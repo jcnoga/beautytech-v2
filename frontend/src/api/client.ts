@@ -9,6 +9,10 @@ class ApiClient {
   private readonly baseUrl = `${import.meta.env["VITE_API_URL"] ?? "http://localhost:3000"}/api/v1`;
 
   private async getToken(): Promise<string> {
+    // Impersonation: Super Admin acessando como tenant
+    const impToken = sessionStorage.getItem("impersonation_token");
+    if (impToken) return impToken;
+    // Token normal via Supabase
     const { data } = await supabase.auth.getSession();
     const token = data?.session?.access_token;
     if (token) return token;

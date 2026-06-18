@@ -1893,6 +1893,42 @@ export async function protocolSessionsModule(fastify: any) {
     await db.execute(sql`DELETE FROM protocol_sessions WHERE id=${req.params.id} AND tenant_id=${tenantId}`);
     return reply.status(204).send();
   });
+
+  // IMPERSONATION
+  fastify.post("/super-admin/tenants/:id/impersonate", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
+    const tenantId = req.params.id;
+    const superAdminEmail = req.superAdmin.email;
+
+    const tenantResult = await db.execute(sql`SELECT id, name, email FROM tenants WHERE id = ${tenantId} LIMIT 1`);
+    const tenant = ((tenantResult as any).rows ?? [])[0];
+    if (!tenant) return reply.status(404).send({ success: false, error: "Tenant not found" });
+
+    const userResult = await db.execute(sql`SELECT id, email, role FROM users WHERE tenant_id = ${tenantId} AND role = 'admin' LIMIT 1`);
+    const adminUser = ((userResult as any).rows ?? [])[0];
+    if (!adminUser) return reply.status(404).send({ success: false, error: "Admin user not found for this tenant" });
+
+    const jwt = await import("jsonwebtoken");
+    const impersonationToken = jwt.default.sign(
+      {
+        userId: adminUser.id,
+        tenantId: tenant.id,
+        email: adminUser.email,
+        role: adminUser.role,
+        impersonation: true,
+        impersonatedBy: superAdminEmail,
+        tenantName: tenant.name,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "2h" }
+    );
+
+    await db.execute(sql`INSERT INTO audit_logs (tenant_id, user_id, action, details, created_at)
+      VALUES (${tenantId}, ${adminUser.id}, 'IMPERSONATION_START',
+      ${"Super admin " + superAdminEmail + " acessou como tenant " + tenant.name}, now())`);
+
+    return reply.send({ success: true, token: impersonationToken, tenantName: tenant.name });
+  });
+
 }
 
 // TREATMENT PACKAGES MODULE
