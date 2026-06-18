@@ -1494,6 +1494,25 @@ export async function superAdminModule(fastify: FastifyInstance) {
       return reply.status(500).send({ success: false, error: err.message });
     }
   });
+  fastify.get("/super-admin/audit-logs", { preHandler: [requireSuperAdmin] }, async (_req: any, reply: any) => {
+    const data = await db.select({
+      id: auditLogs.id,
+      tenantId: auditLogs.tenantId,
+      tenantName: tenants.name,
+      userId: auditLogs.userId,
+      action: auditLogs.action,
+      tableName: auditLogs.tableName,
+      recordId: auditLogs.recordId,
+      newData: auditLogs.newData,
+      createdAt: auditLogs.createdAt,
+    })
+    .from(auditLogs)
+    .leftJoin(tenants, eq(auditLogs.tenantId, tenants.id))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(200);
+    return reply.send({ success: true, data });
+  });
+
   fastify.get("/super-admin/stats", { preHandler: [requireSuperAdmin] }, async (_req, reply) => {
     const now = new Date();
     const [t1, t2, t3, t4, t5, t6] = await Promise.all([

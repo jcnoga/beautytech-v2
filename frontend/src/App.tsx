@@ -2467,6 +2467,9 @@ function SuperAdminApp() {
 }
 
 function SuperAdminDashboard({ token, onLogout }: any) {
+  const [saTab, setSaTab]     = useState<string>("tenants");
+  const [saLogs, setSaLogs]   = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
   const [stats, setStats]     = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [search, setSearch]   = useState("");
@@ -2490,6 +2493,14 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     return res.json();
   };
 
+  const loadLogs = async () => {
+  setLogsLoading(true);
+  try {
+    const res = await saFetch("GET", "/super-admin/audit-logs?limit=100");
+    setSaLogs(res.data ?? []);
+  } catch(e) { console.error(e); }
+  finally { setLogsLoading(false); }
+};
   const load = async () => {
     setLoading(true);
     try {
@@ -2621,6 +2632,14 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       </div>
 
       <div style={{ padding:"32px 48px 32px 32px" }}>
+      <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
+  {([["tenants","Saloes"],["logs","Log de Acoes"]] as [string,string][]).map(([id,label]) => (
+    <button key={id} onClick={() => { setSaTab(id); if(id==="logs") loadLogs(); }}
+      style={{padding:"10px 20px",background:"none",border:"none",borderBottom:`2px solid ${saTab===id?C.gold:"transparent"}`,color:saTab===id?C.gold:C.textMuted,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:FB,marginBottom:-1}}>
+      {label}
+    </button>
+  ))}
+</div>
         <PageHeader title="Painel Super Admin" sub="Gestao de saloes, trials e acessos" />
 
         {/* KPIs */}
