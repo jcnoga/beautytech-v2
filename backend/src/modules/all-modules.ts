@@ -1556,9 +1556,9 @@ export async function superAdminModule(fastify: FastifyInstance) {
       { expiresIn: "2h" }
     );
 
-    await db.execute(sql`INSERT INTO audit_logs (tenant_id, user_id, action, details, created_at)
-      VALUES (${tenantId}, ${adminUser.id}, 'IMPERSONATION_START',
-      ${"Super admin " + superAdminEmail + " acessou como tenant " + tenant.name}, now())`);
+    await db.execute(sql`INSERT INTO audit_logs (tenant_id, user_id, action, table_name, new_data, created_at)
+      VALUES (${tenantId}, ${adminUser.id}, 'IMPERSONATION_START', 'tenants',
+      ${JSON.stringify({ impersonatedBy: superAdminEmail, tenantName: tenant.name })}, now())`);
 
     return reply.send({ success: true, token: impersonationToken, tenantName: tenant.name });
   });
