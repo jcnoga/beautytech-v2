@@ -48,6 +48,18 @@ export default function OnboardingWizard({ tenantName, onComplete }: OnboardingP
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [slug, setSlug] = useState("");
+
+  // Busca slug ao montar
+  useState(() => {
+    const token = getToken();
+    if (token) {
+      fetch(`${API}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => { const t = d.data ?? d; setSlug(t.slug ?? ""); })
+        .catch(() => {});
+    }
+  });
 
   // Step 1 - Perfil do salao
   const [nome, setNome] = useState(tenantName ?? "");
@@ -189,9 +201,9 @@ export default function OnboardingWizard({ tenantName, onComplete }: OnboardingP
               <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 24, lineHeight: 1.7 }}>
                 Seu salao esta configurado. Agora voce pode compartilhar seu link de agendamento com seus clientes.
               </div>
-              <div style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: C.gold, fontFamily: "monospace", wordBreak: "break-all" as const }}>
-                zensalon.com.br/agendar/...
-              </div>
+              <a href={`https://www.zensalon.com.br/agendar/${slug}`} target="_blank" style={{ display: "block", background: C.surface, borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: C.gold, fontFamily: "monospace", wordBreak: "break-all" as const, textDecoration: "none" }}>
+                {`zensalon.com.br/agendar/${slug || '...'}`}
+              </a>
               <div style={{ fontSize: 12, color: C.textMuted }}>
                 Dica: Configure os horarios de atendimento do profissional em Profissionais para que seus clientes possam agendar online.
               </div>
