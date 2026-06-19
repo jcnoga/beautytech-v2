@@ -13,7 +13,7 @@ import {
 
 export async function billingRoutes(fastify: any) {
   const ASAAS_KEY = (process.env.ASAAS_API_KEY ?? "").startsWith("$") ? process.env.ASAAS_API_KEY! : `$${process.env.ASAAS_API_KEY ?? ""}`;
-  const ASAAS_URL = "https://sandbox.asaas.com/api/v3";
+  const ASAAS_URL = process.env.ASAAS_BASE_URL ?? "https://sandbox.asaas.com/api/v3";
   const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? "";
 
   if (!ASAAS_KEY) {
@@ -145,7 +145,7 @@ export async function billingRoutes(fastify: any) {
       return reply.status(500).send({ success: false, error: "Erro ao criar assinatura: " + JSON.stringify(subscription) });
     }
 
-    // Cobrança com crédito aplicado se upgrade
+    // Cobranï¿½a com crï¿½dito aplicado se upgrade
     let firstCharge: any = null;
     if (creditBrl > 0 && finalAmount > 0) {
       firstCharge = await asaasFetch("POST", "/payments", {
