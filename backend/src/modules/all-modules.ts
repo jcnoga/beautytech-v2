@@ -1370,7 +1370,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
 
   
   fastify.patch("/super-admin/tenants/:id/whatsapp-mode", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
-    const { whatsapp_mode, whatsapp_api_url, whatsapp_api_key } = req.body as any;
+    const { whatsapp_mode, whatsapp_api_url, whatsapp_api_key, whatsapp_instance } = req.body as any;
     const valid = ["manual", "local", "zapi", "cloud"];
     if (!valid.includes(whatsapp_mode)) return reply.status(400).send({ success: false, error: "Modo invalido" });
     const [tenant] = await db.update(tenants).set({

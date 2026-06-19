@@ -2598,6 +2598,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
         whatsapp_mode: whatsappMode,
         whatsapp_api_url: whatsappUrl || null,
         whatsapp_api_key: whatsappKey || null,
+        whatsapp_instance: whatsappInstance || null,
       });
       load();
     } catch(e) { console.error(e); }
@@ -2675,7 +2676,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     }},
     { key:"action", label:"Acoes", render: (t: any) => (
       <div style={{ display:"flex", gap:6 }}>
-        <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); }}>Gerenciar</Btn>
+        <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); }}>Gerenciar</Btn>
         {t.isActive
           ? <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); block(t.id); }}>Bloquear</Btn>
           : <Btn small variant="gold"   onClick={(e: any) => { e.stopPropagation(); unblock(t.id); }}>Liberar</Btn>
@@ -2740,7 +2741,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
         {loading
           ? <div style={{ textAlign:"center", padding:60, color:C.textMuted }}>Carregando...</div>
-          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); }} emptyMsg="Nenhum salao encontrado." />
+          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); }} emptyMsg="Nenhum salao encontrado." />
         }
       </div>
 {saTab === "logs" && (
@@ -2851,6 +2852,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
               {(whatsappMode === "local" || whatsappMode === "zapi") && (
                 <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12 }}>
                   <Inp label="URL da API" value={whatsappUrl} onChange={setWhatsappUrl} placeholder="https://..." />
+                   <Inp label="Instance Name" value={whatsappInstance} onChange={setWhatsappInstance} placeholder="zensalon" />
                   <Inp label="API Key" value={whatsappKey} onChange={setWhatsappKey} placeholder="sua-chave" />
                 </div>
               )}
