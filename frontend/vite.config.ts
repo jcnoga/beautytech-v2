@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+            registerType: "autoUpdate",
+            injectRegister: "auto",
+            strategies: "generateSW",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
         name:  "ZenSalon - Gestao de Salao",
@@ -25,6 +27,8 @@ export default defineConfig({
         ]
       },
       workbox: {
+              skipWaiting: true,
+              clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
