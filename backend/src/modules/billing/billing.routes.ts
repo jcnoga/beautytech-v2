@@ -15,6 +15,7 @@ export async function billingRoutes(fastify: any) {
   const ASAAS_KEY = (process.env.ASAAS_API_KEY ?? "").startsWith("$") ? process.env.ASAAS_API_KEY! : `$${process.env.ASAAS_API_KEY ?? ""}`;
   const ASAAS_URL = process.env.ASAAS_BASE_URL ?? "https://sandbox.asaas.com/api/v3";
   const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? "";
+  console.log("[BILLING] KEY_PREFIX:", ASAAS_KEY.substring(0,20), "URL:", ASAAS_URL);
 
   if (!ASAAS_KEY) {
     console.warn("[BILLING] ASAAS_API_KEY nao configurada");
