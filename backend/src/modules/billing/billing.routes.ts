@@ -40,10 +40,13 @@ export async function billingRoutes(fastify: any) {
       await db.update(tenants).set({ asaasCustomerId: id, updatedAt: new Date() }).where(eq(tenants.id, tenant.id));
       return id;
     }
+    const cpfCnpj = (tenant.settings as any)?.cpfCnpj ?? null;
+    if (!cpfCnpj) throw new Error("CPF/CNPJ necessario para criar assinatura.");
     const created = await asaasFetch("POST", "/customers", {
       name: tenant.name,
       email: tenant.email,
       phone: tenant.phone ?? undefined,
+      cpfCnpj: cpfCnpj.replace(/\D/g, ""),
       notificationDisabled: false,
     });
     if (!created.id) throw new Error("Erro ao criar cliente no Asaas: " + JSON.stringify(created));
