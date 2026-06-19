@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 
 export default function LandingPageSobre() {
   const [period, setPeriod] = useState("mensal");
@@ -178,7 +178,7 @@ export default function LandingPageSobre() {
                 </li>
               ))}
             </ul>
-            <a href="/register" style={{ display:"block", textAlign:"center", padding:"10px 0", border:`1px solid ${C.border}`, borderRadius:50, color:C.text, textDecoration:"none", fontWeight:700, fontSize:".8rem" }}>Testar 14 dias gratis</a>
+            <a href="/register" style={{ display:"block", textAlign:"center", padding:"10px 0", border:`1px solid ${C.border}`, borderRadius:50, color:C.text, textDecoration:"none", fontWeight:700, fontSize:".8rem" }}>Assinar por R$39,90/mes</a>
           </div>
 
           {/* PRO */}
@@ -199,7 +199,7 @@ export default function LandingPageSobre() {
                 </li>
               ))}
             </ul>
-            <a href="/register" style={{ display:"block", textAlign:"center", padding:"10px 0", background:C.rose, borderRadius:50, color:"#fff", textDecoration:"none", fontWeight:700, fontSize:".8rem" }}>Testar 14 dias gratis</a>
+            <a href="/register" style={{ display:"block", textAlign:"center", padding:"10px 0", background:C.rose, borderRadius:50, color:"#fff", textDecoration:"none", fontWeight:700, fontSize:".8rem" }}>Assinar por R$59,90/mes</a>
           </div>
 
           {/* SUPER */}
@@ -219,7 +219,7 @@ export default function LandingPageSobre() {
                 </li>
               ))}
             </ul>
-            <a href="/register" style={{ display:"block", textAlign:"center", padding:"10px 0", border:`1px solid ${C.border}`, borderRadius:50, color:C.text, textDecoration:"none", fontWeight:700, fontSize:".8rem" }}>Testar 14 dias gratis</a>
+            <a href="/register" style={{ display:"block", textAlign:"center", padding:"10px 0", border:`1px solid ${C.border}`, borderRadius:50, color:C.text, textDecoration:"none", fontWeight:700, fontSize:".8rem" }}>Assinar por R$99,90/mes</a>
           </div>
 
         </div>
