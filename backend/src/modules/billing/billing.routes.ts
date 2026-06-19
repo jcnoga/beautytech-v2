@@ -32,27 +32,35 @@ export async function billingRoutes(fastify: any) {
     try { return text ? JSON.parse(text) : {}; } catch { return {}; }
   };
 
-  const getOrCreateCustomer = async (tenant: any): Promise<string> => {
-    if (tenant.asaasCustomerId) return tenant.asaasCustomerId;
-    const existing = await asaasFetch("GET", `/customers?email=${encodeURIComponent(tenant.email)}`);
-    if (existing?.data?.length > 0) {
-      const id = existing.data[0].id;
-      await db.update(tenants).set({ asaasCustomerId: id, updatedAt: new Date() }).where(eq(tenants.id, tenant.id));
-      return id;
-    }
-    const cpfCnpj = (tenant.settings as any)?.cpfCnpj ?? null;
-    if (!cpfCnpj) throw new Error("CPF/CNPJ necessario para criar assinatura.");
-    const created = await asaasFetch("POST", "/customers", {
-      name: tenant.name,
-      email: tenant.email,
-      phone: tenant.phone ?? undefined,
-      cpfCnpj: cpfCnpj.replace(/\D/g, ""),
-      notificationDisabled: false,
-    });
-    if (!created.id) throw new Error("Erro ao criar cliente no Asaas: " + JSON.stringify(created));
-    await db.update(tenants).set({ asaasCustomerId: created.id, updatedAt: new Date() }).where(eq(tenants.id, tenant.id));
-    return created.id;
-  };
+      const getOrCreateCustomer = async (tenant: any): Promise<string> => {
+        const cpfCnpj = (tenant.settings as any)?.cpfCnpj ?? null;
+        if (!cpfCnpj) throw new Error("CPF/CNPJ necessario para criar assinatura.");
+        const cleanCpf = cpfCnpj.replace(/\D/g, "");
+
+        if (tenant.asaasCustomerId) {
+          await asaasFetch("POST", `/customers/${tenant.asaasCustomerId}`, { cpfCnpj: cleanCpf });
+          return tenant.asaasCustomerId;
+        }
+
+        const existing = await asaasFetch("GET", `/customers?email=${encodeURIComponent(tenant.email)}`);
+        if (existing?.data?.length > 0) {
+          const id = existing.data[0].id;
+          await asaasFetch("POST", `/customers/${id}`, { cpfCnpj: cleanCpf });
+          await db.update(tenants).set({ asaasCustomerId: id, updatedAt: new Date() }).where(eq(tenants.id, tenant.id));
+          return id;
+        }
+
+        const created = await asaasFetch("POST", "/customers", {
+          name: tenant.name,
+          email: tenant.email,
+          phone: tenant.phone ?? undefined,
+          cpfCnpj: cleanCpf,
+          notificationDisabled: false,
+        });
+        if (!created.id) throw new Error("Erro ao criar cliente no Asaas: " + JSON.stringify(created));
+        await db.update(tenants).set({ asaasCustomerId: created.id, updatedAt: new Date() }).where(eq(tenants.id, tenant.id));
+        return created.id;
+      };
 
   // GET /billing/plans
   fastify.get("/billing/plans", async (_req: any, reply: any) => {
