@@ -1638,15 +1638,16 @@ export async function demoModule(fastify: FastifyInstance) {
     const isBarber = btype === "barbershop";
 
     // ---- PROFISSIONAIS ----
+    const defaultWH = {"0":{"enabled":false,"start":null,"end":null},"1":{"enabled":true,"start":"08:00","end":"18:00","breakStart":"12:00","breakEnd":"13:30"},"2":{"enabled":true,"start":"08:00","end":"18:00","breakStart":"12:00","breakEnd":"13:30"},"3":{"enabled":true,"start":"08:00","end":"18:00","breakStart":"12:00","breakEnd":"13:30"},"4":{"enabled":true,"start":"08:00","end":"18:00","breakStart":"12:00","breakEnd":"13:30"},"5":{"enabled":true,"start":"08:00","end":"18:00","breakStart":"12:00","breakEnd":"13:30"},"6":{"enabled":true,"start":"08:00","end":"12:00","breakStart":null,"breakEnd":null}};
     const profData = isClinic ? [
-      { tenantId, fullName: "Dra. Marina Demo Santos", specialization: "Esteticista", commissionPct: "50", monthlyGoal: "8000", isActive: true },
-      { tenantId, fullName: "Julia Demo Costa", specialization: "Auxiliar de Estetica", commissionPct: "45", monthlyGoal: "6000", isActive: true },
+      { tenantId, fullName: "Dra. Marina Demo Santos", specialization: "Esteticista", commissionPct: "50", monthlyGoal: "8000", isActive: true, workingHours: defaultWH },
+      { tenantId, fullName: "Julia Demo Costa", specialization: "Auxiliar de Estetica", commissionPct: "45", monthlyGoal: "6000", isActive: true, workingHours: defaultWH },
     ] : isBarber ? [
-      { tenantId, fullName: "Carlos Demo Silva", specialization: "Barbeiro", commissionPct: "50", monthlyGoal: "5000", isActive: true },
-      { tenantId, fullName: "Pedro Demo Barbosa", specialization: "Barbeiro Senior", commissionPct: "45", monthlyGoal: "4000", isActive: true },
+      { tenantId, fullName: "Carlos Demo Silva", specialization: "Barbeiro", commissionPct: "50", monthlyGoal: "5000", isActive: true, workingHours: defaultWH },
+      { tenantId, fullName: "Pedro Demo Barbosa", specialization: "Barbeiro Senior", commissionPct: "45", monthlyGoal: "4000", isActive: true, workingHours: defaultWH },
     ] : [
-      { tenantId, fullName: "Marina Demo Santos", specialization: "Cabeleireira", commissionPct: "50", monthlyGoal: "5000", isActive: true },
-      { tenantId, fullName: "Julia Demo Costa", specialization: "Manicure", commissionPct: "45", monthlyGoal: "4000", isActive: true },
+      { tenantId, fullName: "Marina Demo Santos", specialization: "Cabeleireira", commissionPct: "50", monthlyGoal: "5000", isActive: true, workingHours: defaultWH },
+      { tenantId, fullName: "Julia Demo Costa", specialization: "Manicure", commissionPct: "45", monthlyGoal: "4000", isActive: true, workingHours: defaultWH },
     ];
     const insertedProfs = await db.insert(professionals).values(profData).returning();
 
