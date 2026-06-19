@@ -114,8 +114,8 @@ export async function publicBookingModule(fastify: FastifyInstance) {
     } else {
       // Fallback para workingHours antigo
       const wh = (professional.workingHours as any) ?? {};
-      const dayConfig = wh[dayName];
-      if (!dayConfig || !dayConfig.enabled) {
+      const dayConfig = wh[String(dayOfWeek)] ?? wh[dayName];
+      if (!dayConfig || (!dayConfig.enabled && !dayConfig.isWorking)) {
         return reply.send({ success: true, data: [], message: "Profissional nao trabalha neste dia" });
       }
       [startH, startM] = (dayConfig.start ?? "08:00").split(":").map(Number);
