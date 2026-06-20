@@ -1056,7 +1056,8 @@ export async function authModule(fastify: FastifyInstance) {
         addressZip: addressZip ?? null,
         hasWifi: hasWifi ?? false,
         hasParking: hasParking ?? false,
-        settings: cpfCnpj ? { cpfCnpj } : {},
+        cpfCnpj: cpfCnpj ?? null,
+        settings: {},
       }).returning();
       await db.insert(userProfiles).values({
         tenantId: tenant.id,

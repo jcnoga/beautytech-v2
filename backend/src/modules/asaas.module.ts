@@ -30,7 +30,7 @@ export async function asaasModule(fastify: any) {
   };
 
   const getOrCreateAsaasCustomer = async (tenant: any) => {
-    const cpfCnpj = tenant.settings?.cpfCnpj;
+    const cpfCnpj = tenant.cpfCnpj;
     if (tenant.settings?.asaasCustomerId) {
       if (cpfCnpj) {
         await asaasFetch("PUT", `/customers/${tenant.settings.asaasCustomerId}`, { cpfCnpj });
@@ -61,7 +61,7 @@ export async function asaasModule(fastify: any) {
     const { tenantId } = req.tenantContext;
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
     if (!tenant.email) return reply.status(400).send({ success: false, error: "Email do salao nao configurado." });
-    if (!tenant.settings?.cpfCnpj) return reply.status(400).send({ success: false, error: "CPF/CNPJ do salao nao configurado. Acesse Configuracoes para cadastrar." });
+    if (!tenant.cpfCnpj) return reply.status(400).send({ success: false, error: "CPF/CNPJ do salao nao configurado. Acesse Configuracoes para cadastrar." });
 
     const customerId = await getOrCreateAsaasCustomer(tenant);
 
