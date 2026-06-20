@@ -10,7 +10,7 @@ const C = {
 };
 const FB = "'Inter', sans-serif";
 
-type Step = "servico" | "profissional" | "data" | "dados" | "confirmado";
+type Step = "data" | "servico" | "profissional" | "horario" | "dados" | "confirmado";
 
 interface Tenant { id:string; name:string; slug:string; logoUrl?:string; coverUrl?:string; primaryColor?:string; phone?:string; addressCity?:string; addressState?:string; businessHours?:any; businessType?:string; whatsapp?:string; }
 interface Service { id:string; name:string; durationMinutes:number; price:number; description?:string; }
@@ -51,7 +51,7 @@ export default function BookingPage({ slug }: { slug: string }) {
   const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
-  const [step, setStep] = useState<Step>("servico");
+  const [step, setStep] = useState<Step>("data");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -152,25 +152,48 @@ export default function BookingPage({ slug }: { slug: string }) {
       {/* STEPS */}
       {step !== "confirmado" && (
         <div style={{display:"flex",justifyContent:"center",gap:8,padding:"20px 24px 0"}}>
-          {(["servico","profissional","data","dados"] as Step[]).map((s,i) => (
+          {(["data","servico","profissional","horario","dados"] as Step[]).map((s,i) => (
             <div key={s} style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{
                 width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
                 fontSize:12,fontWeight:700,
-                background: step===s ? accent : ["servico","profissional","data","dados"].indexOf(step) > i ? `${C.green}30` : C.card2,
-                color: step===s ? "#fff" : ["servico","profissional","data","dados"].indexOf(step) > i ? C.green : C.textMuted,
-                border: `2px solid ${step===s ? accent : ["servico","profissional","data","dados"].indexOf(step) > i ? C.green : C.border}`,
+                background: step===s ? accent : ["data","servico","profissional","horario","dados"].indexOf(step) > i ? `${C.green}30` : C.card2,
+                color: step===s ? "#fff" : ["data","servico","profissional","horario","dados"].indexOf(step) > i ? C.green : C.textMuted,
+                border: `2px solid ${step===s ? accent : ["data","servico","profissional","horario","dados"].indexOf(step) > i ? C.green : C.border}`,
               }}>{i+1}</div>
               <span style={{fontSize:11,color:step===s?accent:C.textMuted,display:"none"}}>
-                {["Serviço","Profissional","Data","Dados"][i]}
+                {["Data","Serviço","Profissional","Horário","Dados"][i]}
               </span>
-              {i<3 && <div style={{width:24,height:1,background:C.border}} />}
+              {i<4 && <div style={{width:24,height:1,background:C.border}} />}
             </div>
           ))}
         </div>
       )}
 
       <div style={{maxWidth:560,margin:"0 auto",padding:"24px 16px"}}>
+
+        {/* STEP DATA (novo - primeiro passo) */}
+        {step === "data" && (
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:6}}>Escolha a data</h2>
+            <p style={{color:C.textMuted,fontSize:13,marginBottom:20}}>Quando você quer ser atendido?</p>
+            <div style={{marginBottom:20}}>
+              <label style={{fontSize:13,color:C.textMuted,fontWeight:600,display:"block",marginBottom:6}}>Data</label>
+              <input type="date" min={today} value={selDate}
+                onChange={e=>setSelDate(e.target.value)}
+                style={{
+                  width:"100%",background:C.card2,border:`1px solid ${C.border}`,
+                  borderRadius:10,color:C.text,padding:"12px 14px",fontSize:14,
+                  outline:"none",fontFamily:FB,
+                }}
+              />
+            </div>
+            <button onClick={() => { if (selDate) setStep("servico"); }} disabled={!selDate}
+              style={{...btnStyle(!!selDate), width:"100%"}}>
+              Continuar →
+            </button>
+          </div>
+        )}
 
         {/* STEP 1: SERVICO */}
         {step === "servico" && (
@@ -198,6 +221,9 @@ export default function BookingPage({ slug }: { slug: string }) {
                 </div>
               ))}
             </div>
+            <button onClick={() => setStep("data")} style={{...btnStyle(true),background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted,marginTop:16}}>
+              ← Voltar
+            </button>
           </div>
         )}
 
@@ -208,7 +234,7 @@ export default function BookingPage({ slug }: { slug: string }) {
             <p style={{color:C.textMuted,fontSize:13,marginBottom:20}}>Com quem você prefere ser atendido?</p>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {professionals.map(p => (
-                <div key={p.id} onClick={() => { setSelPro(p); setStep("data"); }}
+                <div key={p.id} onClick={() => { setSelPro(p); setStep("horario"); }}
                   style={{
                     background:C.card, border:`2px solid ${selPro?.id===p.id?accent:C.border}`,
                     borderRadius:12, padding:"16px 20px", cursor:"pointer", transition:"all .2s",
@@ -237,52 +263,36 @@ export default function BookingPage({ slug }: { slug: string }) {
           </div>
         )}
 
-        {/* STEP 3: DATA E HORARIO */}
-        {step === "data" && (
+        {/* STEP HORARIO (novo) */}
+        {step === "horario" && (
           <div>
-            <h2 style={{fontSize:20,fontWeight:800,marginBottom:6}}>Escolha data e horário</h2>
-            <p style={{color:C.textMuted,fontSize:13,marginBottom:20}}>Selecione quando você quer ser atendido</p>
-            <div style={{marginBottom:20}}>
-              <label style={{fontSize:13,color:C.textMuted,fontWeight:600,display:"block",marginBottom:6}}>Data</label>
-              <input type="date" min={today} value={selDate}
-                onChange={e=>{setSelDate(e.target.value);setSelTime("");}}
-                style={{
-                  width:"100%",background:C.card2,border:`1px solid ${C.border}`,
-                  borderRadius:10,color:C.text,padding:"12px 14px",fontSize:14,
-                  outline:"none",fontFamily:FB,
-                }}
-              />
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:6}}>Escolha o horário</h2>
+            <p style={{color:C.textMuted,fontSize:13,marginBottom:20}}>Horários disponíveis em {selDate}</p>
+            <div>
+              {(() => {
+                const allSlots = [];
+                for (let h = 8; h < 18; h++) {
+                  allSlots.push(String(h).padStart(2,"0")+":00");
+                  allSlots.push(String(h).padStart(2,"0")+":30");
+                }
+                if (slots.length === 0) return <p style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhum horario disponivel.</p>;
+                return (
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                    {allSlots.map(s => {
+                      const ok = slots.includes(s);
+                      const sel = selTime === s;
+                      return (
+                        <div key={s} onClick={() => ok && setSelTime(s)}
+                          style={{padding:"10px 0",textAlign:"center",borderRadius:10,cursor:ok?"pointer":"default",border:"2px solid "+(sel?accent:ok?"#22C55E40":"#EF444430"),background:sel?accent+"20":ok?"#22C55E10":"#EF444410",color:sel?accent:ok?"#22C55E":"#EF4444",fontWeight:sel?700:500,fontSize:13}}>
+                          {s}
+                          {!ok && <div style={{fontSize:9,marginTop:1}}>ocupado</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
-            {selDate && (
-              <div>
-                <label style={{fontSize:13,color:C.textMuted,fontWeight:600,display:"block",marginBottom:10}}>
-                  Horários disponíveis
-                </label>
-                {(() => {
-                  const allSlots = [];
-                  for (let h = 8; h < 18; h++) {
-                    allSlots.push(String(h).padStart(2,"0")+":00");
-                    allSlots.push(String(h).padStart(2,"0")+":30");
-                  }
-                  if (slots.length === 0) return <p style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhum horario disponivel.</p>;
-                  return (
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-                      {allSlots.map(s => {
-                        const ok = slots.includes(s);
-                        const sel = selTime === s;
-                        return (
-                          <div key={s} onClick={() => ok && setSelTime(s)}
-                            style={{padding:"10px 0",textAlign:"center",borderRadius:10,cursor:ok?"pointer":"default",border:"2px solid "+(sel?accent:ok?"#22C55E40":"#EF444430"),background:sel?accent+"20":ok?"#22C55E10":"#EF444410",color:sel?accent:ok?"#22C55E":"#EF4444",fontWeight:sel?700:500,fontSize:13}}>
-                            {s}
-                            {!ok && <div style={{fontSize:9,marginTop:1}}>ocupado</div>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
             <div style={{display:"flex",gap:10,marginTop:20}}>
               <button onClick={() => setStep("profissional")} style={{...btnStyle(true),background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted,flex:1}}>
                 ← Voltar
@@ -338,7 +348,7 @@ export default function BookingPage({ slug }: { slug: string }) {
             {error && <div style={{background:`${C.error}15`,border:`1px solid ${C.error}40`,borderRadius:8,padding:"10px 14px",marginTop:14,fontSize:13,color:C.error}}>{error}</div>}
 
             <div style={{display:"flex",gap:10,marginTop:20}}>
-              <button onClick={() => setStep("data")} style={{...btnStyle(true),background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted,flex:1}}>
+              <button onClick={() => setStep("horario")} style={{...btnStyle(true),background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted,flex:1}}>
                 ← Voltar
               </button>
               <button
