@@ -2533,6 +2533,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [whatsappMode, setWhatsappMode] = useState("manual");
   const [whatsappUrl, setWhatsappUrl]   = useState("");
   const [whatsappKey, setWhatsappKey]   = useState("");
+  const [whatsappInstance, setWhatsappInstance] = useState("");
 
   const base = import.meta.env["VITE_API_URL"];
 
