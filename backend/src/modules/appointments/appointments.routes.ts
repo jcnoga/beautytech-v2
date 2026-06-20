@@ -259,7 +259,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
 
 // Dispara e-mail de confirmação (fire and forget)
     try {
-      const clientData = await db.select({ email: clients.email, fullName: clients.fullName })
+      const clientData = await db.select({ email: clients.email, fullName: clients.fullName, whatsapp: clients.whatsapp })
         .from(clients).where(eq(clients.id, clientId));
       const tenantData = await db.select({ name: tenants.name })
         .from(tenants).where(eq(tenants.id, tenant.id));
@@ -277,6 +277,23 @@ if (clientData[0]?.email) {
           time: time,
           professionalName: proData[0]?.fullName ?? undefined,
         });
+      }
+      // Dispara confirmacao via WhatsApp (fire and forget)
+      if (clientData[0]?.whatsapp) {
+        try {
+          const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
+          let waNumber = clientData[0].whatsapp.replace(/\D/g, "");
+          if (waNumber.length === 10 || waNumber.length === 11) waNumber = "55" + waNumber;
+          const waMsg = "Ola " + (clientData[0].fullName ?? "Cliente") + "! Seu agendamento na " + (tenantData[0]?.name ?? "Salao") + " foi confirmado.\n\n" +
+            "Servico: " + service.name + "\n" +
+            "Profissional: " + (proData[0]?.fullName ?? "A definir") + "\n" +
+            "Data: " + new Date(scheduledAt).toLocaleDateString("pt-BR") + "\n" +
+            "Horario: " + time + "\n\n" +
+            "Ate breve!";
+          await sendTextMessage(waNumber, waMsg, tenant.id);
+        } catch (waErr: any) {
+          console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
+        }
       }
     } catch (emailErr: any) {
       console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", emailErr.message);
