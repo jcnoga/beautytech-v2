@@ -180,7 +180,11 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
   const planOrder = ["free","basic","pro","super"];
 
   const getCta = (planId: string) => {
-    if (planId === "free") return activePlan === "free" ? "Plano atual" : "Downgrade para Free";
+    if (planId === "free") return activePlan === "free" ? "Comecar gratis" : "Downgrade para Free";
+    if (!token) {
+      const prices: Record<string,string> = { basic:"R$39,90/mes", pro:"R$59,90/mes", super:"R$99,90/mes" };
+      return `Assinar por ${prices[planId] ?? ""}`;
+    }
     if (activePlan === planId) return cancelAtEnd ? "Reativar assinatura" : "Plano atual";
     const ci = planOrder.indexOf(activePlan);
     const ni = planOrder.indexOf(planId);

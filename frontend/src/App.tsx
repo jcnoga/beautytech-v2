@@ -3593,7 +3593,7 @@ function UpgradeButton({ color, onPaymentSuccess }: any) {
   const doUpgrade = async () => {
     setLoading(true);
     try {
-      const r: any = await api.post("/billing/subscribe");
+      const r: any = await api.post("/billing/subscribe", { tier: "basic", period: "monthly" });
       if (r?.data?.paymentUrl) {
         window.open(r.data.paymentUrl, "_blank");
         // Monitora retorno do pagamento
