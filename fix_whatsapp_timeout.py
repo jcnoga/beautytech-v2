@@ -1,4 +1,6 @@
-import { db } from "@db/connection";
+﻿import io
+
+content = """import { db } from "@db/connection";
 import { tenants } from "@db/schema/index";
 import { eq } from "drizzle-orm";
 
@@ -206,3 +208,9 @@ export async function sendTemplateMessage(number: string, template: string, vari
   for (const [key, value] of Object.entries(variables)) { text = text.replace("{{" + key + "}}", value); }
   return sendTextMessage(number, text, tenantId);
 }
+"""
+
+with io.open("src/modules/whatsapp/whatsapp.service.ts", "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("OK - whatsapp.service.ts atualizado com timeout e retry")

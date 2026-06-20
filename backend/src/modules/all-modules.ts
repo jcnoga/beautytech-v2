@@ -1378,6 +1378,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
       whatsappMode: whatsapp_mode,
       whatsappApiUrl: whatsapp_api_url ?? null,
       whatsappApiKey: whatsapp_api_key ?? null,
+      whatsappInstance: whatsapp_instance ?? null,
       updatedAt: new Date(),
     }).where(eq(tenants.id, req.params.id)).returning();
     return reply.send({ success: true, data: tenant });
