@@ -5,6 +5,17 @@ export const supabase = createClient(
   import.meta.env["VITE_SUPABASE_ANON_KEY"],
 );
 
+// Detecta reset de senha antes do React renderizar
+supabase.auth.onAuthStateChange((event) => {
+  if (event === "PASSWORD_RECOVERY") {
+    sessionStorage.setItem("zs_reset", "1");
+    // Forca reload para App.tsx ler o sessionStorage
+    if (!window.location.search.includes("reset=1")) {
+      window.location.replace(window.location.origin + "/?reset=1");
+    }
+  }
+});
+
 class ApiClient {
   private readonly baseUrl = `${import.meta.env["VITE_API_URL"] ?? "http://localhost:3000"}/api/v1`;
 
