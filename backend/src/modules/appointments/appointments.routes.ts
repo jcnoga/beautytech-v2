@@ -201,7 +201,13 @@ export async function publicBookingModule(fastify: FastifyInstance) {
 
     const [existing] = await db.select({ id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp, email: clients.email })
       .from(clients).where(and(eq(clients.tenantId, tenant.id), eq(clients.whatsapp, whatsapp), isNull(clients.deletedAt)));
-    if (existing) return reply.send({ success: true, data: { ...existing, isExisting: true } });
+    if (existing) {
+      if (email && !existing.email) {
+        await db.update(clients).set({ email }).where(eq(clients.id, existing.id));
+        existing.email = email;
+      }
+      return reply.send({ success: true, data: { ...existing, isExisting: true } });
+    }
 
     const [client] = await db.insert(clients).values({
       tenantId: tenant.id, fullName, whatsapp,
@@ -266,7 +272,8 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       const proData = await db.select({ fullName: professionals.fullName })
         .from(professionals).where(eq(professionals.id, professionalId));
 
-if (clientData[0]?.email) {
+const emailToUse = clientData[0]?.email;
+      if (emailToUse) {
         const { sendAppointmentReminderEmail } = await import("../resend.module.js");
         await sendAppointmentReminderEmail({
           to: clientData[0].email,
