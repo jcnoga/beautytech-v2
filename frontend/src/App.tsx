@@ -338,6 +338,7 @@ function ForgotPasswordPage({ onBack }: any) {
 
   const submit = async () => {
     setLoading(true); setError(""); setMsg("");
+      await supabase.auth.signOut();
     const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + "/?reset=1"
     });
