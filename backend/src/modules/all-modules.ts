@@ -997,6 +997,89 @@ export async function authModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: { ...tenant, daysLeft } });
     } catch(e: any) { console.error("auth/me error:", e.message, e.stack); return reply.status(500).send({ success: false, error: e.message }); }
   });
+
+  fastify.post("/auth/forgot-password", async (req: any, reply) => {
+    const { email } = req.body as any;
+    if (!email) return reply.status(400).send({ success: false, error: "Email obrigatorio" });
+
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const frontendUrl = process.env.FRONTEND_URL ?? "https://beautytech-v2.vercel.app";
+
+    try {
+      const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${serviceKey}`,
+          "apikey": serviceKey,
+        },
+        body: JSON.stringify({
+          type: "recovery",
+          email,
+          options: { redirect_to: `${frontendUrl}/#type=recovery` },
+        }),
+      });
+
+      const linkData = await linkRes.json() as any;
+
+      if (!linkRes.ok) {
+        // nao revelar se email existe ou nao
+        return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+      }
+
+      const resetLink = linkData?.action_link ?? linkData?.properties?.action_link;
+      if (!resetLink) return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+
+      const { Resend } = await import("resend");
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+
+      await resend.emails.send({
+        from: "ZenSalon <noreply@zensalon.com.br>",
+        to: email,
+        subject: "Redefinir sua senha — ZenSalon",
+        html: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redefinir Senha</title></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#1a1a2e;border-radius:12px;overflow:hidden;max-width:600px;">
+        <tr><td style="background:linear-gradient(135deg,#c9a96e 0%,#b8895a 100%);padding:32px;text-align:center;">
+          <h1 style="color:#1a1a2e;margin:0;font-size:28px;font-weight:bold;letter-spacing:2px;">✂ ZenSalon</h1>
+          <p style="color:#1a1a2e;margin:8px 0 0;font-size:14px;opacity:0.8;">Gestão Inteligente para Salões</p>
+        </td></tr>
+        <tr><td style="padding:40px 32px;text-align:center;">
+          <h2 style="color:#c9a96e;font-size:22px;margin:0 0 16px;">Redefinição de Senha</h2>
+          <p style="color:#e0e0e0;font-size:15px;line-height:1.6;margin:0 0 32px;">
+            Recebemos uma solicitação para redefinir a senha da sua conta ZenSalon.<br>
+            Clique no botão abaixo para criar uma nova senha.
+          </p>
+          <a href="${resetLink}" style="display:inline-block;background:linear-gradient(135deg,#c9a96e,#b8895a);color:#1a1a2e;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:16px;font-weight:bold;letter-spacing:1px;">
+            🔐 Redefinir Senha
+          </a>
+          <p style="color:#888;font-size:13px;margin:32px 0 0;line-height:1.5;">
+            Este link expira em <strong style="color:#c9a96e;">1 hora</strong>.<br>
+            Se você não solicitou a redefinição, ignore este email.
+          </p>
+        </td></tr>
+        <tr><td style="background:#111;padding:20px 32px;text-align:center;border-top:1px solid #333;">
+          <p style="color:#555;font-size:12px;margin:0;">© ${new Date().getFullYear()} ZenSalon · <a href="https://zensalon.com.br" style="color:#c9a96e;text-decoration:none;">zensalon.com.br</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+      });
+
+      return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+    } catch (err: any) {
+      console.error("[FORGOT-PASSWORD]", err?.message);
+      return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+    }
+  });
+
   fastify.post("/auth/register", async (req: any, reply) => {
     const { salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj,
       addressStreet, addressCity, addressState, addressZip, hasWifi, hasParking } = req.body as any;
