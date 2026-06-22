@@ -3841,7 +3841,7 @@ function ResetPasswordPage() {
     setLoading(true); setError(""); setMsg("");
     const { error: e } = await supabase.auth.updateUser({ password });
     if (e) setError(e.message);
-    else { setMsg("Senha alterada com sucesso! Redirecionando..."); setTimeout(() => { window.location.href = "/"; }, 2000); }
+    else { sessionStorage.removeItem("zs_reset"); setMsg("Senha alterada com sucesso! Redirecionando..."); setTimeout(() => { window.location.href = "/"; }, 2000); }
     setLoading(false);
   };
   return (
@@ -3921,7 +3921,9 @@ const logout = async () => {
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
   const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
-  const isReset = hashParams.get("type") === "recovery" || new URLSearchParams(window.location.search).get("reset") === "1";
+  const hashType = hashParams.get("type");
+  if (hashType === "recovery") sessionStorage.setItem("zs_reset", "1");
+  const isReset = hashType === "recovery" || new URLSearchParams(window.location.search).get("reset") === "1" || sessionStorage.getItem("zs_reset") === "1";
   if (isReset) return <ResetPasswordPage />;
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
