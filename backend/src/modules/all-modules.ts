@@ -1007,6 +1007,7 @@ export async function authModule(fastify: FastifyInstance) {
     const frontendUrl = process.env.FRONTEND_URL ?? "https://beautytech-v2.vercel.app";
 
     try {
+      // Gera link sem disparar email automatico do Supabase
       const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
         method: "POST",
         headers: {
@@ -1024,12 +1025,13 @@ export async function authModule(fastify: FastifyInstance) {
       const linkData = await linkRes.json() as any;
 
       if (!linkRes.ok) {
-        // nao revelar se email existe ou nao
         return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
       }
 
-      const resetLink = linkData?.action_link ?? linkData?.properties?.action_link;
+      const resetLink = linkData?.action_link ?? linkData?.properties?.action_link ?? linkData?.data?.properties?.action_link;
       if (!resetLink) return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+      
+      console.log("[FORGOT-PASSWORD] link gerado para:", email, "link:", resetLink.substring(0, 60) + "...");
 
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY!);
