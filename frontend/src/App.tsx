@@ -340,7 +340,7 @@ function ForgotPasswordPage({ onBack }: any) {
     setLoading(true); setError(""); setMsg("");
       await supabase.auth.signOut();
     const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/?reset=1"
+      redirectTo: "https://beautytech-v2.vercel.app/?reset=1"
     });
     if (e) setError(e.message);
     else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
