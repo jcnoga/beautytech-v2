@@ -3816,8 +3816,14 @@ function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setReady(true);
+    });
+  }, []);
   const submit = async () => {
     if (password !== confirm) { setError("As senhas nao conferem."); return; }
     if (password.length < 6) { setError("Senha deve ter pelo menos 6 caracteres."); return; }
