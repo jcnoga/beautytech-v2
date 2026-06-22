@@ -338,12 +338,18 @@ function ForgotPasswordPage({ onBack }: any) {
 
   const submit = async () => {
     setLoading(true); setError(""); setMsg("");
-      await supabase.auth.signOut();
-    const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://beautytech-v2.vercel.app/?reset=1"
-    });
-    if (e) setError(e.message);
-    else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error ?? "Erro ao enviar email.");
+      else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
+    } catch {
+      setError("Erro de conexao. Tente novamente.");
+    }
     setLoading(false);
   };
 
