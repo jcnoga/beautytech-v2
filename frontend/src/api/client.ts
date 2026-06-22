@@ -6,11 +6,15 @@ export const supabase = createClient(
   { auth: { detectSessionInUrl: true, flowType: "implicit" } }
 );
 
-// Detecta reset de senha e salva flag para App.tsx
+// Detecta reset pelo hash ANTES do Supabase limpar
+(function() {
+  const h = window.location.hash;
+  if (h && h.includes("type=recovery")) sessionStorage.setItem("zs_reset", "1");
+})();
+
+// Tambem captura via evento
 supabase.auth.onAuthStateChange((event) => {
-  if (event === "PASSWORD_RECOVERY") {
-    sessionStorage.setItem("zs_reset", "1");
-  }
+  if (event === "PASSWORD_RECOVERY") sessionStorage.setItem("zs_reset", "1");
 });
 
 class ApiClient {
