@@ -196,9 +196,8 @@ export async function sendTextMessage(number: string, text: string, tenantId: st
   }
   const apiUrl = cfg.mode === "cloud" ? getCloudConfig().apiUrl : (cfg.apiUrl ?? "");
   const apiKey = cfg.mode === "cloud" ? getCloudConfig().apiKey : (cfg.apiKey ?? "");
-  const existing = await findEvolutionInstance(apiUrl, apiKey, tenantId);
-  if (!existing) throw new Error("Instancia nao encontrada");
-  return evolutionRequest(apiUrl, apiKey, "/message/sendText/" + encodeURIComponent(existing.name), "POST", { number, text });
+  const instanceName = cfg.instance ?? "zensalon";
+  return evolutionRequest(apiUrl, apiKey, "/message/sendText/" + encodeURIComponent(instanceName), "POST", { number, text });
 }
 
 export async function sendTemplateMessage(number: string, template: string, variables: Record<string, string>, tenantId: string) {
