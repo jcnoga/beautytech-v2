@@ -1000,6 +1000,7 @@ export async function authModule(fastify: FastifyInstance) {
 
   fastify.post("/auth/forgot-password", async (req: any, reply) => {
     const { email } = req.body as any;
+    console.log("[FORGOT-PASSWORD] email recebido no body:", email);
     if (!email) return reply.status(400).send({ success: false, error: "Email obrigatorio" });
 
     const supabaseUrl = process.env.SUPABASE_URL!;
