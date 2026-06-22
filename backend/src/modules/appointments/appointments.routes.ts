@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+﻿import type { FastifyInstance } from "fastify";
 import { eq, and, isNull, gte, lte, sql } from "drizzle-orm";
 import { db } from "@db/connection";
 import { tenants, services, professionals, clients, appointments, appointmentServices } from "@db/schema/index";
@@ -257,7 +257,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       durationMinutes: service.durationMinutes, total: service.price,
     });
 
-// Dispara e-mail de confirmação (fire and forget)
+// Dispara e-mail de confirmaÃ§Ã£o (fire and forget)
     try {
       const clientData = await db.select({ email: clients.email, fullName: clients.fullName, whatsapp: clients.whatsapp })
         .from(clients).where(eq(clients.id, clientId));
@@ -298,6 +298,18 @@ if (clientData[0]?.email) {
     } catch (emailErr: any) {
       console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", emailErr.message);
     }
+    // Dispara WhatsApp de confirmacao (fire and forget)
+    try {
+      const clientWa = await db.select({ whatsapp: clients.whatsapp, fullName: clients.fullName })
+        .from(clients).where(eq(clients.id, clientId));
+      if (clientWa[0]?.whatsapp) {
+        const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
+        const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR");
+        await sendTextMessage(clientWa[0].whatsapp, "Ola " + (clientWa[0].fullName ?? "") + "! Seu agendamento esta confirmado para " + dateStr + " as " + time + ". Ate la!", tenant.id);
+      }
+    } catch (waErr: any) {
+      console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
+    }
 
     return reply.status(201).send({
       success: true,
@@ -306,3 +318,5 @@ if (clientData[0]?.email) {
     });
   });
 }
+
+
