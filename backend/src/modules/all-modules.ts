@@ -1017,7 +1017,7 @@ export async function authModule(fastify: FastifyInstance) {
         body: JSON.stringify({
           type: "recovery",
           email,
-          options: { redirect_to: `${frontendUrl}/#type=recovery` },
+          options: { redirect_to: `${frontendUrl}/` },
         }),
       });
 

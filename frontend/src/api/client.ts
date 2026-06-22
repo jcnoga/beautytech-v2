@@ -3,16 +3,13 @@
 export const supabase = createClient(
   import.meta.env["VITE_SUPABASE_URL"],
   import.meta.env["VITE_SUPABASE_ANON_KEY"],
+  { auth: { detectSessionInUrl: true, flowType: "implicit" } }
 );
 
-// Detecta reset de senha antes do React renderizar
+// Detecta reset de senha e salva flag para App.tsx
 supabase.auth.onAuthStateChange((event) => {
   if (event === "PASSWORD_RECOVERY") {
     sessionStorage.setItem("zs_reset", "1");
-    // Forca reload para App.tsx ler o sessionStorage
-    if (!window.location.search.includes("reset=1")) {
-      window.location.replace(window.location.origin + "/?reset=1");
-    }
   }
 });
 
