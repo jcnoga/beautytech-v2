@@ -3811,6 +3811,41 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   );
 }
 // --- APP -----------------------------------------------------
+
+function ResetPasswordPage() {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+  const submit = async () => {
+    if (password !== confirm) { setError("As senhas nao conferem."); return; }
+    if (password.length < 6) { setError("Senha deve ter pelo menos 6 caracteres."); return; }
+    setLoading(true); setError(""); setMsg("");
+    const { error: e } = await supabase.auth.updateUser({ password });
+    if (e) setError(e.message);
+    else { setMsg("Senha alterada com sucesso! Redirecionando..."); setTimeout(() => { window.location.href = "/"; }, 2000); }
+    setLoading(false);
+  };
+  return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ width:"100%", maxWidth:420 }}>
+        <div style={{ textAlign:"center", marginBottom:32 }}>
+          <div style={{ fontSize:32, fontWeight:700, color:C.text, fontFamily:FD }}>ZenSalon</div>
+          <div style={{ fontSize:13, color:C.textMuted, marginTop:8 }}>Digite sua nova senha</div>
+        </div>
+        <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:32 }}>
+          <Inp label="Nova senha" value={password} onChange={setPassword} type="password" placeholder="Minimo 6 caracteres" />
+          <Inp label="Confirmar senha" value={confirm} onChange={setConfirm} type="password" placeholder="Repita a senha" />
+          {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color:C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
+          {msg && <div style={{ background:`${C.sage}15`, border:`1px solid ${C.sage}30`, borderRadius:10, padding:"10px 14px", color:C.sage, fontSize:12, marginBottom:16 }}>{msg}</div>}
+          <Btn full onClick={submit} disabled={loading}>{loading ? "Salvando..." : "Alterar senha"}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
@@ -3868,6 +3903,8 @@ const logout = async () => {
   };
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
+  const isReset = new URLSearchParams(window.location.search).get("reset") === "1";
+  if (isReset) return <ResetPasswordPage />;
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
   if (sobreMatch) return <LandingPageSobre />;
