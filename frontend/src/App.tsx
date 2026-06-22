@@ -3826,9 +3826,14 @@ function ResetPasswordPage() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+    // Verifica sessao ja existente (hash ja processado antes do mount)
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) setReady(true);
     });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+    });
+    return () => subscription.unsubscribe();
   }, []);
   const submit = async () => {
     if (password !== confirm) { setError("As senhas nao conferem."); return; }
