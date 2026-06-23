@@ -1802,8 +1802,70 @@ export async function demoModule(fastify: FastifyInstance) {
   // ============================================================
   // POST /demo/seed ? insere dados demo por nicho (idempotente)
   // ============================================================
-  
-  
+  fastify.post("/demo/seed", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+
+    // Verifica nicho do tenant
+    const [tenant] = await db.select({ businessType: tenants.businessType }).from(tenants).where(eq(tenants.id, tenantId));
+    const nicho = tenant?.businessType ?? "beauty_salon";
+
+    // Labels por nicho
+    const nichoLabel: Record<string, string> = {
+      beauty_salon: "Salao", barbershop: "Barbearia", aesthetics_clinic: "Clinica", nail_studio: "Studio"
+    };
+    const label = nichoLabel[nicho] ?? "Demo";
+
+    // Seed de categorias e servicos
+    const [cat] = await db.insert(serviceCategories).values({ tenantId, name: "Demo " + label, color: "#C9847A" }).returning();
+    const [svc1] = await db.insert(services).values({ tenantId, categoryId: cat.id, name: "Demo Limpeza de Pele", durationMinutes: 60, price: "150.00", isActive: true }).returning();
+    const [svc2] = await db.insert(services).values({ tenantId, categoryId: cat.id, name: "Demo Peeling", durationMinutes: 45, price: "120.00", isActive: true }).returning();
+
+    // Seed de profissionais
+    const [prof1] = await db.insert(professionals).values({ tenantId, fullName: "Julia Demo Costa", displayName: "Julia", isActive: true, color: "#6EC9BA" }).returning();
+    const [prof2] = await db.insert(professionals).values({ tenantId, fullName: "Dra. Marina Demo Santos", displayName: "Marina", isActive: true, color: "#C9847A" }).returning();
+
+    // Vincula servicos aos profissionais
+    await db.insert(professionalServices).values([
+      { tenantId, professionalId: prof1.id, serviceId: svc1.id },
+      { tenantId, professionalId: prof1.id, serviceId: svc2.id },
+      { tenantId, professionalId: prof2.id, serviceId: svc1.id },
+      { tenantId, professionalId: prof2.id, serviceId: svc2.id },
+    ]);
+
+    // Seed de clientes
+    const [cli1] = await db.insert(clients).values({ tenantId, fullName: "Julia Demo Costa", phone: "34999000001", whatsapp: "34999000001", tags: ["demo"], isActive: true }).returning();
+    const [cli2] = await db.insert(clients).values({ tenantId, fullName: "Ana Demo Souza", phone: "34999000002", whatsapp: "34999000002", tags: ["demo"], isActive: true }).returning();
+
+    // Seed de agendamentos
+    const hoje = new Date();
+    for (let i = 0; i < 4; i++) {
+      const dt = new Date(hoje);
+      dt.setHours(5 + i * 2, 30, 0, 0);
+      const fim = new Date(dt.getTime() + 60 * 60000);
+      const [appt] = await db.insert(appointments).values({
+        tenantId, clientId: i % 2 === 0 ? cli1.id : cli2.id,
+        professionalId: i % 2 === 0 ? prof1.id : prof2.id,
+        status: "confirmed", scheduledAt: dt, endsAt: fim,
+        durationMinutes: 60, subtotal: "120.00", totalPrice: "120.00",
+        internalNotes: "demo", source: "manual"
+      }).returning();
+      await db.insert(appointmentServices).values({ tenantId, appointmentId: appt.id, serviceId: i % 2 === 0 ? svc1.id : svc2.id, price: "120.00", durationMinutes: 60 });
+    }
+
+    // Seed de templates de automacao
+    const templatesExist = await db.select({ id: messageTemplates.id }).from(messageTemplates).where(eq(messageTemplates.tenantId, tenantId)).limit(1);
+    if (templatesExist.length === 0) {
+      await db.insert(messageTemplates).values([
+        { tenantId, trigger: "appointment_reminder_24h", name: "Lembrete 24h", message: "Ola, {nome}! Lembrando do seu agendamento amanha, dia {data} as {hora}. Te esperamos!", channel: "whatsapp", isActive: true },
+        { tenantId, trigger: "appointment_reminder_2h",  name: "Lembrete 2h",  message: "Ola, {nome}! Seu agendamento e daqui a pouco, as {hora}. Te esperamos!", channel: "whatsapp", isActive: true },
+        { tenantId, trigger: "birthday",                 name: "Aniversario",  message: "Ola, {nome}! Feliz aniversario! Temos um presente especial para voce. Entre em contato!", channel: "whatsapp", isActive: true },
+        { tenantId, trigger: "client_reactivation",      name: "Reativacao",   message: "Ola, {nome}! Sentimos sua falta! Que tal agendar uma visita?", channel: "whatsapp", isActive: true },
+      ]);
+    }
+
+    return reply.send({ success: true, data: { message: "Dados de demonstracao inseridos com sucesso!" } });
+  });
+
   // ============================================================
   // GET /audit-logs - Log de acoes do tenant
   // ============================================================
