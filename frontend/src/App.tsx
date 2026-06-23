@@ -8,6 +8,7 @@ import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import BookingPage from './BookingPage';
 import SuperAdminLogsModal from './SuperAdminLogsModal';
 import AuditLogsPage from './AuditLogsPage';
+import ProspectPage from './ProspectPage';
 import OnboardingWizard from './OnboardingWizard';
 import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
@@ -2839,7 +2840,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
       <div style={{ padding:"32px 48px 32px 32px" }}>
       <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-  {([["tenants","Saloes"],["logs","Log de Acoes"]] as [string,string][]).map(([id,label]) => (
+  {([["tenants","Saloes"],["prospects","Prospecção"],["logs","Log de Acoes"]] as [string,string][]).map(([id,label]) => (
     <button key={id} onClick={() => { setSaTab(id); if(id==="logs") loadLogs(); }}
       style={{padding:"10px 20px",background:"none",border:"none",borderBottom:`2px solid ${saTab===id?C.gold:"transparent"}`,color:saTab===id?C.gold:C.textMuted,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:FB,marginBottom:-1}}>
       {label}
@@ -2877,7 +2878,9 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); }} emptyMsg="Nenhum salao encontrado." />
         }
       </div>
-{saTab === "logs" && (
+{saTab === "prospects" && <ProspectPage token={token} />}
+
+      {saTab === "logs" && (
   <div>
     {logsLoading && <div style={{textAlign:"center",padding:60,color:C.textMuted}}>Carregando...</div>}
     {!logsLoading && saLogs.length === 0 && <div style={{textAlign:"center",padding:60,color:C.textMuted}}>Nenhum log encontrado.</div>}
