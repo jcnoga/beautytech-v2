@@ -91,6 +91,7 @@ export default function ProspectPage({ token }: { token: string }) {
       review_count: get(r, "Número de Avaliações", "Avaliações", "review_count", "Reviews") || 0,
       google_maps_link: get(r, "Link Google Maps", "Google Maps", "Maps", "google_maps_link", "ak Google Maps"),
     }));
+    console.log("Primeiro lead processado:", leads[0]);
 
     setLoading(true);
     const r = await fetch(`${API}/super-admin/prospects/import`, {
