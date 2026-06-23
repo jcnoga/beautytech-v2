@@ -4,7 +4,16 @@ import { sql } from "drizzle-orm";
 import { requireSuperAdmin } from "../middleware/auth.js";
 
 export async function prospectModule(fastify: FastifyInstance) {
-
+async function requireSuperAdmin(req: any, reply: any) {
+    const auth = req.headers.authorization?.replace("Bearer ", "");
+    if (!auth) return reply.status(401).send({ success: false, error: "Nao autorizado" });
+    try {
+      const payload = jwt.verify(auth, process.env.SUPER_ADMIN_SECRET ?? "super_secret") as any;
+      if (payload.role !== "super_admin") return reply.status(403).send({ success: false, error: "Acesso negado" });
+    } catch {
+      return reply.status(401).send({ success: false, error: "Token invalido" });
+    }
+  }
   fastify.get("/super-admin/prospects", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const { niche, status, city, page = 1, limit = 50 } = req.query as any;
     const offset = (Number(page) - 1) * Number(limit);
