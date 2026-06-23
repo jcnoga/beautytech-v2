@@ -67,7 +67,8 @@ async function requireSuperAdmin(req: any, reply: any) {
 
   fastify.get("/super-admin/prospect-templates", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const data = await db.execute(sql.raw("SELECT * FROM prospect_templates ORDER BY niche, created_at"));
-    return reply.send({ success: true, data: (data as any).rows });
+    const rows = Array.isArray(data) ? data : (data as any).rows ?? [];
+    return reply.send({ success: true, data: rows });
   });
 
   fastify.post("/super-admin/prospect-templates", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
