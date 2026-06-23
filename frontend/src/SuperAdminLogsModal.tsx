@@ -12,7 +12,7 @@ export default function SuperAdminLogsModal({ base, token, onClose }: { base: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${base}/api/v1/super-admin/audit-logs?limit=100`, {
+    fetch(`${base}/super-admin/audit-logs?limit=100`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(r => r.json()).then(d => setLogs(d.data ?? [])).catch(console.error).finally(() => setLoading(false));
   }, []);

@@ -593,9 +593,9 @@ function DashboardPage() {
           const headers = { Authorization: 'Bearer ' + token };
           const base = (import.meta as any).env?.VITE_API_URL ?? '';
           const [profsRes, svcsRes, meRes] = await Promise.all([
-            fetch(base + '/api/v1/professionals', { headers }).then(r2 => r2.json()),
-            fetch(base + '/api/v1/services', { headers }).then(r2 => r2.json()),
-            fetch(base + '/api/v1/auth/me', { headers }).then(r2 => r2.json()),
+            fetch(base + '/professionals', { headers }).then(r2 => r2.json()),
+            fetch(base + '/services', { headers }).then(r2 => r2.json()),
+            fetch(base + '/auth/me', { headers }).then(r2 => r2.json()),
           ]);
           const profs = profsRes.data ?? [];
           const svcs = svcsRes.data ?? [];
@@ -2670,7 +2670,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const base = import.meta.env["VITE_API_URL"];
 
   const saFetch = async (method: string, endpoint: string, body?: any) => {
-    const res = await fetch(`${base}/api/v1${endpoint}`, {
+    const res = await fetch(`${base}${endpoint}`, {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: body ? JSON.stringify(body) : undefined,
@@ -2741,7 +2741,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const impersonateTenant = async (id: string, name: string) => {
     if (!window.confirm(`Acessar painel de "${name}" como administrador?`)) return;
     try {
-      const res = await fetch(`${base}/api/v1/super-admin/tenants/${id}/impersonate`, {
+      const res = await fetch(`${base}/super-admin/tenants/${id}/impersonate`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
       });
