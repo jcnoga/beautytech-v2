@@ -86,14 +86,15 @@ async function requireSuperAdmin(req: any, reply: any) {
     const { niche, daily_limit = 50, min_interval = 30, max_interval = 60 } = req.body as any;
     const nicheFilter = niche ? `AND niche = '${niche}'` : "";
     const leadsResult = await db.execute(sql.raw(`SELECT * FROM prospect_leads WHERE status = 'pending' ${nicheFilter} ORDER BY created_at ASC LIMIT ${daily_limit}`));
-    const leads = (leadsResult as any).rows ?? [];
+    const leads = Array.isArray(leadsResult) ? leadsResult : (leadsResult as any).rows ?? [];
     if (!leads.length) return reply.send({ success: true, data: { message: "Nenhum lead pendente", sent: 0 } });
     const tmplResult = await db.execute(sql.raw(`SELECT * FROM prospect_templates WHERE is_active = true ${nicheFilter} ORDER BY RANDOM()`));
-    const templates = (tmplResult as any).rows ?? [];
+    const templates = Array.isArray(tmplResult) ? tmplResult : (tmplResult as any).rows ?? [];
     if (!templates.length) return reply.status(400).send({ success: false, error: "Nenhum template ativo" });
     const { sendTextMessage } = await import("./whatsapp/whatsapp.service.js");
     const tenantResult = await db.execute(sql.raw(`SELECT id FROM tenants WHERE whatsapp_status = 'connected' LIMIT 1`));
-    const tenantId = (tenantResult as any).rows[0]?.id;
+    const tenantRows = Array.isArray(tenantResult) ? tenantResult : (tenantResult as any).rows ?? [];
+    const tenantId = tenantRows[0]?.id;
     if (!tenantId) return reply.status(400).send({ success: false, error: "Nenhum WhatsApp conectado" });
     reply.send({ success: true, data: { message: `Disparando para ${leads.length} leads...`, total: leads.length } });
     let sent = 0;
