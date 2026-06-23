@@ -3994,6 +3994,7 @@ export default function App() {
   const sobreMatch = window.location.pathname === '/sobre';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
+  const resetSenhaMatch = window.location.pathname === '/reset-senha';
 
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
@@ -4051,6 +4052,7 @@ const logout = async () => {
   if (isReset) return <ResetPasswordPage />;
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
+  if (resetSenhaMatch) return <ResetSenhaPage />;
   if (sobreMatch) return <LandingPageSobre />;
   if (discoveryMatch) return <DiscoveryPage />;
   if (isRootDomain) return <HomePage />;
@@ -4108,5 +4110,3 @@ const logout = async () => {
 
 
  
-// 
-          <Route path="/reset-senha" element={<ResetSenhaPage />} />
