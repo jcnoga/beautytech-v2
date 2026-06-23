@@ -1627,15 +1627,9 @@ function AgendaPage() {
             </select>
           </div>
 
-          <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
-            <label style={lblStyle}>Profissional</label>
-            <select value={form.professionalId} onChange={e => { f("professionalId")(e.target.value); setSlots([]); setForm(p => ({...p, scheduledAt:""})); if (e.target.value && selectedDate) fetchSlots(e.target.value, form.serviceId, selectedDate); }} style={selStyle}>
-              <option value="">Selecione (opcional)...</option>
-              {(form.serviceId && availableProfs.length > 0 ? availableProfs : profsList).map((p: any) => (
-                <option key={p.id} value={p.id}>{p.full_name ?? p.fullName}{p.duration_minutes ? ` (${p.duration_minutes}min)` : ""}</option>
-              ))}
-            </select>
-            {form.serviceId && availableProfs.length === 0 && <div style={{ fontSize:11, color:"#e05c5c", marginTop:4 }}>Nenhum profissional habilitado para este servico nesta data.</div>}
+          <div style={{ marginBottom:14 }}>
+            <label style={lblStyle}>Data *</label>
+            <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value); setSlots([]); setForm(p=>({...p,scheduledAt:""})); if (form.serviceId) fetchAvailableProfs(form.serviceId, e.target.value); if (form.professionalId) fetchSlots(form.professionalId, form.serviceId, e.target.value); }} style={{...selStyle}} />
           </div>
 
           <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
@@ -1648,9 +1642,15 @@ function AgendaPage() {
             </select>
           </div>
 
-          <div style={{ marginBottom:14 }}>
-            <label style={lblStyle}>Data *</label>
-            <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value); setSlots([]); setForm(p=>({...p,scheduledAt:""})); if (form.serviceId) fetchAvailableProfs(form.serviceId, e.target.value); if (form.professionalId) fetchSlots(form.professionalId, form.serviceId, e.target.value); }} style={{...selStyle}} />
+          <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
+            <label style={lblStyle}>Profissional</label>
+            <select value={form.professionalId} onChange={e => { f("professionalId")(e.target.value); setSlots([]); setForm(p => ({...p, scheduledAt:""})); if (e.target.value && selectedDate) fetchSlots(e.target.value, form.serviceId, selectedDate); }} style={selStyle}>
+              <option value="">Selecione (opcional)...</option>
+              {(form.serviceId && availableProfs.length > 0 ? availableProfs : profsList).map((p: any) => (
+                <option key={p.id} value={p.id}>{p.full_name ?? p.fullName}{p.duration_minutes ? ` (${p.duration_minutes}min)` : ""}</option>
+              ))}
+            </select>
+            {form.serviceId && availableProfs.length === 0 && <div style={{ fontSize:11, color:"#e05c5c", marginTop:4 }}>Nenhum profissional habilitado para este servico nesta data.</div>}
           </div>
           <div style={{ marginBottom:14 }}>
             <label style={lblStyle}>Horario *</label>
