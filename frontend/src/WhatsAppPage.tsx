@@ -8,25 +8,22 @@ export function WhatsAppPage({ C, FD, FB }: any) {
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<any>(null);
   function getToken() {
-    // Tenta chave especifica primeiro
+    // Impersonation token tem prioridade
+    const impToken = sessionStorage.getItem("impersonation_token");
+    if (impToken) return impToken;
+    // Tenta chave especifica do Supabase
     const specific = localStorage.getItem("sb-wthhegdhdkhffjbzhvtt-auth-token");
     if (specific) {
-      const s = JSON.parse(specific);
-      if (s?.access_token) return s.access_token;
+      try {
+        const s = JSON.parse(specific);
+        if (s?.access_token) return s.access_token;
+      } catch {}
     }
-    // Busca qualquer chave do Supabase
+    // Busca qualquer chave do Supabase no localStorage
     const key = Object.keys(localStorage).find(k => k.includes("supabase") || k.includes("sb-"));
     if (key) {
       try {
         const s = JSON.parse(localStorage.getItem(key) || "{}");
-        return s?.access_token || s?.session?.access_token || "";
-      } catch { return ""; }
-    }
-    // Tenta sessionStorage
-    const skey = Object.keys(sessionStorage).find(k => k.includes("supabase") || k.includes("sb-"));
-    if (skey) {
-      try {
-        const s = JSON.parse(sessionStorage.getItem(skey) || "{}");
         return s?.access_token || s?.session?.access_token || "";
       } catch { return ""; }
     }
