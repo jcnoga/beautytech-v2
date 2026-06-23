@@ -118,7 +118,8 @@ export async function getInstanceStatus(tenantId: string) {
     const instanceName = cfg.instance ?? ("salon-" + tenantId.slice(0, 8));
     const found = instances.find((i: any) => i.name === instanceName || i.instance?.instanceName === instanceName);
     if (found) {
-      if (found.connectionStatus === "open") return { mode: cfg.mode, state: "open", instance: found.name };
+      const connStatus = found.connectionStatus ?? found.instance?.status ?? found.state ?? "";
+      if (connStatus === "open") return { mode: cfg.mode, state: "open", instance: found.instance?.instanceName ?? found.name };
       try {
         const qr = await evolutionRequest(apiUrl, apiKey, "/instance/connect/" + encodeURIComponent(found.name), "GET") as any;
         if (qr?.base64) return { mode: cfg.mode, state: "connecting", base64: qr.base64, code: qr.code, instance: found.name };
