@@ -413,7 +413,7 @@ function ResetSenhaPage() {
 
     setLoading(true); setError(""); setMsg("");
     try {
-      const API = import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1";
+      const API = (import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1").replace(/\/+$/, "");
       const res  = await fetch(`${API}/auth/reset-password`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
