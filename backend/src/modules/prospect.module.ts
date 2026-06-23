@@ -21,11 +21,11 @@ async function requireSuperAdmin(req: any, reply: any) {
     if (niche) where += ` AND niche = '${niche}'`;
     if (status) where += ` AND status = '${status}'`;
     if (city) where += ` AND LOWER(city) LIKE '%${city.toLowerCase()}%'`;
-    const [data, total] = await Promise.all([
-      db.execute(sql.raw(`SELECT * FROM prospect_leads ${where} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`)),
-      db.execute(sql.raw(`SELECT COUNT(*) as total FROM prospect_leads ${where}`)),
-    ]);
-    return reply.send({ success: true, data: (data as any).rows, total: Number((total as any).rows[0]?.total ?? 0) });
+    const data = await db.execute(sql.raw(`SELECT * FROM prospect_leads ${where} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`));
+    const total = await db.execute(sql.raw(`SELECT COUNT(*) as total FROM prospect_leads ${where}`));
+    const rows = Array.isArray(data) ? data : (data as any).rows ?? [];
+    const totalRows = Array.isArray(total) ? total : (total as any).rows ?? [];
+    return reply.send({ success: true, data: rows, total: Number(totalRows[0]?.total ?? 0) });
   });
 
   fastify.post("/super-admin/prospects/import", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
