@@ -1797,7 +1797,7 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.execute(sql`DELETE FROM appointment_services WHERE service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.execute(sql`DELETE FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM service_categories WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
-    await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
+    await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')`);
     await db.execute(sql`DELETE FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]`);
   }
 
