@@ -2605,8 +2605,8 @@ function SuperAdminApp() {
   const login = async () => {
     setLoading(true); setError("");
     try {
-      const base = import.meta.env["VITE_API_URL"];
-      const res = await fetch(`${base}/api/v1/super-admin/login`, {
+      const base = (import.meta.env["VITE_API_URL"] ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
+      const res = await fetch(`${base}/super-admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
