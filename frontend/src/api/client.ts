@@ -18,7 +18,7 @@ supabase.auth.onAuthStateChange((event) => {
 });
 
 class ApiClient {
-  private readonly baseUrl = `${import.meta.env["VITE_API_URL"] ?? "http://localhost:3000"}/api/v1`;
+  private readonly baseUrl = (import.meta.env["VITE_API_URL"] ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 
   private async getToken(): Promise<string> {
     // Impersonation: Super Admin acessando como tenant
