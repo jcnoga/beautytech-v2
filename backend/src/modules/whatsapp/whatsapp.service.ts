@@ -208,17 +208,18 @@ export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
     const { db } = await import("../../db/index.js");
     const { clients, services, professionals, appointmentServices } = await import("../../db/schema/index.js");
     const { eq, and } = await import("drizzle-orm");
-    const [client] = await db.select({ name: clients.name, phone: clients.phone }).from(clients).where(and(eq(clients.id, appt.clientId), eq(clients.tenantId, tenantId)));
-    if (!client?.phone) { console.log("[WP-CONFIRM] Sem telefone:", appt.clientId); return; }
+    const [client] = await db.select({ name: clients.fullName, phone: clients.phone, whatsapp: clients.whatsapp }).from(clients).where(and(eq(clients.id, appt.clientId), eq(clients.tenantId, tenantId)));
+    const clientPhone = client?.whatsapp ?? client?.phone;
+    if (!clientPhone) { console.log("[WP-CONFIRM] Sem telefone:", appt.clientId); return; }
     const [apptSvc] = await db.select({ name: services.name }).from(appointmentServices).innerJoin(services, eq(appointmentServices.serviceId, services.id)).where(eq(appointmentServices.appointmentId, appt.id)).limit(1);
     let profName = "";
     if (appt.professionalId) { const [prof] = await db.select({ name: professionals.name }).from(professionals).where(eq(professionals.id, appt.professionalId)); profName = prof?.name ?? ""; }
-    const number = client.phone.replace(/\D/g, "");
+    const number = clientPhone.replace(/\D/g, "");
     const fullNumber = number.startsWith("55") ? number : "55" + number;
     const dt = new Date(appt.scheduledAt);
     const dataF = dt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
     const horaF = dt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
-    const msg = "Ola, " + client.name + "! Agendamento confirmado.\n\nData: " + dataF + "\nHorario: " + horaF + "\nServico: " + (apptSvc?.name ?? "Servico") + (profName ? "\nProfissional: " + profName : "") + "\n\nZenSalon";
+    const msg = "Ola, " + (client.fullName ?? "Cliente") + "! Agendamento confirmado.\n\nData: " + dataF + "\nHorario: " + horaF + "\nServico: " + (apptSvc?.name ?? "Servico") + (profName ? "\nProfissional: " + profName : "") + "\n\nZenSalon";
     await sendTextMessage(fullNumber, msg, tenantId);
     console.log("[WP-CONFIRM] Enviado para:", fullNumber);
   } catch (e: any) { console.error("[WP-CONFIRM] Erro:", e.message); throw e; }
