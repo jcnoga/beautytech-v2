@@ -211,7 +211,7 @@ export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
     if (!clientPhone) { console.log("[WP-CONFIRM] Sem telefone:", appt.clientId); return; }
     const [apptSvc] = await db.select({ name: services.name }).from(appointmentServices).innerJoin(services, eq(appointmentServices.serviceId, services.id)).where(eq(appointmentServices.appointmentId, appt.id)).limit(1);
     let profName = "";
-    if (appt.professionalId) { const [prof] = await db.select({ name: professionals.name }).from(professionals).where(eq(professionals.id, appt.professionalId)); profName = prof?.name ?? ""; }
+    if (appt.professionalId) { const [prof] = await db.select({ name: professionals.fullName }).from(professionals).where(eq(professionals.id, appt.professionalId)); profName = prof?.name ?? ""; }
     const number = clientPhone.replace(/\D/g, "");
     const fullNumber = number.startsWith("55") ? number : "55" + number;
     const dt = new Date(appt.scheduledAt);
