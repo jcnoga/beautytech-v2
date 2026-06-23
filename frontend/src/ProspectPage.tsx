@@ -68,19 +68,27 @@ export default function ProspectPage({ token }: { token: string }) {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { defval: "" }) as any[];
 
+    const get = (r: any, ...keys: string[]) => {
+      for (const k of keys) {
+        const found = Object.keys(r).find(rk => rk.trim().toLowerCase() === k.toLowerCase());
+        if (found && r[found] !== undefined && r[found] !== "") return r[found];
+      }
+      return "";
+    };
+
     const leads = rows.map((r: any) => ({
-      state: r["Estado"] ?? r["state"] ?? "",
-      city: r["Cidade"] ?? r["city"] ?? "",
-      niche: r["Nicho Pesquisado"] ?? r["niche"] ?? "",
-      business_name: r["Nome"] ?? r["business_name"] ?? "",
-      phone: r["Telefone"] ?? r["phone"] ?? "",
-      email: r["Email"] ?? r["email"] ?? "",
-      website: r["Website"] ?? r["website"] ?? "",
-      address: r["Endereço"] ?? r["address"] ?? "",
-      type: r["Tipo"] ?? r["type"] ?? "",
-      rating: r["avaliação"] ?? r["rating"] ?? 0,
-      review_count: r["Número de Avaliações"] ?? r["review_count"] ?? 0,
-      google_maps_link: r["Link Google Maps"] ?? r["google_maps_link"] ?? "",
+      state: get(r, "Estado", "state", "UF", "uf", "Estado/UF"),
+      city: get(r, "Cidade", "city", "Municipio", "Município"),
+      niche: get(r, "Nicho Pesquisado", "Nicho", "niche", "nicho", "Segmento", "Categoria"),
+      business_name: get(r, "Nome", "business_name", "nome", "Empresa", "Estabelecimento"),
+      phone: get(r, "Telefone", "phone", "telefone", "Fone", "Celular", "WhatsApp", "Contato"),
+      email: get(r, "Email", "email", "E-mail"),
+      website: get(r, "Website", "website", "Site", "URL"),
+      address: get(r, "Endereço", "address", "endereco", "Logradouro"),
+      type: get(r, "Tipo", "type", "tipo", "Categoria", "Ramo"),
+      rating: get(r, "avaliação", "Avaliação", "Nota", "rating") || 0,
+      review_count: get(r, "Número de Avaliações", "Avaliações", "review_count", "Reviews") || 0,
+      google_maps_link: get(r, "Link Google Maps", "Google Maps", "Maps", "google_maps_link", "ak Google Maps"),
     }));
 
     setLoading(true);
