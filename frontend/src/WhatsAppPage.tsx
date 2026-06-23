@@ -8,8 +8,29 @@ export function WhatsAppPage({ C, FD, FB }: any) {
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<any>(null);
   function getToken() {
-    const s = JSON.parse(localStorage.getItem("sb-wthhegdhdkhffjbzhvtt-auth-token") || "{}");
-    return s?.access_token || "";
+    // Tenta chave especifica primeiro
+    const specific = localStorage.getItem("sb-wthhegdhdkhffjbzhvtt-auth-token");
+    if (specific) {
+      const s = JSON.parse(specific);
+      if (s?.access_token) return s.access_token;
+    }
+    // Busca qualquer chave do Supabase
+    const key = Object.keys(localStorage).find(k => k.includes("supabase") || k.includes("sb-"));
+    if (key) {
+      try {
+        const s = JSON.parse(localStorage.getItem(key) || "{}");
+        return s?.access_token || s?.session?.access_token || "";
+      } catch { return ""; }
+    }
+    // Tenta sessionStorage
+    const skey = Object.keys(sessionStorage).find(k => k.includes("supabase") || k.includes("sb-"));
+    if (skey) {
+      try {
+        const s = JSON.parse(sessionStorage.getItem(skey) || "{}");
+        return s?.access_token || s?.session?.access_token || "";
+      } catch { return ""; }
+    }
+    return "";
   }
   async function callApi(path: string, method: string = "GET") {
     const res = await fetch(API_BASE.replace(/\/+$/, "") + path, {
