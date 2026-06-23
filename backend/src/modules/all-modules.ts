@@ -1531,7 +1531,9 @@ export async function superAdminModule(fastify: FastifyInstance) {
     const updates: any = { updatedAt: new Date() };
     if (planTier  !== undefined) updates.planTier  = planTier;
     if (isActive  !== undefined) updates.isActive  = isActive;
-    if (maxUsers  !== undefined) updates.maxUsers  = maxUsers;
+    if (maxUsers         !== undefined) updates.maxUsers         = maxUsers;
+    if (req.body.maxProfessionals !== undefined) updates.maxProfessionals = req.body.maxProfessionals;
+    if (req.body.maxClients       !== undefined) updates.maxClients       = req.body.maxClients;
     if (trialDays !== undefined) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + Number(trialDays));
