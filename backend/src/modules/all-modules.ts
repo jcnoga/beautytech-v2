@@ -1771,7 +1771,7 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo')`);
     await db.execute(sql`DELETE FROM appointment_photos WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo')`);
     await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'))`);
-    await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')`);
+    await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'))`);
     await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
     await db.execute(sql`DELETE FROM notifications WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
     await db.execute(sql`DELETE FROM loyalty_transactions WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
@@ -1786,8 +1786,8 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.execute(sql`DELETE FROM gift_cards WHERE (purchased_by_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]) OR used_by_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[]))`);
     await db.execute(sql`DELETE FROM financial_transactions WHERE tenant_id=${tenantId} AND description LIKE 'Demo -%'`);
     await db.execute(sql`UPDATE leads SET converted_to = NULL WHERE converted_to IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
-    await db.execute(sql`DELETE FROM professional_services WHERE professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')`);
-    await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%')`);
+    await db.execute(sql`DELETE FROM professional_services WHERE professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'))`);
+    await db.execute(sql`DELETE FROM professional_schedules WHERE professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'))`);
     await db.execute(sql`DELETE FROM professional_services WHERE service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.execute(sql`DELETE FROM package_sessions WHERE package_id IN (SELECT id FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.execute(sql`DELETE FROM treatment_packages WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
