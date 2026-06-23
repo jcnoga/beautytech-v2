@@ -389,14 +389,14 @@ function ForgotPasswordPage({ onBack }: any) {
 
 
 function ResetSenhaPage() {
-  const [password, setPassword]   = React.useState("");
-  const [confirm,  setConfirm]    = React.useState("");
-  const [loading,  setLoading]    = React.useState(false);
-  const [msg,      setMsg]        = React.useState("");
-  const [error,    setError]      = React.useState("");
-  const [token,    setToken]      = React.useState("");
+  const [password, setPassword]   = useState("");
+  const [confirm,  setConfirm]    = useState("");
+  const [loading,  setLoading]    = useState(false);
+  const [msg,      setMsg]        = useState("");
+  const [error,    setError]      = useState("");
+  const [token,    setToken]      = useState("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("token");
     if (!t) {
