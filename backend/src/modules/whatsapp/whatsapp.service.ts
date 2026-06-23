@@ -205,8 +205,8 @@ export async function sendTextMessage(number: string, text: string, tenantId: st
 export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
   try {
     if (!appt || !appt.clientId) { console.log("[WP-CONFIRM] Sem clientId:", appt?.id); return; }
-    const { db } = await import("../../db/index.js");
-    const { clients, services, professionals, appointmentServices } = await import("../../db/schema/index.js");
+    const { db } = await import("../db/index.js");
+    const { clients, services, professionals, appointmentServices } = await import("../db/schema/index.js");
     const { eq, and } = await import("drizzle-orm");
     const [client] = await db.select({ name: clients.fullName, phone: clients.phone, whatsapp: clients.whatsapp }).from(clients).where(and(eq(clients.id, appt.clientId), eq(clients.tenantId, tenantId)));
     const clientPhone = client?.whatsapp ?? client?.phone;
