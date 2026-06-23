@@ -99,6 +99,7 @@ export default function ProspectPage({ token }: { token: string }) {
       body: JSON.stringify({ leads }),
     });
     const d = await r.json();
+    console.log("Resposta API:", JSON.stringify(d));
     alert(`Importados: ${d.data?.inserted ?? 0} | Ignorados: ${d.data?.skipped ?? 0}`);
     loadLeads(); loadStats();
     setLoading(false);
