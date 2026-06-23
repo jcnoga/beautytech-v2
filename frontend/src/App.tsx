@@ -601,7 +601,8 @@ function DashboardPage() {
           const svcs = svcsRes.data ?? [];
           setTenantName(meRes.data?.name ?? meRes.name ?? '');
           const isImp = !!sessionStorage.getItem("impersonation_token");
-          if (!isImp && (profs.length === 0 || svcs.length === 0) && !meRes.data?.name) {
+          const onbDone = localStorage.getItem("onboarding_done");
+          if (!isImp && !onbDone && (profs.length === 0 || svcs.length === 0) && !meRes.data?.name) {
             setShowOnboarding(true);
           }
         } catch {}
@@ -620,7 +621,7 @@ function DashboardPage() {
     </div>
   );
 
-  if (showOnboarding) return <OnboardingWizard tenantName={tenantName} onComplete={() => setShowOnboarding(false)} />;
+  if (showOnboarding) return <OnboardingWizard tenantName={tenantName} onComplete={() => { localStorage.setItem("onboarding_done", "true"); setShowOnboarding(false); }} />;
 
   const k = kpis ?? MOCK_KPIS;
 
