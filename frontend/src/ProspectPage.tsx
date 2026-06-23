@@ -67,6 +67,7 @@ export default function ProspectPage({ token }: { token: string }) {
     const wb = XLSX.read(data);
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { defval: "" }) as any[];
+    console.log("Total linhas:", rows.length, "Colunas:", Object.keys(rows[0] || {}));
 
     const get = (r: any, ...keys: string[]) => {
       for (const k of keys) {
