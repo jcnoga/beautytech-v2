@@ -126,6 +126,8 @@ async function requireSuperAdmin(req: any, reply: any) {
   fastify.get("/super-admin/prospects/stats", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const stats = await db.execute(sql.raw(`SELECT COUNT(*) as total, COUNT(CASE WHEN status='pending' THEN 1 END) as pending, COUNT(CASE WHEN status='sent' THEN 1 END) as sent, COUNT(CASE WHEN status='replied' THEN 1 END) as replied, COUNT(CASE WHEN status='converted' THEN 1 END) as converted, COUNT(CASE WHEN status='blacklist' THEN 1 END) as blacklist FROM prospect_leads`));
     const byNiche = await db.execute(sql.raw(`SELECT niche, COUNT(*) as total, COUNT(CASE WHEN status='sent' THEN 1 END) as sent FROM prospect_leads GROUP BY niche ORDER BY total DESC`));
-    return reply.send({ success: true, data: { totals: (stats as any).rows[0], by_niche: (byNiche as any).rows } });
+    const statsRows = Array.isArray(stats) ? stats : (stats as any).rows ?? [];
+    const nicheRows = Array.isArray(byNiche) ? byNiche : (byNiche as any).rows ?? [];
+    return reply.send({ success: true, data: { totals: statsRows[0] ?? {}, by_niche: nicheRows } });
   });
 }
