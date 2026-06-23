@@ -223,3 +223,11 @@ export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
     console.log("[WP-CONFIRM] Enviado para:", fullNumber);
   } catch (e: any) { console.error("[WP-CONFIRM] Erro:", e.message); throw e; }
 }
+
+export async function sendTemplateMessage(number: string, template: string, variables: Record<string, string>, tenantId: string) {
+  let text = template;
+  for (const [key, value] of Object.entries(variables)) {
+    text = text.replace("{{" + key + "}}", value);
+  }
+  return sendTextMessage(number, text, tenantId);
+}
