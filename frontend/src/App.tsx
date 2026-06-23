@@ -387,6 +387,130 @@ function ForgotPasswordPage({ onBack }: any) {
   );
 }
 
+
+function ResetSenhaPage() {
+  const [password, setPassword]   = React.useState("");
+  const [confirm,  setConfirm]    = React.useState("");
+  const [loading,  setLoading]    = React.useState(false);
+  const [msg,      setMsg]        = React.useState("");
+  const [error,    setError]      = React.useState("");
+  const [token,    setToken]      = React.useState("");
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("token");
+    if (!t) {
+      setError("Link invalido. Solicite uma nova recuperacao de senha.");
+    } else {
+      setToken(t);
+    }
+  }, []);
+
+  const submit = async () => {
+    if (!token)            { setError("Token ausente.");                    return; }
+    if (password !== confirm) { setError("As senhas nao conferem.");        return; }
+    if (password.length < 6)  { setError("Minimo 6 caracteres.");          return; }
+
+    setLoading(true); setError(""); setMsg("");
+    try {
+      const API = import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1";
+      const res  = await fetch(`${API}/auth/reset-password`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ token, password }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error ?? "Erro ao alterar senha.");
+      } else {
+        setMsg("Senha alterada com sucesso! Redirecionando...");
+        setTimeout(() => { window.location.href = "/"; }, 2500);
+      }
+    } catch (e: any) {
+      setError("Erro de conexao. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
+                  background:"linear-gradient(135deg,#f8f4f0,#f0e8f0)", padding:"20px" }}>
+      <div style={{ background:"#fff", borderRadius:"16px", padding:"40px",
+                    boxShadow:"0 4px 24px rgba(0,0,0,.10)", width:"100%", maxWidth:"400px" }}>
+        <div style={{ textAlign:"center", marginBottom:"28px" }}>
+          <div style={{ fontSize:"32px", marginBottom:"8px" }}>✂️</div>
+          <h2 style={{ margin:0, color:"#3d2b1f", fontSize:"22px" }}>ZenSalon</h2>
+          <p style={{ margin:"6px 0 0", color:"#888", fontSize:"14px" }}>Nova senha</p>
+        </div>
+
+        {error && (
+          <div style={{ background:"#fff0f0", border:"1px solid #ffcccc", borderRadius:"8px",
+                        padding:"12px 16px", marginBottom:"16px", color:"#c0392b", fontSize:"14px" }}>
+            {error}
+          </div>
+        )}
+        {msg && (
+          <div style={{ background:"#f0fff4", border:"1px solid #c3e6cb", borderRadius:"8px",
+                        padding:"12px 16px", marginBottom:"16px", color:"#27ae60", fontSize:"14px" }}>
+            {msg}
+          </div>
+        )}
+
+        {!msg && token && (
+          <>
+            <div style={{ marginBottom:"16px" }}>
+              <label style={{ display:"block", marginBottom:"6px", color:"#555", fontSize:"14px", fontWeight:600 }}>
+                Nova senha
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Minimo 6 caracteres"
+                style={{ width:"100%", padding:"12px", border:"1px solid #ddd", borderRadius:"8px",
+                         fontSize:"15px", boxSizing:"border-box", outline:"none" }}
+              />
+            </div>
+            <div style={{ marginBottom:"24px" }}>
+              <label style={{ display:"block", marginBottom:"6px", color:"#555", fontSize:"14px", fontWeight:600 }}>
+                Confirmar senha
+              </label>
+              <input
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="Repita a senha"
+                style={{ width:"100%", padding:"12px", border:"1px solid #ddd", borderRadius:"8px",
+                         fontSize:"15px", boxSizing:"border-box", outline:"none" }}
+              />
+            </div>
+            <button
+              onClick={submit}
+              disabled={loading}
+              style={{ width:"100%", padding:"14px", background:"linear-gradient(135deg,#c9a96e,#8b5e7e)",
+                       color:"#fff", border:"none", borderRadius:"8px", fontSize:"16px",
+                       fontWeight:600, cursor: loading ? "not-allowed" : "pointer",
+                       opacity: loading ? 0.7 : 1 }}>
+              {loading ? "Alterando..." : "Alterar senha"}
+            </button>
+          </>
+        )}
+
+        {!token && !error && (
+          <p style={{ textAlign:"center", color:"#888", fontSize:"14px" }}>Verificando link...</p>
+        )}
+
+        <div style={{ textAlign:"center", marginTop:"20px" }}>
+          <a href="/" style={{ color:"#8b5e7e", fontSize:"13px", textDecoration:"none" }}>
+            ← Voltar ao login
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LoginPage({ onLogin }: any) {
   const [email, setEmail] = useState("admin@beautytech.com.br");
   const [password, setPassword] = useState("");
@@ -3985,3 +4109,4 @@ const logout = async () => {
 
  
 // 
+          <Route path="/reset-senha" element={<ResetSenhaPage />} />

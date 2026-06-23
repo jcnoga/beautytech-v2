@@ -697,4 +697,13 @@ export const appointmentsRelations = relations(appointments, ({ one, many }) => 
   reviews: many(reviews),
 }));
 
+// ─── PASSWORD RESETS (token customizado) ────────────────────────────────────
+export const passwordResets = pgTable("password_resets", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  userId:    uuid("user_id").notNull(),
+  token:     text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt:    timestamp("used_at",    { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
 

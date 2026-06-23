@@ -1000,86 +1000,181 @@ export async function authModule(fastify: FastifyInstance) {
 
   fastify.post("/auth/forgot-password", async (req: any, reply) => {
     const { email } = req.body as any;
-    console.log("[FORGOT-PASSWORD] email recebido no body:", email);
     if (!email) return reply.status(400).send({ success: false, error: "Email obrigatorio" });
 
-    const supabaseUrl = process.env.SUPABASE_URL!;
-    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const frontendUrl = process.env.FRONTEND_URL ?? "https://beautytech-v2.vercel.app";
+    const supabaseUrl     = process.env.SUPABASE_URL!;
+    const serviceKey      = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const frontendUrl     = process.env.FRONTEND_URL ?? "https://zensalon.com.br";
+    const resendApiKey    = process.env.RESEND_API_KEY!;
 
     try {
-      // Gera link sem disparar email automatico do Supabase
-      const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-        },
-        body: JSON.stringify({
-          type: "recovery",
-          email,
-          options: { redirect_to: `${frontendUrl}/?reset=1` },
-        }),
+      // 1. Busca user_id pelo email via Admin API
+      const usersRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}&per_page=1`, {
+        headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey },
       });
+      const usersData = await usersRes.json() as any;
+      const user = usersData?.users?.[0];
 
-      const linkData = await linkRes.json() as any;
-
-      if (!linkRes.ok) {
-        return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+      // Resposta generica por seguranca (nao revela se email existe)
+      if (!user) {
+        console.log("[FORGOT-PASSWORD] email nao encontrado:", email);
+        return reply.send({ success: true });
       }
 
-      const resetLink = linkData?.action_link ?? linkData?.properties?.action_link ?? linkData?.data?.properties?.action_link;
-      if (!resetLink) return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
-      
-      console.log("[FORGOT-PASSWORD] link gerado para:", email, "link:", resetLink.substring(0, 60) + "...");
+      // 2. Gera token UUID unico
+      const { randomUUID } = await import("crypto");
+      const token     = randomUUID();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
-      const { Resend } = await import("resend");
-      const resend = new Resend(process.env.RESEND_API_KEY!);
+      // 3. Invalida tokens anteriores do mesmo user
+      await fetch(`${supabaseUrl}/rest/v1/password_resets?user_id=eq.${user.id}&used_at=is.null`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey, "Content-Type": "application/json" },
+      });
 
-      await resend.emails.send({
-        from: "ZenSalon <noreply@zensalon.com.br>",
-        to: email,
-        subject: "Redefinir sua senha — ZenSalon",
-        html: `<!DOCTYPE html>
+      // 4. Salva novo token
+      const saveRes = await fetch(`${supabaseUrl}/rest/v1/password_resets`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "apikey": serviceKey,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify({ user_id: user.id, token, expires_at: expiresAt.toISOString() }),
+      });
+
+      if (!saveRes.ok) {
+        const err = await saveRes.text();
+        console.error("[FORGOT-PASSWORD] erro ao salvar token:", err);
+        return reply.status(500).send({ success: false, error: "Erro interno" });
+      }
+
+      // 5. Envia email via Resend
+      const resetLink = `${frontendUrl}/reset-senha?token=${token}`;
+      const emailRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: "ZenSalon <noreply@zensalon.com.br>",
+          to: [email],
+          subject: "Redefinir senha — ZenSalon",
+          html: `<!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redefinir Senha</title></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f4f0;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4f0;padding:40px 0;">
     <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#1a1a2e;border-radius:12px;overflow:hidden;max-width:600px;">
-        <tr><td style="background:linear-gradient(135deg,#c9a96e 0%,#b8895a 100%);padding:32px;text-align:center;">
-          <h1 style="color:#1a1a2e;margin:0;font-size:28px;font-weight:bold;letter-spacing:2px;">✂ ZenSalon</h1>
-          <p style="color:#1a1a2e;margin:8px 0 0;font-size:14px;opacity:0.8;">Gestão Inteligente para Salões</p>
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
+        <tr><td style="background:linear-gradient(135deg,#c9a96e,#8b5e7e);padding:36px 40px;text-align:center;">
+          <h1 style="margin:0;color:#fff;font-size:26px;letter-spacing:1px;">ZenSalon</h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,.85);font-size:13px;">Gestão inteligente para salões</p>
         </td></tr>
-        <tr><td style="padding:40px 32px;text-align:center;">
-          <h2 style="color:#c9a96e;font-size:22px;margin:0 0 16px;">Redefinição de Senha</h2>
-          <p style="color:#e0e0e0;font-size:15px;line-height:1.6;margin:0 0 32px;">
+        <tr><td style="padding:40px;">
+          <h2 style="margin:0 0 12px;color:#3d2b1f;font-size:20px;">Redefinir sua senha</h2>
+          <p style="margin:0 0 24px;color:#666;font-size:15px;line-height:1.6;">
             Recebemos uma solicitação para redefinir a senha da sua conta ZenSalon.<br>
-            Clique no botão abaixo para criar uma nova senha.
+            Clique no botão abaixo para criar uma nova senha. Este link expira em <strong>1 hora</strong>.
           </p>
-          <a href="${resetLink}" style="display:inline-block;background:linear-gradient(135deg,#c9a96e,#b8895a);color:#1a1a2e;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:16px;font-weight:bold;letter-spacing:1px;">
-            🔐 Redefinir Senha
-          </a>
-          <p style="color:#888;font-size:13px;margin:32px 0 0;line-height:1.5;">
-            Este link expira em <strong style="color:#c9a96e;">1 hora</strong>.<br>
-            Se você não solicitou a redefinição, ignore este email.
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${resetLink}" style="background:linear-gradient(135deg,#c9a96e,#8b5e7e);color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:16px;font-weight:600;display:inline-block;">
+              Redefinir minha senha
+            </a>
+          </div>
+          <p style="margin:24px 0 0;color:#999;font-size:13px;line-height:1.5;">
+            Se você não solicitou a redefinição, ignore este email. Sua senha permanece a mesma.<br><br>
+            Ou copie o link: <a href="${resetLink}" style="color:#8b5e7e;word-break:break-all;">${resetLink}</a>
           </p>
         </td></tr>
-        <tr><td style="background:#111;padding:20px 32px;text-align:center;border-top:1px solid #333;">
-          <p style="color:#555;font-size:12px;margin:0;">© ${new Date().getFullYear()} ZenSalon · <a href="https://zensalon.com.br" style="color:#c9a96e;text-decoration:none;">zensalon.com.br</a></p>
+        <tr><td style="background:#f8f4f0;padding:20px 40px;text-align:center;">
+          <p style="margin:0;color:#bbb;font-size:12px;">© 2025 ZenSalon · Todos os direitos reservados</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body>
 </html>`,
+        }),
       });
 
-      return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+      if (!emailRes.ok) {
+        const err = await emailRes.text();
+        console.error("[FORGOT-PASSWORD] erro Resend:", err);
+      } else {
+        console.log("[FORGOT-PASSWORD] email enviado para:", email);
+      }
+
+      return reply.send({ success: true });
+
     } catch (err: any) {
-      console.error("[FORGOT-PASSWORD]", err?.message);
-      return reply.send({ success: true, message: "Se o email existir, voce recebera as instrucoes." });
+      console.error("[FORGOT-PASSWORD] erro:", err.message);
+      return reply.status(500).send({ success: false, error: "Erro interno" });
+    }
+  });
+
+  // ── RESET PASSWORD (valida token customizado e troca senha) ──────────────
+  fastify.post("/auth/reset-password", async (req: any, reply) => {
+    const { token, password } = req.body as any;
+    if (!token || !password) return reply.status(400).send({ success: false, error: "Token e senha sao obrigatorios" });
+    if (password.length < 6) return reply.status(400).send({ success: false, error: "Senha deve ter pelo menos 6 caracteres" });
+
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+    try {
+      // 1. Busca token no banco
+      const tokenRes = await fetch(
+        `${supabaseUrl}/rest/v1/password_resets?token=eq.${token}&used_at=is.null&select=*`,
+        { headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey } }
+      );
+      const rows = await tokenRes.json() as any[];
+
+      if (!rows || rows.length === 0) {
+        return reply.status(400).send({ success: false, error: "Link invalido ou expirado" });
+      }
+
+      const row = rows[0];
+
+      // 2. Verifica expiração
+      if (new Date(row.expires_at) < new Date()) {
+        return reply.status(400).send({ success: false, error: "Link expirado. Solicite um novo." });
+      }
+
+      // 3. Troca a senha via Admin API
+      const updateRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${row.user_id}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "apikey": serviceKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!updateRes.ok) {
+        const err = await updateRes.text();
+        console.error("[RESET-PASSWORD] erro ao trocar senha:", err);
+        return reply.status(500).send({ success: false, error: "Erro ao atualizar senha" });
+      }
+
+      // 4. Marca token como usado
+      await fetch(`${supabaseUrl}/rest/v1/password_resets?id=eq.${row.id}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "apikey": serviceKey,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify({ used_at: new Date().toISOString() }),
+      });
+
+      console.log("[RESET-PASSWORD] senha alterada para user:", row.user_id);
+      return reply.send({ success: true, message: "Senha alterada com sucesso" });
+
+    } catch (err: any) {
+      console.error("[RESET-PASSWORD] erro:", err.message);
+      return reply.status(500).send({ success: false, error: "Erro interno" });
     }
   });
 
