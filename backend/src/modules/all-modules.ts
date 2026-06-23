@@ -351,6 +351,18 @@ const [appt] = await db.insert(appointments).values(values).returning();
       .set({ status: "confirmed", confirmedAt: new Date(), updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)))
       .returning();
+
+    // Envia WhatsApp automatico de confirmacao
+    if (appt) {
+      try {
+        const { sendAppointmentConfirmation } = await import("./whatsapp/whatsapp.service.js");
+        await sendAppointmentConfirmation(tenantId, appt);
+        console.log("[CONFIRM] WhatsApp enviado para agendamento:", appt.id);
+      } catch (e: any) {
+        console.error("[CONFIRM] Erro ao enviar WhatsApp:", e.message);
+      }
+    }
+
     return reply.send({ success: true, data: appt });
   });
 
@@ -1778,6 +1790,7 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.execute(sql`DELETE FROM protocol_sessions WHERE protocol_id IN (SELECT id FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.execute(sql`DELETE FROM protocols WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM leads WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
+    await db.execute(sql`DELETE FROM appointment_services WHERE service_id IN (SELECT id FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %')`);
     await db.execute(sql`DELETE FROM services WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM service_categories WHERE tenant_id=${tenantId} AND name LIKE 'Demo %'`);
     await db.execute(sql`DELETE FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
