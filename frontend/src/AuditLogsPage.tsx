@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = (import.meta as any).env?.VITE_API_URL ?? "";
+const API = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 const C = {
   bg: "#0B0F1A", card: "#141826", border: "rgba(255,255,255,0.07)",
   rose: "#C9847A", gold: "#C9A96E", sage: "#7EB8A0",

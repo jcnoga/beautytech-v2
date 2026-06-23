@@ -251,7 +251,7 @@ function RegisterPage({ onBack }: any) {
   const submit = async () => {
     setLoading(true); setError(""); setSuccess("");
     try {
-      const res = await fetch(`${import.meta.env["VITE_API_URL"]}/api/v1/auth/register`, {
+      const res = await fetch(`${(import.meta.env["VITE_API_URL"] ?? "http://localhost:3000/api/v1").replace(/\/+$/, "")}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj: cpfCnpj.replace(/\D/g,"") || undefined, addressStreet: addressStreet || undefined, addressCity: addressCity || undefined, addressState: addressState || undefined, addressZip: addressZip || undefined, hasWifi, hasParking }),

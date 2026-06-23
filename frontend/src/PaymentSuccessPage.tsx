@@ -18,7 +18,7 @@ export default function PaymentSuccessPage({ onGoHome }: { onGoHome: () => void 
   const [status, setStatus] = useState<"loading" | "success" | "pending">("loading");
 
   useEffect(() => {
-    const apiUrl = (import.meta as any).env?.VITE_API_URL ?? "";
+    const apiUrl = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
     const token = (() => {
       try {
         const key = Object.keys(localStorage).find(k => k.includes("auth-token"));

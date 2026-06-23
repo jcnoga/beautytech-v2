@@ -9,7 +9,7 @@ const C = {
 };
 const FB = "'Outfit', sans-serif";
 const FD = "'Playfair Display', serif";
-const API = (import.meta as any).env?.VITE_API_URL ?? "";
+const API = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 
 function getToken() {
   const k = Object.keys(localStorage).find(k => k.includes("auth-token") || k.includes("sb-"));

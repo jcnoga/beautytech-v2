@@ -12,7 +12,7 @@ export function WhatsAppPage({ C, FD, FB }: any) {
     return s?.access_token || "";
   }
   async function callApi(path: string, method: string = "GET") {
-    const res = await fetch(API_BASE + "/api/v1" + path, {
+    const res = await fetch(API_BASE.replace(/\/+$/, "") + path, {
       method,
       headers: { "Authorization": "Bearer " + getToken(), "Content-Type": "application/json" },
       body: method === "POST" ? "{}" : undefined,

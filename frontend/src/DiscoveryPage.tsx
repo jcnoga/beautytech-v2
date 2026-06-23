@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 
-const API = (import.meta as any).env?.VITE_API_URL ?? "";
+const API = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 
 const C = {
   bg: "#0B0F1A", card: "#141826", card2: "#1C2235",
