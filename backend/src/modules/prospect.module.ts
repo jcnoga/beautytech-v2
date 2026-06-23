@@ -108,7 +108,15 @@ async function requireSuperAdmin(req: any, reply: any) {
         await db.execute(sql.raw(`UPDATE prospect_templates SET sent_count = sent_count + 1 WHERE id = '${template.id}'`));
         sent++;
         console.log("[PROSPECT] Enviado para:", fullPhone);
-      } catch(e: any) { console.error("[PROSPECT] Erro:", fullPhone, e.message); }
+      } catch(e: any) {
+        console.error("[PROSPECT] Erro:", fullPhone, e.message);
+        const errMsg = e.message?.toLowerCase() ?? "";
+        let novoStatus = "error";
+        if (errMsg.includes("not registered") || errMsg.includes("invalid phone") || errMsg.includes("does not exist")) {
+          novoStatus = "no_whatsapp";
+        }
+        await db.execute(sql.raw(`UPDATE prospect_leads SET status = '${novoStatus}', updated_at = NOW() WHERE id = '${lead.id}'`));
+      }
       const interval = (Math.floor(Math.random() * (max_interval - min_interval + 1)) + min_interval) * 1000;
       await new Promise(r => setTimeout(r, interval));
     }
