@@ -207,3 +207,251 @@ export async function sendTemplateMessage(number: string, template: string, vari
   for (const [key, value] of Object.entries(variables)) { text = text.replace("{{" + key + "}}", value); }
   return sendTextMessage(number, text, tenantId);
 }
+
+export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
+  try {
+    if (!appt || !appt.clientId) {
+      console.log("[WP-CONFIRM] Sem clientId no agendamento:", appt?.id);
+      return;
+    }
+
+    // Busca client, service e professional no banco
+    const { db } = await import("../../db/index.js");
+    const { clients, services, professionals, appointmentServices } = await import("../../db/schema/index.js");
+    const { eq, and } = await import("drizzle-orm");
+
+    const [client] = await db
+      .select({ name: clients.name, phone: clients.phone })
+      .from(clients)
+      .where(and(eq(clients.id, appt.clientId), eq(clients.tenantId, tenantId)));
+
+    if (!client?.phone) {
+      console.log("[WP-CONFIRM] Cliente sem telefone:", appt.clientId);
+      return;
+    }
+
+    // Busca servico via appointment_services
+    const [apptSvc] = await db
+      .select({ name: services.name })
+      .from(appointmentServices)
+      .innerJoin(services, eq(appointmentServices.serviceId, services.id))
+      .where(eq(appointmentServices.appointmentId, appt.id))
+      .limit(1);
+
+    // Busca profissional
+    let profName = "";
+    if (appt.professionalId) {
+      const [prof] = await db
+        .select({ name: professionals.name })
+        .from(professionals)
+        .where(eq(professionals.id, appt.professionalId));
+      profName = prof?.name ?? "";
+    }
+
+    // Formata numero
+    const number = client.phone.replace(/\D/g, "");
+    const fullNumber = number.startsWith("55") ? number : "55" + number;
+
+    // Formata data e hora
+    const dt = new Date(appt.scheduledAt);
+    const dataFormatada = dt.toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit", month: "2-digit", year: "numeric"
+    });
+    const horaFormatada = dt.toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit", minute: "2-digit"
+    });
+
+    const serviceName = apptSvc?.name ?? "Servico";
+    const msg = "Ola, " + client.name + "! Seu agendamento foi confirmado.\n\n"
+      + "Data: " + dataFormatada + "\n"
+      + "Horario: " + horaFormatada + "\n"
+      + "Servico: " + serviceName
+      + (profName ? "\nProfissional: " + profName : "")
+      + "\n\nAgradecemos a preferencia! ZenSalon";
+
+    await sendTextMessage(fullNumber, msg, tenantId);
+    console.log("[WP-CONFIRM] Mensagem enviada para:", fullNumber);
+  } catch (e: any) {
+    console.error("[WP-CONFIRM] Erro:", e.message);
+    throw e;
+  }
+}
+
+export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
+  try {
+    if (!appt || !appt.clientId) {
+      console.log("[WP-CONFIRM] Sem clientId no agendamento:", appt?.id);
+      return;
+    }
+
+    // Busca client, service e professional no banco
+    const { db } = await import("../../db/index.js");
+    const { clients, services, professionals, appointmentServices } = await import("../../db/schema/index.js");
+    const { eq, and } = await import("drizzle-orm");
+
+    const [client] = await db
+      .select({ name: clients.name, phone: clients.phone })
+      .from(clients)
+      .where(and(eq(clients.id, appt.clientId), eq(clients.tenantId, tenantId)));
+
+    if (!client?.phone) {
+      console.log("[WP-CONFIRM] Cliente sem telefone:", appt.clientId);
+      return;
+    }
+
+    // Busca servico via appointment_services
+    const [apptSvc] = await db
+      .select({ name: services.name })
+      .from(appointmentServices)
+      .innerJoin(services, eq(appointmentServices.serviceId, services.id))
+      .where(eq(appointmentServices.appointmentId, appt.id))
+      .limit(1);
+
+    // Busca profissional
+    let profName = "";
+    if (appt.professionalId) {
+      const [prof] = await db
+        .select({ name: professionals.name })
+        .from(professionals)
+        .where(eq(professionals.id, appt.professionalId));
+      profName = prof?.name ?? "";
+    }
+
+    // Formata numero
+    const number = client.phone.replace(/\D/g, "");
+    const fullNumber = number.startsWith("55") ? number : "55" + number;
+
+    // Formata data e hora
+    const dt = new Date(appt.scheduledAt);
+    const dataFormatada = dt.toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit", month: "2-digit", year: "numeric"
+    });
+    const horaFormatada = dt.toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit", minute: "2-digit"
+    });
+
+    const serviceName = apptSvc?.name ?? "Servico";
+    const msg = "Ola, " + client.name + "! Seu agendamento foi confirmado.\n\n"
+      + "Data: " + dataFormatada + "\n"
+      + "Horario: " + horaFormatada + "\n"
+      + "Servico: " + serviceName
+      + (profName ? "\nProfissional: " + profName : "")
+      + "\n\nAgradecemos a preferencia! ZenSalon";
+
+    await sendTextMessage(fullNumber, msg, tenantId);
+    console.log("[WP-CONFIRM] Mensagem enviada para:", fullNumber);
+  } catch (e: any) {
+    console.error("[WP-CONFIRM] Erro:", e.message);
+    throw e;
+  }
+}
+
+export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
+  try {
+    // Busca dados do cliente e servico
+    const phone = appt.clientPhone ?? appt.client_phone;
+    if (!phone) {
+      console.log("[WA-CONFIRM] Sem telefone para agendamento:", appt.id);
+      return;
+    }
+
+    // Formata data e hora
+    const dt = new Date(appt.scheduledAt ?? appt.scheduled_at ?? appt.date);
+    const data = dt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+    const hora = dt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+    const clientName = appt.clientName ?? appt.client_name ?? "Cliente";
+    const serviceName = appt.serviceName ?? appt.service_name ?? "Servico";
+    const professionalName = appt.professionalName ?? appt.professional_name ?? "";
+
+    const msg = `Ola ${clientName}! Seu agendamento foi confirmado.\n\n` +
+      `*Servico:* ${serviceName}\n` +
+      (professionalName ? `*Profissional:* ${professionalName}\n` : "") +
+      `*Data:* ${data}\n` +
+      `*Horario:* ${hora}\n\n` +
+      `Aguardamos voce! 😊`;
+
+    await sendTextMessage(phone, msg, tenantId);
+    console.log("[WA-CONFIRM] Mensagem enviada para:", phone);
+  } catch (e: any) {
+    console.error("[WA-CONFIRM] Erro:", e.message);
+    throw e;
+  }
+}
+
+export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
+  try {
+    // Busca dados do cliente e servico
+    const phone = appt.clientPhone ?? appt.phone;
+    if (!phone) {
+      console.log("[WP-CONFIRM] Sem telefone no agendamento:", appt.id);
+      return;
+    }
+
+    // Formata telefone (remove nao numericos e garante DDI 55)
+    const cleanPhone = phone.replace(/\D/g, "");
+    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : "55" + cleanPhone;
+
+    // Formata data e hora
+    const dt = new Date(appt.startTime ?? appt.start_time ?? appt.date);
+    const dataFormatada = dt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+    const horaFormatada = dt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+    const clientName = appt.clientName ?? appt.client_name ?? "Cliente";
+    const serviceName = appt.serviceName ?? appt.service_name ?? "Servico";
+    const profName = appt.professionalName ?? appt.professional_name ?? "";
+
+    const msg = `✅ *Agendamento Confirmado!*
+
+Olá, ${clientName}! Seu agendamento foi confirmado.
+
+📅 *Data:* ${dataFormatada}
+🕐 *Horário:* ${horaFormatada}
+💆 *Serviço:* ${serviceName}${profName ? `
+👤 *Profissional:* ${profName}` : ""}
+
+Aguardamos você! 😊`;
+
+    await sendTextMessage(fullPhone, msg, tenantId);
+    console.log("[WP-CONFIRM] Mensagem enviada para:", fullPhone);
+  } catch (e: any) {
+    console.error("[WP-CONFIRM] Erro:", e.message);
+    throw e;
+  }
+}
+
+export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
+  const phone = appt.clientPhone ?? appt.phone;
+  if (!phone) {
+    console.log("[WA-CONFIRM] Sem telefone no agendamento:", appt.id);
+    return;
+  }
+
+  // Formata data e hora
+  const dt = new Date(appt.scheduledAt ?? appt.date ?? appt.startTime);
+  const data = dt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+  const hora = dt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+  const clientName = appt.clientName ?? appt.client?.name ?? "Cliente";
+  const serviceName = appt.serviceName ?? appt.service?.name ?? "Servico";
+  const profName = appt.professionalName ?? appt.professional?.name ?? "Profissional";
+
+  const msg = `✅ *Agendamento Confirmado!*
+
+Ola, ${clientName}! Seu agendamento foi confirmado.
+
+📅 *Data:* ${data}
+🕐 *Horario:* ${hora}
+💆 *Servico:* ${serviceName}
+👤 *Profissional:* ${profName}
+
+Qualquer duvida, entre em contato conosco.
+_ZenSalon_ ✂️`;
+
+  await sendTextMessage(phone, msg, tenantId);
+}
+
