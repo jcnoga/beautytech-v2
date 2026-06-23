@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db/connection.js";
 import { sql } from "drizzle-orm";
-import { requireSuperAdmin } from "../middleware/auth.js";
+import jwt from "jsonwebtoken";
 
 export async function prospectModule(fastify: FastifyInstance) {
 async function requireSuperAdmin(req: any, reply: any) {
