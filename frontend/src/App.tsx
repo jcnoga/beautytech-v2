@@ -339,7 +339,7 @@ function ForgotPasswordPage({ onBack }: any) {
   const submit = async () => {
     setLoading(true); setError(""); setMsg("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/forgot-password`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1").replace(/\/+$/, "")}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
