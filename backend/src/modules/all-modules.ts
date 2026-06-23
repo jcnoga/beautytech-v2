@@ -1770,6 +1770,8 @@ export async function demoModule(fastify: FastifyInstance) {
     await db.execute(sql`DELETE FROM commissions WHERE tenant_id=${tenantId} AND (appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo') OR professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'))`);
     await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo')`);
     await db.execute(sql`DELETE FROM appointment_photos WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo')`);
+    await db.execute(sql`DELETE FROM appointment_services WHERE appointment_id IN (SELECT id FROM appointments WHERE tenant_id=${tenantId} AND professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'))`);
+    await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND professional_id IN (SELECT id FROM professionals WHERE tenant_id=${tenantId} AND full_name LIKE '%Demo%'`);
     await db.execute(sql`DELETE FROM appointments WHERE tenant_id=${tenantId} AND internal_notes='demo'`);
     await db.execute(sql`DELETE FROM notifications WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
     await db.execute(sql`DELETE FROM loyalty_transactions WHERE client_id IN (SELECT id FROM clients WHERE tenant_id=${tenantId} AND tags @> ARRAY['demo']::text[])`);
