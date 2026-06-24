@@ -159,9 +159,8 @@ export async function connectInstance(tenantId: string) {
     if (connStatus === "open") return { state: "open", instance: existingName, mode: cfg.mode };
     const qr = await evolutionRequest(apiUrl, apiKey, "/instance/connect/" + encodeURIComponent(existingName), "GET") as any;
     if (qr?.base64) return { base64: qr.base64, code: qr.code, instance: existingName, mode: cfg.mode };
-    try { await evolutionRequest(apiUrl, apiKey, "/instance/logout/" + encodeURIComponent(existingName), "DELETE"); } catch {}
-    try { await evolutionRequest(apiUrl, apiKey, "/instance/delete/" + encodeURIComponent(existingName), "DELETE"); } catch {}
-    await new Promise(r => setTimeout(r, 1000));
+    // Nao deleta — apenas retorna estado atual
+    return { state: "connecting", instance: existingName, mode: cfg.mode };
   }
   const instanceName = "salon-" + tenantId.slice(0, 8) + "-" + Date.now();
   await evolutionRequest(apiUrl, apiKey, "/instance/create", "POST", { instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true });
