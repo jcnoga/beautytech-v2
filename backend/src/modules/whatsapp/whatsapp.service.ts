@@ -154,11 +154,13 @@ export async function connectInstance(tenantId: string) {
 
   const existing = await findEvolutionInstance(apiUrl, apiKey, tenantId);
   if (existing) {
-    if (existing.connectionStatus === "open") return { state: "open", instance: existing.name, mode: cfg.mode };
-    const qr = await evolutionRequest(apiUrl, apiKey, "/instance/connect/" + encodeURIComponent(existing.name), "GET") as any;
-    if (qr?.base64) return { base64: qr.base64, code: qr.code, instance: existing.name, mode: cfg.mode };
-    try { await evolutionRequest(apiUrl, apiKey, "/instance/logout/" + encodeURIComponent(existing.name), "DELETE"); } catch {}
-    try { await evolutionRequest(apiUrl, apiKey, "/instance/delete/" + encodeURIComponent(existing.name), "DELETE"); } catch {}
+    const existingName = existing.instance?.instanceName ?? existing.name ?? "";
+    const connStatus = existing.connectionStatus ?? existing.instance?.status ?? existing.state ?? "";
+    if (connStatus === "open") return { state: "open", instance: existingName, mode: cfg.mode };
+    const qr = await evolutionRequest(apiUrl, apiKey, "/instance/connect/" + encodeURIComponent(existingName), "GET") as any;
+    if (qr?.base64) return { base64: qr.base64, code: qr.code, instance: existingName, mode: cfg.mode };
+    try { await evolutionRequest(apiUrl, apiKey, "/instance/logout/" + encodeURIComponent(existingName), "DELETE"); } catch {}
+    try { await evolutionRequest(apiUrl, apiKey, "/instance/delete/" + encodeURIComponent(existingName), "DELETE"); } catch {}
     await new Promise(r => setTimeout(r, 1000));
   }
   const instanceName = "salon-" + tenantId.slice(0, 8) + "-" + Date.now();
