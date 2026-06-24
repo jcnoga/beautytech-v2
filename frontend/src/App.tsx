@@ -2540,7 +2540,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const base = import.meta.env["VITE_API_URL"];
 
   const saFetch = async (method: string, endpoint: string, body?: any) => {
-    const res = await fetch(`${base}/api/v1${endpoint}`, {
+    const res = await fetch(`${base}${endpoint}`, {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: body ? JSON.stringify(body) : undefined,
