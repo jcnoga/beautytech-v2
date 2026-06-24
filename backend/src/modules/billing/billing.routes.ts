@@ -70,7 +70,11 @@ export async function billingRoutes(fastify: any) {
       const result = await db.execute(sql`SELECT key, value FROM plan_settings WHERE key LIKE 'plan_%'`);
       const rows = (result as any).rows ?? (Array.isArray(result) ? result : []);
       const s: Record<string, number> = {};
-      rows.forEach((r: any) => { s[r.key] = parseFloat(r.value) || 0; });
+      rows.forEach((r: any) => {
+        let raw = r.value;
+        try { while (typeof raw === 'string' && raw.startsWith('"')){ raw = JSON.parse(raw); } } catch {}
+        s[r.key] = parseFloat(raw) || 0;
+      });
       const plans = {
         free:  { tier:"free",  name:"Free",   monthlyPrice:0, semiannualPrice:0, annualPrice:0, professionals:1, clients:30 },
         basic: { tier:"basic", name:"Basico", monthlyPrice:s["plan_basic_monthly"]??39.90, semiannualPrice:s["plan_basic_semiannual"]??null, annualPrice:s["plan_basic_annual"]??null, professionals:s["plan_basic_max_users"]??1,  clients:999999 },

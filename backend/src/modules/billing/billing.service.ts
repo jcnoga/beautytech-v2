@@ -30,7 +30,12 @@ export async function loadPlansFromDb(): Promise<void> {
     const result = await db.execute(sql`SELECT key, value FROM plan_settings WHERE key LIKE 'plan_%'`);
     const rows = (result as any).rows ?? (Array.isArray(result) ? result : []);
     const settings: Record<string, number> = {};
-    rows.forEach((r: any) => { settings[r.key] = parseFloat(r.value) || 0; });
+    rows.forEach((r: any) => {
+      // Remove aspas extras se o valor foi salvo com JSON.stringify
+      let raw = r.value;
+      try { while (typeof raw === 'string' && (raw.startsWith('"') || raw.startsWith('\''))){ raw = JSON.parse(raw); } } catch {}
+      settings[r.key] = parseFloat(raw) || 0;
+    });
 
     PLANS = {
       free:  { ...PLANS_DEFAULT.free },

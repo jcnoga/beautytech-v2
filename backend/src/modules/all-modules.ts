@@ -1589,7 +1589,8 @@ export async function superAdminModule(fastify: FastifyInstance) {
   // PLAN SETTINGS - UPDATE
   fastify.patch("/super-admin/plan-settings/:key", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
     const { value } = req.body as any;
-    await db.execute(sql`UPDATE plan_settings SET value=${JSON.stringify(value)}, updated_at=NOW() WHERE key=${req.params.key}`);
+    const valueStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    await db.execute(sql`UPDATE plan_settings SET value=${valueStr}, updated_at=NOW() WHERE key=${req.params.key}`);
     return reply.send({ success: true });
   });
 
