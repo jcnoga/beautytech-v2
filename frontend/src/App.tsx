@@ -472,8 +472,9 @@ function DashboardPage() {
           const svcs = svcsRes.data ?? [];
           setTenantName(meRes.data?.name ?? meRes.name ?? '');
           const isImp = !!sessionStorage.getItem("impersonation_token");
-          const tenantHasName = !!(meRes.data?.name ?? meRes.name ?? '');
-          if (!isImp && !tenantHasName && (profs.length === 0 || svcs.length === 0)) {
+          const tenantName2 = meRes.data?.name ?? meRes.name ?? '';
+          const tenantHasName = tenantName2.length > 0;
+          if (!isImp && !tenantHasName) {
             setShowOnboarding(true);
           }
         } catch {}
