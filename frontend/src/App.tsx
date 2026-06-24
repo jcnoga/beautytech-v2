@@ -474,7 +474,8 @@ function DashboardPage() {
           const isImp = !!sessionStorage.getItem("impersonation_token");
           const tenantName2 = meRes.data?.name ?? meRes.name ?? '';
           const tenantHasName = tenantName2.length > 0;
-          if (!isImp && !tenantHasName) {
+          // Onboarding apenas para tenants novos sem nome E sem profissionais E sem servicos
+          if (!isImp && !tenantHasName && profs.length === 0 && svcs.length === 0) {
             setShowOnboarding(true);
           }
         } catch {}
