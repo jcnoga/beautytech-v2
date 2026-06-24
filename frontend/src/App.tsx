@@ -3658,7 +3658,7 @@ function TrialBanner() {
         <div style={{ width:100, height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(days/15)*100))}%`, background:color, borderRadius:3 }} />
         </div>
-        <UpgradeButton color={color} onPaymentSuccess={() => setCurrentPage('payment_success')} setPage={setCurrentPage} />
+        <UpgradeButton color={color} onPaymentSuccess={() => setCurrentPage('payment_success')} setPage={setPage} />
       </div>
     </div>
   );
