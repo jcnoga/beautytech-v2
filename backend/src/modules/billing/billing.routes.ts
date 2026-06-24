@@ -72,10 +72,10 @@ export async function billingRoutes(fastify: any) {
       const s: Record<string, number> = {};
       rows.forEach((r: any) => { s[r.key] = parseFloat(r.value) || 0; });
       const plans = {
-        free:  { tier:"free",  name:"Free",   monthlyPrice:0,                                           professionals: 1,  clients:30     },
-        basic: { tier:"basic", name:"Basico", monthlyPrice:s["plan_basic_monthly"] ?? 39.90,            professionals: s["plan_basic_max_users"] ?? 1,  clients:999999 },
-        pro:   { tier:"pro",   name:"Pro",    monthlyPrice:s["plan_pro_monthly"]   ?? 59.90,            professionals: s["plan_pro_max_users"]   ?? 5,  clients:999999 },
-        super: { tier:"super", name:"Super",  monthlyPrice:s["plan_super_monthly"] ?? 99.90,            professionals: s["plan_super_max_users"] ?? 12, clients:999999 },
+        free:  { tier:"free",  name:"Free",   monthlyPrice:0, semiannualPrice:0, annualPrice:0, professionals:1, clients:30 },
+        basic: { tier:"basic", name:"Basico", monthlyPrice:s["plan_basic_monthly"]??39.90, semiannualPrice:s["plan_basic_semiannual"]??null, annualPrice:s["plan_basic_annual"]??null, professionals:s["plan_basic_max_users"]??1,  clients:999999 },
+        pro:   { tier:"pro",   name:"Pro",    monthlyPrice:s["plan_pro_monthly"]??59.90,   semiannualPrice:s["plan_pro_semiannual"]??null,   annualPrice:s["plan_pro_annual"]??null,   professionals:s["plan_pro_max_users"]??3,   clients:999999 },
+        super: { tier:"super", name:"Super",  monthlyPrice:s["plan_super_monthly"]??99.90, semiannualPrice:s["plan_super_semiannual"]??null, annualPrice:s["plan_super_annual"]??null, professionals:s["plan_super_max_users"]??10, clients:999999 },
       };
       return reply.send({ success: true, data: plans });
     } catch(e) {

@@ -36,18 +36,24 @@ export async function loadPlansFromDb(): Promise<void> {
       free:  { ...PLANS_DEFAULT.free },
       basic: {
         ...PLANS_DEFAULT.basic,
-        monthlyPrice:  settings["plan_basic_monthly"]  ?? PLANS_DEFAULT.basic.monthlyPrice,
-        professionals: settings["plan_basic_max_users"] ?? PLANS_DEFAULT.basic.professionals,
+        monthlyPrice:     settings["plan_basic_monthly"]     ?? PLANS_DEFAULT.basic.monthlyPrice,
+        semiannualPrice:  settings["plan_basic_semiannual"]  ?? null,
+        annualPrice:      settings["plan_basic_annual"]       ?? null,
+        professionals:    settings["plan_basic_max_users"]   ?? PLANS_DEFAULT.basic.professionals,
       },
       pro: {
         ...PLANS_DEFAULT.pro,
-        monthlyPrice:  settings["plan_pro_monthly"]  ?? PLANS_DEFAULT.pro.monthlyPrice,
-        professionals: settings["plan_pro_max_users"] ?? PLANS_DEFAULT.pro.professionals,
+        monthlyPrice:     settings["plan_pro_monthly"]       ?? PLANS_DEFAULT.pro.monthlyPrice,
+        semiannualPrice:  settings["plan_pro_semiannual"]    ?? null,
+        annualPrice:      settings["plan_pro_annual"]         ?? null,
+        professionals:    settings["plan_pro_max_users"]     ?? PLANS_DEFAULT.pro.professionals,
       },
       super: {
         ...PLANS_DEFAULT.super,
-        monthlyPrice:  settings["plan_super_monthly"]  ?? PLANS_DEFAULT.super.monthlyPrice,
-        professionals: settings["plan_super_max_users"] ?? PLANS_DEFAULT.super.professionals,
+        monthlyPrice:     settings["plan_super_monthly"]     ?? PLANS_DEFAULT.super.monthlyPrice,
+        semiannualPrice:  settings["plan_super_semiannual"]  ?? null,
+        annualPrice:      settings["plan_super_annual"]       ?? null,
+        professionals:    settings["plan_super_max_users"]   ?? PLANS_DEFAULT.super.professionals,
       },
     };
     console.log("[BILLING] Planos carregados do banco:", JSON.stringify(PLANS));
@@ -76,6 +82,9 @@ export const ASAAS_CYCLE: Record<PlanPeriod, string> = {
 
 export function calcPlanAmount(tier: PlanTier, period: PlanPeriod): number {
   const plan = PLANS[tier];
+  const plan2 = plan as any;
+  if (period === 'semiannual' && plan2.semiannualPrice) return parseFloat(Number(plan2.semiannualPrice).toFixed(2));
+  if (period === 'annual' && plan2.annualPrice) return parseFloat(Number(plan2.annualPrice).toFixed(2));
   const discount = PERIOD_DISCOUNT[period];
   const months = PERIOD_MONTHS[period];
   const monthly = plan.monthlyPrice * (1 - discount);

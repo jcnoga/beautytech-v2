@@ -80,8 +80,8 @@ export default function PricingPage({ currentPlan, setPage }: { token?: string; 
             if (tier === "free") return;
             p[tier] = {
               monthly:    plan.monthlyPrice,
-              semiannual: parseFloat((plan.monthlyPrice * 0.9).toFixed(2)),
-              annual:     parseFloat((plan.monthlyPrice * 0.8).toFixed(2)),
+              semiannual: plan.semiannualPrice ? parseFloat(Number(plan.semiannualPrice).toFixed(2)) : parseFloat((plan.monthlyPrice * 0.9).toFixed(2)),
+              annual:     plan.annualPrice     ? parseFloat(Number(plan.annualPrice).toFixed(2))     : parseFloat((plan.monthlyPrice * 0.8).toFixed(2)),
               professionals: plan.professionals,
             };
           });
@@ -112,8 +112,8 @@ export default function PricingPage({ currentPlan, setPage }: { token?: string; 
     if (monthly === 0) return 0;
     if (planPrices[planId]) {
       const p = planPrices[planId];
-      if (period === "semiannual") return p.semiannual;
-      if (period === "annual") return p.annual;
+      if (period === "semiannual" && p.semiannual) return p.semiannual;
+      if (period === "annual" && p.annual) return p.annual;
       return p.monthly;
     }
     return monthly * (1 - disc / 100);
