@@ -89,7 +89,11 @@ async function zapiRequest(apiUrl: string, apiKey: string, path: string, method:
 async function findEvolutionInstance(apiUrl: string, apiKey: string, tenantId: string) {
   const all = await evolutionRequest(apiUrl, apiKey, "/instance/fetchInstances", "GET") as any;
   const instances = Array.isArray(all) ? all : (all.value ?? []);
-  return instances.find((i: any) => i.name.startsWith("salon-" + tenantId.slice(0, 8)));
+  const prefix = "salon-" + tenantId.slice(0, 8);
+  return instances.find((i: any) => {
+    const name = i.instance?.instanceName ?? i.name ?? "";
+    return name.startsWith(prefix);
+  });
 }
 
 export async function getInstanceStatus(tenantId: string) {
