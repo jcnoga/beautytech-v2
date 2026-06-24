@@ -78,7 +78,8 @@ export async function whatsappModule(fastify: FastifyInstance) {
       const qr = await connectInstance(tenantId);
       return reply.send({ success: true, data: qr });
     } catch (error: any) {
-      return reply.status(500).send({ success: false, error: error.message });
+    const st = error.message?.includes("manual") ? 400 : 500;
+    return reply.status(st).send({ success: false, error: error.message });
     }
   });
 
