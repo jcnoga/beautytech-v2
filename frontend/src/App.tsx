@@ -10,7 +10,6 @@ import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import BookingPage from './BookingPage';
 import SuperAdminLogsModal from './SuperAdminLogsModal';
 import AuditLogsPage from './AuditLogsPage';
-import ProspectPage from './ProspectPage';
 import OnboardingWizard from './OnboardingWizard';
 import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
@@ -254,7 +253,7 @@ function RegisterPage({ onBack }: any) {
   const submit = async () => {
     setLoading(true); setError(""); setSuccess("");
     try {
-      const res = await fetch(`${(import.meta.env["VITE_API_URL"] ?? "http://localhost:3000/api/v1").replace(/\/+$/, "")}/auth/register`, {
+      const res = await fetch(`${import.meta.env["VITE_API_URL"]}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ salonName, ownerName, email, password, whatsapp, businessType, cpfCnpj: cpfCnpj.replace(/\D/g,"") || undefined, addressStreet: addressStreet || undefined, addressCity: addressCity || undefined, addressState: addressState || undefined, addressZip: addressZip || undefined, hasWifi, hasParking }),
@@ -341,18 +340,11 @@ function ForgotPasswordPage({ onBack }: any) {
 
   const submit = async () => {
     setLoading(true); setError(""); setMsg("");
-    try {
-      const res = await fetch(`${(import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1").replace(/\/+$/, "")}/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) setError(data.error ?? "Erro ao enviar email.");
-      else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
-    } catch {
-      setError("Erro de conexao. Tente novamente.");
-    }
+    const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/?reset=1"
+    });
+    if (e) setError(e.message);
+    else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
     setLoading(false);
   };
 
@@ -384,130 +376,6 @@ function ForgotPasswordPage({ onBack }: any) {
               Voltar ao login
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-function ResetSenhaPage() {
-  const [password, setPassword]   = useState("");
-  const [confirm,  setConfirm]    = useState("");
-  const [loading,  setLoading]    = useState(false);
-  const [msg,      setMsg]        = useState("");
-  const [error,    setError]      = useState("");
-  const [token,    setToken]      = useState("");
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get("token");
-    if (!t) {
-      setError("Link invalido. Solicite uma nova recuperacao de senha.");
-    } else {
-      setToken(t);
-    }
-  }, []);
-
-  const submit = async () => {
-    if (!token)            { setError("Token ausente.");                    return; }
-    if (password !== confirm) { setError("As senhas nao conferem.");        return; }
-    if (password.length < 6)  { setError("Minimo 6 caracteres.");          return; }
-
-    setLoading(true); setError(""); setMsg("");
-    try {
-      const API = (import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1").replace(/\/+$/, "");
-      const res  = await fetch(`${API}/auth/reset-password`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ token, password }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.error ?? "Erro ao alterar senha.");
-      } else {
-        setMsg("Senha alterada com sucesso! Redirecionando...");
-        setTimeout(() => { window.location.href = "/"; }, 2500);
-      }
-    } catch (e: any) {
-      setError("Erro de conexao. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
-                  background:"linear-gradient(135deg,#f8f4f0,#f0e8f0)", padding:"20px" }}>
-      <div style={{ background:"#fff", borderRadius:"16px", padding:"40px",
-                    boxShadow:"0 4px 24px rgba(0,0,0,.10)", width:"100%", maxWidth:"400px" }}>
-        <div style={{ textAlign:"center", marginBottom:"28px" }}>
-          <div style={{ fontSize:"32px", marginBottom:"8px" }}>✂️</div>
-          <h2 style={{ margin:0, color:"#3d2b1f", fontSize:"22px" }}>ZenSalon</h2>
-          <p style={{ margin:"6px 0 0", color:"#888", fontSize:"14px" }}>Nova senha</p>
-        </div>
-
-        {error && (
-          <div style={{ background:"#fff0f0", border:"1px solid #ffcccc", borderRadius:"8px",
-                        padding:"12px 16px", marginBottom:"16px", color:"#c0392b", fontSize:"14px" }}>
-            {error}
-          </div>
-        )}
-        {msg && (
-          <div style={{ background:"#f0fff4", border:"1px solid #c3e6cb", borderRadius:"8px",
-                        padding:"12px 16px", marginBottom:"16px", color:"#27ae60", fontSize:"14px" }}>
-            {msg}
-          </div>
-        )}
-
-        {!msg && token && (
-          <>
-            <div style={{ marginBottom:"16px" }}>
-              <label style={{ display:"block", marginBottom:"6px", color:"#555", fontSize:"14px", fontWeight:600 }}>
-                Nova senha
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Minimo 6 caracteres"
-                style={{ width:"100%", padding:"12px", border:"1px solid #ddd", borderRadius:"8px",
-                         fontSize:"15px", boxSizing:"border-box", outline:"none" }}
-              />
-            </div>
-            <div style={{ marginBottom:"24px" }}>
-              <label style={{ display:"block", marginBottom:"6px", color:"#555", fontSize:"14px", fontWeight:600 }}>
-                Confirmar senha
-              </label>
-              <input
-                type="password"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                placeholder="Repita a senha"
-                style={{ width:"100%", padding:"12px", border:"1px solid #ddd", borderRadius:"8px",
-                         fontSize:"15px", boxSizing:"border-box", outline:"none" }}
-              />
-            </div>
-            <button
-              onClick={submit}
-              disabled={loading}
-              style={{ width:"100%", padding:"14px", background:"linear-gradient(135deg,#c9a96e,#8b5e7e)",
-                       color:"#fff", border:"none", borderRadius:"8px", fontSize:"16px",
-                       fontWeight:600, cursor: loading ? "not-allowed" : "pointer",
-                       opacity: loading ? 0.7 : 1 }}>
-              {loading ? "Alterando..." : "Alterar senha"}
-            </button>
-          </>
-        )}
-
-        {!token && !error && (
-          <p style={{ textAlign:"center", color:"#888", fontSize:"14px" }}>Verificando link...</p>
-        )}
-
-        <div style={{ textAlign:"center", marginTop:"20px" }}>
-          <a href="/" style={{ color:"#8b5e7e", fontSize:"13px", textDecoration:"none" }}>
-            ← Voltar ao login
-          </a>
         </div>
       </div>
     </div>
@@ -596,16 +464,15 @@ function DashboardPage() {
           const headers = { Authorization: 'Bearer ' + token };
           const base = (import.meta as any).env?.VITE_API_URL ?? '';
           const [profsRes, svcsRes, meRes] = await Promise.all([
-            fetch(base + '/professionals', { headers }).then(r2 => r2.json()),
-            fetch(base + '/services', { headers }).then(r2 => r2.json()),
-            fetch(base + '/auth/me', { headers }).then(r2 => r2.json()),
+            fetch(base + '/api/v1/professionals', { headers }).then(r2 => r2.json()),
+            fetch(base + '/api/v1/services', { headers }).then(r2 => r2.json()),
+            fetch(base + '/api/v1/auth/me', { headers }).then(r2 => r2.json()),
           ]);
           const profs = profsRes.data ?? [];
           const svcs = svcsRes.data ?? [];
           setTenantName(meRes.data?.name ?? meRes.name ?? '');
           const isImp = !!sessionStorage.getItem("impersonation_token");
-          const onbDone = localStorage.getItem("onboarding_done");
-          if (!isImp && !onbDone && (profs.length === 0 || svcs.length === 0) && !meRes.data?.name) {
+          if (!isImp && (profs.length === 0 || svcs.length === 0)) {
             setShowOnboarding(true);
           }
         } catch {}
@@ -624,7 +491,7 @@ function DashboardPage() {
     </div>
   );
 
-  if (showOnboarding) return <OnboardingWizard tenantName={tenantName} onComplete={() => { localStorage.setItem("onboarding_done", "true"); setShowOnboarding(false); }} />;
+  if (showOnboarding) return <OnboardingWizard tenantName={tenantName} onComplete={() => setShowOnboarding(false)} />;
 
   const k = kpis ?? MOCK_KPIS;
 
@@ -1630,9 +1497,15 @@ function AgendaPage() {
             </select>
           </div>
 
-          <div style={{ marginBottom:14 }}>
-            <label style={lblStyle}>Data *</label>
-            <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value); setSlots([]); setForm(p=>({...p,scheduledAt:""})); if (form.serviceId) fetchAvailableProfs(form.serviceId, e.target.value); if (form.professionalId) fetchSlots(form.professionalId, form.serviceId, e.target.value); }} style={{...selStyle}} />
+          <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
+            <label style={lblStyle}>Profissional</label>
+            <select value={form.professionalId} onChange={e => { f("professionalId")(e.target.value); setSlots([]); setForm(p => ({...p, scheduledAt:""})); if (e.target.value && selectedDate) fetchSlots(e.target.value, form.serviceId, selectedDate); }} style={selStyle}>
+              <option value="">Selecione (opcional)...</option>
+              {(form.serviceId && availableProfs.length > 0 ? availableProfs : profsList).map((p: any) => (
+                <option key={p.id} value={p.id}>{p.full_name ?? p.fullName}{p.duration_minutes ? ` (${p.duration_minutes}min)` : ""}</option>
+              ))}
+            </select>
+            {form.serviceId && availableProfs.length === 0 && <div style={{ fontSize:11, color:"#e05c5c", marginTop:4 }}>Nenhum profissional habilitado para este servico nesta data.</div>}
           </div>
 
           <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
@@ -1645,15 +1518,9 @@ function AgendaPage() {
             </select>
           </div>
 
-          <div style={{ marginBottom:14, gridColumn:"1/-1" }}>
-            <label style={lblStyle}>Profissional</label>
-            <select value={form.professionalId} onChange={e => { f("professionalId")(e.target.value); setSlots([]); setForm(p => ({...p, scheduledAt:""})); if (e.target.value && selectedDate) fetchSlots(e.target.value, form.serviceId, selectedDate); }} style={selStyle}>
-              <option value="">Selecione (opcional)...</option>
-              {(form.serviceId && availableProfs.length > 0 ? availableProfs : profsList).map((p: any) => (
-                <option key={p.id} value={p.id}>{p.full_name ?? p.fullName}{p.duration_minutes ? ` (${p.duration_minutes}min)` : ""}</option>
-              ))}
-            </select>
-            {form.serviceId && availableProfs.length === 0 && <div style={{ fontSize:11, color:"#e05c5c", marginTop:4 }}>Nenhum profissional habilitado para este servico nesta data.</div>}
+          <div style={{ marginBottom:14 }}>
+            <label style={lblStyle}>Data *</label>
+            <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value); setSlots([]); setForm(p=>({...p,scheduledAt:""})); if (form.serviceId) fetchAvailableProfs(form.serviceId, e.target.value); if (form.professionalId) fetchSlots(form.professionalId, form.serviceId, e.target.value); }} style={{...selStyle}} />
           </div>
           <div style={{ marginBottom:14 }}>
             <label style={lblStyle}>Horario *</label>
@@ -2608,8 +2475,8 @@ function SuperAdminApp() {
   const login = async () => {
     setLoading(true); setError("");
     try {
-      const base = (import.meta.env["VITE_API_URL"] ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
-      const res = await fetch(`${base}/super-admin/login`, {
+      const base = import.meta.env["VITE_API_URL"];
+      const res = await fetch(`${base}/api/v1/super-admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -2673,7 +2540,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const base = import.meta.env["VITE_API_URL"];
 
   const saFetch = async (method: string, endpoint: string, body?: any) => {
-    const res = await fetch(`${base}${endpoint}`, {
+    const res = await fetch(`${base}/api/v1${endpoint}`, {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: body ? JSON.stringify(body) : undefined,
@@ -2744,7 +2611,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const impersonateTenant = async (id: string, name: string) => {
     if (!window.confirm(`Acessar painel de "${name}" como administrador?`)) return;
     try {
-      const res = await fetch(`${base}/super-admin/tenants/${id}/impersonate`, {
+      const res = await fetch(`${base}/api/v1/super-admin/tenants/${id}/impersonate`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
       });
@@ -2842,7 +2709,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
       <div style={{ padding:"32px 48px 32px 32px" }}>
       <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-  {([["tenants","Saloes"],["prospects","Prospecção"],["logs","Log de Acoes"]] as [string,string][]).map(([id,label]) => (
+  {([["tenants","Saloes"],["logs","Log de Acoes"]] as [string,string][]).map(([id,label]) => (
     <button key={id} onClick={() => { setSaTab(id); if(id==="logs") loadLogs(); }}
       style={{padding:"10px 20px",background:"none",border:"none",borderBottom:`2px solid ${saTab===id?C.gold:"transparent"}`,color:saTab===id?C.gold:C.textMuted,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:FB,marginBottom:-1}}>
       {label}
@@ -2880,9 +2747,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); }} emptyMsg="Nenhum salao encontrado." />
         }
       </div>
-{saTab === "prospects" && <ProspectPage token={token} />}
-
-      {saTab === "logs" && (
+{saTab === "logs" && (
   <div>
     {logsLoading && <div style={{textAlign:"center",padding:60,color:C.textMuted}}>Carregando...</div>}
     {!logsLoading && saLogs.length === 0 && <div style={{textAlign:"center",padding:60,color:C.textMuted}}>Nenhum log encontrado.</div>}
@@ -3709,7 +3574,7 @@ function AutomationsPage() {
 
 
 // --- UPGRADE BUTTON -----------------------------------------
-function UpgradeButton({ color, onPaymentSuccess }: any) {
+function UpgradeButton({ color, onPaymentSuccess, setPage }: any) {
   const [loading, setLoading] = useState(false);
   const [showCpf, setShowCpf] = useState(false);
   const [cpf, setCpf] = useState("");
@@ -3728,37 +3593,12 @@ function UpgradeButton({ color, onPaymentSuccess }: any) {
     }
   };
 
-  const doUpgrade = async () => {
-    setLoading(true);
-    try {
-      const r: any = await api.post("/billing/subscribe", { tier: "basic", period: "monthly" });
-      if (r?.data?.paymentUrl) {
-        window.open(r.data.paymentUrl, "_blank");
-        // Monitora retorno do pagamento
-        const checkReturn = setInterval(() => {
-          if (document.visibilityState === "visible") {
-            clearInterval(checkReturn);
-            onPaymentSuccess?.();
-          }
-        }, 2000);
-        document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") {
-            clearInterval(checkReturn);
-            onPaymentSuccess?.();
-          }
-        }, { once: true });
-      } else {
-        alert("Erro: " + (r?.error ?? "Tente novamente."));
-      }
-    } catch(e: any) {
-      const msg = e.message ?? "";
-      if (msg.includes("CPF/CNPJ")) {
-        setShowCpf(true);
-      } else {
-        alert("Erro: " + msg);
-      }
-    } finally {
-      setLoading(false);
+  const doUpgrade = () => {
+    // Redireciona para a página de planos onde o usuário escolhe e paga
+    if (setPage) {
+      setPage("pricing");
+    } else {
+      onPaymentSuccess?.();
     }
   };
 
@@ -3818,7 +3658,7 @@ function TrialBanner() {
         <div style={{ width:100, height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(days/15)*100))}%`, background:color, borderRadius:3 }} />
         </div>
-        <UpgradeButton color={color} onPaymentSuccess={() => setCurrentPage('payment_success')} />
+        <UpgradeButton color={color} onPaymentSuccess={() => setCurrentPage('payment_success')} setPage={setCurrentPage} />
       </div>
     </div>
   );
@@ -3940,59 +3780,13 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
             </div>
           )}
         </div>
-        <div style={{ fontSize:11, color:C.textMuted, marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontSize:13 }}>{user?.email}</div>
+        <div style={{ fontSize:13, color:C.textMuted, marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.email}</div>
         <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:14, cursor:"pointer", padding:0, fontFamily:FB }}>Sair</button>
       </div>
     </div>
   );
 }
 // --- APP -----------------------------------------------------
-
-function ResetPasswordPage() {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
-  useEffect(() => {
-    // Verifica sessao ja existente (hash ja processado antes do mount)
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) setReady(true);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-  const submit = async () => {
-    if (password !== confirm) { setError("As senhas nao conferem."); return; }
-    if (password.length < 6) { setError("Senha deve ter pelo menos 6 caracteres."); return; }
-    setLoading(true); setError(""); setMsg("");
-    const { error: e } = await supabase.auth.updateUser({ password });
-    if (e) setError(e.message);
-    else { sessionStorage.removeItem("zs_reset"); setMsg("Senha alterada com sucesso! Redirecionando..."); setTimeout(() => { window.location.href = "/"; }, 2000); }
-    setLoading(false);
-  };
-  return (
-    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-      <div style={{ width:"100%", maxWidth:420 }}>
-        <div style={{ textAlign:"center", marginBottom:32 }}>
-          <div style={{ fontSize:32, fontWeight:700, color:C.text, fontFamily:FD }}>ZenSalon</div>
-          <div style={{ fontSize:13, color:C.textMuted, marginTop:8 }}>Digite sua nova senha</div>
-        </div>
-        <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:32 }}>
-          <Inp label="Nova senha" value={password} onChange={setPassword} type="password" placeholder="Minimo 6 caracteres" />
-          <Inp label="Confirmar senha" value={confirm} onChange={setConfirm} type="password" placeholder="Repita a senha" />
-          {error && <div style={{ background:`${C.ruby}15`, border:`1px solid ${C.ruby}30`, borderRadius:10, padding:"10px 14px", color:C.ruby, fontSize:12, marginBottom:16 }}>{error}</div>}
-          {msg && <div style={{ background:`${C.sage}15`, border:`1px solid ${C.sage}30`, borderRadius:10, padding:"10px 14px", color:C.sage, fontSize:12, marginBottom:16 }}>{msg}</div>}
-          <Btn full onClick={submit} disabled={loading}>{loading ? "Salvando..." : "Alterar senha"}</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
@@ -4000,7 +3794,6 @@ export default function App() {
   const sobreMatch = window.location.pathname === '/sobre';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
-  const resetSenhaMatch = window.location.pathname === '/reset-senha';
 
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
@@ -4052,14 +3845,8 @@ const logout = async () => {
   };
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
-  const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
-  const hashType = hashParams.get("type");
-  if (hashType === "recovery") sessionStorage.setItem("zs_reset", "1");
-  const isReset = hashType === "recovery" || new URLSearchParams(window.location.search).get("reset") === "1" || sessionStorage.getItem("zs_reset") === "1";
-  if (isReset) return <ResetPasswordPage />;
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
-  if (resetSenhaMatch) return <ResetSenhaPage />;
   if (sobreMatch) return <LandingPageSobre />;
   if (discoveryMatch) return <DiscoveryPage />;
   if (isRootDomain) return <HomePage />;
@@ -4117,3 +3904,4 @@ const logout = async () => {
 
 
  
+// 
