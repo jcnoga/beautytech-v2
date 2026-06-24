@@ -2476,7 +2476,7 @@ function SuperAdminApp() {
     setLoading(true); setError("");
     try {
       const base = import.meta.env["VITE_API_URL"];
-      const res = await fetch(`${base}/api/v1/super-admin/login`, {
+      const res = await fetch(`${base}/super-admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -2611,7 +2611,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const impersonateTenant = async (id: string, name: string) => {
     if (!window.confirm(`Acessar painel de "${name}" como administrador?`)) return;
     try {
-      const res = await fetch(`${base}/api/v1/super-admin/tenants/${id}/impersonate`, {
+      const res = await fetch(`${base}/super-admin/tenants/${id}/impersonate`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
       });
