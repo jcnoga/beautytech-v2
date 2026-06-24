@@ -2714,7 +2714,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
       <div style={{ padding:"32px 48px 32px 32px" }}>
       <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-  {([["tenants","Saloes"],["logs","Log de Acoes"],["prospects","Prospeccao"]] as [string,string][]).map(([id,label]) => (
+  {([["tenants","Saloes"],["logs","Log de Acoes"],["prospects","Prospeccao"],["sistema","Sistema"]] as [string,string][]).map(([id,label]) => (
     <button key={id} onClick={() => { setSaTab(id); if(id==="logs") loadLogs(); }}
       style={{padding:"10px 20px",background:"none",border:"none",borderBottom:`2px solid ${saTab===id?C.gold:"transparent"}`,color:saTab===id?C.gold:C.textMuted,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:FB,marginBottom:-1}}>
       {label}
@@ -2893,7 +2893,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
         )}
       </Modal>
       {showLogs && <SuperAdminLogsModal base={base} token={token} onClose={() => setShowLogs(false)} />}
-      <PlanSettingsPanel saFetch={saFetch} />
+      {saTab === "sistema" && <PlanSettingsPanel saFetch={saFetch} />}
     </div>
   );
 }
