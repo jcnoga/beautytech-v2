@@ -287,6 +287,120 @@ export async function billingRoutes(fastify: any) {
 
     return reply.send({ ok: true });
   });
+
+  // ──────────────────────────────────────────────────────────
+  // POST /billing/checkout-pix
+  // Cria cobrança avulsa Pix e retorna QR Code
+  // O plano só ativa via webhook após confirmação
+  // ──────────────────────────────────────────────────────────
+  fastify.post("/billing/checkout-pix", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const { tier, period } = req.body as { tier: PlanTier; period: PlanPeriod };
+
+    if (!PLANS[tier] || tier === "free")
+      return reply.status(400).send({ success: false, error: "Plano inválido." });
+
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    if (!tenant.email)
+      return reply.status(400).send({ success: false, error: "E-mail do salão não configurado." });
+
+    const totalAmount = calcPlanAmount(tier, period);
+    const dueDate = new Date().toISOString().split("T")[0];
+    const customerId = await getOrCreateCustomer(tenant);
+
+    const payment = await asaasFetch("POST", "/payments", {
+      customer: customerId,
+      billingType: "PIX",
+      value: totalAmount,
+      dueDate,
+      description: `ZenSalon - Plano ${PLANS[tier].name} (${period})`,
+      externalReference: `${tenantId}|${tier}|${period}|pix_checkout`,
+    });
+
+    if (!payment.id)
+      return reply.status(500).send({ success: false, error: "Erro ao criar cobrança Pix." });
+
+    const pixQr = await asaasFetch("GET", `/payments/${payment.id}/pixQrCode`);
+
+    return reply.send({
+      success: true,
+      data: {
+        paymentId: payment.id,
+        value: totalAmount,
+        planName: PLANS[tier].name,
+        pix: {
+          encodedImage: pixQr.encodedImage ?? null,
+          payload: pixQr.payload ?? null,
+          expirationDate: pixQr.expirationDate ?? null,
+        },
+      },
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // POST /billing/checkout-card
+  // Cria cobrança avulsa cartão e retorna invoiceUrl
+  // ──────────────────────────────────────────────────────────
+  fastify.post("/billing/checkout-card", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const { tier, period } = req.body as { tier: PlanTier; period: PlanPeriod };
+
+    if (!PLANS[tier] || tier === "free")
+      return reply.status(400).send({ success: false, error: "Plano inválido." });
+
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    const totalAmount = calcPlanAmount(tier, period);
+    const dueDate = new Date().toISOString().split("T")[0];
+    const customerId = await getOrCreateCustomer(tenant);
+
+    const payment = await asaasFetch("POST", "/payments", {
+      customer: customerId,
+      billingType: "CREDIT_CARD",
+      value: totalAmount,
+      dueDate,
+      description: `ZenSalon - Plano ${PLANS[tier].name} (${period})`,
+      externalReference: `${tenantId}|${tier}|${period}|card_checkout`,
+    });
+
+    if (!payment.id)
+      return reply.status(500).send({ success: false, error: "Erro ao criar cobrança cartão." });
+
+    return reply.send({
+      success: true,
+      data: {
+        paymentId: payment.id,
+        value: totalAmount,
+        planName: PLANS[tier].name,
+        invoiceUrl: payment.invoiceUrl,
+      },
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // GET /billing/payment-status/:paymentId
+  // Polling do frontend para saber se Pix/cartão foi pago
+  // ──────────────────────────────────────────────────────────
+  fastify.get("/billing/payment-status/:paymentId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+    const { tenantId } = req.tenantContext;
+    const { paymentId } = req.params as { paymentId: string };
+
+    const payment = await asaasFetch("GET", `/payments/${paymentId}`);
+    if (!payment.id)
+      return reply.status(404).send({ success: false, error: "Pagamento não encontrado." });
+
+    const refTenantId = (payment.externalReference ?? "").split("|")[0];
+    if (refTenantId !== tenantId)
+      return reply.status(403).send({ success: false, error: "Acesso negado." });
+
+    return reply.send({
+      success: true,
+      data: {
+        paymentId: payment.id,
+        status: payment.status,
+        value: payment.value,
+      },
+    });
+  });
+
+
 }
-
-
