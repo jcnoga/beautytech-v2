@@ -2777,9 +2777,9 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       </div>
     )}
   </div>
-)}
-{saTab === "prospects" && (
-  <ProspectPage token={token ?? ""} />
+  {saTab === "prospects" && (
+    <ProspectPage token={token ?? ""} />
+  )}
 )}
       {/* Modal Gerenciar Tenant */}
       <Modal open={!!selected} onClose={() => setSelected(null)} title={`Gerenciar: ${selected?.name}`} width={480}>
