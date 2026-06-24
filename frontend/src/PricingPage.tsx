@@ -53,7 +53,7 @@ const PERIODS = [
 
 const API = "https://beautytech-v2-production.up.railway.app/api/v1";
 
-export default function PricingPage({ currentPlan }: { token?: string; currentPlan?: string }) {
+export default function PricingPage({ currentPlan, setPage }: { token?: string; currentPlan?: string; setPage?: (p: string) => void }) {
   const [period, setPeriod] = useState("monthly");
   const [loading, setLoading] = useState<string | null>(null);
   const [status, setStatus] = useState<any>(null);
@@ -120,37 +120,21 @@ export default function PricingPage({ currentPlan }: { token?: string; currentPl
   };
   const totalPrice = (planId: string, monthly: number) => price(planId, monthly) * months;
 
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = (planId: string) => {
+    if (planId === "free") return;
+
+    // Valida login antes de redirecionar
     const lsKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
     const lsToken = lsKey ? JSON.parse(localStorage.getItem(lsKey) || '{}')?.access_token : null;
-    const activeToken = lsToken || token;
-    if (!activeToken) { setMsg({ type: "err", text: "Voce precisa estar logado para assinar." }); return; }
-    if (planId === "free") return;
-    setLoading(planId);
-    setMsg(null);
-    try {
-      const res = await fetch(`${API}/billing/subscribe`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${activeToken}` },
-        body: JSON.stringify({ tier: planId, period }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        let text = "Assinatura processada com sucesso!";
-        if (data.data.creditApplied > 0) text += ` Credito de R$${Number(data.data.creditApplied).toFixed(2)} aplicado.`;
-        if (data.data.paymentUrl) { text += " Redirecionando para pagamento..."; window.open(data.data.paymentUrl, "_blank"); }
-        setMsg({ type: "ok", text });
-        const s = await fetch(`${API}/billing/status`, { headers: { Authorization: `Bearer ${activeToken}` } }).then(r => r.json());
-        if (s.success) setStatus(s.data);
-      } else {
-        setMsg({ type: "err", text: data.error ?? "Erro ao processar assinatura." });
-      }
-    } catch(e: any) {
-      console.error("BILLING ERROR:", e);
-      setMsg({ type: "err", text: "Erro: " + (e?.message || String(e)) });
-    } finally {
-      setLoading(null);
+    if (!lsToken && !token) {
+      setMsg({ type: "err", text: "Voce precisa estar logado para assinar." });
+      return;
     }
+
+    // Salva parâmetros no sessionStorage e navega para checkout
+    sessionStorage.setItem("checkout_tier", planId);
+    sessionStorage.setItem("checkout_period", period);
+    if (setPage) setPage("checkout");
   };
 
   const handleCancel = async () => {

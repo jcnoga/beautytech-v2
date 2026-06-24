@@ -1,3 +1,5 @@
+import CheckoutPage from "./pages/CheckoutPage";
+import ProspectPage from './ProspectPage';
 import LandingPage from './LandingPage';
 import PricingPage from './PricingPage';
 import ProfessionalScheduleModal from './ProfessionalScheduleModal';
@@ -4043,9 +4045,10 @@ const logout = async () => {
     automations:   AutomationsPage,
     notifications: NotificationsPage,
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
-    pricing: PricingPage,
+    pricing: () => <PricingPage setPage={setPage} />,
     settings: TenantSettingsPage,
     auditlogs: AuditLogsPage,
+    checkout: () => <CheckoutPage setPage={setPage} />,
   };
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
