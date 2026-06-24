@@ -1093,10 +1093,12 @@ function PlanSettingsPanel({ saFetch }: any) {
   const [vals, setVals] = useState<any>({});
   useEffect(() => {
     saFetch("GET", "/super-admin/plan-settings").then((r: any) => {
+      // Parse valores com aspas aninhadas
+      const parseVal = (v: any) => { try { while(typeof v==='string' && v.startsWith('"')){ v=JSON.parse(v); } } catch{} return v; };
       const rows = r?.data ?? [];
       setSettings(rows);
       const v: any = {};
-      rows.forEach((s: any) => { v[s.key] = String(s.value); });
+      rows.forEach((s: any) => { v[s.key] = String(parseVal(s.value)); });
       setVals(v);
     }).catch(() => {});
   }, []);
