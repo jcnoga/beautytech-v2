@@ -67,9 +67,9 @@ export default function BookingPage({ slug }: { slug: string }) {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/api/v1/public/tenants/${slug}`).then(r=>r.json()),
-      fetch(`${API}/api/v1/public/tenants/${slug}/services`).then(r=>r.json()),
-      fetch(`${API}/api/v1/public/tenants/${slug}/professionals`).then(r=>r.json()),
+      fetch(`${API}/public/tenants/${slug}`).then(r=>r.json()),
+      fetch(`${API}/public/tenants/${slug}/services`).then(r=>r.json()),
+      fetch(`${API}/public/tenants/${slug}/professionals`).then(r=>r.json()),
     ]).then(([t, s, p]) => {
       if (t.success) setTenant(t.data);
       if (s.success) setServices(s.data);
@@ -80,7 +80,7 @@ export default function BookingPage({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!selDate || !selPro || !selService) return;
-    fetch(`${API}/api/v1/public/tenants/${slug}/availability?date=${selDate}&professionalId=${selPro.id}&serviceId=${selService.id}`)
+    fetch(`${API}/public/tenants/${slug}/availability?date=${selDate}&professionalId=${selPro.id}&serviceId=${selService.id}`)
       .then(r=>r.json()).then(d => { if (d.success) setSlots(d.data); });
   }, [selDate, selPro, selService]);
 
@@ -88,7 +88,7 @@ export default function BookingPage({ slug }: { slug: string }) {
     setSubmitting(true); setError("");
     try {
       // 1. Registrar/buscar cliente
-      const cr = await fetch(`${API}/api/v1/public/clients/register`, {
+      const cr = await fetch(`${API}/public/clients/register`, {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ tenantSlug: slug, fullName: form.name, email: form.email, whatsapp: form.phone }),
       }).then(r=>r.json());
@@ -96,7 +96,7 @@ export default function BookingPage({ slug }: { slug: string }) {
       const clientId = cr.data.id;
 
       // 2. Criar agendamento
-      const ar = await fetch(`${API}/api/v1/public/appointments`, {
+      const ar = await fetch(`${API}/public/appointments`, {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({
           tenantSlug: slug, clientId,

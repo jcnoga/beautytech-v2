@@ -8,7 +8,7 @@ async function fetchTenantByHostname(): Promise<any> {
 
   // Tenta por hostname primeiro
   try {
-    const res = await fetch(`${API}/api/v1/public/tenant-by-host`, {
+    const res = await fetch(`${API}/public/tenant-by-host`, {
       headers: { "x-forwarded-host": hostname }
     });
     if (res.ok) {
@@ -21,7 +21,7 @@ async function fetchTenantByHostname(): Promise<any> {
   for (const base of baseDomains) {
     if (hostname.endsWith(`.${base}`)) {
       const slug = hostname.replace(`.${base}`, "");
-      const res = await fetch(`${API}/api/v1/public/tenant/${slug}`);
+      const res = await fetch(`${API}/public/tenant/${slug}`);
       if (res.ok) {
         const data = await res.json();
         if (data?.tenant) return data.tenant;

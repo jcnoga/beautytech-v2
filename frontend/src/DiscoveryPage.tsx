@@ -59,7 +59,7 @@ export default function DiscoveryPage() {
     const params = new URLSearchParams();
     if (tipo) params.set("businessType", tipo);
     if (cidadeInput.trim()) params.set("city", cidadeInput.trim());
-    const url = `${API}/api/v1/public/tenants${params.toString() ? "?" + params.toString() : ""}`;
+    const url = `${API}/public/tenants${params.toString() ? "?" + params.toString() : ""}`;
     try {
       const r = await fetch(url).then(res => res.json());
       if (r.success) {
