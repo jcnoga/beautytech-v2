@@ -11,36 +11,47 @@ const NICHES = [
   { value: "manicure", label: "Manicure/Studio" },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: "#94A3B8",
-  sent: "#22C55E",
-  replied: "#3B82F6",
-  converted: "#F59E0B",
-  blacklist: "#EF4444",
+const STATUSES = [
+  { key: "pending",   label: "Pendente",    color: "#94A3B8", bg: "#94A3B815" },
+  { key: "sent",      label: "Enviado",     color: "#22C55E", bg: "#22C55E15" },
+  { key: "replied",   label: "Respondido",  color: "#3B82F6", bg: "#3B82F615" },
+  { key: "converted", label: "Convertido",  color: "#F59E0B", bg: "#F59E0B15" },
+  { key: "blacklist", label: "Blacklist",   color: "#EF4444", bg: "#EF444415" },
+];
+
+const C = {
+  bg: "#0B0F1A", card: "#141826", card2: "#1C2235",
+  text: "#E2E8F0", muted: "#94A3B8", border: "#2A3150",
+  gold: "#C9A96E", green: "#22C55E", red: "#EF4444",
 };
 
 export default function ProspectPage({ token }: { token: string }) {
-  const [leads, setLeads] = useState<any[]>([]);
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"leads" | "templates" | "send">("leads");
-  const [filterNiche, setFilterNiche] = useState("");
+  const [leads, setLeads]           = useState<any[]>([]);
+  const [templates, setTemplates]   = useState<any[]>([]);
+  const [stats, setStats]           = useState<any>(null);
+  const [loading, setLoading]       = useState(false);
+  const [tab, setTab]               = useState<"kanban" | "lista" | "templates" | "send">("kanban");
+  const [filterNiche, setFilterNiche]   = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sendResult, setSendResult] = useState("");
-  const [sendConfig, setSendConfig] = useState({ niche: "", daily_limit: 50, min_interval: 30, max_interval: 60 });
-  const [newTemplate, setNewTemplate] = useState({ niche: "", name: "", message: "" });
+  const [filterState, setFilterState]   = useState("");
+  const [filterCity, setFilterCity]     = useState("");
+  const [search, setSearch]             = useState("");
+  const [sending, setSending]           = useState(false);
+  const [sendResult, setSendResult]     = useState("");
+  const [sendConfig, setSendConfig]     = useState({ niche: "", daily_limit: 50, min_interval: 30, max_interval: 60 });
+  const [newTemplate, setNewTemplate]   = useState({ niche: "", name: "", message: "" });
+  const [dragId, setDragId]             = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   async function loadLeads() {
     setLoading(true);
     const params = new URLSearchParams();
-    if (filterNiche) params.set("niche", filterNiche);
+    if (filterNiche)  params.set("niche", filterNiche);
     if (filterStatus) params.set("status", filterStatus);
-    const r = await fetch(`${API}/super-admin/prospects?${params}&limit=200`, { headers });
+    if (filterState)  params.set("state", filterState);
+    if (filterCity)   params.set("city", filterCity);
+    const r = await fetch(`${API}/super-admin/prospects?${params}&limit=500`, { headers });
     const d = await r.json();
     setLeads(d.data ?? []);
     setLoading(false);
@@ -58,7 +69,22 @@ export default function ProspectPage({ token }: { token: string }) {
     setStats(d.data);
   }
 
-  useEffect(() => { loadLeads(); loadTemplates(); loadStats(); }, [filterNiche, filterStatus]);
+  useEffect(() => { loadLeads(); loadTemplates(); loadStats(); }, [filterNiche, filterStatus, filterState, filterCity]);
+
+  // Listas derivadas para filtros dinâmicos
+  const allStates = [...new Set(leads.map(l => l.state).filter(Boolean))].sort();
+  const allCities = [...new Set(leads.filter(l => !filterState || l.state === filterState).map(l => l.city).filter(Boolean))].sort();
+
+  // Filtragem local por busca
+  const filtered = leads.filter(l => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (l.business_name ?? "").toLowerCase().includes(q) ||
+      (l.phone ?? "").toLowerCase().includes(q) ||
+      (l.city ?? "").toLowerCase().includes(q)
+    );
+  });
 
   async function importXLSX(e: any) {
     const file = e.target.files[0];
@@ -67,8 +93,6 @@ export default function ProspectPage({ token }: { token: string }) {
     const wb = XLSX.read(data);
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { defval: "" }) as any[];
-    console.log("Total linhas:", rows.length, "Colunas:", Object.keys(rows[0] || {}));
-
     const get = (r: any, ...keys: string[]) => {
       for (const k of keys) {
         const found = Object.keys(r).find(rk => rk.trim().toLowerCase() === k.toLowerCase());
@@ -76,39 +100,43 @@ export default function ProspectPage({ token }: { token: string }) {
       }
       return "";
     };
-
     const leads = rows.map((r: any) => ({
-      state: get(r, "Estado", "state", "UF", "uf", "Estado/UF"),
-      city: get(r, "Cidade", "city", "Municipio", "Município"),
-      niche: get(r, "Nicho Pesquisado", "Nicho", "niche", "nicho", "Segmento", "Categoria"),
-      business_name: get(r, "Nome", "business_name", "nome", "Empresa", "Estabelecimento"),
-      phone: get(r, "Telefone", "phone", "telefone", "Fone", "Celular", "WhatsApp", "Contato"),
-      email: get(r, "Email", "email", "E-mail"),
-      website: get(r, "Website", "website", "Site", "URL"),
-      address: get(r, "Endereço", "address", "endereco", "Logradouro"),
-      type: get(r, "Tipo", "type", "tipo", "Categoria", "Ramo"),
-      rating: get(r, "avaliação", "Avaliação", "Nota", "rating") || 0,
-      review_count: get(r, "Número de Avaliações", "Avaliações", "review_count", "Reviews") || 0,
-      google_maps_link: get(r, "Link Google Maps", "Google Maps", "Maps", "google_maps_link", "ak Google Maps"),
+      state:           get(r, "Estado", "state", "UF", "uf", "Estado/UF"),
+      city:            get(r, "Cidade", "city", "Municipio", "Município"),
+      niche:           get(r, "Nicho Pesquisado", "Nicho", "niche", "nicho", "Segmento", "Categoria"),
+      business_name:   get(r, "Nome", "business_name", "nome", "Empresa", "Estabelecimento"),
+      phone:           get(r, "Telefone", "phone", "telefone", "Fone", "Celular", "WhatsApp", "Contato"),
+      email:           get(r, "Email", "email", "E-mail"),
+      website:         get(r, "Website", "website", "Site", "URL"),
+      address:         get(r, "Endereço", "address", "endereco", "Logradouro"),
+      type:            get(r, "Tipo", "type", "tipo", "Categoria", "Ramo"),
+      rating:          get(r, "avaliação", "Avaliação", "Nota", "rating") || 0,
+      review_count:    get(r, "Número de Avaliações", "Avaliações", "review_count", "Reviews") || 0,
+      google_maps_link:get(r, "Link Google Maps", "Google Maps", "Maps", "google_maps_link"),
     }));
-    console.log("Primeiro lead processado:", leads[0]);
-
     setLoading(true);
     const r = await fetch(`${API}/super-admin/prospects/import`, {
       method: "POST", headers,
       body: JSON.stringify({ leads }),
     });
     const d = await r.json();
-    console.log("Resposta API:", JSON.stringify(d));
     alert(`Importados: ${d.data?.inserted ?? 0} | Ignorados: ${d.data?.skipped ?? 0}`);
     loadLeads(); loadStats();
     setLoading(false);
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  async function updateStatus(id: string, status: string) {
+    await fetch(`${API}/super-admin/prospects/${id}/status`, {
+      method: "PATCH", headers,
+      body: JSON.stringify({ status }),
+    });
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    loadStats();
+  }
+
   async function sendCampaign() {
-    setSending(true);
-    setSendResult("Disparando...");
+    setSending(true); setSendResult("Disparando...");
     const r = await fetch(`${API}/super-admin/prospects/send`, {
       method: "POST", headers,
       body: JSON.stringify(sendConfig),
@@ -135,30 +163,35 @@ export default function ProspectPage({ token }: { token: string }) {
     loadTemplates();
   }
 
-  async function updateStatus(id: string, status: string) {
-    await fetch(`${API}/super-admin/prospects/${id}/status`, {
-      method: "PATCH", headers,
-      body: JSON.stringify({ status }),
-    });
-    loadLeads();
-  }
+  // Drag & Drop handlers para o Kanban
+  const onDragStart = (id: string) => setDragId(id);
+  const onDrop = async (status: string) => {
+    if (!dragId) return;
+    await updateStatus(dragId, status);
+    setDragId(null);
+  };
 
-  const C = { bg: "#0B0F1A", card: "#141826", card2: "#1C2235", text: "#E2E8F0", muted: "#94A3B8", border: "#2A3150", gold: "#C9A96E", green: "#22C55E", red: "#EF4444" };
+  const inp = {
+    padding: "8px 12px", background: C.card2,
+    border: `1px solid ${C.border}`, borderRadius: 8,
+    color: C.text, fontSize: 13,
+  } as React.CSSProperties;
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", padding: 24, fontFamily: "Inter, sans-serif", color: C.text }}>
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>🎯 Prospecção</h1>
-      <p style={{ color: C.muted, marginBottom: 24 }}>Importar leads, gerenciar templates e disparar campanhas WhatsApp</p>
+      <p style={{ color: C.muted, marginBottom: 20 }}>Importar leads, gerenciar templates e disparar campanhas WhatsApp</p>
 
+      {/* STATS */}
       {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8, marginBottom: 20 }}>
           {[
-            { label: "Total", value: stats.totals?.total ?? 0, color: C.text },
-            { label: "Pendentes", value: stats.totals?.pending ?? 0, color: C.muted },
-            { label: "Enviados", value: stats.totals?.sent ?? 0, color: C.green },
-            { label: "Respondidos", value: stats.totals?.replied ?? 0, color: "#3B82F6" },
-            { label: "Convertidos", value: stats.totals?.converted ?? 0, color: C.gold },
-            { label: "Blacklist", value: stats.totals?.blacklist ?? 0, color: C.red },
+            { label: "Total",      value: stats.totals?.total     ?? 0, color: C.text  },
+            { label: "Pendentes",  value: stats.totals?.pending   ?? 0, color: C.muted },
+            { label: "Enviados",   value: stats.totals?.sent      ?? 0, color: C.green },
+            { label: "Respondidos",value: stats.totals?.replied   ?? 0, color: "#3B82F6" },
+            { label: "Convertidos",value: stats.totals?.converted ?? 0, color: C.gold  },
+            { label: "Blacklist",  value: stats.totals?.blacklist ?? 0, color: C.red   },
           ].map(s => (
             <div key={s.label} style={{ background: C.card, borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -168,105 +201,168 @@ export default function ProspectPage({ token }: { token: string }) {
         </div>
       )}
 
+      {/* TABS */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {(["leads", "templates", "send"] as const).map(t => (
+        {(["kanban", "lista", "templates", "send"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             style={{ padding: "8px 20px", borderRadius: 8, border: `1px solid ${tab === t ? C.gold : C.border}`, background: tab === t ? C.gold + "20" : "transparent", color: tab === t ? C.gold : C.muted, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-            {t === "leads" ? "Leads" : t === "templates" ? "Templates" : "Disparar"}
+            {t === "kanban" ? "📋 Kanban" : t === "lista" ? "📄 Lista" : t === "templates" ? "📝 Templates" : "🚀 Disparar"}
           </button>
         ))}
       </div>
 
-      {tab === "leads" && (
-        <div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={importXLSX} style={{ display: "none" }} />
-            <button onClick={() => fileRef.current?.click()}
-              style={{ padding: "8px 16px", background: C.gold, color: "#000", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700 }}>
-              📥 Importar XLSX
-            </button>
-            <select value={filterNiche} onChange={e => setFilterNiche(e.target.value)}
-              style={{ padding: "8px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }}>
-              {NICHES.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
-            </select>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              style={{ padding: "8px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }}>
-              <option value="">Todos os status</option>
-              <option value="pending">Pendente</option>
-              <option value="sent">Enviado</option>
-              <option value="replied">Respondido</option>
-              <option value="converted">Convertido</option>
-              <option value="blacklist">Blacklist</option>
-            </select>
-            <span style={{ color: C.muted, fontSize: 13, padding: "8px 0" }}>{leads.length} leads</span>
-          </div>
+      {/* FILTROS COMUNS (kanban e lista) */}
+      {(tab === "kanban" || tab === "lista") && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={importXLSX} style={{ display: "none" }} />
+          <button onClick={() => fileRef.current?.click()}
+            style={{ padding: "8px 16px", background: C.gold, color: "#000", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+            📥 Importar XLSX
+          </button>
 
+          {/* Busca */}
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 Buscar nome, telefone, cidade..."
+            style={{ ...inp, minWidth: 220 }} />
+
+          {/* Filtro Nicho */}
+          <select value={filterNiche} onChange={e => setFilterNiche(e.target.value)} style={inp}>
+            {NICHES.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
+          </select>
+
+          {/* Filtro Estado */}
+          <select value={filterState} onChange={e => { setFilterState(e.target.value); setFilterCity(""); }} style={inp}>
+            <option value="">Todos os estados</option>
+            {allStates.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+
+          {/* Filtro Cidade */}
+          <select value={filterCity} onChange={e => setFilterCity(e.target.value)} style={inp}>
+            <option value="">Todas as cidades</option>
+            {allCities.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          {tab === "lista" && (
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={inp}>
+              <option value="">Todos os status</option>
+              {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+          )}
+
+          <span style={{ color: C.muted, fontSize: 13 }}>{filtered.length} leads</span>
+        </div>
+      )}
+
+      {/* KANBAN */}
+      {tab === "kanban" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, alignItems: "start" }}>
+          {STATUSES.map(st => {
+            const col = filtered.filter(l => l.status === st.key);
+            return (
+              <div key={st.key}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => onDrop(st.key)}
+                style={{ background: C.card, borderRadius: 12, padding: 12, minHeight: 200, border: `1px solid ${st.color}30` }}>
+                {/* Cabeçalho coluna */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: st.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>{st.label}</span>
+                  <span style={{ fontSize: 11, background: st.color + "25", color: st.color, borderRadius: 99, padding: "2px 8px", fontWeight: 700 }}>{col.length}</span>
+                </div>
+
+                {/* Cards */}
+                {loading ? (
+                  <div style={{ color: C.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Carregando...</div>
+                ) : col.length === 0 ? (
+                  <div style={{ color: C.muted, fontSize: 12, textAlign: "center", padding: 20, opacity: 0.5 }}>Nenhum lead</div>
+                ) : col.map(lead => (
+                  <div key={lead.id}
+                    draggable
+                    onDragStart={() => onDragStart(lead.id)}
+                    style={{ background: C.card2, borderRadius: 8, padding: 10, marginBottom: 8, cursor: "grab", border: `1px solid ${C.border}`, userSelect: "none" }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, color: C.text }}>{lead.business_name}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>📍 {lead.city}{lead.state ? ` — ${lead.state}` : ""}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>📱 {lead.phone}</div>
+                    {lead.rating > 0 && (
+                      <div style={{ fontSize: 11, color: C.gold }}>⭐ {lead.rating} ({lead.review_count})</div>
+                    )}
+                    {/* Mover para status */}
+                    <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value)}
+                      style={{ marginTop: 8, fontSize: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: "3px 6px", width: "100%" }}>
+                      {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* LISTA */}
+      {tab === "lista" && (
+        <div style={{ overflowX: "auto" }}>
           {loading ? <div style={{ color: C.muted }}>Carregando...</div> : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                <thead>
-                  <tr style={{ background: C.card2 }}>
-                    {["Nome", "Nicho", "Cidade", "Telefone", "Avaliação", "Status", "Ações"].map(h => (
-                      <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {leads.map((lead: any) => (
-                    <tr key={lead.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={{ padding: "8px 12px" }}>{lead.business_name}</td>
-                      <td style={{ padding: "8px 12px", color: C.muted }}>{lead.niche}</td>
-                      <td style={{ padding: "8px 12px", color: C.muted }}>{lead.city}</td>
-                      <td style={{ padding: "8px 12px" }}>{lead.phone}</td>
-                      <td style={{ padding: "8px 12px", color: C.gold }}>{lead.rating} ⭐ ({lead.review_count})</td>
-                      <td style={{ padding: "8px 12px" }}>
-                        <span style={{ padding: "2px 8px", borderRadius: 99, background: (STATUS_COLORS[lead.status] ?? C.muted) + "25", color: STATUS_COLORS[lead.status] ?? C.muted, fontSize: 11, fontWeight: 700 }}>
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: "8px 12px" }}>
-                        <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value)}
-                          style={{ fontSize: 11, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: "4px 8px" }}>
-                          <option value="pending">Pendente</option>
-                          <option value="sent">Enviado</option>
-                          <option value="replied">Respondido</option>
-                          <option value="converted">Convertido</option>
-                          <option value="blacklist">Blacklist</option>
-                        </select>
-                      </td>
-                    </tr>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: C.card2 }}>
+                  {["Nome", "Nicho", "Estado", "Cidade", "Telefone", "Avaliação", "Status", "Ações"].map(h => (
+                    <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>{h}</th>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((lead: any) => (
+                  <tr key={lead.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: "8px 12px", fontWeight: 600 }}>{lead.business_name}</td>
+                    <td style={{ padding: "8px 12px", color: C.muted }}>{lead.niche}</td>
+                    <td style={{ padding: "8px 12px", color: C.muted }}>{lead.state}</td>
+                    <td style={{ padding: "8px 12px", color: C.muted }}>{lead.city}</td>
+                    <td style={{ padding: "8px 12px" }}>{lead.phone}</td>
+                    <td style={{ padding: "8px 12px", color: C.gold }}>{lead.rating > 0 ? `${lead.rating} ⭐ (${lead.review_count})` : "-"}</td>
+                    <td style={{ padding: "8px 12px" }}>
+                      {(() => { const s = STATUSES.find(x => x.key === lead.status); return s ? (
+                        <span style={{ padding: "2px 8px", borderRadius: 99, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700 }}>{s.label}</span>
+                      ) : null; })()}
+                    </td>
+                    <td style={{ padding: "8px 12px" }}>
+                      <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value)}
+                        style={{ fontSize: 11, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: "4px 8px" }}>
+                        {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: C.muted }}>Nenhum lead encontrado.</td></tr>
+                )}
+              </tbody>
+            </table>
           )}
         </div>
       )}
 
+      {/* TEMPLATES */}
       {tab === "templates" && (
         <div>
           <div style={{ background: C.card, borderRadius: 12, padding: 20, marginBottom: 20 }}>
             <h3 style={{ marginBottom: 16, fontSize: 16 }}>Novo Template</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-              <select value={newTemplate.niche} onChange={e => setNewTemplate(p => ({ ...p, niche: e.target.value }))}
-                style={{ padding: "10px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }}>
+              <select value={newTemplate.niche} onChange={e => setNewTemplate(p => ({ ...p, niche: e.target.value }))} style={inp}>
                 <option value="">Selecione o nicho</option>
                 {NICHES.filter(n => n.value).map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
               </select>
               <input value={newTemplate.name} onChange={e => setNewTemplate(p => ({ ...p, name: e.target.value }))}
-                placeholder="Nome do template"
-                style={{ padding: "10px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }} />
+                placeholder="Nome do template" style={inp} />
             </div>
             <textarea value={newTemplate.message} onChange={e => setNewTemplate(p => ({ ...p, message: e.target.value }))}
               placeholder="Mensagem... Use {nome}, {cidade}, {nicho} como variáveis"
               rows={4}
-              style={{ width: "100%", padding: "10px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
+              style={{ ...inp, width: "100%", resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
             <button onClick={addTemplate}
               style={{ padding: "10px 24px", background: C.gold, color: "#000", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700 }}>
               Salvar Template
             </button>
           </div>
-
           <div style={{ display: "grid", gap: 12 }}>
             {templates.map((t: any) => (
               <div key={t.id} style={{ background: C.card, borderRadius: 10, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -285,32 +381,32 @@ export default function ProspectPage({ token }: { token: string }) {
         </div>
       )}
 
+      {/* DISPARAR */}
       {tab === "send" && (
         <div style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 500 }}>
           <h3 style={{ marginBottom: 20, fontSize: 16 }}>Configurar Disparo</h3>
           <div style={{ display: "grid", gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 6 }}>Nicho (vazio = todos)</label>
-              <select value={sendConfig.niche} onChange={e => setSendConfig(p => ({ ...p, niche: e.target.value }))}
-                style={{ width: "100%", padding: "10px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }}>
+              <select value={sendConfig.niche} onChange={e => setSendConfig(p => ({ ...p, niche: e.target.value }))} style={{ ...inp, width: "100%" }}>
                 {NICHES.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
               </select>
             </div>
             <div>
               <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 6 }}>Limite diário</label>
               <input type="number" value={sendConfig.daily_limit} onChange={e => setSendConfig(p => ({ ...p, daily_limit: Number(e.target.value) }))}
-                style={{ width: "100%", padding: "10px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, boxSizing: "border-box" }} />
+                style={{ ...inp, width: "100%", boxSizing: "border-box" }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 6 }}>Intervalo mínimo (s)</label>
                 <input type="number" value={sendConfig.min_interval} onChange={e => setSendConfig(p => ({ ...p, min_interval: Number(e.target.value) }))}
-                  style={{ width: "100%", padding: "10px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, boxSizing: "border-box" }} />
+                  style={{ ...inp, width: "100%", boxSizing: "border-box" }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 6 }}>Intervalo máximo (s)</label>
                 <input type="number" value={sendConfig.max_interval} onChange={e => setSendConfig(p => ({ ...p, max_interval: Number(e.target.value) }))}
-                  style={{ width: "100%", padding: "10px 12px", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, boxSizing: "border-box" }} />
+                  style={{ ...inp, width: "100%", boxSizing: "border-box" }} />
               </div>
             </div>
             <button onClick={sendCampaign} disabled={sending}
