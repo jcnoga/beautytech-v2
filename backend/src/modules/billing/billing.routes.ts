@@ -247,16 +247,23 @@ export async function billingRoutes(fastify: any) {
     if (!tenant) return reply.send({ ok: true });
 
     if (["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"].includes(eventType)) {
+      const paidTier   = (tier as PlanTier)    ?? tenant.planTier   ?? "basic";
+      const paidPeriod = (period as PlanPeriod) ?? tenant.planPeriod ?? "monthly";
       const expiresAt = calcPlanExpiry(
-        (period as PlanPeriod) ?? "monthly",
+        paidPeriod,
         tenant.planExpiresAt ? new Date(tenant.planExpiresAt) : new Date()
       );
       await db.update(tenants).set({
-        planStatus:    "active",
-        planExpiresAt: expiresAt,
-        isActive:      true,
-        updatedAt:     new Date(),
+        planTier:              paidTier,
+        planPeriod:            paidPeriod,
+        planStatus:            "active",
+        planStartedAt:         new Date(),
+        planExpiresAt:         expiresAt,
+        planCancelAtPeriodEnd: false,
+        isActive:              true,
+        updatedAt:             new Date(),
       }).where(eq(tenants.id, tenantId));
+      console.log(`[WEBHOOK] Plano ativado: tenant=${tenantId} tier=${paidTier} period=${paidPeriod} expires=${expiresAt.toISOString()}`);
 
       try {
         const { sendPaymentConfirmedEmail } = await import("../resend.module.js");
