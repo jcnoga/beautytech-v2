@@ -1853,7 +1853,7 @@ export async function demoModule(fastify: FastifyInstance) {
       await db.execute(sql`
         INSERT INTO professional_schedules (professional_id, tenant_id, day_of_week, is_working, start_time, end_time, slot_minutes, break_start, break_end)
         VALUES
-          (${prof.id}, ${tenantId}, 0, false, NULL, NULL, 30, NULL, NULL),
+          (${prof.id}, ${tenantId}, 0, false, '00:00', '00:00', 30, NULL, NULL),
           (${prof.id}, ${tenantId}, 1, true, '08:00', '18:00', 30, '12:00', '13:30'),
           (${prof.id}, ${tenantId}, 2, true, '08:00', '18:00', 30, '12:00', '13:30'),
           (${prof.id}, ${tenantId}, 3, true, '08:00', '18:00', 30, '12:00', '13:30'),
