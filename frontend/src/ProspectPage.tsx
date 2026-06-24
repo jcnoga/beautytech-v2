@@ -41,19 +41,29 @@ export default function ProspectPage({ token }: { token: string }) {
   const [sendConfig, setSendConfig]     = useState({ niche: "", daily_limit: 50, min_interval: 30, max_interval: 60 });
   const [newTemplate, setNewTemplate]   = useState({ niche: "", name: "", message: "" });
   const [dragId, setDragId]             = useState<string | null>(null);
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [totalPages, setTotalPages]     = useState(1);
+  const [totalLeads, setTotalLeads]     = useState(0);
+  const PAGE_SIZE = 100;
   const fileRef = useRef<HTMLInputElement>(null);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
-  async function loadLeads() {
+  async function loadLeads(page = 1) {
     setLoading(true);
     const params = new URLSearchParams();
     if (filterNiche)  params.set("niche", filterNiche);
     if (filterStatus) params.set("status", filterStatus);
     if (filterState)  params.set("state", filterState);
     if (filterCity)   params.set("city", filterCity);
-    const r = await fetch(`${API}/super-admin/prospects?${params}&limit=500`, { headers });
+    if (search)       params.set("search", search);
+    params.set("page",  String(page));
+    params.set("limit", String(PAGE_SIZE));
+    const r = await fetch(`${API}/super-admin/prospects?${params}`, { headers });
     const d = await r.json();
     setLeads(d.data ?? []);
+    setTotalLeads(d.total ?? 0);
+    setTotalPages(d.pages ?? 1);
+    setCurrentPage(page);
     setLoading(false);
   }
 
@@ -69,7 +79,7 @@ export default function ProspectPage({ token }: { token: string }) {
     setStats(d.data);
   }
 
-  useEffect(() => { loadLeads(); loadTemplates(); loadStats(); }, [filterNiche, filterStatus, filterState, filterCity]);
+  useEffect(() => { loadLeads(1); loadTemplates(); loadStats(); }, [filterNiche, filterStatus, filterState, filterCity]);
 
   // Listas derivadas para filtros dinâmicos
   const allStates = [...new Set(leads.map(l => l.state).filter(Boolean))].sort();
@@ -382,6 +392,23 @@ export default function ProspectPage({ token }: { token: string }) {
       )}
 
       {/* DISPARAR */}
+      {/* PAGINACAO */}
+      {(tab === "kanban" || tab === "lista") && totalPages > 1 && (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:12, marginTop:24 }}>
+          <button onClick={() => loadLeads(currentPage - 1)} disabled={currentPage <= 1}
+            style={{ padding:"8px 16px", borderRadius:8, border:`1px solid ${C.border}`, background:"transparent", color:currentPage<=1?C.muted:C.gold, cursor:currentPage<=1?"not-allowed":"pointer", fontSize:13 }}>
+            ← Anterior
+          </button>
+          <span style={{ color:C.muted, fontSize:13 }}>
+            Página {currentPage} de {totalPages} · {totalLeads} leads
+          </span>
+          <button onClick={() => loadLeads(currentPage + 1)} disabled={currentPage >= totalPages}
+            style={{ padding:"8px 16px", borderRadius:8, border:`1px solid ${C.border}`, background:"transparent", color:currentPage>=totalPages?C.muted:C.gold, cursor:currentPage>=totalPages?"not-allowed":"pointer", fontSize:13 }}>
+            Próxima →
+          </button>
+        </div>
+      )}
+
       {tab === "send" && (
         <div style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 500 }}>
           <h3 style={{ marginBottom: 20, fontSize: 16 }}>Configurar Disparo</h3>
