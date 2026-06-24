@@ -1849,24 +1849,23 @@ export async function demoModule(fastify: FastifyInstance) {
     const insertedProfs = await db.insert(professionals).values(profData).returning();
 
     // ---- JORNADA DOS PROFISSIONAIS DEMO ----
-    const scheduleRows: any[] = [];
     for (const prof of insertedProfs) {
-      for (let dow = 0; dow <= 6; dow++) {
-        if (dow === 0) {
-          scheduleRows.push((' + "$" + "{prof.id}', '" + "$" + "{tenantId}', 0, false, NULL, NULL, 30, NULL, NULL));
-        } else if (dow === 6) {
-          scheduleRows.push(('" + "$" + "{prof.id}', '" + "$" + "{tenantId}', 6, true, '08:00', '12:00', 30, NULL, NULL));
-        } else {
-          scheduleRows.push(('" + "$" + "{prof.id}', '" + "$" + "{tenantId}', " + "$" + "{dow}, true, '08:00', '18:00', 30, '12:00', '13:30'));
-        }
-      }
+      await db.execute(sql`
+        INSERT INTO professional_schedules (professional_id, tenant_id, day_of_week, is_working, start_time, end_time, slot_minutes, break_start, break_end)
+        VALUES
+          (${prof.id}, ${tenantId}, 0, false, NULL, NULL, 30, NULL, NULL),
+          (${prof.id}, ${tenantId}, 1, true, '08:00', '18:00', 30, '12:00', '13:30'),
+          (${prof.id}, ${tenantId}, 2, true, '08:00', '18:00', 30, '12:00', '13:30'),
+          (${prof.id}, ${tenantId}, 3, true, '08:00', '18:00', 30, '12:00', '13:30'),
+          (${prof.id}, ${tenantId}, 4, true, '08:00', '18:00', 30, '12:00', '13:30'),
+          (${prof.id}, ${tenantId}, 5, true, '08:00', '18:00', 30, '12:00', '13:30'),
+          (${prof.id}, ${tenantId}, 6, true, '08:00', '12:00', 30, NULL, NULL)
+        ON CONFLICT (professional_id, day_of_week) DO UPDATE SET
+          is_working=EXCLUDED.is_working, start_time=EXCLUDED.start_time,
+          end_time=EXCLUDED.end_time, slot_minutes=EXCLUDED.slot_minutes,
+          break_start=EXCLUDED.break_start, break_end=EXCLUDED.break_end
+      `);
     }
-    await db.execute(sql.raw(\n      INSERT INTO professional_schedules (professional_id, tenant_id, day_of_week, is_working, start_time, end_time, slot_minutes, break_start, break_end)
-      VALUES \n      ON CONFLICT (professional_id, day_of_week) DO UPDATE SET
-        is_working=EXCLUDED.is_working, start_time=EXCLUDED.start_time,
-        end_time=EXCLUDED.end_time, slot_minutes=EXCLUDED.slot_minutes,
-        break_start=EXCLUDED.break_start, break_end=EXCLUDED.break_end
-    \));
 
     // ---- SERVICOS ----
     const svcData = isClinic ? [
