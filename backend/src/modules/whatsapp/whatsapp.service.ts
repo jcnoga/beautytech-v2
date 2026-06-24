@@ -176,7 +176,7 @@ export async function disconnectInstance(tenantId: string) {
   const apiKey = cfg.mode === "cloud" ? getCloudConfig().apiKey : (cfg.apiKey ?? "");
   const existing = await findEvolutionInstance(apiUrl, apiKey, tenantId);
   if (!existing) return { message: "Instancia nao encontrada" };
-  return evolutionRequest(apiUrl, apiKey, "/instance/logout/" + encodeURIComponent(existing.name), "DELETE");
+  try { return await evolutionRequest(apiUrl, apiKey, "/instance/logout/" + encodeURIComponent(existing.name), "DELETE"); } catch { return { message: "Instancia desconectada" }; }
 }
 
 export async function deleteInstance(tenantId: string) {
