@@ -464,9 +464,9 @@ function DashboardPage() {
           const headers = { Authorization: 'Bearer ' + token };
           const base = (import.meta as any).env?.VITE_API_URL ?? '';
           const [profsRes, svcsRes, meRes] = await Promise.all([
-            fetch(base + '/api/v1/professionals', { headers }).then(r2 => r2.json()),
-            fetch(base + '/api/v1/services', { headers }).then(r2 => r2.json()),
-            fetch(base + '/api/v1/auth/me', { headers }).then(r2 => r2.json()),
+            fetch(base + '/professionals', { headers }).then(r2 => r2.json()),
+            fetch(base + '/services', { headers }).then(r2 => r2.json()),
+            fetch(base + '/auth/me', { headers }).then(r2 => r2.json()),
           ]);
           const profs = profsRes.data ?? [];
           const svcs = svcsRes.data ?? [];
