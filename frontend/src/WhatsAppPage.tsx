@@ -41,7 +41,7 @@ export function WhatsAppPage({ C, FD, FB }: any) {
   function stopPolling() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   }
-  async function fetchStatus() {
+  async function fetchStatus(silent = false) {
     try {
       const d = await callApi("/whatsapp/status");
       const data = d.data;
@@ -54,7 +54,7 @@ export function WhatsAppPage({ C, FD, FB }: any) {
       }
       return data;
     } catch (e: any) {
-      setError(e.message);
+      if (!silent) setError(e.message);
       return null;
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ export function WhatsAppPage({ C, FD, FB }: any) {
       setLoading(false);
     }
   }
-  useEffect(() => { fetchStatus(); return () => stopPolling(); }, []);
+  useEffect(() => { fetchStatus(true); return () => stopPolling(); }, []);
   const connected = state === "open";
   return (
     <div style={{ padding: "32px 40px", maxWidth: 700, margin: "0 auto" }}>
