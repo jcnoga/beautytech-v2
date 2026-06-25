@@ -263,7 +263,7 @@ export async function prospectModule(fastify: FastifyInstance) {
   });
 
   // WhatsApp prospecção
-  fastify.post("/super-admin/prospects/whatsapp/connect", { preHandler: [authenticate, requireSuperAdmin] }, async (req: any, reply) => {
+  fastify.post("/super-admin/prospects/whatsapp/connect", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
     const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
     const instance = "prospeccao";
@@ -282,7 +282,7 @@ export async function prospectModule(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get("/super-admin/prospects/whatsapp/status", { preHandler: [authenticate, requireSuperAdmin] }, async (req: any, reply) => {
+  fastify.get("/super-admin/prospects/whatsapp/status", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
     const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
     const instance = "prospeccao";
@@ -299,7 +299,7 @@ export async function prospectModule(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post("/super-admin/prospects/whatsapp/disconnect", { preHandler: [authenticate, requireSuperAdmin] }, async (req: any, reply) => {
+  fastify.post("/super-admin/prospects/whatsapp/disconnect", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
     const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
     const instance = "prospeccao";
