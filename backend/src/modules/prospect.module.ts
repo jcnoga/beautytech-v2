@@ -290,8 +290,9 @@ export async function prospectModule(fastify: FastifyInstance) {
       const r = await fetch(`${evolutionUrl}/instance/fetchInstances?instanceName=${instance}`, { headers: { "apikey": evolutionKey } });
       const d = await r.json() as any;
       const inst = Array.isArray(d) ? d[0] : d;
-      const connected = inst?.instance?.state === "open" || inst?.state === "open";
-      const phone = inst?.instance?.profileName ?? inst?.profileName ?? "";
+      const state = inst?.instance?.state ?? inst?.state ?? "";
+      const connected = state === "open";
+      const phone = inst?.instance?.owner ?? inst?.owner ?? inst?.instance?.profileName ?? inst?.profileName ?? "";
       return reply.send({ connected, phone });
     } catch {
       return reply.send({ connected: false });
