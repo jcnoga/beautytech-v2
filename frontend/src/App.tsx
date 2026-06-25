@@ -1,4 +1,5 @@
 import CheckoutPage from "./pages/CheckoutPage";
+import HelpPage from './pages/HelpPage';
 import ProspectPage from './ProspectPage';
 import LandingPage from './LandingPage';
 import PricingPage from './PricingPage';
@@ -3718,6 +3719,7 @@ const MENU_GROUPS = [
       { id:"pricing",  label:"Planos",        icon:"$", premium:false },
       { id:"settings", label:"Configuracoes", icon:"?", premium:false },
       { id:"auditlogs", label:"Log de Acoes",  icon:"L", premium:false },
+      { id:"ajuda",     label:"Ajuda",          icon:"?", premium:false },
     ]
   },
 ];
@@ -3850,6 +3852,7 @@ const logout = async () => {
     settings: TenantSettingsPage,
     auditlogs: AuditLogsPage,
     checkout: () => <CheckoutPage setPage={setPage} />,
+    ajuda:    () => <HelpPage />,
   };
 
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
