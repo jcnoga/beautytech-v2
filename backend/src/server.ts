@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 // asaasModule substituido por billingRoutes
+import { teamModule } from "./modules/team.module.js";
 import { sendWelcomeEmail } from "./modules/email.module.js";
 import { prospectModule } from "./modules/prospect.module.js";
 import { billingRoutes } from "./modules/billing/billing.routes.js";
