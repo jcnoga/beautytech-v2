@@ -261,4 +261,53 @@ export async function prospectModule(fastify: FastifyInstance) {
     const nicheRows = Array.isArray(byNiche) ? byNiche : (byNiche as any).rows ?? [];
     return reply.send({ success: true, data: { totals: statsRows[0] ?? {}, by_niche: nicheRows } });
   });
+
+  // WhatsApp prospecção
+  fastify.post("/super-admin/prospects/whatsapp/connect", { preHandler: [authenticate, requireSuperAdmin] }, async (req: any, reply) => {
+    const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
+    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const instance = "prospeccao";
+    try {
+      // Tenta criar instancia se nao existir
+      await fetch(`${evolutionUrl}/instance/create`, { method: "POST", headers: { "Content-Type": "application/json", "apikey": evolutionKey }, body: JSON.stringify({ instanceName: instance, qrcode: true, integration: "WHATSAPP-BAILEYS" }) });
+    } catch {}
+    try {
+      const r = await fetch(`${evolutionUrl}/instance/connect/${instance}`, { headers: { "apikey": evolutionKey } });
+      const d = await r.json() as any;
+      if (d?.base64) return reply.send({ qrcode: d.base64 });
+      if (d?.instance?.state === "open") return reply.send({ connected: true, phone: d?.instance?.profileName ?? "" });
+      return reply.send({ qrcode: null, connected: false });
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+  fastify.get("/super-admin/prospects/whatsapp/status", { preHandler: [authenticate, requireSuperAdmin] }, async (req: any, reply) => {
+    const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
+    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const instance = "prospeccao";
+    try {
+      const r = await fetch(`${evolutionUrl}/instance/fetchInstances?instanceName=${instance}`, { headers: { "apikey": evolutionKey } });
+      const d = await r.json() as any;
+      const inst = Array.isArray(d) ? d[0] : d;
+      const connected = inst?.instance?.state === "open" || inst?.state === "open";
+      const phone = inst?.instance?.profileName ?? inst?.profileName ?? "";
+      return reply.send({ connected, phone });
+    } catch {
+      return reply.send({ connected: false });
+    }
+  });
+
+  fastify.post("/super-admin/prospects/whatsapp/disconnect", { preHandler: [authenticate, requireSuperAdmin] }, async (req: any, reply) => {
+    const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
+    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const instance = "prospeccao";
+    try {
+      await fetch(`${evolutionUrl}/instance/logout/${instance}`, { method: "DELETE", headers: { "apikey": evolutionKey } });
+      return reply.send({ success: true });
+    } catch {
+      return reply.send({ success: false });
+    }
+  });
+
 }

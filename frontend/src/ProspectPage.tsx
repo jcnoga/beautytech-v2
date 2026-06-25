@@ -39,6 +39,10 @@ export default function ProspectPage({ token }: { token: string }) {
   const [sending, setSending]           = useState(false);
   const [sendResult, setSendResult]     = useState("");
   const [sendConfig, setSendConfig]     = useState({ niche: "", daily_limit: 50, min_interval: 30, max_interval: 60 });
+  const [waStatus, setWaStatus]         = useState<"disconnected"|"connecting"|"connected">("disconnected");
+  const [waQr, setWaQr]                 = useState("");
+  const [waPhone, setWaPhone]           = useState("");
+  const [waPolling, setWaPolling]       = useState(false);
   const [newTemplate, setNewTemplate]   = useState({ niche: "", name: "", message: "" });
   const [dragId, setDragId]             = useState<string | null>(null);
   const [currentPage, setCurrentPage]   = useState(1);
@@ -143,6 +147,37 @@ export default function ProspectPage({ token }: { token: string }) {
     });
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     loadStats();
+  }
+
+  async function conectarWhatsApp() {
+    setWaStatus("connecting"); setWaQr("");
+    try {
+      const r = await fetch(`${API}/super-admin/prospects/whatsapp/connect`, { method: "POST", headers });
+      const d = await r.json();
+      if (d.qrcode) { setWaQr(d.qrcode); pollStatus(); }
+      else if (d.connected) { setWaStatus("connected"); setWaPhone(d.phone ?? ""); }
+    } catch { setWaStatus("disconnected"); }
+  }
+
+  async function pollStatus() {
+    if (waPolling) return;
+    setWaPolling(true);
+    const interval = setInterval(async () => {
+      try {
+        const r = await fetch(`${API}/super-admin/prospects/whatsapp/status`, { headers });
+        const d = await r.json();
+        if (d.connected) {
+          setWaStatus("connected"); setWaPhone(d.phone ?? "");
+          setWaQr(""); clearInterval(interval); setWaPolling(false);
+        }
+      } catch {}
+    }, 3000);
+    setTimeout(() => { clearInterval(interval); setWaPolling(false); }, 120000);
+  }
+
+  async function desconectarWhatsApp() {
+    await fetch(`${API}/super-admin/prospects/whatsapp/disconnect`, { method: "POST", headers });
+    setWaStatus("disconnected"); setWaQr(""); setWaPhone("");
   }
 
   async function sendCampaign() {
@@ -436,9 +471,38 @@ export default function ProspectPage({ token }: { token: string }) {
                   style={{ ...inp, width: "100%", boxSizing: "border-box" }} />
               </div>
             </div>
-            <button onClick={sendCampaign} disabled={sending}
-              style={{ padding: "12px 24px", background: sending ? C.muted : C.green, color: "#000", borderRadius: 8, border: "none", cursor: sending ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
-              {sending ? "Disparando..." : "🚀 Iniciar Disparo"}
+            {/* WhatsApp Connection */}
+            <div style={{ background: "#1a1a1a", borderRadius: 10, padding: 16, border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>📱 WhatsApp para Prospecção</span>
+                <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: waStatus === "connected" ? "#1a3a1a" : waStatus === "connecting" ? "#2a2a1a" : "#3a1a1a", color: waStatus === "connected" ? "#4caf50" : waStatus === "connecting" ? "#ffcc00" : "#e87070" }}>
+                  {waStatus === "connected" ? "✅ Conectado" : waStatus === "connecting" ? "⏳ Aguardando QR" : "❌ Desconectado"}
+                </span>
+              </div>
+              {waStatus === "connected" && waPhone && (
+                <div style={{ fontSize: 12, color: "#7eb8a0", marginBottom: 10 }}>📞 {waPhone}</div>
+              )}
+              {waQr && (
+                <div style={{ textAlign: "center", marginBottom: 12 }}>
+                  <img src={waQr} alt="QR Code" style={{ width: 200, height: 200, borderRadius: 8 }} />
+                  <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>Escaneie com o WhatsApp</div>
+                </div>
+              )}
+              {waStatus !== "connected" ? (
+                <button onClick={conectarWhatsApp} disabled={waStatus === "connecting"}
+                  style={{ width: "100%", padding: "10px", background: "#25d366", color: "#000", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                  {waStatus === "connecting" ? "⏳ Aguardando conexão..." : "🔗 Conectar WhatsApp"}
+                </button>
+              ) : (
+                <button onClick={desconectarWhatsApp}
+                  style={{ width: "100%", padding: "10px", background: "#e87070", color: "#fff", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                  Desconectar
+                </button>
+              )}
+            </div>
+            <button onClick={sendCampaign} disabled={sending || waStatus !== "connected"}
+              style={{ padding: "12px 24px", background: (sending || waStatus !== "connected") ? C.muted : C.green, color: "#000", borderRadius: 8, border: "none", cursor: (sending || waStatus !== "connected") ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
+              {sending ? "Disparando..." : waStatus !== "connected" ? "🔒 Conecte o WhatsApp primeiro" : "🚀 Iniciar Disparo"}
             </button>
             {sendResult && <div style={{ color: C.green, fontSize: 13, textAlign: "center" }}>{sendResult}</div>}
           </div>
