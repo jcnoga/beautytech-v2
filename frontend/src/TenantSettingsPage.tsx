@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useState, useRef } from "react";
 import { api, supabase } from "./api/client";
 
 const C = {
@@ -26,6 +26,84 @@ export default function TenantSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [equipe, setEquipe] = useState<any[]>([]);
+  const [loadingEquipe, setLoadingEquipe] = useState(false);
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novoPerfil, setNovoPerfil] = useState("receptionist");
+  const [nomeConvite, setNomeConvite] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [msgEquipe, setMsgEquipe] = useState("");
+  const equipeCarregada = useRef(false);
+
+  const carregarEquipe = async () => {
+    if (loadingEquipe) return;
+    setLoadingEquipe(true);
+    try {
+      const r = await api.get<any>("/team");
+      setEquipe(r.data ?? []);
+    } catch(e) {
+      setEquipe([]);
+    } finally {
+      setLoadingEquipe(false);
+    }
+  };
+
+  const convidarUsuario = async () => {
+    if (!novoEmail) return;
+    setEnviando(true);
+    setMsgEquipe("");
+    try {
+      await api.post("/team/invite", { email: novoEmail, role: novoPerfil, name: nomeConvite });
+      setMsgEquipe("Convite enviado com sucesso!");
+      setNovoEmail("");
+      setNomeConvite("");
+      carregarEquipe();
+    } catch(e: any) {
+      setMsgEquipe("Erro ao enviar convite. Verifique o e-mail.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const removerUsuario = async (userId: string) => {
+    if (!confirm("Remover acesso deste usuario?")) return;
+    try {
+      await api.delete(`/team/${userId}`);
+      setEquipe(eq => eq.filter(u => u.id !== userId));
+    } catch(e) {
+      alert("Erro ao remover usuario.");
+    }
+  };
+  const [equipe, setEquipe] = useState<any[]>([]);
+  const [loadingEquipe, setLoadingEquipe] = useState(false);
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novoPerfil, setNovoPerfil] = useState("receptionist");
+  const [nomeConvite, setNomeConvite] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [msgEquipe, setMsgEquipe] = useState("");
+  const equipeCarregada = useRef(false);
+  const carregarEquipe = async () => {
+    setLoadingEquipe(true);
+    try { const r = await api.get<any>("/team"); setEquipe(r.data ?? []); }
+    catch(e) { setEquipe([]); }
+    finally { setLoadingEquipe(false); }
+  };
+  const convidarUsuario = async () => {
+    if (!novoEmail) return;
+    setEnviando(true); setMsgEquipe("");
+    try {
+      await api.post("/team/invite", { email: novoEmail, role: novoPerfil, name: nomeConvite });
+      setMsgEquipe("Convite enviado com sucesso!");
+      setNovoEmail(""); setNomeConvite("");
+      carregarEquipe();
+    } catch(e) { setMsgEquipe("Erro ao enviar convite."); }
+    finally { setEnviando(false); }
+  };
+  const removerUsuario = async (userId: string) => {
+    if (!confirm("Remover acesso deste usuario?")) return;
+    try { await api.delete(`/team/${userId}`); setEquipe(eq => eq.filter(u => u.id !== userId)); }
+    catch(e) { alert("Erro ao remover."); }
+  };
   const [activeTab, setActiveTab] = useState("identity");
 
   const f = (key: string) => (val: string) => setForm((p: any) => ({ ...p, [key]: val }));
@@ -94,6 +172,7 @@ export default function TenantSettingsPage() {
     { id:"contact",  label:"Contato" },
     { id:"address",  label:"Endereço" },
     { id:"landing",  label:"Landing Page" },
+    { id:"equipe",   label:"Equipe" },
   ];
 
   if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400, color:C.textMuted, fontFamily:FB }}>Carregando...</div>;
@@ -107,7 +186,7 @@ export default function TenantSettingsPage() {
 
       <div style={{ display:"flex", gap:4, marginBottom:28, borderBottom:`1px solid ${C.border}`, background:C.card, borderRadius:"12px 12px 0 0", padding:"4px 4px 0 4px" }}>
         {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+          <button key={tab.id} onClick={() => { setActiveTab(tab.id); if (tab.id === "equipe" && !equipeCarregada.current) { equipeCarregada.current = true; carregarEquipe(); } }}
             style={{ padding:"10px 20px", background:"none", border:"none", borderBottom:`2px solid ${activeTab===tab.id?C.gold:"transparent"}`, color:activeTab===tab.id?C.gold:C.textMuted, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB, marginBottom:-1 }}>
             {tab.label}
           </button>
@@ -205,7 +284,99 @@ export default function TenantSettingsPage() {
           </div>
         )}
 
-        <div style={{ marginTop:24, display:"flex", alignItems:"center", gap:12 }}>
+        {activeTab === "equipe" && (
+          <div>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:15, fontWeight:700, color:C.text, marginBottom:4 }}>Convidar novo usuario</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:16 }}>O usuario recebera um e-mail para criar a senha e acessar o sistema.</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Nome</label>
+                  <input value={nomeConvite} onChange={e => setNomeConvite(e.target.value)} placeholder="Maria da Silva"
+                    style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, fontFamily:FB, outline:"none", boxSizing:"border-box" as any }} />
+                </div>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Perfil</label>
+                  <select value={novoPerfil} onChange={e => setNovoPerfil(e.target.value)}
+                    style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, fontFamily:FB, outline:"none", boxSizing:"border-box" as any }}>
+                    <option value="admin">Administrador</option>
+                    <option value="receptionist">Recepcionista</option>
+                    <option value="professional">Profissional</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>E-mail</label>
+                <input value={novoEmail} onChange={e => setNovoEmail(e.target.value)} placeholder="maria@email.com" type="email"
+                  style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, fontFamily:FB, outline:"none", boxSizing:"border-box" as any }} />
+              </div>
+              <button onClick={convidarUsuario} disabled={enviando || !novoEmail}
+                style={{ padding:"10px 24px", background:C.gold, color:"#0f0f0f", border:"none", borderRadius:10, fontSize:13, fontWeight:700, cursor:enviando||!novoEmail?"default":"pointer", fontFamily:FB, opacity:enviando||!novoEmail?0.6:1 }}>
+                {enviando ? "Enviando..." : "Enviar Convite"}
+              </button>
+              {msgEquipe && (
+                <div style={{ marginTop:12, padding:"10px 14px", background:msgEquipe.includes("sucesso") ? `${C.sage}18` : `#e8595918`, border:`1px solid ${msgEquipe.includes("sucesso") ? C.sage : "#e85959"}30`, borderRadius:10, fontSize:13, color:msgEquipe.includes("sucesso") ? C.sage : "#e85959" }}>
+                  {msgEquipe}
+                </div>
+              )}
+            </div>
+
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:24 }}>
+              <div style={{ fontSize:15, fontWeight:700, color:C.text, marginBottom:16 }}>Usuarios com acesso</div>
+              {loadingEquipe ? (
+                <div style={{ color:C.textMuted, fontSize:13 }}>Carregando...</div>
+              ) : equipe.length === 0 ? (
+                <div style={{ background:C.surface, borderRadius:12, padding:24, textAlign:"center", color:C.textMuted, fontSize:13 }}>
+                  Nenhum usuario convidado ainda. Use o formulario acima para convidar sua equipe.
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {equipe.map((u: any) => (
+                    <div key={u.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:C.surface, borderRadius:12, padding:"12px 16px", border:`1px solid ${C.border}` }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                        <div style={{ width:38, height:38, borderRadius:"50%", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>
+                          {u.role === "admin" ? "👑" : u.role === "professional" ? "✂️" : "📋"}
+                        </div>
+                        <div>
+                          <div style={{ fontSize:14, fontWeight:600, color:C.text }}>{u.name || u.email}</div>
+                          <div style={{ fontSize:11, color:C.textMuted }}>{u.email}</div>
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <span style={{ fontSize:11, padding:"3px 10px", borderRadius:20, fontWeight:700,
+                          background: u.role === "admin" ? `${C.gold}20` : u.role === "professional" ? `${C.sage}20` : `${C.rose}20`,
+                          color: u.role === "admin" ? C.gold : u.role === "professional" ? C.sage : C.rose,
+                          border: `1px solid ${u.role === "admin" ? C.gold : u.role === "professional" ? C.sage : C.rose}40`
+                        }}>
+                          {u.role === "admin" ? "Administrador" : u.role === "professional" ? "Profissional" : "Recepcionista"}
+                        </span>
+                        <span style={{ fontSize:11, padding:"3px 10px", borderRadius:20, fontWeight:700,
+                          background: u.status === "active" ? `${C.sage}20` : `${C.gold}20`,
+                          color: u.status === "active" ? C.sage : C.gold,
+                          border: `1px solid ${u.status === "active" ? C.sage : C.gold}40`
+                        }}>
+                          {u.status === "active" ? "Ativo" : "Pendente"}
+                        </span>
+                        {u.role !== "owner" && (
+                          <button onClick={() => removerUsuario(u.id)}
+                            style={{ padding:"4px 12px", background:"#e8595918", border:"1px solid #e8595930", borderRadius:8, color:"#e85959", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:FB }}>
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop:20, background:`${C.gold}10`, border:`1px solid ${C.gold}25`, borderRadius:12, padding:"12px 16px", fontSize:12, color:C.textMuted }}>
+              💡 <strong style={{ color:C.gold }}>Perfis de acesso:</strong> Administrador ve tudo · Recepcionista gerencia agenda e clientes · Profissional ve apenas sua propria agenda
+            </div>
+          </div>
+        )}
+
+        {activeTab !== "equipe" && <div style={{ marginTop:24, display:"flex", alignItems:"center", gap:12 }}>
           <button onClick={save} disabled={saving}
             style={{ padding:"12px 32px", background:C.gold, color:"#0f0f0f", border:"none", borderRadius:12, fontSize:14, fontWeight:700, cursor:saving?"default":"pointer", fontFamily:FB, opacity:saving?0.7:1 }}>
             {saving ? "Salvando..." : "Salvar Alterações"}
