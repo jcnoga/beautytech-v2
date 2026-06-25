@@ -3,6 +3,7 @@ import { db } from '../db/connection.js';
 import { appointments, clients, tenants, messageTemplates, notifications } from '../db/schema/index.js';
 import { eq, and, gte, lte, isNull, sql } from 'drizzle-orm';
 import { processWhatsAppQueue } from './whatsapp-worker.js';
+import { disconnectInstance } from '../modules/whatsapp/whatsapp.service.js';
 import { checkSubscriptionNotifications } from './subscription-notifications.js';
 
 
@@ -105,6 +106,25 @@ async function checkReactivation() {
   }
 }
 
+
+async function desconectarWhatsAppExpirados() {
+  console.log('[Scheduler] Verificando WhatsApp de tenants expirados...');
+  const now = new Date();
+  const expirados = await db.select({ id: tenants.id, whatsappInstance: tenants.whatsappInstance }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt)));
+  for (const tenant of expirados) {
+    if (!tenant.whatsappInstance) continue;
+    const pode = await tenantPodeWhatsApp(tenant.id);
+    if (!pode) {
+      try {
+        await disconnectInstance(tenant.id);
+        console.log('[Scheduler] WhatsApp desconectado para tenant ' + tenant.id);
+      } catch (e) {
+        console.log('[Scheduler] Erro ao desconectar tenant ' + tenant.id);
+      }
+    }
+  }
+}
+
 export function startScheduler() {
   console.log('[Scheduler] Iniciando jobs automaticos...');
 
@@ -122,6 +142,11 @@ export function startScheduler() {
   cron.schedule('0 9 * * *', async () => {
     try { await checkBirthdays(); } catch(e) { console.error('[Scheduler] Erro aniversarios:', e); }
     try { await checkReactivation(); } catch(e) { console.error('[Scheduler] Erro reativacao:', e); }
+  });
+
+  // Desconecta WhatsApp de tenants expirados - todo dia 8h30
+  cron.schedule('30 8 * * *', async () => {
+    try { await desconectarWhatsAppExpirados(); } catch(e) { console.error('[Scheduler] Erro desconexao:', e); }
   });
 
   // Notificacoes de vencimento de plano - todo dia 8h
