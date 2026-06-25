@@ -1,9 +1,20 @@
 import cron from 'node-cron';
 import { db } from '../db/connection.js';
 import { appointments, clients, tenants, messageTemplates, notifications } from '../db/schema/index.js';
-import { eq, and, gte, lte, isNull } from 'drizzle-orm';
+import { eq, and, gte, lte, isNull, sql } from 'drizzle-orm';
 import { processWhatsAppQueue } from './whatsapp-worker.js';
 import { checkSubscriptionNotifications } from './subscription-notifications.js';
+
+
+async function tenantPodeWhatsApp(tenantId: string): Promise<boolean> {
+  const [t] = await db.select({ planTier: tenants.planTier, trialEndsAt: tenants.trialEndsAt }).from(tenants).where(eq(tenants.id, tenantId));
+  if (!t) return false;
+  const now = new Date();
+  const trialEnd = t.trialEndsAt ? new Date(t.trialEndsAt) : null;
+  const isTrialActive = t.planTier === 'trial' && trialEnd && trialEnd > now;
+  const effectivePlan = isTrialActive ? 'trial' : (t.planTier === 'trial' ? 'basic' : t.planTier);
+  return effectivePlan !== 'basic';
+}
 
 function formatMessage(template: string, data: Record<string, string>): string {
   return template
@@ -18,6 +29,10 @@ async function checkAppointmentReminders() {
   const now = new Date();
   const activeTenants = await db.select({ id: tenants.id }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt)));
   for (const tenant of activeTenants) {
+    if (!(await tenantPodeWhatsApp(tenant.id))) {
+      console.log('[Scheduler] Tenant ' + tenant.id + ' bloqueado - plano basico');
+      continue;
+    }
     const [tmpl24h, tmpl2h] = await Promise.all([
       db.select().from(messageTemplates).where(and(eq(messageTemplates.tenantId, tenant.id), eq(messageTemplates.trigger, 'appointment_reminder_24h'), eq(messageTemplates.isActive, true))).limit(1),
       db.select().from(messageTemplates).where(and(eq(messageTemplates.tenantId, tenant.id), eq(messageTemplates.trigger, 'appointment_reminder_2h'),  eq(messageTemplates.isActive, true))).limit(1),
@@ -59,6 +74,7 @@ async function checkBirthdays() {
   const day   = now.getDate();
   const activeTenants = await db.select({ id: tenants.id }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt)));
   for (const tenant of activeTenants) {
+    if (!(await tenantPodeWhatsApp(tenant.id))) continue;
     const [tmpl] = await db.select().from(messageTemplates).where(and(eq(messageTemplates.tenantId, tenant.id), eq(messageTemplates.trigger, 'birthday'), eq(messageTemplates.isActive, true))).limit(1);
     if (!tmpl) continue;
     const birthdayClients = await db.execute(
@@ -77,6 +93,7 @@ async function checkReactivation() {
   console.log('[Scheduler] Verificando clientes inativos...');
   const activeTenants = await db.select({ id: tenants.id }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt)));
   for (const tenant of activeTenants) {
+    if (!(await tenantPodeWhatsApp(tenant.id))) continue;
     const [tmpl] = await db.select().from(messageTemplates).where(and(eq(messageTemplates.tenantId, tenant.id), eq(messageTemplates.trigger, 'client_reactivation'), eq(messageTemplates.isActive, true))).limit(1);
     if (!tmpl) continue;
     const inactiveClients = await db.select().from(clients).where(and(eq(clients.tenantId, tenant.id), eq(clients.isActive, true), eq(clients.segment, 'at_risk'), isNull(clients.deletedAt))).limit(20);
