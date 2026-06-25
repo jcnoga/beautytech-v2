@@ -352,7 +352,7 @@ export default function TenantSettingsPage() {
             {saving ? "Salvando..." : "Salvar Alterações"}
           </button>
           {saved && <span style={{ fontSize:13, color:C.sage }}>✓ Salvo com sucesso!</span>}
-        </div>
+        </div>}
       </div>
 
       <div style={{ marginTop:24, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
