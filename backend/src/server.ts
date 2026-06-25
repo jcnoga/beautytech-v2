@@ -35,7 +35,6 @@ import {
   superAdminModule,
   automationsModule,
   whatsappModule,
-  teamModule,
   clientRecordsModule,
   consentFormsModule,
   appointmentPhotosModule,
