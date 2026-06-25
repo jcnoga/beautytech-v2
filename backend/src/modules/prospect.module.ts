@@ -327,7 +327,7 @@ export async function prospectModule(fastify: FastifyInstance) {
     if (!prospect) return reply.status(404).send({ error: "Lead nao encontrado" });
 
     // Busca template
-    const tmplResult = await db.execute(sql`SELECT * FROM prospect_templates WHERE (niche = ${prospect.niche} OR niche = 'all' OR niche IS NULL) AND is_active = true ORDER BY RANDOM() LIMIT 1`) as any;
+    const tmplResult = await db.execute(sql`SELECT * FROM prospect_templates WHERE (niche ILIKE ${prospect.niche} OR niche ILIKE 'all' OR niche IS NULL OR niche = '') AND is_active = true ORDER BY RANDOM() LIMIT 1`) as any;
     const tmplRows = Array.isArray(tmplResult) ? tmplResult : (tmplResult?.rows ?? []);
     const template = tmplRows[0];
     if (!template) return reply.status(400).send({ error: "Nenhum template encontrado para este nicho" });
