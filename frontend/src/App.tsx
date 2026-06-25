@@ -1,4 +1,5 @@
 import CheckoutPage from "./pages/CheckoutPage";
+import ResetSenhaPage from './pages/ResetSenhaPage';
 import HelpPage from './pages/HelpPage';
 import ProspectPage from './ProspectPage';
 import LandingPage from './LandingPage';
@@ -3802,6 +3803,7 @@ export default function App() {
   const isSuperAdmin = window.location.pathname === '/super-admin';
   const isSubdomain = !['localhost','beautytech-v2.vercel.app','zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !sessionStorage.getItem('impersonation_token') && !new URLSearchParams(window.location.search).get('impersonating');
   const sobreMatch = window.location.pathname === '/sobre';
+  const resetSenhaMatch = window.location.pathname === '/reset-senha';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
 
@@ -3858,6 +3860,7 @@ const logout = async () => {
   const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
+  if (resetSenhaMatch) return <ResetSenhaPage />;
   if (sobreMatch) return <LandingPageSobre />;
   if (discoveryMatch) return <DiscoveryPage />;
   if (isRootDomain) return <HomePage />;
