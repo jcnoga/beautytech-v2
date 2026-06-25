@@ -35,6 +35,8 @@ export default function ProspectPage({ token }: { token: string }) {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterState, setFilterState]   = useState("");
   const [filterCity, setFilterCity]     = useState("");
+  const [allStatesDb, setAllStatesDb]   = useState([]);
+  const [allCitiesDb, setAllCitiesDb]   = useState([]);
   const [search, setSearch]             = useState("");
   const [sending, setSending]           = useState(false);
   const [sendResult, setSendResult]     = useState("");
@@ -89,7 +91,7 @@ export default function ProspectPage({ token }: { token: string }) {
     setStats(d.data);
   }
 
-  useEffect(() => { loadLeads(1); loadTemplates(); loadStats(); }, [filterNiche, filterStatus, filterState, filterCity]);
+  useEffect(() => { loadLeads(1); loadTemplates(); loadStats(); loadFilters(); }, [filterNiche, filterStatus, filterState, filterCity]);
 
   // Listas derivadas para filtros dinâmicos
   const allStates = [...new Set(leads.map(l => l.state).filter(Boolean))].sort();
@@ -314,13 +316,13 @@ export default function ProspectPage({ token }: { token: string }) {
           {/* Filtro Estado */}
           <select value={filterState} onChange={e => { setFilterState(e.target.value); setFilterCity(""); }} style={inp}>
             <option value="">Todos os estados</option>
-            {allStates.map(s => <option key={s} value={s}>{s}</option>)}
+            {(allStatesDb.length ? allStatesDb : allStates).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
 
           {/* Filtro Cidade */}
           <select value={filterCity} onChange={e => setFilterCity(e.target.value)} style={inp}>
             <option value="">Todas as cidades</option>
-            {allCities.map(c => <option key={c} value={c}>{c}</option>)}
+            {(allCitiesDb.length ? allCitiesDb : allCities).map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
           {tab === "lista" && (
