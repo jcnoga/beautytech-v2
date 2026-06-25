@@ -192,15 +192,40 @@ export default function ProspectPage({ token }: { token: string }) {
   }
 
   async function sendCampaign() {
-    setSending(true); setSendResult("Disparando...");
-    const r = await fetch(`${API}/super-admin/prospects/send`, {
-      method: "POST", headers,
-      body: JSON.stringify(sendConfig),
-    });
+    setSending(true); setSendResult(""); setSendLog([]); setStopSend(false);
+    const params = new URLSearchParams({ status: "pending", limit: String(sendConfig.daily_limit), page: "1" });
+    if (sendConfig.niche) params.set("niche", sendConfig.niche);
+    const r = await fetch(`${API}/super-admin/prospects?${params}`, { headers });
     const d = await r.json();
-    setSendResult(d.data?.message ?? "Concluído");
-    setSending(false);
-    setTimeout(() => { loadLeads(); loadStats(); }, 3000);
+    const pending = d.data ?? [];
+    if (pending.length === 0) { setSendResult("Nenhum lead pendente!"); setSending(false); return; }
+    setSendProgress({ current: 0, total: pending.length, name: "", phone: "" });
+    let sent = 0;
+    for (let i = 0; i < pending.length; i++) {
+      if (stopSend) break;
+      const lead = pending[i];
+      setSendProgress({ current: i + 1, total: pending.length, name: lead.name, phone: lead.phone ?? "" });
+      try {
+        const sr = await fetch(`${API}/super-admin/prospects/send-one`, {
+          method: "POST", headers,
+          body: JSON.stringify({ leadId: lead.id }),
+        });
+        const sd = await sr.json();
+        if (sd.success) {
+          setSendLog(prev => [{ name: lead.name, status: "Enviado" }, ...prev].slice(0, 20));
+          sent++;
+        } else {
+          setSendLog(prev => [{ name: lead.name, status: "Erro: " + (sd.error ?? "?") }, ...prev].slice(0, 20));
+        }
+      } catch(e: any) {
+        setSendLog(prev => [{ name: lead.name, status: "Erro: " + e.message }, ...prev].slice(0, 20));
+      }
+      const wait = sendConfig.min_interval * 1000 + Math.random() * (sendConfig.max_interval - sendConfig.min_interval) * 1000;
+      await new Promise(res => setTimeout(res, wait));
+    }
+    setSendResult("Concluido! " + sent + " mensagens enviadas.");
+    setSending(false); setSendProgress(null);
+    setTimeout(() => { loadLeads(); loadStats(); }, 2000);
   }
 
   async function addTemplate() {
