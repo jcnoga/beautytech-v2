@@ -48,7 +48,7 @@ export default function ProspectPage({ token }: { token: string }) {
   const [stopSend, setStopSend]         = useState(false);
 
 
-  const [stopSend, setStopSend]         = useState(false);
+
   const [newTemplate, setNewTemplate]   = useState({ niche: "", name: "", message: "" });
   const [dragId, setDragId]             = useState<string | null>(null);
   const [currentPage, setCurrentPage]   = useState(1);
