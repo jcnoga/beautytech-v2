@@ -321,16 +321,15 @@ export async function prospectModule(fastify: FastifyInstance) {
     const instance = "prospeccao";
 
     // Busca lead
-    const [lead] = await db.execute(sql`SELECT * FROM prospect_leads WHERE id = ${leadId} LIMIT 1`) as any;
-    if (!lead) return reply.status(404).send({ error: "Lead nao encontrado" });
-    const rows = (lead as any).rows ?? lead;
-    const prospect = Array.isArray(rows) ? rows[0] : rows;
+    const leadResult = await db.execute(sql`SELECT * FROM prospect_leads WHERE id = ${leadId} LIMIT 1`) as any;
+    const leadRows = Array.isArray(leadResult) ? leadResult : (leadResult?.rows ?? []);
+    const prospect = leadRows[0];
     if (!prospect) return reply.status(404).send({ error: "Lead nao encontrado" });
 
     // Busca template
-    const [tmplResult] = await db.execute(sql`SELECT * FROM prospect_templates WHERE (niche = ${prospect.niche} OR niche = 'all' OR niche IS NULL) AND is_active = true ORDER BY RANDOM() LIMIT 1`) as any;
-    const tmplRows = (tmplResult as any).rows ?? tmplResult;
-    const template = Array.isArray(tmplRows) ? tmplRows[0] : tmplRows;
+    const tmplResult = await db.execute(sql`SELECT * FROM prospect_templates WHERE (niche = ${prospect.niche} OR niche = 'all' OR niche IS NULL) AND is_active = true ORDER BY RANDOM() LIMIT 1`) as any;
+    const tmplRows = Array.isArray(tmplResult) ? tmplResult : (tmplResult?.rows ?? []);
+    const template = tmplRows[0];
     if (!template) return reply.status(400).send({ error: "Nenhum template encontrado para este nicho" });
 
     // Formata mensagem
