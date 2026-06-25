@@ -45,7 +45,7 @@ export async function prospectModule(fastify: FastifyInstance) {
 
     let where = "WHERE 1=1";
 
-    if (niche)  where += ` AND LOWER(UNACCENT(niche))  = LOWER(UNACCENT('${esc(niche)}'))`;
+    if (niche)  where += ` AND LOWER(UNACCENT(niche)) ILIKE LOWER(UNACCENT('%${esc(niche)}%'))`;
     if (status) where += ` AND status = '${esc(status)}'`;
     if (state)  where += ` AND LOWER(UNACCENT(state))  LIKE '%' || LOWER(UNACCENT('${esc(state)}'))  || '%'`;
     if (city)   where += ` AND LOWER(UNACCENT(city))   LIKE '%' || LOWER(UNACCENT('${esc(city)}'))   || '%'`;
