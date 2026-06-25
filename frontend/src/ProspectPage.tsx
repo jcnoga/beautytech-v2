@@ -158,6 +158,11 @@ export default function ProspectPage({ token }: { token: string }) {
   async function conectarWhatsApp() {
     setWaStatus("connecting"); setWaQr("");
     try {
+      // Verifica status primeiro
+      const sr = await fetch(`${API}/super-admin/prospects/whatsapp/status`, { headers });
+      const sd = await sr.json();
+      if (sd.connected) { setWaStatus("connected"); setWaPhone(sd.phone ?? ""); return; }
+      // Se nao conectado, gera QR
       const r = await fetch(`${API}/super-admin/prospects/whatsapp/connect`, { method: "POST", headers });
       const d = await r.json();
       if (d.qrcode) { setWaQr(d.qrcode); pollStatus(); }
