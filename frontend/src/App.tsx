@@ -3857,7 +3857,7 @@ const logout = async () => {
     ajuda:    () => <HelpPage />,
   };
 
-  const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token');
+  const isRootDomain = ['zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
   if (resetSenhaMatch) return <ResetSenhaPage />;
