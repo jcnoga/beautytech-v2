@@ -386,7 +386,10 @@ export default function ProspectPage({ token }: { token: string }) {
                       style={{ marginTop: 8, fontSize: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: "3px 6px", width: "100%" }}>
                       {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                     </select>
-                    <textarea placeholder="Observacoes sobre o lead..." defaultValue={lead.notes ?? ""} onBlur={e => updateNotes(lead.id, e.target.value)} rows={3} style={{ marginTop: 8, fontSize: 11, background: C.card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: C.text, padding: "6px 8px", width: "100%", resize: "vertical", minHeight: 70, fontFamily: "inherit", boxSizing: "border-box" as any }} />
+                    <div style={{ marginTop: 8 }}>
+                      <textarea placeholder="Observacoes sobre o lead..." defaultValue={lead.notes ?? ""} id={`notes-${lead.id}`} rows={4} style={{ fontSize: 11, background: C.card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: C.text, padding: "6px 8px", width: "100%", resize: "vertical", minHeight: 80, fontFamily: "inherit", boxSizing: "border-box" as any }} />
+                      <button onClick={() => { const el = document.getElementById(`notes-${lead.id}`) as HTMLTextAreaElement; updateNotes(lead.id, el?.value ?? ""); el.style.border="1px solid #7eb8a0"; setTimeout(()=>el.style.border="1px solid rgba(255,255,255,0.08)",1500); }} style={{ marginTop: 4, fontSize: 10, padding: "3px 10px", background: "#1a3a1a", color: "#7eb8a0", border: "1px solid #7eb8a0", borderRadius: 4, cursor: "pointer", width: "100%" }}>💾 Salvar observação</button>
+                    </div>
                   </div>
                 ))}
               </div>
