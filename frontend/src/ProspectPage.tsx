@@ -46,8 +46,8 @@ export default function ProspectPage({ token }: { token: string }) {
   const [sendProgress, setSendProgress] = useState<{current: number, total: number, name: string, phone: string} | null>(null);
   const [sendLog, setSendLog]           = useState<{name: string, status: string}[]>([]);
   const [stopSend, setStopSend]         = useState(false);
-  const [sendProgress, setSendProgress] = useState<{current: number, total: number, name: string, phone: string} | null>(null);
-  const [sendLog, setSendLog]           = useState<{name: string, status: string}[]>([]);
+
+
   const [stopSend, setStopSend]         = useState(false);
   const [newTemplate, setNewTemplate]   = useState({ niche: "", name: "", message: "" });
   const [dragId, setDragId]             = useState<string | null>(null);
