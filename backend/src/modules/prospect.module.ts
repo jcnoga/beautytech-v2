@@ -321,7 +321,7 @@ export async function prospectModule(fastify: FastifyInstance) {
     const instance = "prospeccao";
 
     // Busca lead
-    const [lead] = await db.execute(sql`SELECT * FROM prospects WHERE id = ${leadId} LIMIT 1`) as any;
+    const [lead] = await db.execute(sql`SELECT * FROM prospect_leads WHERE id = ${leadId} LIMIT 1`) as any;
     if (!lead) return reply.status(404).send({ error: "Lead nao encontrado" });
     const rows = (lead as any).rows ?? lead;
     const prospect = Array.isArray(rows) ? rows[0] : rows;
@@ -354,7 +354,7 @@ export async function prospectModule(fastify: FastifyInstance) {
     if (!r.ok) return reply.status(500).send({ error: result?.message ?? "Erro ao enviar" });
 
     // Atualiza status do lead
-    await db.execute(sql`UPDATE prospects SET status = 'sent', updated_at = NOW() WHERE id = ${leadId}`);
+    await db.execute(sql`UPDATE prospect_leads SET status = 'sent', updated_at = NOW() WHERE id = ${leadId}`);
 
     return reply.send({ success: true, phone, message: msg });
   });
