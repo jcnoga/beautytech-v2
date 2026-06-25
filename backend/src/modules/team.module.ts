@@ -133,7 +133,8 @@ export async function teamModule(fastify: FastifyInstance) {
         body: JSON.stringify({ user_id: authUserId, token, expires_at: expiresAt.toISOString() }),
       });
 
-      const inviteLink = `${frontendUrl}/reset-senha?token=${token}&convite=1`;
+      const nomeCodificado = encodeURIComponent(name || email.split('@')[0]);
+      const inviteLink = `${frontendUrl}/reset-senha?token=${token}&convite=1&nome=${nomeCodificado}`;
       const roleLabel = role === "admin" ? "Administrador" : role === "professional" ? "Profissional" : "Recepcionista";
 
       // Envia email de convite via Resend

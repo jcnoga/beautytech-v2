@@ -10,7 +10,13 @@ export default function ResetSenhaPage() {
   const [done, setDone] = useState(false);
   const [isConvite, setIsConvite] = useState(false);
   const token = new URLSearchParams(window.location.search).get("token") ?? "";
-  useEffect(() => { setIsConvite(new URLSearchParams(window.location.search).get("convite") === "1"); }, []);
+  const [nomeConvidado, setNomeConvidado] = useState("");
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsConvite(params.get("convite") === "1");
+    const nome = params.get("nome");
+    if (nome) setNomeConvidado(decodeURIComponent(nome));
+  }, []);
   const submit = async () => {
     setError("");
     if (!token) { setError("Link invalido ou expirado."); return; }
@@ -31,7 +37,7 @@ export default function ResetSenhaPage() {
       <div style={{ width:"100%", maxWidth:400 }}>
         <div style={{ textAlign:"center", marginBottom:40 }}>
           <div style={{ fontSize:44, fontWeight:700, color:C.text, fontFamily:FD }}>ZenSalon</div>
-          <div style={{ fontSize:14, color:C.textMuted, marginTop:8 }}>{isConvite ? "Crie sua senha para acessar o sistema" : "Redefina sua senha"}</div>
+          <div style={{ fontSize:14, color:C.textMuted, marginTop:8 }}>{isConvite ? (nomeConvidado ? `Ola, ${nomeConvidado}! Crie sua senha para acessar o sistema` : "Crie sua senha para acessar o sistema") : "Redefina sua senha"}</div>
         </div>
         <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:24, padding:36 }}>
           {done ? (
