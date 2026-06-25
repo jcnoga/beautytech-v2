@@ -43,6 +43,12 @@ export default function ProspectPage({ token }: { token: string }) {
   const [waQr, setWaQr]                 = useState("");
   const [waPhone, setWaPhone]           = useState("");
   const [waPolling, setWaPolling]       = useState(false);
+  const [sendProgress, setSendProgress] = useState<{current: number, total: number, name: string, phone: string} | null>(null);
+  const [sendLog, setSendLog]           = useState<{name: string, status: string}[]>([]);
+  const [stopSend, setStopSend]         = useState(false);
+  const [sendProgress, setSendProgress] = useState<{current: number, total: number, name: string, phone: string} | null>(null);
+  const [sendLog, setSendLog]           = useState<{name: string, status: string}[]>([]);
+  const [stopSend, setStopSend]         = useState(false);
   const [newTemplate, setNewTemplate]   = useState({ niche: "", name: "", message: "" });
   const [dragId, setDragId]             = useState<string | null>(null);
   const [currentPage, setCurrentPage]   = useState(1);
@@ -504,6 +510,60 @@ export default function ProspectPage({ token }: { token: string }) {
               style={{ padding: "12px 24px", background: (sending || waStatus !== "connected") ? C.muted : C.green, color: "#000", borderRadius: 8, border: "none", cursor: (sending || waStatus !== "connected") ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
               {sending ? "Disparando..." : waStatus !== "connected" ? "🔒 Conecte o WhatsApp primeiro" : "🚀 Iniciar Disparo"}
             </button>
+            {sending && (
+              <button onClick={() => setStopSend(true)}
+                style={{ width: "100%", padding: "10px", background: "#e87070", color: "#fff", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                ⏹ Parar Disparo
+              </button>
+            )}
+            {sendProgress && (
+              <div style={{ background: "#1a1a1a", borderRadius: 10, padding: 14, border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ fontSize: 12, color: "#aaa", marginBottom: 6 }}>Enviando {sendProgress.current} de {sendProgress.total}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#f0ece4", marginBottom: 4 }}>📤 {sendProgress.name}</div>
+                <div style={{ fontSize: 12, color: "#7eb8a0" }}>{sendProgress.phone}</div>
+                <div style={{ marginTop: 10, background: "#333", borderRadius: 4, height: 6 }}>
+                  <div style={{ width: `${(sendProgress.current / sendProgress.total) * 100}%`, background: "#25d366", height: 6, borderRadius: 4, transition: "width 0.3s" }} />
+                </div>
+              </div>
+            )}
+            {sendLog.length > 0 && (
+              <div style={{ background: "#1a1a1a", borderRadius: 10, padding: 14, border: "1px solid rgba(255,255,255,0.08)", maxHeight: 200, overflowY: "auto" }}>
+                <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8, fontWeight: 700 }}>LOG DE ENVIO</div>
+                {sendLog.map((l, i) => (
+                  <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#f0ece4" }}>{l.name}</span>
+                    <span>{l.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {sending && (
+              <button onClick={() => setStopSend(true)}
+                style={{ width: "100%", padding: "10px", background: "#e87070", color: "#fff", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                ⏹ Parar Disparo
+              </button>
+            )}
+            {sendProgress && (
+              <div style={{ background: "#1a1a1a", borderRadius: 10, padding: 14, border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ fontSize: 12, color: "#aaa", marginBottom: 6 }}>Enviando {sendProgress.current} de {sendProgress.total}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#f0ece4", marginBottom: 4 }}>📤 {sendProgress.name}</div>
+                <div style={{ fontSize: 12, color: "#7eb8a0" }}>{sendProgress.phone}</div>
+                <div style={{ marginTop: 10, background: "#333", borderRadius: 4, height: 6 }}>
+                  <div style={{ width: `${(sendProgress.current / sendProgress.total) * 100}%`, background: "#25d366", height: 6, borderRadius: 4, transition: "width 0.3s" }} />
+                </div>
+              </div>
+            )}
+            {sendLog.length > 0 && (
+              <div style={{ background: "#1a1a1a", borderRadius: 10, padding: 14, border: "1px solid rgba(255,255,255,0.08)", maxHeight: 200, overflowY: "auto" }}>
+                <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8, fontWeight: 700 }}>LOG DE ENVIO</div>
+                {sendLog.map((l, i) => (
+                  <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#f0ece4" }}>{l.name}</span>
+                    <span>{l.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {sendResult && <div style={{ color: C.green, fontSize: 13, textAlign: "center" }}>{sendResult}</div>}
           </div>
         </div>

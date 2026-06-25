@@ -311,4 +311,52 @@ export async function prospectModule(fastify: FastifyInstance) {
     }
   });
 
+
+  fastify.post("/super-admin/prospects/send-one", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { leadId } = req.body as any;
+    if (!leadId) return reply.status(400).send({ error: "leadId obrigatorio" });
+
+    const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
+    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const instance = "prospeccao";
+
+    // Busca lead
+    const [lead] = await db.execute(sql`SELECT * FROM prospects WHERE id = ${leadId} LIMIT 1`) as any;
+    if (!lead) return reply.status(404).send({ error: "Lead nao encontrado" });
+    const rows = (lead as any).rows ?? lead;
+    const prospect = Array.isArray(rows) ? rows[0] : rows;
+    if (!prospect) return reply.status(404).send({ error: "Lead nao encontrado" });
+
+    // Busca template
+    const [tmplResult] = await db.execute(sql`SELECT * FROM prospect_templates WHERE (niche = ${prospect.niche} OR niche = 'all' OR niche IS NULL) AND is_active = true ORDER BY RANDOM() LIMIT 1`) as any;
+    const tmplRows = (tmplResult as any).rows ?? tmplResult;
+    const template = Array.isArray(tmplRows) ? tmplRows[0] : tmplRows;
+    if (!template) return reply.status(400).send({ error: "Nenhum template encontrado para este nicho" });
+
+    // Formata mensagem
+    const msg = (template.message as string)
+      .replace(/{nome}/g, prospect.name ?? "")
+      .replace(/{cidade}/g, prospect.city ?? "")
+      .replace(/{nicho}/g, prospect.niche ?? "");
+
+    // Formata telefone
+    let phone = (prospect.phone ?? "").replace(/\D/g, "");
+    if (phone.startsWith("0")) phone = phone.slice(1);
+    if (!phone.startsWith("55")) phone = "55" + phone;
+
+    // Envia via Evolution API
+    const r = await fetch(`${evolutionUrl}/message/sendText/${instance}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": evolutionKey },
+      body: JSON.stringify({ number: phone, text: msg }),
+    });
+    const result = await r.json() as any;
+    if (!r.ok) return reply.status(500).send({ error: result?.message ?? "Erro ao enviar" });
+
+    // Atualiza status do lead
+    await db.execute(sql`UPDATE prospects SET status = 'sent', updated_at = NOW() WHERE id = ${leadId}`);
+
+    return reply.send({ success: true, phone, message: msg });
+  });
+
 }
