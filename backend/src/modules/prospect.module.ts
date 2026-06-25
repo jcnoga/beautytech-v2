@@ -350,7 +350,7 @@ export async function prospectModule(fastify: FastifyInstance) {
       body: JSON.stringify({ number: phone, text: msg }),
     });
     const result = await r.json() as any;
-    if (!r.ok) return reply.status(500).send({ error: result?.message ?? "Erro ao enviar" });
+    if (!r.ok) return reply.status(500).send({ error: result?.message ?? "Erro ao enviar", detail: JSON.stringify(result), phone, msg });
 
     // Atualiza status do lead
     await db.execute(sql`UPDATE prospect_leads SET status = 'sent', updated_at = NOW() WHERE id = ${leadId}`);
