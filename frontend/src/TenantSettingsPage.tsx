@@ -74,36 +74,6 @@ export default function TenantSettingsPage() {
       alert("Erro ao remover usuario.");
     }
   };
-  const [equipe, setEquipe] = useState<any[]>([]);
-  const [loadingEquipe, setLoadingEquipe] = useState(false);
-  const [novoEmail, setNovoEmail] = useState("");
-  const [novoPerfil, setNovoPerfil] = useState("receptionist");
-  const [nomeConvite, setNomeConvite] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [msgEquipe, setMsgEquipe] = useState("");
-  const equipeCarregada = useRef(false);
-  const carregarEquipe = async () => {
-    setLoadingEquipe(true);
-    try { const r = await api.get<any>("/team"); setEquipe(r.data ?? []); }
-    catch(e) { setEquipe([]); }
-    finally { setLoadingEquipe(false); }
-  };
-  const convidarUsuario = async () => {
-    if (!novoEmail) return;
-    setEnviando(true); setMsgEquipe("");
-    try {
-      await api.post("/team/invite", { email: novoEmail, role: novoPerfil, name: nomeConvite });
-      setMsgEquipe("Convite enviado com sucesso!");
-      setNovoEmail(""); setNomeConvite("");
-      carregarEquipe();
-    } catch(e) { setMsgEquipe("Erro ao enviar convite."); }
-    finally { setEnviando(false); }
-  };
-  const removerUsuario = async (userId: string) => {
-    if (!confirm("Remover acesso deste usuario?")) return;
-    try { await api.delete(`/team/${userId}`); setEquipe(eq => eq.filter(u => u.id !== userId)); }
-    catch(e) { alert("Erro ao remover."); }
-  };
   const [activeTab, setActiveTab] = useState("identity");
 
   const f = (key: string) => (val: string) => setForm((p: any) => ({ ...p, [key]: val }));
