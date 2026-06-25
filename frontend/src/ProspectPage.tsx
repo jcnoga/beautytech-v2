@@ -148,6 +148,10 @@ export default function ProspectPage({ token }: { token: string }) {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  async function updateNotes(id: string, notes: string) {
+    await fetch(`${API}/super-admin/prospects/${id}/notes`, { method: "PATCH", headers, body: JSON.stringify({ notes }) });
+  }
+
   async function updateStatus(id: string, status: string) {
     await fetch(`${API}/super-admin/prospects/${id}/status`, {
       method: "PATCH", headers,
@@ -330,6 +334,7 @@ export default function ProspectPage({ token }: { token: string }) {
               <option value="">Todos os status</option>
               {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
+                    <textarea placeholder="Observacoes sobre o lead..." defaultValue={lead.notes ?? ""} onBlur={e => updateNotes(lead.id, e.target.value)} rows={3} style={{ marginTop: 8, fontSize: 11, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: "6px 8px", width: "100%", resize: "vertical", minHeight: 70, fontFamily: "inherit", boxSizing: "border-box" as any }} />
           )}
 
           <span style={{ color: C.muted, fontSize: 13 }}>{filtered.length} leads</span>

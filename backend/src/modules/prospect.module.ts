@@ -140,6 +140,12 @@ export async function prospectModule(fastify: FastifyInstance) {
   });
 
   // ── PATCH /super-admin/prospects/:id/status ──────────────────────────────
+  fastify.patch("/super-admin/prospects/:id/notes", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    const { notes } = req.body as any;
+    await db.execute(sql.raw(`UPDATE prospect_leads SET notes = '${(notes??'').replace(/'/g,"''")}', updated_at = NOW() WHERE id = '${req.params.id}'`));
+    return reply.send({ success: true });
+  });
+
   fastify.patch("/super-admin/prospects/:id/status", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const { status } = req.body as any;
     const allowed = ["pending","sent","replied","converted","blacklist","error","no_whatsapp"];
