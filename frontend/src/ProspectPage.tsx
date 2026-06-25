@@ -60,6 +60,15 @@ export default function ProspectPage({ token }: { token: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
+  async function loadFilters() {
+    try {
+      const r = await fetch(`${API}/super-admin/prospects?limit=200&page=1`, { headers });
+      const d = await r.json();
+      const all = d.data ?? [];
+      setAllStatesDb([...new Set(all.map((l: any) => l.state).filter(Boolean))].sort() as string[]);
+      setAllCitiesDb([...new Set(all.map((l: any) => l.city).filter(Boolean))].sort() as string[]);
+    } catch {}
+  }
   async function loadLeads(page = 1) {
     setLoading(true);
     const params = new URLSearchParams();
