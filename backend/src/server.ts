@@ -35,6 +35,7 @@ import {
   superAdminModule,
   automationsModule,
   whatsappModule,
+  teamModule,
   clientRecordsModule,
   consentFormsModule,
   appointmentPhotosModule,
@@ -93,6 +94,7 @@ async function bootstrap() {
   await server.register(prospectModule,          { prefix });
   await server.register(automationsModule,        { prefix });
   await server.register(whatsappModule,           { prefix });
+  await server.register(teamModule,              { prefix });
   await server.register(clientRecordsModule,      { prefix });
   await server.register(consentFormsModule,       { prefix });
   await server.register(appointmentPhotosModule,  { prefix });
