@@ -334,7 +334,6 @@ export default function ProspectPage({ token }: { token: string }) {
               <option value="">Todos os status</option>
               {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
-                    <textarea placeholder="Observacoes sobre o lead..." defaultValue={lead.notes ?? ""} onBlur={e => updateNotes(lead.id, e.target.value)} rows={3} style={{ marginTop: 8, fontSize: 11, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: "6px 8px", width: "100%", resize: "vertical", minHeight: 70, fontFamily: "inherit", boxSizing: "border-box" as any }} />
           )}
 
           <span style={{ color: C.muted, fontSize: 13 }}>{filtered.length} leads</span>
@@ -378,6 +377,7 @@ export default function ProspectPage({ token }: { token: string }) {
                       style={{ marginTop: 8, fontSize: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: "3px 6px", width: "100%" }}>
                       {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                     </select>
+                    <textarea placeholder="Observacoes sobre o lead..." defaultValue={lead.notes ?? ""} onBlur={e => updateNotes(lead.id, e.target.value)} rows={3} style={{ marginTop: 8, fontSize: 11, background: C.card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: C.text, padding: "6px 8px", width: "100%", resize: "vertical", minHeight: 70, fontFamily: "inherit", boxSizing: "border-box" as any }} />
                   </div>
                 ))}
               </div>
