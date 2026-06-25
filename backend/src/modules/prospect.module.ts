@@ -351,9 +351,9 @@ export async function prospectModule(fastify: FastifyInstance) {
     });
     const result = await r.json() as any;
     if (!r.ok) {
-      const noWa = JSON.stringify(result).includes("exists":false");
-      await db.execute(sql`UPDATE prospect_leads SET status = ${noWa ? "no_whatsapp" : "error"}, updated_at = NOW() WHERE id = ${leadId}`);
-      return reply.status(500).send({ error: noWa ? "Numero sem WhatsApp" : (result?.message ?? "Erro ao enviar") });
+      const noWa = JSON.stringify(result).includes('"exists":false');
+      const newStatus = noWa ? 'no_whatsapp' : 'error';
+      await db.execute(sql.raw(`UPDATE prospect_leads SET status = '${newStatus}', updated_at = NOW() WHERE id = '${leadId}'`));
     }
 
     // Atualiza status do lead
