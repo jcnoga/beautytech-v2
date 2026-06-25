@@ -3801,7 +3801,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
 export default function App() {
   useTheme();
   const isSuperAdmin = window.location.pathname === '/super-admin';
-  const isSubdomain = !['localhost','beautytech-v2.vercel.app','zensalon.com.br','www.zensalon.com.br'].includes(window.location.hostname) && !sessionStorage.getItem('impersonation_token') && !new URLSearchParams(window.location.search).get('impersonating');
+  const isSubdomain = !window.location.hostname.match(/localhost|beautytech-v2\.vercel\.app|zensalon\.com\.br/) && !sessionStorage.getItem('impersonation_token') && !new URLSearchParams(window.location.search).get('impersonating');
   const sobreMatch = window.location.pathname === '/sobre';
   const resetSenhaMatch = window.location.pathname === '/reset-senha';
   const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
