@@ -1714,16 +1714,27 @@ export async function superAdminModule(fastify: FastifyInstance) {
   });
 
   fastify.get("/super-admin/stats", { preHandler: [requireSuperAdmin] }, async (_req, reply) => {
-    const now = new Date();
-    const [t1, t2, t3, t4, t5, t6] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(tenants).where(isNull(tenants.deletedAt)),
-      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt))),
-      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.planTier, "trial"), eq(tenants.isActive, true), gte(tenants.trialEndsAt, now), isNull(tenants.deletedAt))),
-      db.select({ count: sql<number>`count(*)` }).from(tenants).where(and(eq(tenants.isActive, false), isNull(tenants.deletedAt))),
-      db.select({ count: sql<number>`count(*)` }).from(clients),
-      db.select({ count: sql<number>`count(*)` }).from(appointments),
-    ]);
-    return reply.send({ success: true, data: { totalTenants: Number(t1[0]?.count ?? 0), activeTenants: Number(t2[0]?.count ?? 0), trialTenants: Number(t3[0]?.count ?? 0), blockedTenants: Number(t4[0]?.count ?? 0), totalClients: Number(t5[0]?.count ?? 0), totalAppts: Number(t6[0]?.count ?? 0) } });
+    try {
+      const [t1, t2, t3, t4, t5, t6] = await Promise.all([
+        db.execute(sql.raw("SELECT COUNT(*)::int as count FROM tenants WHERE deleted_at IS NULL")),
+        db.execute(sql.raw("SELECT COUNT(*)::int as count FROM tenants WHERE is_active = true AND deleted_at IS NULL")),
+        db.execute(sql.raw("SELECT COUNT(*)::int as count FROM tenants WHERE plan_tier::text = 'trial' AND is_active = true AND trial_ends_at >= NOW() AND deleted_at IS NULL")),
+        db.execute(sql.raw("SELECT COUNT(*)::int as count FROM tenants WHERE is_active = false AND deleted_at IS NULL")),
+        db.execute(sql.raw("SELECT COUNT(*)::int as count FROM clients")),
+        db.execute(sql.raw("SELECT COUNT(*)::int as count FROM appointments")),
+      ]);
+      const n = (r: any) => Number(Array.isArray(r) ? r[0]?.count : (r?.rows?.[0]?.count ?? 0));
+      return reply.send({ success: true, data: {
+        totalTenants:   n(t1),
+        activeTenants:  n(t2),
+        trialTenants:   n(t3),
+        blockedTenants: n(t4),
+        totalClients:   n(t5),
+        totalAppts:     n(t6),
+      }});
+    } catch (e: any) {
+      return reply.status(500).send({ error: e.message });
+    }
   });
 
   // IMPERSONATION
