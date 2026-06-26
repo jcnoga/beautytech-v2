@@ -357,7 +357,12 @@ export async function prospectModule(fastify: FastifyInstance) {
     });
     const result = await r.json() as any;
     if (!r.ok) {
-      const noWa = JSON.stringify(result).includes('"exists":false');
+      const resultStr = JSON.stringify(result);
+      const isSessionError = resultStr.includes('SessionError') || resultStr.includes('No sessions') || resultStr.includes('instance not found');
+      if (isSessionError) {
+        return reply.status(503).send({ success: false, error: 'session_error', message: 'WhatsApp desconectado', phone, detail: result });
+      }
+      const noWa = resultStr.includes('"exists":false');
       const newStatus = noWa ? 'no_whatsapp' : 'error';
       await db.execute(sql.raw(`UPDATE prospect_leads SET status = '${newStatus}', updated_at = NOW() WHERE id = '${leadId}'`));
       return reply.send({ success: false, error: newStatus, phone, detail: result });

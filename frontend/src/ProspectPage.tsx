@@ -255,6 +255,11 @@ export default function ProspectPage({ token }: { token: string }) {
         if (sd.success) {
           setSendLog(prev => [{ name: lead.business_name ?? lead.name, status: "Enviado" }, ...prev].slice(0, 20));
           sent++;
+        } else if (sd.error === "session_error") {
+          setSendLog(prev => [{ name: "⚠️ WhatsApp desconectado!", status: "Disparo pausado" }, ...prev].slice(0, 20));
+          setSendResult("WhatsApp desconectado. Reconecte e tente novamente.");
+          setSending(false); setSendProgress(null);
+          break;
         } else {
           setSendLog(prev => [{ name: lead.business_name ?? lead.name, status: "Erro: " + (sd.error ?? "?") }, ...prev].slice(0, 20));
         }
