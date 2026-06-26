@@ -253,13 +253,13 @@ export default function ProspectPage({ token }: { token: string }) {
         });
         const sd = await sr.json();
         if (sd.success) {
-          setSendLog(prev => [{ name: lead.name, status: "Enviado" }, ...prev].slice(0, 20));
+          setSendLog(prev => [{ name: lead.business_name ?? lead.name, status: "Enviado" }, ...prev].slice(0, 20));
           sent++;
         } else {
-          setSendLog(prev => [{ name: lead.name, status: "Erro: " + (sd.error ?? "?") }, ...prev].slice(0, 20));
+          setSendLog(prev => [{ name: lead.business_name ?? lead.name, status: "Erro: " + (sd.error ?? "?") }, ...prev].slice(0, 20));
         }
       } catch(e: any) {
-        setSendLog(prev => [{ name: lead.name, status: "Erro: " + e.message }, ...prev].slice(0, 20));
+        setSendLog(prev => [{ name: lead.business_name ?? lead.name, status: "Erro: " + e.message }, ...prev].slice(0, 20));
       }
       const wait = sendConfig.min_interval * 1000 + Math.random() * (sendConfig.max_interval - sendConfig.min_interval) * 1000;
       await new Promise(res => setTimeout(res, wait));
@@ -381,12 +381,10 @@ export default function ProspectPage({ token }: { token: string }) {
             {(allCitiesDb.length ? allCitiesDb : allCities).map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          {tab === "lista" && (
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={inp}>
-              <option value="">Todos os status</option>
-              {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-          )}
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={inp}>
+            <option value="">Todos os status</option>
+            {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
 
           <span style={{ color: C.muted, fontSize: 13 }}>{filtered.length} leads</span>
         </div>
