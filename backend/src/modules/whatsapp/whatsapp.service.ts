@@ -21,8 +21,10 @@ async function getTenantWhatsappConfig(tenantId: string) {
     apiUrl: tenants.whatsappApiUrl,
     apiKey: tenants.whatsappApiKey,
     instance: tenants.whatsappInstance,
+    metaPhoneNumberId: tenants.metaPhoneNumberId,
+    metaAccessToken: tenants.metaAccessToken,
   }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-  return tenant ?? { mode: "manual", apiUrl: null, apiKey: null, instance: null };
+  return tenant ?? { mode: "manual", apiUrl: null, apiKey: null, instance: null, metaPhoneNumberId: null, metaAccessToken: null };
 }
 
 function getCloudConfig() {
@@ -57,6 +59,23 @@ async function evolutionRequest(apiUrl: string, apiKey: string, path: string, me
     }
   }
   throw lastError;
+}
+
+async function metaRequest(phoneNumberId: string, accessToken: string, body: object) {
+  const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  }, EVOLUTION_TIMEOUT_MS);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error("Meta API error: " + res.status + " - " + errorText);
+  }
+  return await res.json();
 }
 
 async function zapiRequest(apiUrl: string, apiKey: string, path: string, method: string, body?: object) {
@@ -200,6 +219,16 @@ export async function deleteInstance(tenantId: string) {
 export async function sendTextMessage(number: string, text: string, tenantId: string) {
   const cfg = await getTenantWhatsappConfig(tenantId);
   if (cfg.mode === "manual") throw new Error("Modo manual - envio automatico desabilitado");
+  if (cfg.mode === "meta") {
+    if (!cfg.metaPhoneNumberId || !cfg.metaAccessToken) throw new Error("Meta API nao configurada para este tenant");
+    return metaRequest(cfg.metaPhoneNumberId, cfg.metaAccessToken, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: number.replace(/\D/g, ""),
+      type: "text",
+      text: { preview_url: false, body: text },
+    });
+  }
   if (cfg.mode === "zapi") {
     if (!cfg.apiUrl || !cfg.apiKey) throw new Error("Z-API nao configurada");
     return zapiRequest(cfg.apiUrl, cfg.apiKey, "/send-text", "POST", { phone: number, message: text });

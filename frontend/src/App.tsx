@@ -2543,6 +2543,9 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [whatsappUrl, setWhatsappUrl]   = useState("");
   const [whatsappKey, setWhatsappKey]   = useState("");
   const [whatsappInstance, setWhatsappInstance] = useState("");
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaWabaId, setMetaWabaId] = useState("");
 
   const base = import.meta.env["VITE_API_URL"];
 
@@ -2606,6 +2609,9 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     try {
       await saFetch("PATCH", "/super-admin/tenants/" + id + "/whatsapp-mode", {
         whatsapp_mode: whatsappMode,
+        meta_phone_number_id: metaPhoneNumberId || null,
+        meta_access_token: metaAccessToken || null,
+        meta_waba_id: metaWabaId || null,
         whatsapp_api_url: whatsappUrl || null,
         whatsapp_api_key: whatsappKey || null,
         whatsapp_instance: whatsappInstance || null,
@@ -2686,7 +2692,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     }},
     { key:"action", label:"Acoes", render: (t: any) => (
       <div style={{ display:"flex", gap:6 }}>
-        <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); }}>Gerenciar</Btn>
+        <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); setMetaPhoneNumberId(t.meta_phone_number_id ?? ""); setMetaAccessToken(t.meta_access_token ?? ""); setMetaWabaId(t.meta_waba_id ?? ""); }}>Gerenciar</Btn>
         {t.isActive
           ? <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); block(t.id); }}>Bloquear</Btn>
           : <Btn small variant="gold"   onClick={(e: any) => { e.stopPropagation(); unblock(t.id); }}>Liberar</Btn>
@@ -2751,7 +2757,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
         {loading
           ? <div style={{ textAlign:"center", padding:60, color:C.textMuted }}>Carregando...</div>
-          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); }} emptyMsg="Nenhum salao encontrado." />
+          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); setMetaPhoneNumberId(t.meta_phone_number_id ?? ""); setMetaAccessToken(t.meta_access_token ?? ""); setMetaWabaId(t.meta_waba_id ?? ""); }} emptyMsg="Nenhum salao encontrado." />
         }
       </div>
 {saTab === "logs" && (
@@ -2855,10 +2861,10 @@ function SuperAdminDashboard({ token, onLogout }: any) {
             <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16, marginBottom:16 }}>
               <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>WhatsApp - Modo de Conexao</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
-                {["manual","local","zapi","cloud"].map((m: string) => (
+                {["manual","local","zapi","cloud","meta"].map((m: string) => (
                   <button key={m} onClick={() => setWhatsappMode(m)}
                     style={{ padding:"10px 8px", borderRadius:10, border:`2px solid ${whatsappMode===m?C.gold:C.border}`, background:whatsappMode===m?`${C.gold}15`:C.card, color:whatsappMode===m?C.gold:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:700, textTransform:"uppercase" }}>
-                    {m === "manual" ? "Manual" : m === "local" ? "Local" : m === "zapi" ? "Z-API" : "Cloud"}
+                    {m === "manual" ? "Manual" : m === "local" ? "Local" : m === "zapi" ? "Z-API" : m === "cloud" ? "Cloud" : "Meta API"}
                   </button>
                 ))}
               </div>
@@ -2869,11 +2875,19 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                   <Inp label="API Key" value={whatsappKey} onChange={setWhatsappKey} placeholder="sua-chave" />
                 </div>
               )}
+              {whatsappMode === "meta" && (
+                <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12 }}>
+                  <Inp label="Phone Number ID" value={metaPhoneNumberId} onChange={setMetaPhoneNumberId} placeholder="Ex: 123456789012345" />
+                  <Inp label="Access Token" value={metaAccessToken} onChange={setMetaAccessToken} placeholder="EAAx..." />
+                  <Inp label="WABA ID (opcional)" value={metaWabaId} onChange={setMetaWabaId} placeholder="Ex: 987654321098765" />
+                </div>
+              )}
               <div style={{ fontSize:11, color:C.textMuted, marginBottom:12 }}>
                 {whatsappMode==="manual" && "Sem automacao WhatsApp."}
                 {whatsappMode==="local" && "Evolution API no VPS do salao."}
                 {whatsappMode==="zapi" && "Z-API SaaS. Informe URL e token."}
                 {whatsappMode==="cloud" && "Evolution API no seu VPS Hostinger."}
+                {whatsappMode==="meta" && "Meta Business API oficial. Requer Phone Number ID e Access Token."}
               </div>
               <Btn variant="gold" full onClick={() => saveWhatsappMode(selected.id)} disabled={saving}>
                 {saving ? "Salvando..." : "Salvar WhatsApp"}

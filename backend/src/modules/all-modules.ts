@@ -1566,14 +1566,19 @@ export async function superAdminModule(fastify: FastifyInstance) {
 
   
   fastify.patch("/super-admin/tenants/:id/whatsapp-mode", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
-    const { whatsapp_mode, whatsapp_api_url, whatsapp_api_key, whatsapp_instance } = req.body as any;
-    const valid = ["manual", "local", "zapi", "cloud"];
+    const { whatsapp_mode, whatsapp_api_url, whatsapp_api_key, whatsapp_instance,
+            meta_phone_number_id, meta_access_token, meta_waba_id, meta_business_id } = req.body as any;
+    const valid = ["manual", "local", "zapi", "cloud", "meta"];
     if (!valid.includes(whatsapp_mode)) return reply.status(400).send({ success: false, error: "Modo invalido" });
     const [tenant] = await db.update(tenants).set({
       whatsappMode: whatsapp_mode,
       whatsappApiUrl: whatsapp_api_url ?? null,
       whatsappApiKey: whatsapp_api_key ?? null,
       whatsappInstance: whatsapp_instance ?? null,
+      metaPhoneNumberId: meta_phone_number_id ?? null,
+      metaAccessToken: meta_access_token ?? null,
+      metaWabaId: meta_waba_id ?? null,
+      metaBusinessId: meta_business_id ?? null,
       updatedAt: new Date(),
     }).where(eq(tenants.id, req.params.id)).returning();
     return reply.send({ success: true, data: tenant });
