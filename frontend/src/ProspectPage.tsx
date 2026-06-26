@@ -421,6 +421,11 @@ export default function ProspectPage({ token }: { token: string }) {
                     <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, color: C.text }}>{lead.business_name}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>📍 {lead.city}{lead.state ? ` — ${lead.state}` : ""}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>📱 {lead.phone}</div>
+                    {lead.last_sent_at && (
+                      <div style={{ fontSize: 10, color: C.muted, marginBottom: 4, opacity: 0.7 }}>
+                        📤 Enviado: {new Date(lead.last_sent_at).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" })}
+                      </div>
+                    )}
                     {lead.rating > 0 && (
                       <div style={{ fontSize: 11, color: C.gold }}>⭐ {lead.rating} ({lead.review_count})</div>
                     )}
@@ -448,7 +453,7 @@ export default function ProspectPage({ token }: { token: string }) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: C.card2 }}>
-                  {["Nome", "Nicho", "Estado", "Cidade", "Telefone", "Avaliação", "Status", "Ações"].map(h => (
+                  {["Nome", "Nicho", "Estado", "Cidade", "Telefone", "Avaliação", "Enviado em", "Status", "Ações"].map(h => (
                     <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>{h}</th>
                   ))}
                 </tr>
@@ -462,6 +467,9 @@ export default function ProspectPage({ token }: { token: string }) {
                     <td style={{ padding: "8px 12px", color: C.muted }}>{lead.city}</td>
                     <td style={{ padding: "8px 12px" }}>{lead.phone}</td>
                     <td style={{ padding: "8px 12px", color: C.gold }}>{lead.rating > 0 ? `${lead.rating} ⭐ (${lead.review_count})` : "-"}</td>
+                    <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>
+                      {lead.last_sent_at ? new Date(lead.last_sent_at).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" }) : "—"}
+                    </td>
                     <td style={{ padding: "8px 12px" }}>
                       {(() => { const s = STATUSES.find(x => x.key === lead.status); return s ? (
                         <span style={{ padding: "2px 8px", borderRadius: 99, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700 }}>{s.label}</span>
@@ -476,7 +484,7 @@ export default function ProspectPage({ token }: { token: string }) {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: C.muted }}>Nenhum lead encontrado.</td></tr>
+                  <tr><td colSpan={9} style={{ textAlign: "center", padding: 32, color: C.muted }}>Nenhum lead encontrado.</td></tr>
                 )}
               </tbody>
             </table>
