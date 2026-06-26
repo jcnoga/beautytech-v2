@@ -58,6 +58,10 @@ export default function ProspectPage({ token }: { token: string }) {
   const [totalLeads, setTotalLeads]     = useState(0);
   const PAGE_SIZE = 100;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [newLead, setNewLead] = useState({ business_name: '', phone: '', city: '', state: '', niche: '', email: '', website: '', address: '' });
+  const [savingLead, setSavingLead] = useState(false);
+
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   async function loadFilters() {
@@ -274,6 +278,25 @@ export default function ProspectPage({ token }: { token: string }) {
     setTimeout(() => { loadLeads(); loadStats(); }, 2000);
   }
 
+  async function addNewLead() {
+    if (!newLead.business_name || !newLead.phone) { alert('Nome e Telefone sao obrigatorios.'); return; }
+    setSavingLead(true);
+    try {
+      const res = await fetch(`${API}/super-admin/prospects/import`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ leads: [newLead] }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        alert(d.data?.inserted === 1 ? 'Lead cadastrado!' : 'Lead ja existe (duplicado).');
+        setShowNewLead(false);
+        setNewLead({ business_name: '', phone: '', city: '', state: '', niche: '', email: '', website: '', address: '' });
+        loadLeads(); loadStats();
+      } else { alert('Erro: ' + (d.error ?? 'desconhecido')); }
+    } catch (err) { alert('Erro: ' + err.message); }
+    finally { setSavingLead(false); }
+  }
+
   async function addTemplate() {
     if (!newTemplate.niche || !newTemplate.name || !newTemplate.message) return alert("Preencha todos os campos");
     await fetch(`${API}/super-admin/prospect-templates`, {
@@ -359,6 +382,10 @@ export default function ProspectPage({ token }: { token: string }) {
             </div>
           )}
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={importXLSX} style={{ display: "none" }} />
+          <button onClick={() => setShowNewLead(true)}
+            style={{ padding: '8px 16px', background: '#22C55E', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+            + Novo Lead
+          </button>
           <button onClick={() => fileRef.current?.click()}
             style={{ padding: "8px 16px", background: C.gold, color: "#000", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
             📥 Importar XLSX
@@ -668,6 +695,73 @@ export default function ProspectPage({ token }: { token: string }) {
               </div>
             )}
             {sendResult && <div style={{ color: C.green, fontSize: 13, textAlign: "center" }}>{sendResult}</div>}
+          </div>
+        </div>
+      )}
+
+      {showNewLead && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#141826', borderRadius: 12, padding: 28, width: 480, maxWidth: '95vw', border: '1px solid #2A3150', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ color: '#E2E8F0', margin: 0 }}>+ Novo Lead</h3>
+              <button onClick={() => setShowNewLead(false)} style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 20, cursor: 'pointer' }}>X</button>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>Nome / Estabelecimento *</label>
+              <input value={newLead.business_name} onChange={e => setNewLead(prev => ({ ...prev, business_name: e.target.value }))}
+                placeholder='Ex: Salao da Maria'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>Telefone (WhatsApp) *</label>
+              <input value={newLead.phone} onChange={e => setNewLead(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder='Ex: 5534999998888'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>Cidade</label>
+              <input value={newLead.city} onChange={e => setNewLead(prev => ({ ...prev, city: e.target.value }))}
+                placeholder='Ex: Uberaba'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>Estado</label>
+              <input value={newLead.state} onChange={e => setNewLead(prev => ({ ...prev, state: e.target.value }))}
+                placeholder='Ex: MG'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>Nicho</label>
+              <input value={newLead.niche} onChange={e => setNewLead(prev => ({ ...prev, niche: e.target.value }))}
+                placeholder='Ex: Salao de Beleza'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>E-mail</label>
+              <input value={newLead.email} onChange={e => setNewLead(prev => ({ ...prev, email: e.target.value }))}
+                placeholder='Ex: contato@salao.com'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>Website</label>
+              <input value={newLead.website} onChange={e => setNewLead(prev => ({ ...prev, website: e.target.value }))}
+                placeholder='Ex: https://salao.com.br'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: '#94A3B8', display: 'block', marginBottom: 4 }}>Endereco</label>
+              <input value={newLead.address} onChange={e => setNewLead(prev => ({ ...prev, address: e.target.value }))}
+                placeholder='Ex: Rua das Flores, 123'
+                style={{ width: '100%', padding: '8px 12px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 6, color: '#E2E8F0', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button onClick={() => setShowNewLead(false)}
+                style={{ flex: 1, padding: '10px', background: '#1C2235', border: '1px solid #2A3150', borderRadius: 8, color: '#94A3B8', cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={addNewLead} disabled={savingLead}
+                style={{ flex: 2, padding: '10px', background: '#22C55E', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                {savingLead ? 'Salvando...' : 'Salvar Lead'}
+              </button>
+            </div>
           </div>
         </div>
       )}
