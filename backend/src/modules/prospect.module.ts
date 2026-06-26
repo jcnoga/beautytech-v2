@@ -340,7 +340,7 @@ export async function prospectModule(fastify: FastifyInstance) {
 
     // Formata mensagem
     const msg = (template.message as string)
-      .replace(/{nome}/g, prospect.name ?? "")
+      .replace(/{nome}/g, prospect.business_name ?? prospect.name ?? "")
       .replace(/{cidade}/g, prospect.city ?? "")
       .replace(/{nicho}/g, prospect.niche ?? "");
 
