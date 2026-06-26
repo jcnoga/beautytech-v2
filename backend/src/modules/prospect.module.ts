@@ -360,10 +360,10 @@ export async function prospectModule(fastify: FastifyInstance) {
       const noWa = JSON.stringify(result).includes('"exists":false');
       const newStatus = noWa ? 'no_whatsapp' : 'error';
       await db.execute(sql.raw(`UPDATE prospect_leads SET status = '${newStatus}', updated_at = NOW() WHERE id = '${leadId}'`));
+      return reply.send({ success: false, error: newStatus, phone, detail: result });
     }
 
-    // Atualiza status do lead
-    await db.execute(sql`UPDATE prospect_leads SET status = 'sent', updated_at = NOW() WHERE id = ${leadId}`);
+    await db.execute(sql.raw(`UPDATE prospect_leads SET status = 'sent', sent_count = sent_count + 1, last_sent_at = NOW(), updated_at = NOW() WHERE id = '${leadId}'`));
 
     return reply.send({ success: true, phone, message: msg });
   });
