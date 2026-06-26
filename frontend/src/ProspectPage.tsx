@@ -117,9 +117,12 @@ export default function ProspectPage({ token }: { token: string }) {
     );
   });
 
+  const [importProgress, setImportProgress] = useState<{done:number;total:number}|null>(null);
+
   async function importXLSX(e: any) {
     const file = e.target.files[0];
     if (!file) return;
+    if (fileRef.current) fileRef.current.value = "";
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data);
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -132,29 +135,52 @@ export default function ProspectPage({ token }: { token: string }) {
       return "";
     };
     const leads = rows.map((r: any) => ({
-      state:           get(r, "Estado", "state", "UF", "uf", "Estado/UF"),
-      city:            get(r, "Cidade", "city", "Municipio", "Município"),
-      niche:           get(r, "Nicho Pesquisado", "Nicho", "niche", "nicho", "Segmento", "Categoria"),
-      business_name:   get(r, "Nome", "business_name", "nome", "Empresa", "Estabelecimento"),
-      phone:           get(r, "Telefone", "phone", "telefone", "Fone", "Celular", "WhatsApp", "Contato"),
-      email:           get(r, "Email", "email", "E-mail"),
-      website:         get(r, "Website", "website", "Site", "URL"),
-      address:         get(r, "Endereço", "address", "endereco", "Logradouro"),
-      type:            get(r, "Tipo", "type", "tipo", "Categoria", "Ramo"),
-      rating:          get(r, "avaliação", "Avaliação", "Nota", "rating") || 0,
-      review_count:    get(r, "Número de Avaliações", "Avaliações", "review_count", "Reviews") || 0,
-      google_maps_link:get(r, "Link Google Maps", "Google Maps", "Maps", "google_maps_link"),
-    }));
+      state:            get(r, "Estado", "state", "UF", "uf", "Estado/UF"),
+      city:             get(r, "Cidade", "city", "Municipio", "Município"),
+      niche:            get(r, "Nicho Pesquisado", "Nicho", "niche", "nicho", "Segmento", "Categoria"),
+      business_name:    get(r, "Nome", "business_name", "nome", "Empresa", "Estabelecimento"),
+      phone:            get(r, "Telefone", "phone", "telefone", "Fone", "Celular", "WhatsApp", "Contato"),
+      email:            get(r, "Email", "email", "E-mail"),
+      website:          get(r, "Website", "website", "Site", "URL"),
+      address:          get(r, "Endereço", "address", "endereco", "Logradouro", "Rua", "Endereço Completo"),
+      type:             get(r, "Tipo", "type", "tipo", "Categoria", "Ramo"),
+      rating:           get(r, "avaliação", "Avaliação", "Nota", "rating") || 0,
+      review_count:     get(r, "Número de Avaliações", "Avaliações", "review_count", "Reviews") || 0,
+      google_maps_link: get(r, "Link Google Maps", "Google Maps", "Maps", "google_maps_link"),
+    })).filter((l: any) => l.phone && l.business_name);
+
+    if (leads.length === 0) {
+      alert("Nenhuma linha válida encontrada. Nome e Telefone são obrigatórios.");
+      return;
+    }
+
+    const BATCH = 50;
+    const total = leads.length;
+    let totalImported = 0;
+    let totalIgnored = 0;
+
     setLoading(true);
-    const r = await fetch(`${API}/super-admin/prospects/import`, {
-      method: "POST", headers,
-      body: JSON.stringify({ leads }),
-    });
-    const d = await r.json();
-    alert(`Importados: ${d.data?.inserted ?? 0} | Ignorados: ${d.data?.skipped ?? 0}`);
-    loadLeads(); loadStats();
+    setImportProgress({ done: 0, total });
+
+    for (let i = 0; i < leads.length; i += BATCH) {
+      const batch = leads.slice(i, i + BATCH);
+      const res = await fetch(`${API}/super-admin/prospects/import`, {
+        method: "POST", headers,
+        body: JSON.stringify({ leads: batch }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        totalImported += d.data?.inserted ?? batch.length;
+        totalIgnored  += d.data?.skipped  ?? 0;
+      }
+      setImportProgress({ done: Math.min(i + BATCH, total), total });
+      await new Promise(r => setTimeout(r, 80));
+    }
+
     setLoading(false);
-    if (fileRef.current) fileRef.current.value = "";
+    setImportProgress(null);
+    alert("Importação concluída!\n\nImportados: " + totalImported + "\nIgnorados (duplicatas): " + totalIgnored + "\nTotal na planilha: " + total);
+    loadLeads(); loadStats();
   }
 
   async function updateNotes(id: string, notes: string) {
@@ -310,6 +336,23 @@ export default function ProspectPage({ token }: { token: string }) {
       {/* FILTROS COMUNS (kanban e lista) */}
       {(tab === "kanban" || tab === "lista") && (
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          {importProgress && importProgress.total > 0 && (
+            <div style={{ margin: "8px 0 4px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4, color: "#666" }}>
+                <span>Importando leads...</span>
+                <span>{importProgress.done} / {importProgress.total}</span>
+              </div>
+              <div style={{ background: "#e5e7eb", borderRadius: 6, height: 8, overflow: "hidden" }}>
+                <div style={{
+                  background: "#8b5cf6",
+                  height: "100%",
+                  borderRadius: 6,
+                  width: importProgress.total > 0 ? (importProgress.done / importProgress.total * 100) + "%" : "0%",
+                  transition: "width 0.3s ease"
+                }} />
+              </div>
+            </div>
+          )}
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={importXLSX} style={{ display: "none" }} />
           <button onClick={() => fileRef.current?.click()}
             style={{ padding: "8px 16px", background: C.gold, color: "#000", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
