@@ -317,6 +317,18 @@ const emailToUse = clientData[0]?.email;
     } catch (waErr: any) {
       console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
     }
+    // Dispara WhatsApp de confirmacao (fire and forget)
+    try {
+      const clientWa = await db.select({ whatsapp: clients.whatsapp, fullName: clients.fullName })
+        .from(clients).where(eq(clients.id, clientId));
+      if (clientWa[0]?.whatsapp) {
+        const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
+        const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR");
+        await sendTextMessage(clientWa[0].whatsapp, "Ola " + (clientWa[0].fullName ?? "") + "! Seu agendamento esta confirmado para " + dateStr + " as " + time + ". Ate la!", tenant.id);
+      }
+    } catch (waErr: any) {
+      console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
+    }
 
     return reply.status(201).send({
       success: true,
