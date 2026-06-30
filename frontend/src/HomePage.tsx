@@ -231,7 +231,7 @@ export default function HomePage() {
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
             <span className="zs-nav-link" onClick={() => scrollTo("faq")}>Dúvidas</span>
             <a className="zs-nav-link" href="/buscar">Sou Cliente</a>
-            <a className="zs-nav-link" href="/login">Entrar</a>
+            <a className="zs-nav-link" href="https://beautytech-v2.vercel.app">Entrar</a>
             <button className="zs-btn-primary" onClick={() => scrollTo("cadastro")}>
               Teste Grátis
             </button>
@@ -254,7 +254,7 @@ export default function HomePage() {
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
             <span className="zs-nav-link" onClick={() => scrollTo("faq")}>Dúvidas</span>
             <a className="zs-nav-link" href="/buscar">Sou Cliente</a>
-            <a className="zs-nav-link" href="/login">Entrar</a>
+            <a className="zs-nav-link" href="https://beautytech-v2.vercel.app">Entrar</a>
           </div>
         )}
       </header>
@@ -481,7 +481,7 @@ export default function HomePage() {
             </button>
             <p style={{ fontSize: 12, color: COLORS.muted, textAlign: "center", margin: 0 }}>
               Já tem conta?{" "}
-              <a href="/login" style={{ color: COLORS.rose }}>Entrar</a>
+              <a href="https://beautytech-v2.vercel.app" style={{ color: COLORS.rose }}>Entrar</a>
             </p>
           </form>
         </div>

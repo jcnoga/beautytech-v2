@@ -1224,8 +1224,11 @@ export async function authModule(fastify: FastifyInstance) {
     const authUserId = authData.id;
 
     try {
+      const trialSettingsRows = await db.execute(sql`SELECT value FROM plan_settings WHERE key = 'trial_days'`);
+      const trialSettingsData = (trialSettingsRows as any).rows ?? (Array.isArray(trialSettingsRows) ? trialSettingsRows : []);
+      const configuredTrialDays = Number(trialSettingsData[0]?.value ?? 15);
       const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 15);
+      trialEndsAt.setDate(trialEndsAt.getDate() + configuredTrialDays);
 
       const categoriesByType = {
         beauty_salon: ["Cabelo", "Unhas", "Estetica", "Maquiagem", "Massagem"],
