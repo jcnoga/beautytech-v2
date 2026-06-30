@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app";
 
 /* ============================================================
    ZenSalon — HomePage (zensalon.com.br)
@@ -31,23 +33,44 @@ const PERIOD_LABELS: Record<PlanPeriod, string> = {
   anual: "Anual · 20% off",
 };
 
-const PRICES: Record<string, { label: string; desc: string; prices: Record<PlanPeriod, string> }> = {
-  basico: {
-    label: "Básico",
-    desc: "1 profissional · ideal para autônomos",
-    prices: { mensal: "39,90", semestral: "35,90", anual: "31,90" },
-  },
-  pro: {
-    label: "Pro",
-    desc: "Até 5 profissionais · salões em crescimento",
-    prices: { mensal: "59,90", semestral: "53,90", anual: "47,90" },
-  },
-  super: {
-    label: "Super",
-    desc: "Até 12 profissionais · operações maiores",
-    prices: { mensal: "99,90", semestral: "89,90", anual: "79,90" },
-  },
+type PlanSettings = {
+  plan_basic_monthly: string;
+  plan_basic_semiannual: string;
+  plan_basic_annual: string;
+  plan_basic_max_users: string;
+  plan_pro_monthly: string;
+  plan_pro_semiannual: string;
+  plan_pro_annual: string;
+  plan_pro_max_users: string;
+  plan_super_monthly: string;
+  plan_super_semiannual: string;
+  plan_super_annual: string;
+  plan_super_max_users: string;
+  free_max_clients: string;
+  free_max_appointments_month: string;
+  trial_days: string;
 };
+
+// Valores padrão usados enquanto a API não responde ou em caso de falha
+// (espelham o que está hoje em plan_settings; o Super Admin é a fonte real)
+const DEFAULT_SETTINGS: PlanSettings = {
+  plan_basic_monthly: "29.90", plan_basic_semiannual: "26.90", plan_basic_annual: "23.90", plan_basic_max_users: "1",
+  plan_pro_monthly: "49.90", plan_pro_semiannual: "44.90", plan_pro_annual: "39.90", plan_pro_max_users: "3",
+  plan_super_monthly: "99.90", plan_super_semiannual: "79.90", plan_super_annual: "69.90", plan_super_max_users: "10",
+  free_max_clients: "30", free_max_appointments_month: "50", trial_days: "30",
+};
+
+function formatBRL(value: string | undefined): string {
+  const n = Number(value);
+  if (!value || Number.isNaN(n)) return "--";
+  return n.toFixed(2).replace(".", ",");
+}
+
+function maxUsersLabel(value: string | undefined): string {
+  const n = Number(value);
+  if (!value || Number.isNaN(n)) return "";
+  return n === 1 ? "1 profissional" : `Até ${n} profissionais`;
+}
 
 const OBJECTIVES = [
   {
@@ -78,12 +101,12 @@ const FEATURES = [
 const STEPS = [
   { n: "1", title: "Faça o Cadastro", desc: "Informe os dados básicos do seu salão, barbearia ou clínica." },
   { n: "2", title: "Configure em Minutos", desc: "Cadastre serviços, profissionais e horários de funcionamento." },
-  { n: "3", title: "Teste Grátis por 14 dias", desc: "Use todas as funcionalidades sem compromisso, sem cartão de crédito." },
+  { n: "3", title: "Teste Grátis", desc: "Use todas as funcionalidades sem compromisso, sem cartão de crédito." },
 ];
 
 const FAQS = [
   { q: "Preciso de CNPJ para usar o ZenSalon?", a: "Não. O ZenSalon pode ser usado tanto por pessoa física quanto jurídica." },
-  { q: "O período gratuito tem alguma limitação?", a: "Não. Durante os 14 dias de teste você tem acesso completo às funcionalidades do plano Básico, sem precisar cadastrar cartão de crédito." },
+  { q: "O período gratuito tem alguma limitação?", a: "Não. Durante o período de teste você tem acesso completo às funcionalidades do plano Básico, sem precisar cadastrar cartão de crédito." },
   { q: "Meus profissionais têm acesso ao sistema?", a: "Sim. Cada profissional pode ter login próprio para ver sua própria agenda, com permissões definidas por você." },
   { q: "Posso mudar de plano depois?", a: "Sim. Você pode alterar seu plano a qualquer momento direto no painel, sem precisar abrir chamado." },
   { q: "Os clientes pagam para usar o agendamento online?", a: "Não. O link de agendamento é gratuito para os seus clientes, em qualquer dispositivo." },
@@ -93,6 +116,59 @@ export default function HomePage() {
   const [period, setPeriod] = useState<PlanPeriod>("mensal");
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [settings, setSettings] = useState<PlanSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/api/v1/public/plan-settings`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json?.success && json.data) {
+          setSettings((prev) => ({ ...prev, ...json.data }));
+        }
+      })
+      .catch(() => {
+        // mantém os valores padrão em caso de falha de rede
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const trialDays = settings.trial_days || DEFAULT_SETTINGS.trial_days;
+
+  const plans = [
+    {
+      key: "basico",
+      label: "Básico",
+      desc: maxUsersLabel(settings.plan_basic_max_users),
+      prices: {
+        mensal: formatBRL(settings.plan_basic_monthly),
+        semestral: formatBRL(settings.plan_basic_semiannual),
+        anual: formatBRL(settings.plan_basic_annual),
+      },
+    },
+    {
+      key: "pro",
+      label: "Pro",
+      desc: maxUsersLabel(settings.plan_pro_max_users),
+      prices: {
+        mensal: formatBRL(settings.plan_pro_monthly),
+        semestral: formatBRL(settings.plan_pro_semiannual),
+        anual: formatBRL(settings.plan_pro_annual),
+      },
+    },
+    {
+      key: "super",
+      label: "Super",
+      desc: maxUsersLabel(settings.plan_super_max_users),
+      prices: {
+        mensal: formatBRL(settings.plan_super_monthly),
+        semestral: formatBRL(settings.plan_super_semiannual),
+        anual: formatBRL(settings.plan_super_annual),
+      },
+    },
+  ];
 
   const scrollTo = (id: string) => {
     setMenuOpen(false);
@@ -201,7 +277,7 @@ export default function HomePage() {
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
           <button className="zs-btn-primary" onClick={() => scrollTo("cadastro")}>
-            Iniciar Teste Grátis de 14 Dias
+            Iniciar Teste Grátis de {trialDays} Dias
           </button>
           <button className="zs-btn-ghost" onClick={() => scrollTo("precos")}>
             Ver Planos e Preços
@@ -315,7 +391,7 @@ export default function HomePage() {
           Planos e Preços
         </h2>
         <p style={{ color: COLORS.muted, textAlign: "center", marginBottom: 32 }}>
-          14 dias grátis em qualquer plano, sem cartão de crédito.
+          {trialDays} dias grátis em qualquer plano, sem cartão de crédito.
         </p>
 
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 40 }}>
@@ -331,13 +407,13 @@ export default function HomePage() {
         </div>
 
         <div className="zs-grid-pricing">
-          {Object.entries(PRICES).map(([key, plan]) => (
+          {plans.map((plan) => (
             <div
-              key={key}
+              key={plan.key}
               className="zs-card"
-              style={key === "pro" ? { borderColor: COLORS.rose, position: "relative" } : undefined}
+              style={plan.key === "pro" ? { borderColor: COLORS.rose, position: "relative" } : undefined}
             >
-              {key === "pro" && (
+              {plan.key === "pro" && (
                 <div style={{
                   position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
                   background: COLORS.rose, color: "#0A0A0A", fontSize: 11, fontWeight: 700,
@@ -358,7 +434,7 @@ export default function HomePage() {
                 <span style={{ fontSize: 13, color: COLORS.muted }}>/mês</span>
               </div>
               <button
-                className={key === "pro" ? "zs-btn-primary" : "zs-btn-ghost"}
+                className={plan.key === "pro" ? "zs-btn-primary" : "zs-btn-ghost"}
                 style={{ width: "100%" }}
                 onClick={() => scrollTo("cadastro")}
               >
@@ -376,7 +452,7 @@ export default function HomePage() {
             Comece seu teste grátis
           </h2>
           <p style={{ color: COLORS.muted, textAlign: "center", marginBottom: 32 }}>
-            14 dias com todas as funcionalidades liberadas, sem compromisso.
+            {trialDays} dias com todas as funcionalidades liberadas, sem compromisso.
           </p>
 
           <form
@@ -414,19 +490,25 @@ export default function HomePage() {
           Perguntas Frequentes
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {FAQS.map((f, i) => (
-            <div key={f.q} className="zs-card" style={{ padding: "18px 24px", cursor: "pointer" }} onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600, fontSize: 15 }}>{f.q}</span>
-                <span style={{ color: COLORS.rose, fontSize: 18 }}>{faqOpen === i ? "−" : "+"}</span>
+          {FAQS.map((f, i) => {
+            const isTrialFaq = f.q === "O período gratuito tem alguma limitação?";
+            const answer = isTrialFaq
+              ? `Não. Durante os ${trialDays} dias de teste você tem acesso completo às funcionalidades do plano Básico, sem precisar cadastrar cartão de crédito.`
+              : f.a;
+            return (
+              <div key={f.q} className="zs-card" style={{ padding: "18px 24px", cursor: "pointer" }} onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>{f.q}</span>
+                  <span style={{ color: COLORS.rose, fontSize: 18 }}>{faqOpen === i ? "−" : "+"}</span>
+                </div>
+                {faqOpen === i && (
+                  <p style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.7, marginTop: 12, marginBottom: 0 }}>
+                    {answer}
+                  </p>
+                )}
               </div>
-              {faqOpen === i && (
-                <p style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.7, marginTop: 12, marginBottom: 0 }}>
-                  {f.a}
-                </p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
