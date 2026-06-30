@@ -204,6 +204,8 @@ export default function HomePage() {
         }
         .zs-period-btn { background: transparent; border: 1px solid ${COLORS.border}; color: ${COLORS.muted}; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
         .zs-period-btn.active { background: ${COLORS.roseDim}; border-color: ${COLORS.rose}; color: ${COLORS.rose}; }
+        @keyframes zsBadgePulse { 0%, 100% { box-shadow: 0 0 24px rgba(201,132,122,0.25); } 50% { box-shadow: 0 0 36px rgba(201,132,122,0.5); } }
+        .zs-hero-badge { animation: zsBadgePulse 3s ease-in-out infinite; }
         input.zs-input { width: 100%; background: ${COLORS.surface}; border: 1px solid ${COLORS.border}; border-radius: 8px; padding: 12px 14px; color: ${COLORS.text}; font-size: 14px; font-family: ${FONT_BODY}; }
         input.zs-input:focus { outline: none; border-color: ${COLORS.rose}; }
         input.zs-input::placeholder { color: ${COLORS.muted}; }
@@ -259,9 +261,10 @@ export default function HomePage() {
 
       {/* ============ HERO ============ */}
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "100px 24px 80px", textAlign: "center" }}>
-        <div style={{
+        <div className="zs-hero-badge" style={{
           display: "inline-block", background: COLORS.roseDim, color: COLORS.rose,
-          fontSize: 13, fontWeight: 600, padding: "6px 16px", borderRadius: 999, marginBottom: 24,
+          fontSize: 15, fontWeight: 700, letterSpacing: 0.3, padding: "10px 22px", borderRadius: 999,
+          marginBottom: 28, border: `1.5px solid ${COLORS.rose}`, boxShadow: "0 0 24px rgba(201,132,122,0.25)",
         }}>
           Sistema de gestão para salões, barbearias e clínicas de estética
         </div>
