@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app";
+const API_URL = import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1";
 
 /* ============================================================
    ZenSalon — HomePage (zensalon.com.br)
@@ -120,7 +120,7 @@ export default function HomePage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${API_URL}/api/v1/public/plan-settings`)
+    fetch(`${API_URL}/public/plan-settings`)
       .then((r) => r.json())
       .then((json) => {
         if (!cancelled && json?.success && json.data) {
