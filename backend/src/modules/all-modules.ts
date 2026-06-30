@@ -1592,6 +1592,23 @@ export async function superAdminModule(fastify: FastifyInstance) {
   });
 
   // PLAN SETTINGS - UPDATE
+    // PUBLIC PLAN SETTINGS (somente precos e limites, sem dados sensiveis)
+  fastify.get("/public/plan-settings", async (_req: any, reply: any) => {
+    const data = await db.execute(sql`SELECT key, value FROM plan_settings`);
+    const rows = (data as any).rows ?? (Array.isArray(data) ? data : []);
+    const allowedKeys = new Set([
+      "plan_basic_monthly", "plan_basic_semiannual", "plan_basic_annual", "plan_basic_max_users",
+      "plan_pro_monthly", "plan_pro_semiannual", "plan_pro_annual", "plan_pro_max_users",
+      "plan_super_monthly", "plan_super_semiannual", "plan_super_annual", "plan_super_max_users",
+      "free_max_clients", "free_max_appointments_month", "trial_days",
+    ]);
+    const settings: Record<string, string> = {};
+    for (const row of rows as any[]) {
+      if (allowedKeys.has(row.key)) settings[row.key] = row.value;
+    }
+    return reply.send({ success: true, data: settings });
+  });
+
   fastify.patch("/super-admin/plan-settings/:key", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
     const { value } = req.body as any;
     const valueStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
