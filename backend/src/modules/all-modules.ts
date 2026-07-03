@@ -1563,7 +1563,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
     const [current] = await db.select().from(tenants).where(eq(tenants.id, req.params.id));
     const base = current.trialEndsAt && new Date(current.trialEndsAt) > new Date() ? new Date(current.trialEndsAt) : new Date();
     base.setDate(base.getDate() + Number(days ?? 15));
-    const [tenant] = await db.update(tenants).set({ trialEndsAt: base, isActive: true, planTier: "trial", updatedAt: new Date() }).where(eq(tenants.id, req.params.id)).returning();
+    const [tenant] = await db.update(tenants).set({ trialEndsAt: base, isActive: true, updatedAt: new Date() }).where(eq(tenants.id, req.params.id)).returning();
     return reply.send({ success: true, data: tenant });
   });
 
