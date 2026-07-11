@@ -16,12 +16,32 @@ const TIPOS = [
   { id: "aesthetics_clinic", label: "Clínica de Estética", icon: "\uD83D\uDC86" },
 ];
 
+const STATUS_INFO: Record<string, { label: string; color: string }> = {
+  pending:     { label: "Pendente",   color: "#F59E0B" },
+  confirmed:   { label: "Confirmado", color: "#3B82F6" },
+  in_progress: { label: "Atendendo",  color: "#8B5CF6" },
+  completed:   { label: "Concluído",  color: "#22C55E" },
+  cancelled:   { label: "Cancelado",  color: "#EF4444" },
+  no_show:     { label: "Faltou",     color: "#EF4444" },
+  rescheduled: { label: "Reagendado", color: "#F59E0B" },
+};
+
 interface Tenant {
   id: string; name: string; slug: string; businessType: string;
   addressCity?: string; addressState?: string; addressStreet?: string;
   phone?: string; whatsapp?: string; logoUrl?: string;
   primaryColor?: string; coverUrl?: string;
   lat?: number; lng?: number; distKm?: number;
+}
+
+interface MyAppointment {
+  id: string;
+  scheduledAt: string;
+  status: string;
+  tenantName: string;
+  tenantSlug: string;
+  professionalName?: string;
+  serviceNames?: string;
 }
 
 function calcDistKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -32,7 +52,16 @@ function calcDistKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  const dateStr = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const timeStr = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return { dateStr, timeStr };
+}
+
 export default function DiscoveryPage() {
+  const [view, setView] = useState<"buscar" | "meus-agendamentos">("buscar");
+
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [tipo, setTipo] = useState("");
@@ -40,6 +69,14 @@ export default function DiscoveryPage() {
   const [cidadeInput, setCidadeInput] = useState("");
   const [userCoords, setUserCoords] = useState<{lat:number,lng:number}|null>(null);
   const [geoStatus, setGeoStatus] = useState<"loading"|"ok"|"denied"|"none">("loading");
+
+  // ---- Meus Agendamentos ----
+  const [myWhatsapp, setMyWhatsapp] = useState("");
+  const [myAppointments, setMyAppointments] = useState<MyAppointment[]>([]);
+  const [myLoading, setMyLoading] = useState(false);
+  const [mySearched, setMySearched] = useState(false);
+  const [myError, setMyError] = useState("");
+  const [filterTenant, setFilterTenant] = useState("");
 
   // Tenta pegar localizacao do usuario
   useEffect(() => {
@@ -98,10 +135,34 @@ export default function DiscoveryPage() {
   }, [tipo, buscaInput, cidadeInput, userCoords]);
 
   useEffect(() => {
-    if (geoStatus !== "loading") buscarTenants();
-  }, [tipo, geoStatus, buscarTenants]);
+    if (geoStatus !== "loading" && view === "buscar") buscarTenants();
+  }, [tipo, geoStatus, buscarTenants, view]);
 
   const handleBuscar = () => buscarTenants();
+
+  const buscarMeusAgendamentos = useCallback(async () => {
+    const digits = myWhatsapp.replace(/\D/g, "");
+    if (digits.length < 8) {
+      setMyError("Digite um WhatsApp valido, com DDD.");
+      return;
+    }
+    setMyError("");
+    setMyLoading(true);
+    setMySearched(true);
+    try {
+      const r = await fetch(`${API}/public/my-appointments?whatsapp=${encodeURIComponent(digits)}`).then(res => res.json());
+      if (r.success) {
+        setMyAppointments(r.data ?? []);
+      } else {
+        setMyError(r.error || "Nao foi possivel buscar seus agendamentos.");
+        setMyAppointments([]);
+      }
+    } catch {
+      setMyError("Erro de conexao. Tente novamente.");
+      setMyAppointments([]);
+    }
+    setMyLoading(false);
+  }, [myWhatsapp]);
 
   const labelTipo = (t: string) => {
     const m: any = { beauty_salon: "Salão de Beleza", barbershop: "Barbearia", aesthetics_clinic: "Clínica de Estética" };
@@ -113,140 +174,265 @@ export default function DiscoveryPage() {
     return m[t] || "\uD83C\uDFE0";
   };
 
+  // Lista de estabelecimentos unicos presentes nos resultados, pro dropdown de filtro
+  const estabelecimentosUnicos = Array.from(
+    new Map(myAppointments.map(a => [a.tenantSlug, a.tenantName])).entries()
+  );
+
+  const agendamentosFiltrados = filterTenant
+    ? myAppointments.filter(a => a.tenantSlug === filterTenant)
+    : myAppointments;
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FB, color: C.text }}>
 
       {/* HEADER */}
-      <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div style={{ fontSize: "1.3rem", fontWeight: 800, color: C.primary }}>ZenSalon</div>
-        <div style={{ fontSize: ".8rem", color: C.textMuted }}>
-          {geoStatus === "ok" && "\uD83D\uDCCD Usando sua localizacao"}
-          {geoStatus === "denied" && "\uD83D\uDCCD Localizacao negada — mostrando todos"}
-          {geoStatus === "none" && "Encontre o melhor para você"}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <button
+            onClick={() => setView("buscar")}
+            style={{
+              background: "transparent", border: "none", cursor: "pointer", fontFamily: FB,
+              fontSize: ".85rem", fontWeight: 700,
+              color: view === "buscar" ? C.primary : C.textMuted,
+              borderBottom: view === "buscar" ? `2px solid ${C.primary}` : "2px solid transparent",
+              paddingBottom: 4,
+            }}
+          >
+            Buscar Salões
+          </button>
+          <button
+            onClick={() => setView("meus-agendamentos")}
+            style={{
+              background: "transparent", border: "none", cursor: "pointer", fontFamily: FB,
+              fontSize: ".85rem", fontWeight: 700,
+              color: view === "meus-agendamentos" ? C.primary : C.textMuted,
+              borderBottom: view === "meus-agendamentos" ? `2px solid ${C.primary}` : "2px solid transparent",
+              paddingBottom: 4,
+            }}
+          >
+            📅 Meus Agendamentos
+          </button>
         </div>
       </div>
 
-      {/* HERO BUSCA */}
-      <div style={{ background: `linear-gradient(135deg, ${C.card} 0%, ${C.primary}18 100%)`, padding: "48px 24px 32px" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", textAlign: "center" }}>
-          <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: 8 }}>
-            Agende com os melhores da sua cidade
-          </h1>
-          <p style={{ color: C.textMuted, fontSize: ".95rem", marginBottom: 28 }}>
-            Salões de Beleza, Barbearias e Clínicas de Estética perto de você
+      {view === "meus-agendamentos" ? (
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px" }}>
+          <h1 style={{ fontSize: "1.6rem", fontWeight: 800, marginBottom: 6 }}>Meus Agendamentos</h1>
+          <p style={{ color: C.textMuted, fontSize: ".9rem", marginBottom: 24 }}>
+            Digite o WhatsApp usado no agendamento para ver seu histórico em qualquer salão, barbearia ou clínica da rede ZenSalon.
           </p>
 
-          <div style={{ display: "flex", gap: 8, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8 }}>
+          <div style={{ display: "flex", gap: 8, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8, marginBottom: 8 }}>
             <input
-              placeholder="Buscar por nome..."
-              value={buscaInput}
-              onChange={e => setBuscaInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleBuscar()}
+              placeholder="Seu WhatsApp com DDD (ex: 34999998888)"
+              value={myWhatsapp}
+              onChange={e => setMyWhatsapp(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && buscarMeusAgendamentos()}
               style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: ".9rem", padding: "8px 12px", fontFamily: FB }}
             />
-            <input
-              placeholder="Cidade"
-              value={cidadeInput}
-              onChange={e => setCidadeInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleBuscar()}
-              style={{ width: 140, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, outline: "none", color: C.text, fontSize: ".9rem", padding: "8px 12px", fontFamily: FB }}
-            />
-            <button onClick={handleBuscar} style={{
+            <button onClick={buscarMeusAgendamentos} disabled={myLoading} style={{
               background: `linear-gradient(135deg, ${C.primary}, #A06050)`,
               border: "none", borderRadius: 8, color: "#fff",
               padding: "10px 20px", cursor: "pointer", fontWeight: 700, fontSize: ".9rem", fontFamily: FB,
+              opacity: myLoading ? 0.7 : 1,
             }}>
-              Buscar
+              {myLoading ? "Buscando..." : "Buscar"}
             </button>
           </div>
-        </div>
-      </div>
+          {myError && <div style={{ color: "#EF4444", fontSize: ".82rem", marginBottom: 16 }}>{myError}</div>}
 
-      {/* FILTROS */}
-      <div style={{ padding: "20px 24px 0", maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {TIPOS.map(t => (
-            <button key={t.id} onClick={() => setTipo(t.id)} style={{
-              padding: "8px 18px", border: `2px solid ${tipo === t.id ? C.primary : C.border}`,
-              borderRadius: 50, background: tipo === t.id ? `${C.primary}20` : C.card2,
-              color: tipo === t.id ? C.primary : C.textMuted,
-              cursor: "pointer", fontWeight: 600, fontSize: ".85rem", fontFamily: FB,
-            }}>
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+          {mySearched && !myLoading && myAppointments.length > 0 && (
+            <div style={{ marginTop: 24, marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: ".78rem", color: C.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                Filtrar por estabelecimento
+              </label>
+              <select
+                value={filterTenant}
+                onChange={e => setFilterTenant(e.target.value)}
+                style={{ width: "100%", background: C.card2, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: ".9rem", padding: "10px 12px", fontFamily: FB }}
+              >
+                <option value="">Todos os estabelecimentos</option>
+                {estabelecimentosUnicos.map(([slug, name]) => (
+                  <option key={slug} value={slug}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-      {/* RESULTADOS */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px" }}>
-        <div style={{ fontSize: ".82rem", color: C.textMuted, marginBottom: 16 }}>
-          {loading ? "Buscando..." : `${tenants.length} estabelecimento${tenants.length !== 1 ? "s" : ""} encontrado${tenants.length !== 1 ? "s" : ""}`}
-          {geoStatus === "ok" && !cidadeInput && !loading && " — ordenados por proximidade"}
-        </div>
+          {myLoading && (
+            <div style={{ textAlign: "center", padding: "60px 0", color: C.textMuted }}>Buscando seus agendamentos...</div>
+          )}
 
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: C.textMuted }}>Carregando...</div>
-        ) : tenants.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: "3rem", marginBottom: 16 }}>{"🔍"}</div>
-            <div style={{ color: C.textMuted }}>Nenhum estabelecimento encontrado.</div>
-            <div style={{ color: C.textMuted, fontSize: ".85rem", marginTop: 8 }}>Tente buscar em outra cidade ou sem filtros.</div>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18 }}>
-            {tenants.map(t => {
-              const cor = t.primaryColor || C.primary;
-              return (
-                <div key={t.id} style={{
-                  background: C.card, border: `1px solid ${C.border}`,
-                  borderRadius: 16, overflow: "hidden", cursor: "pointer", transition: "all .2s",
-                }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = cor; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "translateY(0)"; }}
-                >
-                  <div style={{
-                    height: 90,
-                    background: t.coverUrl ? `url(${t.coverUrl}) center/cover` : `linear-gradient(135deg, ${cor}40, ${cor}15)`,
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.5rem",
-                  }}>
-                    {!t.coverUrl && iconTipo(t.businessType)}
-                  </div>
-                  <div style={{ padding: 16 }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: "1rem", marginBottom: 3 }}>{t.name}</div>
-                        <div style={{ fontSize: ".75rem", color: cor, fontWeight: 600 }}>
-                          {iconTipo(t.businessType)} {labelTipo(t.businessType)}
-                        </div>
-                      </div>
-                      {t.logoUrl && <img src={t.logoUrl} style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover" }} alt={t.name} />}
+          {!myLoading && mySearched && agendamentosFiltrados.length === 0 && !myError && (
+            <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <div style={{ fontSize: "3rem", marginBottom: 16 }}>{"📭"}</div>
+              <div style={{ color: C.textMuted }}>Nenhum agendamento encontrado para esse WhatsApp.</div>
+            </div>
+          )}
+
+          {!myLoading && agendamentosFiltrados.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+              {agendamentosFiltrados.map(a => {
+                const { dateStr, timeStr } = formatDateTime(a.scheduledAt);
+                const status = STATUS_INFO[a.status] ?? { label: a.status, color: C.textMuted };
+                return (
+                  <div key={a.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <div style={{ fontWeight: 700, fontSize: "1rem" }}>{a.tenantName}</div>
+                      <span style={{ fontSize: ".72rem", fontWeight: 700, color: status.color, background: `${status.color}20`, padding: "4px 10px", borderRadius: 20 }}>
+                        {status.label}
+                      </span>
                     </div>
-                    {(t.addressCity || t.addressStreet) && (
-                      <div style={{ fontSize: ".8rem", color: C.textMuted, marginBottom: 8 }}>
-                        📍 {[t.addressStreet, t.addressCity, t.addressState].filter(Boolean).join(", ")}
+                    <div style={{ fontSize: ".85rem", color: C.textMuted, marginBottom: 4 }}>
+                      💇 {a.serviceNames || "Serviço não informado"}
+                    </div>
+                    {a.professionalName && (
+                      <div style={{ fontSize: ".85rem", color: C.textMuted, marginBottom: 4 }}>
+                        👤 {a.professionalName}
                       </div>
                     )}
-                    {t.distKm != null && (
-                      <div style={{ fontSize: ".75rem", color: C.green, marginBottom: 8, fontWeight: 600 }}>
-                        {t.distKm < 1 ? `${Math.round(t.distKm*1000)}m de você` : `${t.distKm.toFixed(1)}km de você`}
-                      </div>
-                    )}
-                    <a href={`/agendar/${t.slug}`} style={{
-                      display: "block", textAlign: "center", padding: "10px 0",
-                      background: `linear-gradient(135deg, ${cor}, ${cor}CC)`,
-                      color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: ".88rem",
-                      textDecoration: "none",
+                    <div style={{ fontSize: ".85rem", color: C.textMuted, marginBottom: 12 }}>
+                      🗓️ {dateStr} às {timeStr}
+                    </div>
+                    <a href={`/agendar/${a.tenantSlug}`} style={{
+                      display: "inline-block", fontSize: ".82rem", fontWeight: 700,
+                      color: C.primary, textDecoration: "none",
                     }}>
-                      Agendar agora
+                      Ver estabelecimento →
                     </a>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* HERO BUSCA */}
+          <div style={{ background: `linear-gradient(135deg, ${C.card} 0%, ${C.primary}18 100%)`, padding: "48px 24px 32px" }}>
+            <div style={{ maxWidth: 680, margin: "0 auto", textAlign: "center" }}>
+              <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: 8 }}>
+                Agende com os melhores da sua cidade
+              </h1>
+              <p style={{ color: C.textMuted, fontSize: ".95rem", marginBottom: 28 }}>
+                Salões de Beleza, Barbearias e Clínicas de Estética perto de você
+              </p>
+
+              <div style={{ display: "flex", gap: 8, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8 }}>
+                <input
+                  placeholder="Buscar por nome..."
+                  value={buscaInput}
+                  onChange={e => setBuscaInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleBuscar()}
+                  style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: ".9rem", padding: "8px 12px", fontFamily: FB }}
+                />
+                <input
+                  placeholder="Cidade"
+                  value={cidadeInput}
+                  onChange={e => setCidadeInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleBuscar()}
+                  style={{ width: 140, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, outline: "none", color: C.text, fontSize: ".9rem", padding: "8px 12px", fontFamily: FB }}
+                />
+                <button onClick={handleBuscar} style={{
+                  background: `linear-gradient(135deg, ${C.primary}, #A06050)`,
+                  border: "none", borderRadius: 8, color: "#fff",
+                  padding: "10px 20px", cursor: "pointer", fontWeight: 700, fontSize: ".9rem", fontFamily: FB,
+                }}>
+                  Buscar
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* FILTROS */}
+          <div style={{ padding: "20px 24px 0", maxWidth: 900, margin: "0 auto" }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {TIPOS.map(t => (
+                <button key={t.id} onClick={() => setTipo(t.id)} style={{
+                  padding: "8px 18px", border: `2px solid ${tipo === t.id ? C.primary : C.border}`,
+                  borderRadius: 50, background: tipo === t.id ? `${C.primary}20` : C.card2,
+                  color: tipo === t.id ? C.primary : C.textMuted,
+                  cursor: "pointer", fontWeight: 600, fontSize: ".85rem", fontFamily: FB,
+                }}>
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* RESULTADOS */}
+          <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px" }}>
+            <div style={{ fontSize: ".82rem", color: C.textMuted, marginBottom: 16 }}>
+              {loading ? "Buscando..." : `${tenants.length} estabelecimento${tenants.length !== 1 ? "s" : ""} encontrado${tenants.length !== 1 ? "s" : ""}`}
+              {geoStatus === "ok" && !cidadeInput && !loading && " — ordenados por proximidade"}
+            </div>
+
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "60px 0", color: C.textMuted }}>Carregando...</div>
+            ) : tenants.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 0" }}>
+                <div style={{ fontSize: "3rem", marginBottom: 16 }}>{"🔍"}</div>
+                <div style={{ color: C.textMuted }}>Nenhum estabelecimento encontrado.</div>
+                <div style={{ color: C.textMuted, fontSize: ".85rem", marginTop: 8 }}>Tente buscar em outra cidade ou sem filtros.</div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18 }}>
+                {tenants.map(t => {
+                  const cor = t.primaryColor || C.primary;
+                  return (
+                    <div key={t.id} style={{
+                      background: C.card, border: `1px solid ${C.border}`,
+                      borderRadius: 16, overflow: "hidden", cursor: "pointer", transition: "all .2s",
+                    }}
+                      onMouseOver={e => { e.currentTarget.style.borderColor = cor; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                      onMouseOut={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "translateY(0)"; }}
+                    >
+                      <div style={{
+                        height: 90,
+                        background: t.coverUrl ? `url(${t.coverUrl}) center/cover` : `linear-gradient(135deg, ${cor}40, ${cor}15)`,
+                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.5rem",
+                      }}>
+                        {!t.coverUrl && iconTipo(t.businessType)}
+                      </div>
+                      <div style={{ padding: 16 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: "1rem", marginBottom: 3 }}>{t.name}</div>
+                            <div style={{ fontSize: ".75rem", color: cor, fontWeight: 600 }}>
+                              {iconTipo(t.businessType)} {labelTipo(t.businessType)}
+                            </div>
+                          </div>
+                          {t.logoUrl && <img src={t.logoUrl} style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover" }} alt={t.name} />}
+                        </div>
+                        {(t.addressCity || t.addressStreet) && (
+                          <div style={{ fontSize: ".8rem", color: C.textMuted, marginBottom: 8 }}>
+                            📍 {[t.addressStreet, t.addressCity, t.addressState].filter(Boolean).join(", ")}
+                          </div>
+                        )}
+                        {t.distKm != null && (
+                          <div style={{ fontSize: ".75rem", color: C.green, marginBottom: 8, fontWeight: 600 }}>
+                            {t.distKm < 1 ? `${Math.round(t.distKm*1000)}m de você` : `${t.distKm.toFixed(1)}km de você`}
+                          </div>
+                        )}
+                        <a href={`/agendar/${t.slug}`} style={{
+                          display: "block", textAlign: "center", padding: "10px 0",
+                          background: `linear-gradient(135deg, ${cor}, ${cor}CC)`,
+                          color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: ".88rem",
+                          textDecoration: "none",
+                        }}>
+                          Agendar agora
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <div style={{ textAlign: "center", padding: "32px 24px", borderTop: `1px solid ${C.border}`, marginTop: 40 }}>
         <div style={{ fontSize: "1rem", fontWeight: 800, color: C.primary, marginBottom: 4 }}>ZenSalon</div>
