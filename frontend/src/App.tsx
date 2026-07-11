@@ -3796,7 +3796,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
               const active = page === m.id;
               const locked = isFree && m.premium;
               return (
-                <button key={m.id} onClick={() => { if (locked) { alert("Este recurso requer plano pago. Acesse Planos para fazer upgrade."); return; } setPage(m.id); }}
+                <button key={m.id} onClick={() => { if (locked) { alert("Este recurso requer plano pago. Acesse Planos para fazer upgrade."); return; } if (m.id === "ajuda") { window.open("/manual/Manual_ZenSalon.pdf", "_blank", "noopener,noreferrer"); return; } setPage(m.id); }}
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 12px", marginBottom:2, borderRadius:10, border:"none", background: active ? `${C.rose}18` : "transparent", color: locked ? C.textMuted : active ? C.rose : C.text, cursor: locked ? "not-allowed" : "pointer", fontSize:14, fontWeight: active ? 600 : 400, textAlign:"left", opacity: locked ? 0.5 : 1, transition:"all 0.15s" }}>
                   {m.label}
                   {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>🔒</span>}
