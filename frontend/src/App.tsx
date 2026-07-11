@@ -10,6 +10,7 @@ import HomePage from './HomePage';
 import DiscoveryPage from './DiscoveryPage';
 import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
 import BookingPage from './BookingPage';
+import VitrinePage from './VitrinePage';
 import SuperAdminLogsModal from './SuperAdminLogsModal';
 import AuditLogsPage from './AuditLogsPage';
 import OnboardingWizard from './OnboardingWizard';
@@ -2539,6 +2540,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [trialDays, setTrialDays] = useState("15");
+  const [defaultTrialDays, setDefaultTrialDays] = useState("15");
   const [whatsappMode, setWhatsappMode] = useState("manual");
   const [whatsappUrl, setWhatsappUrl]   = useState("");
   const [whatsappKey, setWhatsappKey]   = useState("");
@@ -2555,8 +2557,20 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return res.json();
+    const data = await res.json();
+    if (res.ok === false || data?.success === false) {
+      throw new Error(data?.error || `Erro ${res.status} ao chamar ${endpoint}`);
+    }
+    return data;
   };
+
+  useEffect(() => {
+    saFetch("GET", "/super-admin/plan-settings").then((r: any) => {
+      const rows = r?.data ?? [];
+      const found = rows.find((row: any) => row.key === "trial_days");
+      if (found?.value !== undefined) setDefaultTrialDays(String(found.value));
+    }).catch(() => {});
+  }, []);
 
   const loadLogs = async () => {
   setLogsLoading(true);
@@ -2597,10 +2611,16 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
   const extendTrial = async (id: string) => {
     setSaving(true);
-    await saFetch("POST", `/super-admin/tenants/${id}/extend-trial`, { days: Number(trialDays) });
-    setSaving(false);
-    setSelected(null);
-    load();
+    try {
+      await saFetch("POST", `/super-admin/tenants/${id}/extend-trial`, { days: Number(trialDays) });
+      setSelected(null);
+      load();
+    } catch (e: any) {
+      alert("Erro ao estender trial: " + (e?.message ?? "erro desconhecido"));
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
   };
 
 
@@ -2692,7 +2712,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     }},
     { key:"action", label:"Acoes", render: (t: any) => (
       <div style={{ display:"flex", gap:6 }}>
-        <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); setMetaPhoneNumberId(t.meta_phone_number_id ?? ""); setMetaAccessToken(t.meta_access_token ?? ""); setMetaWabaId(t.meta_waba_id ?? ""); }}>Gerenciar</Btn>
+        <Btn small onClick={(e: any) => { e.stopPropagation(); setSelected(t); setTrialDays(defaultTrialDays); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); setMetaPhoneNumberId(t.meta_phone_number_id ?? ""); setMetaAccessToken(t.meta_access_token ?? ""); setMetaWabaId(t.meta_waba_id ?? ""); }}>Gerenciar</Btn>
         {t.isActive
           ? <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); block(t.id); }}>Bloquear</Btn>
           : <Btn small variant="gold"   onClick={(e: any) => { e.stopPropagation(); unblock(t.id); }}>Liberar</Btn>
@@ -2757,7 +2777,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
 
         {loading
           ? <div style={{ textAlign:"center", padding:60, color:C.textMuted }}>Carregando...</div>
-          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays("15"); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); setMetaPhoneNumberId(t.meta_phone_number_id ?? ""); setMetaAccessToken(t.meta_access_token ?? ""); setMetaWabaId(t.meta_waba_id ?? ""); }} emptyMsg="Nenhum salao encontrado." />
+          : <Table cols={cols} rows={tenants} onRow={t => { setSelected(t); setTrialDays(defaultTrialDays); setWhatsappMode(t.whatsapp_mode ?? "manual"); setWhatsappUrl(t.whatsapp_api_url ?? ""); setWhatsappKey(t.whatsapp_api_key ?? ""); setWhatsappInstance(t.whatsapp_instance ?? ""); setMetaPhoneNumberId(t.meta_phone_number_id ?? ""); setMetaAccessToken(t.meta_access_token ?? ""); setMetaWabaId(t.meta_waba_id ?? ""); }} emptyMsg="Nenhum salao encontrado." />
         }
       </div>
 {saTab === "logs" && (
@@ -2849,7 +2869,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
             <div style={{ marginBottom:20 }}>
               <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>? Estender / Definir Trial</div>
               <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
-                <Inp label="Dias de trial" value={trialDays} onChange={setTrialDays} type="number" placeholder="15" />
+                <Inp label="Dias de trial" value={trialDays} onChange={setTrialDays} type="number" placeholder={defaultTrialDays} />
                 <Btn variant="gold" onClick={() => extendTrial(selected.id)} disabled={saving}>
                   {saving ? "Salvando..." : "Aplicar"}
                 </Btn>
@@ -3818,7 +3838,8 @@ export default function App() {
   const isSubdomain = !window.location.hostname.match(/localhost|beautytech-v2\.vercel\.app|zensalon\.com\.br/) && !sessionStorage.getItem('impersonation_token') && !new URLSearchParams(window.location.search).get('impersonating');
   const sobreMatch = window.location.pathname === '/sobre';
   const resetSenhaMatch = window.location.pathname === '/reset-senha';
-  const bookingMatch = window.location.pathname.match(/^\/agendar\/(.+)$/);
+  const bookingMatch = window.location.pathname.match(/^\/agendar\/([^/]+)\/booking$/);
+  const vitrineMatch = window.location.pathname.match(/^\/agendar\/([^/]+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
 
   const [user, setUser] = useState<any>(null);
@@ -3871,9 +3892,10 @@ const logout = async () => {
     ajuda:    () => <HelpPage />,
   };
 
-  const isRootDomain = window.location.hostname.includes('zensalon.com.br') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
+  const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
   if (isSuperAdmin) return <SuperAdminApp />;
   if (bookingMatch) return <BookingPage slug={bookingMatch[1]} />;
+  if (vitrineMatch) return <VitrinePage slug={vitrineMatch[1]} />;
   if (resetSenhaMatch) return <ResetSenhaPage />;
   if (sobreMatch) return <LandingPageSobre />;
   if (discoveryMatch) return <DiscoveryPage />;
