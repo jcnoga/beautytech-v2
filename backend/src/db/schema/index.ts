@@ -729,7 +729,7 @@ export const promotionsRelations = relations(promotions, ({ one }) => ({
 }));
 
 
-export const tenantsRelations = relations(tenants, ({ many }) => ({
+export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   userProfiles: many(userProfiles),
   professionals: many(professionals),
   salonProfile: one(salonProfile),
