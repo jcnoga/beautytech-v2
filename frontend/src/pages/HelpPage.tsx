@@ -126,7 +126,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function HelpPage() {
   const [search, setSearch] = useState('');
-  const [pdfVisible, setPdfVisible] = useState(false);
 
   const PDF_URL = '/manual/Manual_ZenSalon.pdf';
 
@@ -183,64 +182,45 @@ export default function HelpPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPdfVisible(!pdfVisible)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-purple-200 text-purple-700 text-sm font-medium hover:bg-purple-50 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                {pdfVisible ? 'Fechar' : 'Ler online'}
-              </button>
               <a
                 href={PDF_URL}
-                download="Manual_ZenSalon.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors"
               >
-                <Download className="w-4 h-4" />
-                Baixar PDF
+                <FileText className="w-4 h-4" />
+                Abrir Manual (PDF)
               </a>
             </div>
           </div>
 
           {/* Sumário rápido */}
-          {!pdfVisible && (
-            <div className="px-6 py-5">
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">
-                O que você encontra no manual
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  'Primeiro acesso e login',
-                  'Criando agendamentos',
-                  'Cadastro de clientes',
-                  'Serviços e profissionais',
-                  'Financeiro e cobranças',
-                  'WhatsApp e automações',
-                  'Leads e prospecção',
-                  'Relatórios',
-                  'FAQ com 30 perguntas',
-                  'Solução de problemas',
-                  'Boas práticas',
-                  'Treinamento em 30 min',
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                    {item}
-                  </div>
-                ))}
-              </div>
+          <div className="px-6 py-5">
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">
+              O que você encontra no manual
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[
+                'Primeiro acesso e login',
+                'Criando agendamentos',
+                'Cadastro de clientes',
+                'Serviços e profissionais',
+                'Financeiro e cobranças',
+                'WhatsApp e automações',
+                'Leads e prospecção',
+                'Relatórios',
+                'FAQ com 30 perguntas',
+                'Solução de problemas',
+                'Boas práticas',
+                'Treinamento em 30 min',
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2 text-sm text-gray-600">
+                  <CheckCircle className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  {item}
+                </div>
+              ))}
             </div>
-          )}
-
-          {/* Visualizador PDF */}
-          {pdfVisible && (
-            <div className="w-full" style={{ height: '80vh' }}>
-              <iframe
-                src={`${PDF_URL}#toolbar=1&navpanes=0`}
-                className="w-full h-full border-0"
-                title="Manual ZenSalon"
-              />
-            </div>
-          )}
+          </div>
         </section>
 
         {/* ── Dicas Rápidas ── */}
