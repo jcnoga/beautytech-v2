@@ -4,7 +4,6 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 // asaasModule substituido por billingRoutes
-import { teamModule } from "./modules/team.module.js";
 import { sendWelcomeEmail } from "./modules/email.module.js";
 import { prospectModule } from "./modules/prospect.module.js";
 import { billingRoutes } from "./modules/billing/billing.routes.js";
@@ -12,7 +11,6 @@ import { professionalScheduleRoutes } from "./modules/professionals/professional
 import { loadPlansFromDb } from "./modules/billing/billing.service.js";
 
 import { publicBookingModule } from "./modules/appointments/appointments.routes.js";
-import { salonProfilePublicModule } from "./modules/salon-profile/salon-profile.routes.js";
 import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
 import { env } from "./config/env.js";
 import { checkDatabaseHealth, closeDatabaseConnection } from "./db/connection.js";
@@ -95,7 +93,6 @@ async function bootstrap() {
   await server.register(prospectModule,          { prefix });
   await server.register(automationsModule,        { prefix });
   await server.register(whatsappModule,           { prefix });
-  await server.register(teamModule,              { prefix });
   await server.register(clientRecordsModule,      { prefix });
   await server.register(consentFormsModule,       { prefix });
   await server.register(appointmentPhotosModule,  { prefix });
@@ -108,7 +105,6 @@ async function bootstrap() {
   await server.register(professionalScheduleRoutes, { prefix });
   // asaasModule desativado - substituido por billingRoutes
   await server.register(publicBookingModule,      { prefix });
-  await server.register(salonProfilePublicModule, { prefix });
   await server.register(tenantPublicModule,       { prefix });
 
   await loadPlansFromDb();

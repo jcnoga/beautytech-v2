@@ -665,76 +665,9 @@ export const auditLogs = pgTable("audit_logs", {
 // RELATIONS
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ────────────────────────────────────────────────────────────
-// VITRINE DIGITAL PREMIUM — adicionado via merge-drizzle-schema.sh
-// ────────────────────────────────────────────────────────────
-
-export const salonProfile = pgTable("salon_profiles", {
-  id:               uuid("id").primaryKey().defaultRandom(),
-  tenantId:         uuid("tenant_id").notNull().unique().references(() => tenants.id),
-  tagline:          varchar("tagline", { length: 150 }),
-  description:      text("description"),
-  coverImageUrl:    text("cover_image_url"),
-  instagramUrl:     varchar("instagram_url", { length: 300 }),
-  whatsappNumber:   varchar("whatsapp_number", { length: 20 }),
-  addressFull:      varchar("address_full", { length: 300 }),
-  isPremiumEnabled: boolean("is_premium_enabled").notNull().default(false),
-  ...audit,
-}, (t) => ({
-  tenantIdx: index("salon_profiles_tenant_idx").on(t.tenantId),
-}));
-
-export const portfolioImages = pgTable("portfolio_images", {
-  id:             uuid("id").primaryKey().defaultRandom(),
-  tenantId:       uuid("tenant_id").notNull().references(() => tenants.id),
-  professionalId: uuid("professional_id").references(() => professionals.id),
-  imageUrl:       text("image_url").notNull(),
-  caption:        varchar("caption", { length: 200 }),
-  category:       varchar("category", { length: 50 }),
-  sortOrder:      integer("sort_order").notNull().default(0),
-  ...audit,
-}, (t) => ({
-  tenantIdx: index("portfolio_images_tenant_idx").on(t.tenantId),
-  professionalIdx: index("portfolio_images_professional_idx").on(t.professionalId),
-}));
-
-export const promotionDiscountTypeEnum = pgEnum("promotion_discount_type", ["percentage", "fixed_amount"]);
-
-export const promotions = pgTable("promotions", {
-  id:            uuid("id").primaryKey().defaultRandom(),
-  tenantId:      uuid("tenant_id").notNull().references(() => tenants.id),
-  title:         varchar("title", { length: 150 }).notNull(),
-  description:   text("description"),
-  discountType:  promotionDiscountTypeEnum("discount_type").notNull(),
-  discountValue: numeric("discount_value", { precision: 10, scale: 2 }).notNull(),
-  validFrom:     timestamp("valid_from", { withTimezone: true }).notNull(),
-  validUntil:    timestamp("valid_until", { withTimezone: true }).notNull(),
-  isActive:      boolean("is_active").notNull().default(true),
-  ...audit,
-}, (t) => ({
-  tenantIdx: index("promotions_tenant_idx").on(t.tenantId),
-}));
-
-export const salonProfileRelations = relations(salonProfile, ({ one }) => ({
-  tenant: one(tenants, { fields: [salonProfile.tenantId], references: [tenants.id] }),
-}));
-
-export const portfolioImagesRelations = relations(portfolioImages, ({ one }) => ({
-  tenant: one(tenants, { fields: [portfolioImages.tenantId], references: [tenants.id] }),
-  professional: one(professionals, { fields: [portfolioImages.professionalId], references: [professionals.id] }),
-}));
-
-export const promotionsRelations = relations(promotions, ({ one }) => ({
-  tenant: one(tenants, { fields: [promotions.tenantId], references: [tenants.id] }),
-}));
-
-
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   userProfiles: many(userProfiles),
   professionals: many(professionals),
-  salonProfile: one(salonProfile),
-  portfolioImages: many(portfolioImages),
-  promotions: many(promotions),
   clients: many(clients),
   appointments: many(appointments),
   services: many(services),
@@ -752,7 +685,6 @@ export const professionalsRelations = relations(professionals, ({ one, many }) =
   commissions: many(commissions),
   goals: many(goals),
   reviews: many(reviews),
-  portfolioImages: many(portfolioImages),
 }));
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
