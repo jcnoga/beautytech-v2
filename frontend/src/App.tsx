@@ -243,7 +243,7 @@ function RegisterPage({ onBack }: any) {
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
-  const [businessType, setBusinessType] = useState("beauty_salon");
+  const [businessType, setBusinessType] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
@@ -255,6 +255,11 @@ function RegisterPage({ onBack }: any) {
   const [success, setSuccess] = useState("");
   const submit = async () => {
     setLoading(true); setError(""); setSuccess("");
+    if (!businessType) {
+      setError("Selecione o tipo de negocio antes de continuar.");
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${import.meta.env["VITE_API_URL"]}/api/v1/auth/register`, {
         method: "POST",
@@ -276,7 +281,7 @@ function RegisterPage({ onBack }: any) {
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
-            {[{v:"beauty_salon",l:"Salao de Beleza",i:"??"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"??"},{v:"barbershop",l:"Barbearia",i:"??"}].map(opt => (
+            {[{v:"beauty_salon",l:"Salao de Beleza",i:"💇"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"💆"},{v:"barbershop",l:"Barbearia",i:"🪒"}].map(opt => (
               <label key={opt.v} onClick={() => setBusinessType(opt.v)} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", borderRadius:10, border:`1px solid ${businessType === opt.v ? "#c9a96e" : "#2a2a2a"}`, background: businessType === opt.v ? "#c9a96e15" : "transparent", cursor:"pointer", transition:"all 0.2s" }}>
                 <span style={{ fontSize:20 }}>{opt.i}</span>
                 <span style={{ flex:1, fontSize:14, color: businessType === opt.v ? "#c9a96e" : "#a0998f", fontWeight: businessType === opt.v ? 600 : 400 }}>{opt.l}</span>
