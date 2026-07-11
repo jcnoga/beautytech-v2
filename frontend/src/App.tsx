@@ -1568,6 +1568,7 @@ function AgendaPage() {
 // --- PROFISSIONAIS --------------------------------------------
 function ProfessionalsPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [scheduleProf, setScheduleProf] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1634,13 +1635,32 @@ function ProfessionalsPage() {
       if (!payload.monthlyGoal) delete payload.monthlyGoal;
       if (!payload.whatsapp) delete payload.whatsapp;
       if (!payload.email) delete payload.email;
-      const r: any = await professionalsApi.create(payload);
-      setData(d => [...d, r.data]);
+      if (editingId) {
+        const r: any = await professionalsApi.update(editingId, payload);
+        setData(d => d.map((p:any) => p.id === editingId ? r.data : p));
+      } else {
+        const r: any = await professionalsApi.create(payload);
+        setData(d => [...d, r.data]);
+      }
       setShowForm(false);
+      setEditingId(null);
       setForm({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598" });
     } catch(e: any) {
       alert("Erro: " + e.message);
     } finally { setSaving(false); }
+  };
+  const startEdit = (p: any) => {
+    setEditingId(p.id);
+    setForm({
+      fullName: p.fullName ?? "",
+      whatsapp: p.whatsapp ?? "",
+      email: p.email ?? "",
+      commissionPct: p.commissionPct ?? "50",
+      monthlyGoal: p.monthlyGoal ?? "",
+      color: p.color ?? "#E8A598",
+      avatarUrl: p.avatarUrl ?? "",
+    } as any);
+    setShowForm(true);
   };
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400 }}>
@@ -1658,8 +1678,8 @@ function ProfessionalsPage() {
           <div key={i} style={{ background: C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24, position:"relative", overflow:"hidden" }}>
             <div style={{ position:"absolute", top:0, left:0, right:0, height:4, background:`linear-gradient(90deg, ${p.color ?? C.rose}, ${p.color ?? C.rose}80)` }} />
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:18 }}>
-              <div style={{ width:48, height:48, borderRadius:"50%", background:`${p.color ?? C.rose}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, border:`2px solid ${p.color ?? C.rose}40` }}>
-                {(p.fullName ?? "?")[0]}
+              <div style={{ width:48, height:48, borderRadius:"50%", background:`${p.color ?? C.rose}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, border:`2px solid ${p.color ?? C.rose}40`, overflow:"hidden" }}>
+                {p.avatarUrl ? <img src={p.avatarUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : (p.fullName ?? "?")[0]}
               </div>
               <div>
                 <div style={{ fontWeight:700, color: C.text, fontSize:15, fontFamily: FD }}>{p.fullName}</div>
@@ -1681,10 +1701,11 @@ function ProfessionalsPage() {
               <Badge label={p.acceptsOnlineBooking ? "Agendamento Online" : "Presencial"} color={p.acceptsOnlineBooking ? C.sapphire : C.textMuted} />
               <button onClick={() => setScheduleProf(p)} style={{ padding:"8px 12px", borderRadius:8, border:"1px solid rgba(201,169,110,0.4)", background:"rgba(201,169,110,0.1)", color:"#c9a96e", fontSize:12, cursor:"pointer", fontWeight:600, marginTop:12, width:"100%" }}>Servicos e Agenda</button>
             </div>
+            <button onClick={() => startEdit(p)} style={{ padding:"8px 12px", borderRadius:8, border:"1px solid rgba(255,255,255,0.15)", background:"transparent", color: C.textMuted, fontSize:12, cursor:"pointer", fontWeight:600, marginTop:8, width:"100%" }}>✏️ Editar</button>
           </div>
         ))}
 </div>
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Profissional">
+      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingId(null); }} title={editingId ? "Editar Profissional" : "Nova Profissional"}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
           <div style={{ width:64, height:64, borderRadius:"50%", overflow:"hidden", background:"#2a2a2a", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:"1px solid rgba(201,169,110,0.3)" }}>
             {form.avatarUrl ? <img src={form.avatarUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:24 }}>👩</span>}
@@ -1716,8 +1737,8 @@ function ProfessionalsPage() {
           <Inp label="Cor" value={form.color} onChange={f("color")} type="color" />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
-          <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Cadastrar"}</Btn>
+          <Btn variant="secondary" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Btn>
+          <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : (editingId ? "Salvar Alteracoes" : "Cadastrar")}</Btn>
         </div>
       </Modal>
     </div>
