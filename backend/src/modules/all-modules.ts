@@ -1281,6 +1281,36 @@ export async function authModule(fastify: FastifyInstance) {
         }))
       );
 
+      // Popula o tenant com dados demo automaticamente (profissionais, servicos,
+      // horarios, clientes e agendamentos de exemplo), chamando a rota /demo/seed
+      // internamente via fastify.inject (sem requisicao de rede real).
+      try {
+        const jwt = await import("jsonwebtoken");
+        const demoToken = jwt.default.sign(
+          {
+            userId: authUserId,
+            tenantId: tenant.id,
+            email,
+            role: "owner",
+            impersonation: true,
+            impersonatedBy: "system:auto-demo-on-register",
+            tenantName: tenant.name,
+          },
+          process.env.SUPER_ADMIN_SECRET!,
+          { expiresIn: "10m" }
+        );
+        const seedRes = await fastify.inject({
+          method: "POST",
+          url: "/api/v1/demo/seed",
+          headers: { authorization: `Bearer ${demoToken}` },
+        });
+        if (seedRes.statusCode >= 400) {
+          console.error("[REGISTER] Seed demo retornou erro:", seedRes.statusCode, seedRes.body);
+        }
+      } catch (seedErr: any) {
+        console.error("[REGISTER] Falha ao gerar dados demo automaticos:", seedErr?.message);
+      }
+
       // Geocoding automatico via Nominatim (fire and forget)
       if (addressCity || addressStreet) {
         (async () => {
