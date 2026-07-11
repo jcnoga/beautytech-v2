@@ -248,7 +248,7 @@ export default function BookingPage({ slug }: { slug: string }) {
                     display:"flex",alignItems:"center",justifyContent:"center",
                     fontSize:18,flexShrink:0,overflow:"hidden",
                   }}>
-                    {p.avatarUrl ? <img src={p.photoUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} /> : "👩"}
+                    {p.avatarUrl ? <img src={p.avatarUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} /> : "👩"}
                   </div>
                   <div>
                     <div style={{fontWeight:700,fontSize:15}}>{p.fullName}</div>

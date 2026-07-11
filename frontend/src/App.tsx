@@ -1567,6 +1567,7 @@ function AgendaPage() {
 
 // --- PROFISSIONAIS --------------------------------------------
 function ProfessionalsPage() {
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [scheduleProf, setScheduleProf] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1684,6 +1685,28 @@ function ProfessionalsPage() {
         ))}
 </div>
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Profissional">
+        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
+          <div style={{ width:64, height:64, borderRadius:"50%", overflow:"hidden", background:"#2a2a2a", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:"1px solid rgba(201,169,110,0.3)" }}>
+            {form.avatarUrl ? <img src={form.avatarUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:24 }}>👩</span>}
+          </div>
+          <label style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(201,169,110,0.4)", background:"rgba(201,169,110,0.1)", color:"#c9a96e", fontSize:12, cursor:"pointer", fontWeight:600 }}>
+            {uploadingAvatar ? "Enviando..." : "📁 Escolher Foto"}
+            <input type="file" accept="image/*" style={{ display:"none" }} onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setUploadingAvatar(true);
+              try {
+                const ext = file.name.split(".").pop();
+                const fileName = `professional-${Date.now()}.${ext}`;
+                const { error } = await supabase.storage.from("tenant-assets").upload(fileName, file, { upsert:true, contentType:file.type });
+                if (error) throw error;
+                const { data: { publicUrl } } = supabase.storage.from("tenant-assets").getPublicUrl(fileName);
+                setForm((p:any) => ({ ...p, avatarUrl: publicUrl }));
+              } catch (err) { console.error(err); }
+              finally { setUploadingAvatar(false); }
+            }} />
+          </label>
+        </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
           <Inp label="Nome completo *" value={form.fullName} onChange={f("fullName")} placeholder="Marina Santos" required grid="1/-1" />
           <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
