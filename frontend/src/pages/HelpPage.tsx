@@ -178,7 +178,7 @@ export default function HelpPage() {
               </div>
               <div>
                 <h2 className="font-semibold text-gray-800">Manual Completo do Usuário</h2>
-                <p className="text-xs text-gray-500">18 capítulos · PDF · Versão 1.0</p>
+                <p className="text-xs text-gray-500">13 capítulos · PDF · Versão 1.0</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -201,18 +201,18 @@ export default function HelpPage() {
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
-                'Primeiro acesso e login',
-                'Criando agendamentos',
-                'Cadastro de clientes',
-                'Serviços e profissionais',
-                'Financeiro e cobranças',
-                'WhatsApp e automações',
-                'Leads e prospecção',
-                'Relatórios',
-                'FAQ com 30 perguntas',
-                'Solução de problemas',
-                'Boas práticas',
-                'Treinamento em 30 min',
+                'Primeiros passos e cadastro',
+                'Como o sistema é organizado',
+                'Dashboard e indicadores',
+                'Agenda e agendamentos',
+                'Vitrine digital online',
+                'Clientes, LGPD e anamnese',
+                'Profissionais e comissões',
+                'Serviços e pacotes',
+                'Financeiro e relatórios',
+                'CRM, fidelidade e WhatsApp',
+                'Planos e configurações',
+                'FAQ com perguntas frequentes',
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-gray-600">
                   <CheckCircle className="w-4 h-4 text-purple-400 flex-shrink-0" />
