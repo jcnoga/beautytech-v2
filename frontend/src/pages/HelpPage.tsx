@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   BookOpen,
-  Download,
   ChevronDown,
   ChevronUp,
   MessageCircle,
