@@ -232,9 +232,9 @@ export default function HomePage() {
             <span className="zs-nav-link" onClick={() => scrollTo("faq")}>Dúvidas</span>
             <a className="zs-nav-link" href="/buscar">Sou Cliente</a>
             <a className="zs-nav-link" href="https://beautytech-v2.vercel.app">Entrar</a>
-            <button className="zs-btn-primary" onClick={() => scrollTo("cadastro")}>
+            <a className="zs-btn-primary" href="https://beautytech-v2.vercel.app" style={{ textDecoration: "none" }}>
               Teste Grátis
-            </button>
+            </a>
           </nav>
 
           <button
@@ -279,9 +279,9 @@ export default function HomePage() {
           Organize seu salão e nunca mais perca um horário.
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          <button className="zs-btn-primary" onClick={() => scrollTo("cadastro")}>
+          <a className="zs-btn-primary" href="https://beautytech-v2.vercel.app" style={{ textDecoration: "none" }}>
             Iniciar Teste Grátis de {trialDays} Dias
-          </button>
+          </a>
           <button className="zs-btn-ghost" onClick={() => scrollTo("precos")}>
             Ver Planos e Preços
           </button>
