@@ -867,9 +867,9 @@ export async function dashboardModule(fastify: FastifyInstance) {
 
       db.execute(sql`
         SELECT coalesce(sum(
-          EXTRACT(EPOCH FROM (ps.end_time - ps.start_time)) / 60
+          EXTRACT(EPOCH FROM (ps.end_time::time - ps.start_time::time)) / 60
           - CASE WHEN ps.break_start IS NOT NULL AND ps.break_end IS NOT NULL
-                 THEN EXTRACT(EPOCH FROM (ps.break_end - ps.break_start)) / 60
+                 THEN EXTRACT(EPOCH FROM (ps.break_end::time - ps.break_start::time)) / 60
                  ELSE 0 END
         ) * dias.qtd, 0) as minutos_disponiveis
         FROM professional_schedules ps
