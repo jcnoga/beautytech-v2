@@ -261,6 +261,14 @@ export default function HomePage() {
 
       {/* ============ HERO ============ */}
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "100px 24px 80px", textAlign: "center" }}>
+        <a href="/buscar" style={{
+          display: "inline-block", textDecoration: "none",
+          background: COLORS.sage, color: "#0A0A0A",
+          fontSize: 14, fontWeight: 700, padding: "10px 22px", borderRadius: 999,
+          marginBottom: 20,
+        }}>
+          Agendar Horário →
+        </a>
         <div className="zs-hero-badge" style={{
           display: "inline-block", background: COLORS.roseDim, color: COLORS.rose,
           fontSize: 15, fontWeight: 700, letterSpacing: 0.3, padding: "10px 22px", borderRadius: 999,
@@ -270,9 +278,9 @@ export default function HomePage() {
         </div>
         <h1 className="zs-hero-title" style={{
           fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 52, lineHeight: 1.1,
-          letterSpacing: -1, margin: "0 0 20px",
+          letterSpacing: -1, margin: "0 auto 20px", maxWidth: 780,
         }}>
-          Uma nova experiência<br />para uma antiga tradição.
+          Salão, barbearia e estética com gestão de sucesso.
         </h1>
         <p style={{ color: COLORS.muted, fontSize: 18, maxWidth: 560, margin: "0 auto 36px", lineHeight: 1.6 }}>
           Agenda, financeiro, clientes e WhatsApp em um só lugar.

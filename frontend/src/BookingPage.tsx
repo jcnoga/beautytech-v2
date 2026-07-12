@@ -53,8 +53,10 @@ export default function BookingPage({ slug }: { slug: string }) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [step, setStep] = useState<Step>("data");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   const [selService, setSelService] = useState<Service | null>(null);
   const [selPro, setSelPro] = useState<Professional | null>(null);
@@ -65,7 +67,8 @@ export default function BookingPage({ slug }: { slug: string }) {
 
   const accent = tenant?.primaryColor || C.primary;
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true); setLoadError(false);
     Promise.all([
       fetch(`${API}/public/tenants/${slug}`).then(r=>r.json()),
       fetch(`${API}/public/tenants/${slug}/services`).then(r=>r.json()),
@@ -75,13 +78,17 @@ export default function BookingPage({ slug }: { slug: string }) {
       if (s.success) setServices(s.data);
       if (p.success) setProfessionals(p.data);
       setLoading(false);
-    }).catch(() => { setError("Erro ao carregar dados."); setLoading(false); });
-  }, [slug]);
+    }).catch(() => { setLoadError(true); setLoading(false); });
+  };
+
+  useEffect(loadData, [slug]);
 
   useEffect(() => {
     if (!selDate || !selPro || !selService) return;
+    setSlotsLoading(true);
     fetch(`${API}/public/tenants/${slug}/availability?date=${selDate}&professionalId=${selPro.id}&serviceId=${selService.id}`)
-      .then(r=>r.json()).then(d => { if (d.success) setSlots(d.data); });
+      .then(r=>r.json()).then(d => { if (d.success) setSlots(d.data); })
+      .finally(() => setSlotsLoading(false));
   }, [selDate, selPro, selService]);
 
   const handleAgendar = async () => {
@@ -123,6 +130,15 @@ export default function BookingPage({ slug }: { slug: string }) {
   if (loading) return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{color:C.textMuted,fontFamily:FB}}>Carregando...</div>
+    </div>
+  );
+
+  if (loadError) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:24,textAlign:"center" as const}}>
+      <div style={{color:C.error,fontFamily:FB,marginBottom:16,fontSize:14}}>Não foi possível carregar os dados. Verifique sua conexão.</div>
+      <button onClick={loadData} style={{padding:"13px 28px",border:"none",borderRadius:50,cursor:"pointer",background:C.primary,color:"#fff",fontWeight:700,fontSize:14,fontFamily:FB}}>
+        Tentar novamente
+      </button>
     </div>
   );
 
@@ -183,7 +199,7 @@ export default function BookingPage({ slug }: { slug: string }) {
                 onChange={e=>setSelDate(e.target.value)}
                 style={{
                   width:"100%",background:C.card2,border:`1px solid ${C.border}`,
-                  borderRadius:10,color:C.text,padding:"12px 14px",fontSize:14,
+                  borderRadius:10,color:C.text,padding:"12px 14px",fontSize:16,
                   outline:"none",fontFamily:FB,
                 }}
               />
@@ -275,7 +291,14 @@ export default function BookingPage({ slug }: { slug: string }) {
                   allSlots.push(String(h).padStart(2,"0")+":00");
                   allSlots.push(String(h).padStart(2,"0")+":30");
                 }
-                if (slots.length === 0) return <p style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhum horario disponivel.</p>;
+                if (slotsLoading) return (
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                    {Array.from({length:8}).map((_,i) => (
+                      <div key={i} style={{height:44,borderRadius:10,background:C.card2,opacity:.6}} />
+                    ))}
+                  </div>
+                );
+                if (slots.length === 0) return <p style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhum horário disponível para esta data.</p>;
                 return (
                   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
                     {allSlots.map(s => {
@@ -323,19 +346,20 @@ export default function BookingPage({ slug }: { slug: string }) {
 
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {[
-                {id:"name",label:"Nome completo *",type:"text",ph:"Seu nome"},
-                {id:"email",label:"E-mail *",type:"email",ph:"seu@email.com"},
-                {id:"phone",label:"Telefone *",type:"tel",ph:"(00) 00000-0000"},
-                {id:"notes",label:"Observações",type:"text",ph:"Alguma preferência ou observação?"},
+                {id:"name",label:"Nome completo *",type:"text",ph:"Seu nome",ac:"name"},
+                {id:"email",label:"E-mail *",type:"email",ph:"seu@email.com",ac:"email"},
+                {id:"phone",label:"Telefone *",type:"tel",ph:"(00) 00000-0000",ac:"tel"},
+                {id:"notes",label:"Observações",type:"text",ph:"Alguma preferência ou observação?",ac:"off"},
               ].map(f => (
                 <div key={f.id}>
                   <label style={{fontSize:12,color:C.textMuted,fontWeight:600,display:"block",marginBottom:4}}>{f.label}</label>
-                  <input type={f.type} placeholder={f.ph}
+                  <input type={f.type} placeholder={f.ph} autoComplete={f.ac}
+                    inputMode={f.type==="tel" ? "tel" : f.type==="email" ? "email" : "text"}
                     value={(form as any)[f.id]}
                     onChange={e=>setForm(prev=>({...prev,[f.id]:e.target.value}))}
                     style={{
                       width:"100%",background:C.card2,border:`1px solid ${C.border}`,
-                      borderRadius:10,color:C.text,padding:"12px 14px",fontSize:14,
+                      borderRadius:10,color:C.text,padding:"12px 14px",fontSize:16,
                       outline:"none",fontFamily:FB,
                     }}
                     onFocus={e=>e.target.style.borderColor=accent}
@@ -391,8 +415,15 @@ export default function BookingPage({ slug }: { slug: string }) {
             <p style={{color:C.textMuted,fontSize:12,marginBottom:24}}>
               Você receberá um lembrete por e-mail 24h antes do horário.
             </p>
+            {tenant.whatsapp && (
+              <a href={`https://wa.me/55${tenant.whatsapp.replace(/\D/g,"")}?text=${encodeURIComponent(`Olá! Acabei de agendar ${selService?.name} para ${new Date(selDate+"T12:00:00").toLocaleDateString("pt-BR")} às ${selTime}.`)}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{...btnStyle(true),width:"100%",display:"block",textAlign:"center" as const,textDecoration:"none",boxSizing:"border-box" as const,marginBottom:10}}>
+                Confirmar no WhatsApp
+              </a>
+            )}
             <button onClick={() => window.location.reload()}
-              style={{...btnStyle(true),width:"100%",justifyContent:"center"}}>
+              style={{...btnStyle(true),width:"100%",justifyContent:"center",background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted}}>
               Voltar ao início
             </button>
           </div>
