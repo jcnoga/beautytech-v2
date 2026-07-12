@@ -9,6 +9,7 @@ import TenantSettingsPage from './TenantSettingsPage';
 import HomePage from './HomePage';
 import DiscoveryPage from './DiscoveryPage';
 import { WhatsAppPage as WhatsAppPageComponent } from "./WhatsAppPage";
+import PerformancePage from "./PerformancePage";
 import BookingPage from './BookingPage';
 import VitrinePage from './VitrinePage';
 import SuperAdminLogsModal from './SuperAdminLogsModal';
@@ -3762,7 +3763,8 @@ const MENU_GROUPS = [
   {
     group: "VISAO GERAL",
     items: [
-      { id:"dashboard", label:"Dashboard", icon:"*", premium:false },
+      { id:"dashboard",   label:"Dashboard",   icon:"*", premium:false },
+      { id:"performance", label:"Desempenho",  icon:"*", premium:false },
     ]
   },
   {
@@ -3923,6 +3925,7 @@ const logout = async () => {
   const PAGES: any = {
     dashboard:     DashboardPage,
     agenda:        AgendaPage,
+    performance:   () => <PerformancePage C={C} />,
     clients:       ClientsPage,
     professionals: ProfessionalsPage,
     services:      ServicesPage,
