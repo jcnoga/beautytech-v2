@@ -1753,6 +1753,7 @@ function ServicesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
   const [showCatForm, setShowCatForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
@@ -1801,9 +1802,15 @@ function ServicesPage() {
     try {
       const payload: any = { ...form };
       if (!payload.categoryId) delete payload.categoryId;
-      const r: any = await servicesApi.create(payload);
-      setData(d => [...d, r.data]);
+      if (editingService) {
+        const r: any = await servicesApi.update(editingService.id, payload);
+        setData(d => d.map((x: any) => x.id === editingService.id ? r.data : x));
+      } else {
+        const r: any = await servicesApi.create(payload);
+        setData(d => [...d, r.data]);
+      }
       setShowForm(false);
+      setEditingService(null);
       setForm({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true });
     } catch(e: any) { alert("Erro: " + e.message); }
     finally { setSaving(false); }
@@ -1835,6 +1842,11 @@ function ServicesPage() {
       setData(d => d.map((x: any) => x.id === s.id ? r.data : x));
     } catch(e) { console.error(e); }
   };
+  const openEdit = (s: any) => {
+    setEditingService(s);
+    setForm({ name: s.name ?? "", categoryId: s.categoryId ?? "", durationMinutes: String(s.durationMinutes ?? "60"), price: String(s.price ?? ""), isActive: s.isActive ?? true });
+    setShowForm(true);
+  };
 
   const cols = [
     { key:"name", label:"Servico", render: (s: any) => <span style={{ fontWeight:600, color: C.text }}>{s.name}</span> },
@@ -1844,9 +1856,14 @@ function ServicesPage() {
     { key:"isOnlineBookable", label:"Online", render: (s: any) => <Badge label={s.isOnlineBookable ? "Sim" : "Nao"} color={s.isOnlineBookable ? C.sage : C.textMuted} /> },
     { key:"isActive", label:"Status", render: (s: any) => <Badge label={s.isActive ? "Ativo" : "Inativo"} color={s.isActive ? C.sage : C.textMuted} /> },
     { key:"action", label:"", render: (s: any) => (
-      <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(s); }}>
-        {s.isActive ? "Desativar" : "Ativar"}
-      </Btn>
+      <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(s); }}>
+          Editar
+        </Btn>
+        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); toggleActive(s); }}>
+          {s.isActive ? "Desativar" : "Ativar"}
+        </Btn>
+      </div>
     )},
   ];
 
@@ -1888,9 +1905,9 @@ function ServicesPage() {
       </div>
       {activeTab === "services" && (
         <div>
-          <PageHeader title="Servicos" sub={`${data.filter((s: any) => s.isActive).length} servicos ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Novo Servico</Btn>} />
+          <PageHeader title="Servicos" sub={`${data.filter((s: any) => s.isActive).length} servicos ativos`} action={<Btn onClick={() => { setEditingService(null); setForm({ name:"", categoryId:"", durationMinutes:"60", price:"", isActive:true }); setShowForm(true); }}>+ Novo Servico</Btn>} />
           <Table cols={cols} rows={data} />
-          <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Servico">
+          <Modal open={showForm} onClose={() => { setShowForm(false); setEditingService(null); }} title={editingService ? "Editar Servico" : "Novo Servico"}>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
               <Inp label="Nome" value={form.name} onChange={f("name")} required placeholder="Coloracao Completa" grid="1/-1" />
               <Sel label="Categoria" value={form.categoryId} onChange={f("categoryId")} options={categories.map((c: any) => ({ value:c.id, label:c.name }))} />
@@ -1898,8 +1915,8 @@ function ServicesPage() {
               <Inp label="Preco (R$)" value={form.price} onChange={f("price")} type="number" placeholder="180.00" grid="1/-1" />
             </div>
             <div style={{ display:"flex", gap:10, marginTop:8 }}>
-              <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-              <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : "Criar Servico"}</Btn>
+              <Btn variant="secondary" onClick={() => { setShowForm(false); setEditingService(null); }}>Cancelar</Btn>
+              <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : (editingService ? "Salvar Alteracoes" : "Criar Servico")}</Btn>
             </div>
           </Modal>
         </div>
