@@ -1755,6 +1755,7 @@ function ServicesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [showCatForm, setShowCatForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
   const [activeTab, setActiveTab] = useState("services");
@@ -1820,12 +1821,23 @@ function ServicesPage() {
     if (!catForm.name.trim()) return alert("Informe o nome da categoria");
     setSavingCat(true);
     try {
-      const r: any = await servicesApi.createCategory(catForm);
-      setCategories(c => [...c, r.data]);
+      if (editingCategory) {
+        const r: any = await servicesApi.updateCategory(editingCategory.id, catForm);
+        setCategories(c => c.map((x: any) => x.id === editingCategory.id ? r.data : x));
+      } else {
+        const r: any = await servicesApi.createCategory(catForm);
+        setCategories(c => [...c, r.data]);
+      }
       setShowCatForm(false);
+      setEditingCategory(null);
       setCatForm({ name:"", description:"" });
     } catch(e: any) { alert("Erro: " + e.message); }
     finally { setSavingCat(false); }
+  };
+  const openEditCat = (c: any) => {
+    setEditingCategory(c);
+    setCatForm({ name: c.name ?? "", description: c.description ?? "" });
+    setShowCatForm(true);
   };
 
   const deleteCat = async (id: string) => {
@@ -1871,9 +1883,14 @@ function ServicesPage() {
     { key:"name", label:"Categoria", render: (c: any) => <span style={{ fontWeight:600, color: C.text }}>{c.name}</span> },
     { key:"description", label:"Descricao", render: (c: any) => <span style={{ color: C.textSec }}>{c.description ?? "-"}</span> },
     { key:"action", label:"", render: (c: any) => (
-      <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); deleteCat(c.id); }}>
-        Remover
-      </Btn>
+      <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEditCat(c); }}>
+          Editar
+        </Btn>
+        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); deleteCat(c.id); }}>
+          Remover
+        </Btn>
+      </div>
     )},
   ];
 
@@ -1966,16 +1983,16 @@ function ServicesPage() {
       )}
       {activeTab === "categories" && (
         <div>
-          <PageHeader title="Categorias" sub={`${categories.length} categorias cadastradas`} action={<Btn onClick={() => setShowCatForm(true)}>+ Nova Categoria</Btn>} />
+          <PageHeader title="Categorias" sub={`${categories.length} categorias cadastradas`} action={<Btn onClick={() => { setEditingCategory(null); setCatForm({ name:"", description:"" }); setShowCatForm(true); }}>+ Nova Categoria</Btn>} />
           <Table cols={catCols} rows={categories} />
-          <Modal open={showCatForm} onClose={() => setShowCatForm(false)} title="Nova Categoria">
+          <Modal open={showCatForm} onClose={() => { setShowCatForm(false); setEditingCategory(null); }} title={editingCategory ? "Editar Categoria" : "Nova Categoria"}>
             <div style={{ display:"grid", gap:4 }}>
               <Inp label="Nome" value={catForm.name} onChange={fc("name")} required placeholder="Ex: Cabelo, Unhas, Estetica" />
               <Inp label="Descricao (opcional)" value={catForm.description} onChange={fc("description")} placeholder="Descricao da categoria" />
             </div>
             <div style={{ display:"flex", gap:10, marginTop:8 }}>
-              <Btn variant="secondary" onClick={() => setShowCatForm(false)}>Cancelar</Btn>
-              <Btn onClick={saveCat} disabled={savingCat}>{savingCat ? "Salvando..." : "Criar Categoria"}</Btn>
+              <Btn variant="secondary" onClick={() => { setShowCatForm(false); setEditingCategory(null); }}>Cancelar</Btn>
+              <Btn onClick={saveCat} disabled={savingCat}>{savingCat ? "Salvando..." : (editingCategory ? "Salvar Alteracoes" : "Criar Categoria")}</Btn>
             </div>
           </Modal>
         </div>

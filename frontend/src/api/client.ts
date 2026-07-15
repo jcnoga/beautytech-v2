@@ -98,6 +98,7 @@ export const servicesApi = {
   create:         (dto: any) => api.post<any>("/services", dto),
   update:         (id: string, dto: any) => api.patch<any>(`/services/${id}`, dto),
   createCategory: (dto: any) => api.post<any>("/service-categories", dto),
+  updateCategory: (id: string, dto: any) => api.patch<any>(`/service-categories/${id}`, dto),
   deleteCategory: (id: string) => api.delete(`/service-categories/${id}`),
 };
 

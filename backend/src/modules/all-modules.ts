@@ -475,6 +475,16 @@ export async function servicesModule(fastify: FastifyInstance) {
     return reply.status(201).send({ success: true, data });
   });
 
+  fastify.patch("/service-categories/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const { id } = req.params as any;
+    const { name, description } = req.body as any;
+    const [data] = await db.update(serviceCategories)
+      .set({ name: name ?? undefined, description: description ?? undefined })
+      .where(and(eq(serviceCategories.id, id), eq(serviceCategories.tenantId, tenantId)))
+      .returning();
+    return reply.send({ success: true, data });
+  });
   fastify.delete("/service-categories/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const { id } = req.params as any;
