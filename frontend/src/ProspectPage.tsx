@@ -40,7 +40,7 @@ export default function ProspectPage({ token }: { token: string }) {
   const [search, setSearch]             = useState("");
   const [sending, setSending]           = useState(false);
   const [sendResult, setSendResult]     = useState("");
-  const [sendConfig, setSendConfig]     = useState({ niche: "", daily_limit: 50, min_interval: 30, max_interval: 60 });
+  const [sendConfig, setSendConfig]     = useState({ niche: "", daily_limit: 5, min_interval: 300, max_interval: 600 });
   const [waStatus, setWaStatus]         = useState<"disconnected"|"connecting"|"connected">("disconnected");
   const [waQr, setWaQr]                 = useState("");
   const [waPhone, setWaPhone]           = useState("");
