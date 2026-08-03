@@ -1,0 +1,9 @@
+node_modules
+frontend/node_modules
+backend/node_modules
+dist
+.env
+.env.local
+*.log
+*.py
+*.bak

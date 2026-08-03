@@ -1,0 +1,15 @@
+import io
+
+path = "backend/src/modules/prospect.module.ts"
+with io.open(path, 'r', encoding='utf-8') as f:
+    content = f.read()
+
+old = "    const tmplResult = await db.execute(sql`SELECT * FROM prospect_templates WHERE (niche ILIKE ${prospect.niche} OR niche ILIKE 'all' OR niche IS NULL OR niche = '') AND is_active = true ORDER BY RANDOM() LIMIT 1`) as any;"
+
+new = "    const tmplResult = await db.execute(sql`SELECT * FROM prospect_templates WHERE is_active = true ORDER BY RANDOM() LIMIT 1`) as any;"
+
+content = content.replace(old, new)
+print("[OK]" if "is_active = true ORDER BY RANDOM" in content else "[ERRO]")
+with io.open(path, 'w', encoding='utf-8') as f:
+    f.write(content)
+print("Salvo!")

@@ -230,9 +230,11 @@ export default function HomePage() {
             <span className="zs-nav-link" onClick={() => scrollTo("funcionalidades")}>Funcionalidades</span>
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
             <span className="zs-nav-link" onClick={() => scrollTo("faq")}>Dúvidas</span>
-            <a className="zs-nav-link" href="/buscar">Sou Cliente</a>  
-            <a className="zs-nav-link" href="/app">Entrar</a>
-            <a className="zs-btn-primary" href="/app?tela=cadastro" style={{ textDecoration: "none" }}>Teste Grátis</a>
+            <a className="zs-nav-link" href="/buscar">Sou Cliente</a>
+            <a className="zs-nav-link" href="https://beautytech-v2.vercel.app">Entrar</a>
+            <button className="zs-btn-primary" onClick={() => scrollTo("cadastro")}>
+              Teste Grátis
+            </button>
           </nav>
 
           <button
@@ -252,22 +254,13 @@ export default function HomePage() {
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
             <span className="zs-nav-link" onClick={() => scrollTo("faq")}>Dúvidas</span>
             <a className="zs-nav-link" href="/buscar">Sou Cliente</a>
-            <a className="zs-nav-link" href="/app">Entrar</a>
-            <a className="zs-btn-primary" href="/app?tela=cadastro" style={{ textDecoration: "none", textAlign: "center", padding: "10px 0", borderRadius: 8 }}>Teste Grátis</a>
+            <a className="zs-nav-link" href="https://beautytech-v2.vercel.app">Entrar</a>
           </div>
         )}
       </header>
 
       {/* ============ HERO ============ */}
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "100px 24px 80px", textAlign: "center" }}>
-        <a href="/buscar" style={{
-          display: "inline-block", textDecoration: "none",
-          background: COLORS.sage, color: "#0A0A0A",
-          fontSize: 14, fontWeight: 700, padding: "10px 22px", borderRadius: 999,
-          marginBottom: 20,
-        }}>
-          Agendar Horário →
-        </a>
         <div className="zs-hero-badge" style={{
           display: "inline-block", background: COLORS.roseDim, color: COLORS.rose,
           fontSize: 15, fontWeight: 700, letterSpacing: 0.3, padding: "10px 22px", borderRadius: 999,
@@ -277,18 +270,18 @@ export default function HomePage() {
         </div>
         <h1 className="zs-hero-title" style={{
           fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 52, lineHeight: 1.1,
-          letterSpacing: -1, margin: "0 auto 20px", maxWidth: 780,
+          letterSpacing: -1, margin: "0 0 20px",
         }}>
-          Salão, barbearia e estética com gestão de sucesso.
+          Uma nova experiência<br />para uma antiga tradição.
         </h1>
         <p style={{ color: COLORS.muted, fontSize: 18, maxWidth: 560, margin: "0 auto 36px", lineHeight: 1.6 }}>
           Agenda, financeiro, clientes e WhatsApp em um só lugar.
           Organize seu salão e nunca mais perca um horário.
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          <a className="zs-btn-primary" href="/?tela=cadastro" style={{ textDecoration: "none" }}>
+          <button className="zs-btn-primary" onClick={() => scrollTo("cadastro")}>
             Iniciar Teste Grátis de {trialDays} Dias
-          </a>
+          </button>
           <button className="zs-btn-ghost" onClick={() => scrollTo("precos")}>
             Ver Planos e Preços
           </button>
@@ -465,22 +458,32 @@ export default function HomePage() {
             {trialDays} dias com todas as funcionalidades liberadas, sem compromisso.
           </p>
 
-         <div
+          <form
             className="zs-card"
             style={{ display: "flex", flexDirection: "column", gap: 14 }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              // TODO(Nogueira): conectar este submit ao endpoint real de cadastro
+              // de tenant já existente no backend (mesmo fluxo usado no
+              // formulário de registro atual). Confirme a rota antes de publicar.
+              window.location.href = "/cadastro";
+            }}
           >
-            
-              <a href="/app?tela=cadastro"
-              className="zs-btn-primary"
-              style={{ textAlign: "center", textDecoration: "none", padding: "13px 0", borderRadius: 10, display: "block" }}
-            >
+            <input className="zs-input" placeholder="Nome do salão / barbearia / clínica" required />
+            <div className="zs-form-grid">
+              <input className="zs-input" placeholder="Seu nome" required />
+              <input className="zs-input" placeholder="WhatsApp" required />
+            </div>
+            <input className="zs-input" type="email" placeholder="E-mail para acesso" required />
+            <input className="zs-input" type="password" placeholder="Senha (mínimo 6 caracteres)" minLength={6} required />
+            <button type="submit" className="zs-btn-primary" style={{ marginTop: 8 }}>
               Criar Conta Grátis
-            </a>
+            </button>
             <p style={{ fontSize: 12, color: COLORS.muted, textAlign: "center", margin: 0 }}>
               Já tem conta?{" "}
-              <a href="/app" style={{ color: COLORS.rose }}>Entrar</a>
+              <a href="https://beautytech-v2.vercel.app" style={{ color: COLORS.rose }}>Entrar</a>
             </p>
-          </div>
+          </form>
         </div>
       </section>
 

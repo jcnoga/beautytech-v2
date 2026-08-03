@@ -1,0 +1,483 @@
+{
+  "name": "💜 ZenSalon — Atendimento WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zensalon-atendimento",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3c736f15-95b2-4704-bf17-9eb97ac7e98a",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        48
+      ],
+      "webhookId": "zensalon-atendimento"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst bodyStr = JSON.stringify(body).substring(0,300);\nconst d = body.data || body;\nconst key = d.key || body.key || {};\nconst fromMe = key.fromMe === true;\nconst remoteJid = key.remoteJid || '';\nconst isLid = remoteJid.includes('@lid');\nconst clientId = remoteJid.replace(/@\\S+/,'');\n\nfunction normalizarTelefone(valor) {\n  if (!valor) return '';\n  let t = valor.replace(/\\D/g, '');\n  t = t.replace(/^(55){2,}/, '55');\n  t = t.replace(/^1(55)/, '$1');\n  t = t.replace(/^(55)1(5\\d{8,9})$/, '$1$2');\n  if (!t.startsWith('55')) t = '55' + t;\n  if (t.length === 14 && t[4] === '9') {\n    t = t.substring(0,4) + t.substring(5);\n  }\n  return t;\n}\n\nlet telefone;\nif (isLid) {\n  const sender = body.sender \n    || d.sender \n    || body.data?.sender\n    || $input.first().json.sender\n    || $input.first().json.body?.sender\n    || '';\n  if (sender) {\n    telefone = normalizarTelefone(sender.replace(/@\\S+/,''));\n  } else {\n    telefone = 'lid_' + clientId;\n  }\n} else {\n  telefone = normalizarTelefone(clientId);\n}\n\nconst pushName = d.pushName || body.pushName || '';\nconst msg = d.message || body.message || {};\nconst mensagem = (msg.conversation || msg.extendedTextMessage?.text || '').trim();\n\nif (fromMe || !clientId || !mensagem) {\n  return [{ json: { ignorar: true, debug_telefone: telefone, debug_mensagem: mensagem, debug_body: bodyStr }}];\n}\n\nconst hora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }) * 1;\nconst saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';\n\nreturn [{ json: { \n  telefone, \n  clientId,\n  isLid,\n  mensagem, \n  mensagem_lower: mensagem.toLowerCase(), \n  pushName, \n  saudacao, \n  hora, \n  ignorar: false,\n  debug_sender: body.sender || d.sender || $input.first().json.sender || 'NAO_ENCONTRADO'\n}}];"
+      },
+      "id": "b4afc264-2026-4062-8a93-b9055e0deb71",
+      "name": "Normalizar Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.ignorar }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "424ee087-6c29-4a53-a171-8a062dcd451d",
+      "name": "Ignorar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ignored\" }",
+        "options": {}
+      },
+      "id": "ed94a77c-9822-4542-a7ef-246595021aff",
+      "name": "Responder Ignorado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT estado, dados, nome, msg_index \nFROM sessoes_salao \nWHERE telefone = '{{ $('Normalizar Payload').first().json.telefone }}' \nLIMIT 1;",
+        "options": {}
+      },
+      "id": "f370e726-037b-4efe-a030-9d32ff2ce7cf",
+      "name": "Buscar Sessão",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        16,
+        144
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "O1oa4IJlwtMZrGgt",
+          "name": "Postgres account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sessao = $input.first().json[0] || {};\nconst estado = sessao.estado || 'novo';\nconst nome_salvo = sessao.nome || '';\nconst dados = typeof sessao.dados === 'string' ? JSON.parse(sessao.dados || '{}') : (sessao.dados || {});\n\nconst ctx = $('Normalizar Payload').first().json;\nconst pushName = ctx.pushName || '';\n\n// Nome: prioridade 1 = banco, 2 = pushName do WhatsApp\nconst nome = nome_salvo || pushName || '';\nconst primeiro_nome = nome.split(' ')[0] || '';\n\nreturn [{\n  json: {\n    ...ctx,\n    estado,\n    dados,\n    nome,\n    primeiro_nome,\n    cliente_novo: estado === 'novo' || !estado\n  }\n}];"
+      },
+      "id": "7650a4aa-b23f-4b2e-89f5-617a4d06b07d",
+      "name": "Extrair Contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.estado }}",
+              "value2": "novo"
+            }
+          ]
+        }
+      },
+      "id": "f4fc17fe-e0c9-4660-b4d2-beb9e6f9e00f",
+      "name": "Cliente Novo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        464,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const telefone = $('Normalizar Payload').first().json.telefone;\nconst sessao = $('Buscar Sessão').first().json;\nconst nome = sessao?.nome || 'cliente';\nconst msgIndex = parseInt(sessao?.msg_index) || 1;\n\nconst hora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }) * 1;\nlet saudacao;\nif (hora >= 5 && hora < 12) saudacao = `Bom dia, ${nome}!`;\nelse if (hora >= 12 && hora < 18) saudacao = `Boa tarde, ${nome}!`;\nelse saudacao = `Boa noite, ${nome}!`;\n\nconst APP = 'https://zensalon.com.br';\n\nconst mensagens = {\n  1: `${saudacao} 😊 Que bom ter você aqui!\\n\\nAgendar com a gente é super fácil e rápido. Acesse nosso app e escolha o melhor horário pra você.\\n\\n👉 ${APP}\\n\\nTe esperamos! 💜`,\n  2: `${saudacao} ✨ Ficamos felizes com sua mensagem!\\n\\nVocê pode agendar seu horário diretamente pelo nosso aplicativo, sem filas e sem espera.\\n\\n📱 ${APP}\\n\\nEstamos prontos pra te receber!`,\n  3: `${saudacao} 🌸 Obrigada por entrar em contato!\\n\\nPara marcar seu atendimento é só acessar o link abaixo. Rápido, fácil e sem complicação.\\n\\n🔗 ${APP}\\n\\nNos vemos em breve! 😉`,\n  4: `${saudacao} 💅 Que bom falar com você!\\n\\nSeu próximo momento de beleza está a um clique. Acesse o app e escolha data, horário e serviço.\\n\\n👉 ${APP}\\n\\nVamos te esperar com tudo preparado! 🌟`,\n  5: `${saudacao} 😍 Tudo certo por aqui!\\n\\nPara garantir seu horário sem risco de perder a vaga, acesse nosso aplicativo agora.\\n\\n📲 ${APP}\\n\\nAgenda rápida, atendimento com carinho! 💜`,\n  6: `${saudacao} 🎉 Que alegria receber sua mensagem!\\n\\nFaça seu agendamento online pelo nosso app — disponível 24 horas, você agenda na hora que quiser.\\n\\n🔗 ${APP}\\n\\nTe esperamos com um sorriso! 😊`,\n  7: `${saudacao} 🌺 Obrigada por nos procurar!\\n\\nNo nosso aplicativo você escolhe o serviço, a profissional e o horário ideal pra você — tudo de forma prática.\\n\\n👉 ${APP}\\n\\nAté logo! 💜`,\n  8: `${saudacao} ⭐ É um prazer falar com você!\\n\\nNão perca seu horário preferido. Acesse agora o app e garanta sua vaga em poucos segundos.\\n\\n📱 ${APP}\\n\\nQualquer dúvida, é só chamar! 😉`,\n  9: `${saudacao} 🌷 Olá, que bom ter você aqui!\\n\\nAgende seu atendimento de forma rápida e sem complicação pelo nosso aplicativo.\\n\\n🔗 ${APP}\\n\\nNos vemos em breve, tá? 💜`\n};\n\nconst proximoIndex = (msgIndex % 9) + 1;\n\nreturn [{\n  json: {\n    telefone,\n    mensagem_resposta: mensagens[msgIndex],\n    proximo_msg_index: proximoIndex\n  }\n}];"
+      },
+      "id": "a693eb95-93a6-4f9f-8a79-4766bd70ce4d",
+      "name": "Montar Boas-vindas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { mensagem_lower, telefone, primeiro_nome, saudacao } = $input.first().json;\n\n// Palavras que indicam intenção de agendar\nconst palavras_agendamento = [\n  'agendar', 'marcar', 'horário', 'horario', 'quero marcar', 'quero agendar',\n  'escova', 'corte', 'unha', 'coloração', 'coloracao', 'progressiva',\n  'sobrancelha', 'manicure', 'pedicure', 'depilação', 'depilacao',\n  'hidratação', 'hidratacao', 'botox', 'mechas', 'luzes', 'pintura',\n  'quero', 'preciso', 'gostaria', 'pode', 'consegue', 'tem vaga',\n  'tem horario', 'tem horário', 'disponivel', 'disponível'\n];\n\n// Palavras que indicam problema/dificuldade\nconst palavras_problema = [\n  'não consigo', 'nao consigo', 'não abre', 'nao abre', 'erro',\n  'problema', 'ajuda', 'não funciona', 'nao funciona', 'não sei',\n  'nao sei', 'como', 'como faz', 'como faço'\n];\n\n// Palavras de endereço\nconst palavras_endereco = [\n  'endereço', 'endereco', 'onde fica', 'localização', 'localizacao',\n  'onde vocês', 'onde voces', 'como chegar', 'mapa'\n];\n\n// Palavras de horário de funcionamento\nconst palavras_horario = [\n  'horário de funcionamento', 'horario de funcionamento',\n  'que horas', 'abre', 'fecha', 'funcionamento', 'aberto'\n];\n\n// Palavras de preço\nconst palavras_preco = [\n  'preço', 'preco', 'valor', 'quanto custa', 'quanto fica',\n  'tabela', 'valores', 'preços', 'precos'\n];\n\n// Palavras de telefone\nconst palavras_telefone = ['telefone', 'numero', 'número', 'ligar', 'contato'];\n\n// Palavras de agradecimento\nconst palavras_agradecimento = ['obrigada', 'obrigado', 'valeu', 'brigada', 'brigado', 'thanks', 'grata'];\n\nconst quer_agendar = palavras_agendamento.some(p => mensagem_lower.includes(p));\nconst tem_problema = palavras_problema.some(p => mensagem_lower.includes(p));\nconst quer_endereco = palavras_endereco.some(p => mensagem_lower.includes(p));\nconst quer_horario = palavras_horario.some(p => mensagem_lower.includes(p));\nconst quer_preco = palavras_preco.some(p => mensagem_lower.includes(p));\nconst quer_telefone = palavras_telefone.some(p => mensagem_lower.includes(p));\nconst agradecendo = palavras_agradecimento.some(p => mensagem_lower.includes(p));\n\nlet mensagem_resposta = '';\nlet novo_estado = 'aguardando_resposta';\n\nif (agradecendo) {\n  mensagem_resposta = 'Eu que agradeço. 😊\\n\\nEsperamos você em breve. 💜';\n  novo_estado = 'encerrado';\n} else if (quer_endereco) {\n  mensagem_resposta = 'Estamos localizados em:\\n\\n📍 {{ENDERECO}}\\n\\nMapa: {{LINK_MAPA}}';\n} else if (quer_horario) {\n  mensagem_resposta = 'Funcionamos:\\n\\nSegunda a Sexta\\n08:00 às 18:00\\n\\nSábado\\n08:00 às 14:00';\n} else if (quer_telefone) {\n  mensagem_resposta = '📞 {{TELEFONE}}';\n} else if (quer_preco) {\n  mensagem_resposta = 'Os valores podem variar conforme o profissional e o serviço.\\n\\nTodos os preços atualizados estão disponíveis no aplicativo.\\n\\n👉 https://zensalon.com.br';\n} else if (tem_problema) {\n  mensagem_resposta = 'Sem problemas 😊\\n\\nPosso ajudar. O que aconteceu?\\n\\n1️⃣ Não consigo abrir\\n2️⃣ Não sei usar\\n3️⃣ Outro problema';\n  novo_estado = 'aguardando_problema';\n} else if (quer_agendar) {\n  const variacoes = [\n    'Perfeito 😊',\n    'Ótimo 😊',\n    'Claro 😊'\n  ];\n  const v = variacoes[Math.floor(Math.random() * variacoes.length)];\n  mensagem_resposta = `${v}\\n\\nVocê pode escolher o profissional, serviço, dia e horário diretamente pelo aplicativo.\\n\\n👉 https://zensalon.com.br`;\n  novo_estado = 'link_enviado';\n} else {\n  // Qualquer outra mensagem\n  mensagem_resposta = 'Posso ajudar você a realizar seu agendamento.\\n\\n👉 https://zensalon.com.br';\n}\n\nreturn [{ json: { telefone, mensagem_resposta, novo_estado } }];"
+      },
+      "id": "8856baed-d3f3-4951-83a7-400205e70aef",
+      "name": "Interpretar Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.novo_estado }}",
+              "operation": "equals",
+              "value2": "aguardando_problema"
+            }
+          ]
+        }
+      },
+      "id": "80a9d499-4474-4ecc-9e0a-bb5f35b51d27",
+      "name": "Tem Problema?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        912,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sessoes_salao (telefone, estado, nome, dados, msg_index, updated_at)\nVALUES (\n  '{{ $json.telefone }}',\n  '{{ $json.novo_estado }}',\n  '{{ $('Extrair Contexto').first().json.nome }}',\n  '{}',\n  {{ $('Montar Boas-vindas').first().json.proximo_msg_index || 1 }},\n  NOW()\n)\nON CONFLICT (telefone) DO UPDATE\nSET estado = '{{ $json.novo_estado }}',\n    nome = COALESCE(NULLIF('{{ $('Extrair Contexto').first().json.nome }}', ''), sessoes_salao.nome),\n    msg_index = {{ $('Montar Boas-vindas').first().json.proximo_msg_index || 1 }},\n    updated_at = NOW();",
+        "options": {}
+      },
+      "id": "5fc2403d-cb57-4845-b740-326b36ee790b",
+      "name": "Salvar Sessão",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "O1oa4IJlwtMZrGgt",
+          "name": "Postgres account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO atendimentos_humanos (telefone, nome, motivo, created_at)\nVALUES (\n  '{{ $('Extrair Contexto').first().json.telefone }}',\n  '{{ $('Extrair Contexto').first().json.nome }}',\n  'Dificuldade no aplicativo',\n  NOW()\n);",
+        "options": {}
+      },
+      "id": "2468010c-7bf2-4e38-aed7-9a590d35ca73",
+      "name": "Registrar Atendimento Humano",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "O1oa4IJlwtMZrGgt",
+          "name": "Postgres account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution.zensalon.com.br/message/sendText/zensalon",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "zensalon123"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Normalizar Payload').first().json.telefone }}\",\n  \"text\": \"{{ ($('Montar Boas-vindas').first().json.mensagem_resposta || $('Interpretar Resposta').first().json.mensagem_resposta).replace(/\\n/g, ' ').replace(/\"/g, '') }}\"\n}",
+        "options": {}
+      },
+      "id": "d645aaa7-6518-41c8-8347-b3578bc0e3f1",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1584,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\" }",
+        "options": {}
+      },
+      "id": "a404322d-78f1-4c64-8692-2c07282b20e9",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sessoes_salao \nSET msg_index = $1\nWHERE telefone = $2",
+        "options": {
+          "queryReplacement": "={{ $('Montar Boas-vindas').first().json.proximo_msg_index }}, {{ $('Normalizar Payload').first().json.telefone }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        912,
+        0
+      ],
+      "id": "b05e07aa-8055-41b3-952b-9114d14ae989",
+      "name": "Atualizar msg_index",
+      "credentials": {
+        "postgres": {
+          "id": "O1oa4IJlwtMZrGgt",
+          "name": "Postgres account 3"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        0
+      ],
+      "id": "15d3ece7-9a76-4262-84c3-a01ae1203d86",
+      "name": "Wait",
+      "webhookId": "9c8c5239-8227-4077-9a5e-691ce95dce58"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Payload": {
+      "main": [
+        [
+          {
+            "node": "Ignorar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ignorar?": {
+      "main": [
+        [
+          {
+            "node": "Responder Ignorado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar Sessão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Sessão": {
+      "main": [
+        [
+          {
+            "node": "Extrair Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Contexto": {
+      "main": [
+        [
+          {
+            "node": "Cliente Novo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente Novo?": {
+      "main": [
+        [
+          {
+            "node": "Montar Boas-vindas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Interpretar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Boas-vindas": {
+      "main": [
+        [
+          {
+            "node": "Atualizar msg_index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpretar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Tem Problema?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem Problema?": {
+      "main": [
+        [
+          {
+            "node": "Registrar Atendimento Humano",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salvar Sessão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Atendimento Humano": {
+      "main": [
+        [
+          {
+            "node": "Salvar Sessão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Sessão": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar msg_index": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Salvar Sessão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "161872e4-3f9f-42a8-9ae3-b443239e8a03",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8f1fb8e147fe552a524e5492a79cb19124ad260a75a50e4c8ad740394f08b8af"
+  },
+  "nodeGroups": [],
+  "id": "1LYjImFcmQ0Y04Lm",
+  "tags": []
+}

@@ -3926,13 +3926,12 @@ export default function App() {
   const bookingMatch = window.location.pathname.match(/^\/agendar\/([^/]+)\/booking$/);
   const vitrineMatch = window.location.pathname.match(/^\/agendar\/([^/]+)$/);
   const discoveryMatch = window.location.pathname === '/buscar';
-
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [page, setPage] = useState('dashboard');
   const [currentPage, setCurrentPage] = useState<string>('app');
   const [loading, setLoading] = useState(true);
-
+  const appMatch = window.location.pathname === '/app';
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -3985,8 +3984,8 @@ const logout = async () => {
   if (resetSenhaMatch) return <ResetSenhaPage />;
   if (sobreMatch) return <LandingPageSobre />;
   if (discoveryMatch) return <DiscoveryPage />;
-  if (isRootDomain) return <HomePage />;
-  if (isSubdomain) return <LandingPage />;
+  if (isRootDomain && !appMatch) return <HomePage />;
+  if (isRootDomain && !appMatch) return <HomePage />;
   const PageComponent = PAGES[page] ?? PAGES["dashboard"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
