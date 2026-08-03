@@ -3025,33 +3025,6 @@ function SuperAdminDashboard({ token, onLogout }: any) {
             </div>
             </div>
 
-            {/* Dominio Proprio */}
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop:16, marginBottom:16 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>Dominio Proprio</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12 }}>
-                <Inp label="Dominio (ex: www.salaodocliente.com.br)" value={customDomain} onChange={setCustomDomain} placeholder="www.salaodocliente.com.br" />
-              </div>
-              {domainError && (
-                <div style={{ fontSize:12, color:"#e5484d", marginBottom:12 }}>{domainError}</div>
-              )}
-              {domainResult && (
-                <div style={{ background: `${C.gold}10`, border: `1px solid ${C.gold}30`, borderRadius:10, padding:12, marginBottom:12, fontSize:12, color:C.text }}>
-                  <div style={{ fontWeight:700, marginBottom:6 }}>
-                    {domainResult.dnsInstructions && domainResult.dnsInstructions.misconfigured ? "Aguardando configuracao de DNS" : "Dominio verificado"}
-                  </div>
-                  <div>Peca pro cliente criar este registro no DNS dele:</div>
-                  <div style={{ marginTop:6, fontFamily:"monospace", fontSize:11 }}>
-                    Tipo: {domainResult.dnsInstructions && domainResult.dnsInstructions.type}<br />
-                    {domainResult.dnsInstructions && domainResult.dnsInstructions.type === "CNAME"
-                      ? "Valor: " + domainResult.dnsInstructions.cnameTarget
-                      : "IP: " + (domainResult.dnsInstructions && domainResult.dnsInstructions.aRecordIp)}
-                  </div>
-                </div>
-              )}
-              <Btn variant="gold" full onClick={() => saveDomain(selected.id)} disabled={domainSaving || !customDomain}>
-                {domainSaving ? "Salvando..." : "Salvar Dominio"}
-              </Btn>
-            </div>
             {/* Bloquear / Liberar */}
             <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16 }}>
               <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>? Acesso</div>
