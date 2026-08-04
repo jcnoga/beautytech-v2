@@ -3443,6 +3443,15 @@ function AutomationsPage() {
     setTemplates(ts => ts.map(x => x.id === t.id ? r.data : x));
   };
 
+  const deleteTemplate = async (t: any) => {
+    if (!confirm(`Excluir o template "${t.name}"? Essa acao nao pode ser desfeita.`)) return;
+    try {
+      await api.delete(`/automations/templates/${t.id}`);
+      setTemplates(ts => ts.filter(x => x.id !== t.id));
+    } catch (e: any) {
+      alert("Erro ao excluir: " + e.message);
+    }
+  };
   // Filtro de clientes
   const now = new Date();
   const month = now.getMonth() + 1;
@@ -3581,6 +3590,7 @@ function AutomationsPage() {
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
               <Btn small variant="secondary" onClick={() => { setSelected(t); setEditMsg(t.message); setShowEdit(true); }}>Editar</Btn>
               <Btn small onClick={() => { setSelected(t); setSearch(""); setSegFilter("all"); setBirthdayFilter(false); setSelectedClients([]); setShowSend(true); }}>Enviar</Btn>
+              <Btn small variant="danger" onClick={() => deleteTemplate(t)}>Deletar</Btn>
               <span style={{ fontSize:10, color: t.isActive ? C.sage : C.textMuted, marginLeft:"auto", fontFamily:FB }}>
                 {t.isActive ? "Auto" : "Manual"}
               </span>
