@@ -12,6 +12,7 @@ import { professionalScheduleRoutes } from "./modules/professionals/professional
 import { loadPlansFromDb } from "./modules/billing/billing.service.js";
 
 import { publicBookingModule } from "./modules/appointments/appointments.routes.js";
+import { autoReplyController } from "./modules/auto-reply/auto-reply.controller.js";
 import { salonProfilePublicModule } from "./modules/salon-profile/salon-profile.routes.js";
 import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
 import { env } from "./config/env.js";
@@ -108,6 +109,7 @@ async function bootstrap() {
   await server.register(professionalScheduleRoutes, { prefix });
   // asaasModule desativado - substituido por billingRoutes
   await server.register(publicBookingModule,      { prefix });
+  await server.register(autoReplyController, { prefix });
   await server.register(salonProfilePublicModule, { prefix });
   await server.register(tenantPublicModule,       { prefix });
 

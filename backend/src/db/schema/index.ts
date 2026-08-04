@@ -594,6 +594,36 @@ export const campaigns = pgTable("campaigns", {
   ...audit,
 });
 
+// ─────────────────────────────────────────────────────────
+// RECEPCAO AUTOMATICA (auto-reply WhatsApp)
+// ─────────────────────────────────────────────────────────
+export const autoReplySettings = pgTable("auto_reply_settings", {
+  tenantId:      uuid("tenant_id").primaryKey().references(() => tenants.id),
+  isEnabled:     boolean("is_enabled").notNull().default(false),
+  linkTarget:    varchar("link_target", { length: 20 }).notNull().default("booking"),
+  cooldownHours: integer("cooldown_hours").notNull().default(24),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const autoReplyMessages = pgTable("auto_reply_messages", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  tenantId:  uuid("tenant_id").notNull().references(() => tenants.id),
+  audience:  varchar("audience", { length: 20 }).notNull(), // 'existing_client' | 'new_contact'
+  message:   text("message").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive:  boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const autoReplyConversations = pgTable("auto_reply_conversations", {
+  tenantId:      uuid("tenant_id").notNull().references(() => tenants.id),
+  contactPhone:  varchar("contact_phone", { length: 30 }).notNull(),
+  lastMessageId: uuid("last_message_id").references(() => autoReplyMessages.id),
+  lastRepliedAt: timestamp("last_replied_at", { withTimezone: true }),
+}, (table) => ({
+  pk: unique("auto_reply_conversations_pk").on(table.tenantId, table.contactPhone),
+}));
+
 export const messageTemplates = pgTable("message_templates", {
   id:        uuid("id").primaryKey().defaultRandom(),
   tenantId:  uuid("tenant_id").notNull().references(() => tenants.id),
