@@ -236,7 +236,7 @@ export async function sendTextMessage(number: string, text: string, tenantId: st
   const apiUrl = cfg.mode === "cloud" ? getCloudConfig().apiUrl : (cfg.apiUrl ?? "");
   const apiKey = cfg.mode === "cloud" ? getCloudConfig().apiKey : (cfg.apiKey ?? "");
   const instanceName = cfg.instance ?? "zensalon";
-  return evolutionRequest(apiUrl, apiKey, "/message/sendText/" + encodeURIComponent(instanceName), "POST", { number, textMessage: { text } });
+  return evolutionRequest(apiUrl, apiKey, "/message/sendText/" + encodeURIComponent(instanceName), "POST", { number, text });
 }
 
 export async function sendAppointmentConfirmation(tenantId: string, appt: any) {

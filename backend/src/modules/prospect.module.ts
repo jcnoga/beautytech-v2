@@ -353,7 +353,7 @@ export async function prospectModule(fastify: FastifyInstance) {
     const r = await fetch(`${evolutionUrl}/message/sendText/${instance}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": evolutionKey },
-      body: JSON.stringify({ number: phone, textMessage: { text: msg } }),
+      body: JSON.stringify({ number: phone, text: msg }),
     });
     const result = await r.json() as any;
     if (!r.ok) {
