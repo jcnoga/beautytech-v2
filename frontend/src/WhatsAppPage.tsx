@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { AutoReplySection } from "./AutoReplySection";
 const API_BASE = (import.meta as any).env.VITE_API_URL ?? "http://localhost:3000";
 export function WhatsAppPage({ C, FD, FB }: any) {
   const [state, setState] = useState<string>("close");
@@ -158,6 +159,7 @@ export function WhatsAppPage({ C, FD, FB }: any) {
           </div>
         )}
       </div>
+      <AutoReplySection C={C} FD={FD} FB={FB} />
     </div>
   );
 }
