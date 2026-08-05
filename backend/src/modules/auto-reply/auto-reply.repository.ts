@@ -21,7 +21,7 @@ export const autoReplyRepository = {
     return settings ?? null;
   },
 
-  async upsertSettings(tenantId: string, data: { isEnabled?: boolean; linkTarget?: string; cooldownHours?: number }) {
+  async upsertSettings(tenantId: string, data: { isEnabled?: boolean; linkTarget?: string; cooldownHours?: number; replyDelayMinSeconds?: number; replyDelayMaxSeconds?: number }) {
     const existing = await this.getSettings(tenantId);
     if (existing) {
       const [updated] = await db

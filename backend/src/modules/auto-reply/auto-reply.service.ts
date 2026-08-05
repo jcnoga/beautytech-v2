@@ -9,6 +9,12 @@ function pickRandomExcluding<T extends { id: string }>(items: T[], excludeId?: s
   return chosen[Math.floor(Math.random() * chosen.length)];
 }
 
+function randomDelayMs(minSeconds: number, maxSeconds: number): number {
+  const minMs = minSeconds * 1000;
+  const maxMs = maxSeconds * 1000;
+  return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+}
+
 export const autoReplyService = {
   async handleIncomingMessage(instanceName: string, fromPhone: string) {
     const tenant = await autoReplyRepository.findTenantByInstance(instanceName);
@@ -39,6 +45,9 @@ export const autoReplyService = {
     const finalText = chosen.message
       .replace(/{nome}/g, client?.fullName?.split(" ")[0] ?? "")
       .replace(/{link}/g, bookingLink);
+
+    const delayMs = randomDelayMs(settings.replyDelayMinSeconds ?? 5, settings.replyDelayMaxSeconds ?? 8);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
 
     const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
     await sendTextMessage(normalizedPhone, finalText, tenant.id);

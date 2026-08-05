@@ -602,6 +602,8 @@ export const autoReplySettings = pgTable("auto_reply_settings", {
   isEnabled:     boolean("is_enabled").notNull().default(false),
   linkTarget:    varchar("link_target", { length: 20 }).notNull().default("booking"),
   cooldownHours: integer("cooldown_hours").notNull().default(24),
+  replyDelayMinSeconds: integer("reply_delay_min_seconds").notNull().default(5),
+  replyDelayMaxSeconds: integer("reply_delay_max_seconds").notNull().default(8),
   updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

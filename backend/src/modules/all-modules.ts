@@ -18,6 +18,7 @@ import {
   leads, campaigns, messageTemplates, notifications,
   products, productCategories, suppliers, stockMovements,
   reviews, auditLogs, tenants, userProfiles,
+  autoReplySettings,
 } from "@db/schema/index";
 import { authenticate, requireOwner, requireManager, requireFinancial } from "@middleware/auth";
 
@@ -1783,6 +1784,29 @@ export async function superAdminModule(fastify: FastifyInstance) {
       updatedAt: new Date(),
     }).where(eq(tenants.id, req.params.id)).returning();
     return reply.send({ success: true, data: tenant });
+  });
+
+  fastify.patch("/super-admin/tenants/:id/auto-reply-delay", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
+    const { replyDelayMinSeconds, replyDelayMaxSeconds } = req.body as { replyDelayMinSeconds: number; replyDelayMaxSeconds: number };
+    if (replyDelayMinSeconds === undefined || replyDelayMaxSeconds === undefined) {
+      return reply.status(400).send({ success: false, error: "replyDelayMinSeconds e replyDelayMaxSeconds sao obrigatorios" });
+    }
+    if (Number(replyDelayMinSeconds) > Number(replyDelayMaxSeconds)) {
+      return reply.status(400).send({ success: false, error: "O minimo nao pode ser maior que o maximo" });
+    }
+    const existing = await db.select().from(autoReplySettings).where(eq(autoReplySettings.tenantId, req.params.id)).limit(1);
+    let updated;
+    if (existing.length > 0) {
+      [updated] = await db.update(autoReplySettings)
+        .set({ replyDelayMinSeconds: Number(replyDelayMinSeconds), replyDelayMaxSeconds: Number(replyDelayMaxSeconds), updatedAt: new Date() })
+        .where(eq(autoReplySettings.tenantId, req.params.id))
+        .returning();
+    } else {
+      [updated] = await db.insert(autoReplySettings)
+        .values({ tenantId: req.params.id, replyDelayMinSeconds: Number(replyDelayMinSeconds), replyDelayMaxSeconds: Number(replyDelayMaxSeconds) })
+        .returning();
+    }
+    return reply.send({ success: true, data: updated });
   });
 
   // ============================================================

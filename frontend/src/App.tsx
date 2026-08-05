@@ -2630,6 +2630,11 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainResult, setDomainResult] = useState<any>(null);
   const [domainError, setDomainError] = useState("");
+  const [replyDelayMin, setReplyDelayMin] = useState("5");
+  const [replyDelayMax, setReplyDelayMax] = useState("8");
+  const [delaySaving, setDelaySaving] = useState(false);
+  const [delayError, setDelayError] = useState("");
+  const [delaySuccess, setDelaySuccess] = useState(false);
   const [whatsappUrl, setWhatsappUrl]   = useState("");
   const [whatsappKey, setWhatsappKey]   = useState("");
   const [whatsappInstance, setWhatsappInstance] = useState("");
@@ -2748,6 +2753,35 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       console.error(e);
     } finally {
       setDomainSaving(false);
+    }
+  };
+
+  const saveAutoReplyDelay = async (id: string) => {
+    setDelaySaving(true);
+    setDelayError("");
+    setDelaySuccess(false);
+    try {
+      const min = Number(replyDelayMin);
+      const max = Number(replyDelayMax);
+      if (min > max) {
+        setDelayError("O minimo nao pode ser maior que o maximo.");
+        return;
+      }
+      const res = await saFetch("PATCH", "/super-admin/tenants/" + id + "/auto-reply-delay", {
+        replyDelayMinSeconds: min,
+        replyDelayMaxSeconds: max,
+      });
+      if (res && res.success) {
+        setDelaySuccess(true);
+        load();
+      } else {
+        setDelayError((res && res.error) || "Erro ao salvar atraso.");
+      }
+    } catch (e) {
+      setDelayError((e && e.message) || "Erro ao salvar atraso.");
+      console.error(e);
+    } finally {
+      setDelaySaving(false);
     }
   };
 
@@ -3050,6 +3084,27 @@ function SuperAdminDashboard({ token, onLogout }: any) {
               )}
               <Btn variant="gold" full onClick={() => saveDomain(selected.id)} disabled={domainSaving || !customDomain}>
                 {domainSaving ? "Salvando..." : "Salvar Dominio"}
+              </Btn>
+            </div>
+
+            {/* Atraso da Recepcao Automatica */}
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop:16, marginBottom:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>Atraso da Recepcao Automatica</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:12 }}>
+                Tempo de espera antes de enviar a resposta automatica no WhatsApp, para simular digitacao humana.
+              </div>
+              <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+                <Inp label="Minimo (segundos)" value={replyDelayMin} onChange={setReplyDelayMin} type="number" placeholder="5" />
+                <Inp label="Maximo (segundos)" value={replyDelayMax} onChange={setReplyDelayMax} type="number" placeholder="8" />
+              </div>
+              {delayError && (
+                <div style={{ fontSize:12, color:"#e5484d", marginBottom:12 }}>{delayError}</div>
+              )}
+              {delaySuccess && (
+                <div style={{ fontSize:12, color:C.gold, marginBottom:12 }}>Atraso salvo com sucesso.</div>
+              )}
+              <Btn variant="gold" full onClick={() => saveAutoReplyDelay(selected.id)} disabled={delaySaving}>
+                {delaySaving ? "Salvando..." : "Salvar Atraso"}
               </Btn>
             </div>
             {/* Bloquear / Liberar */}
