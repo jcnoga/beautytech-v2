@@ -271,11 +271,17 @@ export async function prospectModule(fastify: FastifyInstance) {
   // WhatsApp prospecção
   fastify.post("/super-admin/prospects/whatsapp/connect", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
-    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const evolutionKey = process.env.EVOLUTION_API_KEY;
+    if (!evolutionKey) {
+      return reply.status(500).send({ error: "EVOLUTION_API_KEY não configurada" });
+    }
     const instance = "prospeccao";
     try {
-      // Tenta criar instancia se nao existir
-      await fetch(`${evolutionUrl}/instance/create`, { method: "POST", headers: { "Content-Type": "application/json", "apikey": evolutionKey }, body: JSON.stringify({ instanceName: instance, qrcode: true, integration: "WHATSAPP-BAILEYS" }) });
+      // Só cria a instância se ela ainda não existir (evita resetar sessão em pareamento)
+      const checkResp = await fetch(`${evolutionUrl}/instance/connectionState/${instance}`, { headers: { "apikey": evolutionKey } });
+      if (checkResp.status === 404) {
+        await fetch(`${evolutionUrl}/instance/create`, { method: "POST", headers: { "Content-Type": "application/json", "apikey": evolutionKey }, body: JSON.stringify({ instanceName: instance, qrcode: true, integration: "WHATSAPP-BAILEYS" }) });
+      }
     } catch {}
     try {
       const r = await fetch(`${evolutionUrl}/instance/connect/${instance}`, { headers: { "apikey": evolutionKey } });
@@ -290,7 +296,10 @@ export async function prospectModule(fastify: FastifyInstance) {
 
   fastify.get("/super-admin/prospects/whatsapp/status", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
-    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const evolutionKey = process.env.EVOLUTION_API_KEY;
+    if (!evolutionKey) {
+      return reply.status(500).send({ error: "EVOLUTION_API_KEY não configurada" });
+    }
     const instance = "prospeccao";
     try {
       const r = await fetch(`${evolutionUrl}/instance/fetchInstances?instanceName=${instance}`, { headers: { "apikey": evolutionKey } });
@@ -307,7 +316,10 @@ export async function prospectModule(fastify: FastifyInstance) {
 
   fastify.post("/super-admin/prospects/whatsapp/disconnect", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
-    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const evolutionKey = process.env.EVOLUTION_API_KEY;
+    if (!evolutionKey) {
+      return reply.status(500).send({ error: "EVOLUTION_API_KEY não configurada" });
+    }
     const instance = "prospeccao";
     try {
       await fetch(`${evolutionUrl}/instance/logout/${instance}`, { method: "DELETE", headers: { "apikey": evolutionKey } });
@@ -323,7 +335,10 @@ export async function prospectModule(fastify: FastifyInstance) {
     if (!leadId) return reply.status(400).send({ error: "leadId obrigatorio" });
 
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
-    const evolutionKey = process.env.EVOLUTION_API_KEY ?? "zensalon123";
+    const evolutionKey = process.env.EVOLUTION_API_KEY;
+    if (!evolutionKey) {
+      return reply.status(500).send({ error: "EVOLUTION_API_KEY não configurada" });
+    }
     const instance = "prospeccao";
 
     // Busca lead
