@@ -4,3 +4,5 @@ dist
 .env*
 *.log
 *.py
+*.bak_pre_responsive
+patch_*.cjs
