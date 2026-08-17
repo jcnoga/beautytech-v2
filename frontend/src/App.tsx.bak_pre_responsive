@@ -50,16 +50,6 @@ const themeListeners: ThemeListener[] = [];
 const setGlobalTheme = (id: string) => { _themeId = id; localStorage.setItem("beautytech_theme", id); C = resolveTheme(id); FD = C.fd; FB = C.fb; themeListeners.forEach(fn => fn()); };
 const useTheme = () => { const [, upd] = useState(0); useEffect(() => { const fn = () => upd(n => n+1); themeListeners.push(fn); const mq = window.matchMedia("(prefers-color-scheme: dark)"); const mqFn = () => { if (_themeId === "auto") { C = resolveTheme("auto"); FD = C.fd; FB = C.fb; upd(n => n+1); } }; mq.addEventListener("change", mqFn); return () => { themeListeners.splice(themeListeners.indexOf(fn), 1); mq.removeEventListener("change", mqFn); }; }, []); return _themeId; };
 
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return isMobile;
-};
-
 // --- MOCK DATA (fallback) -------------------------------------
 const NOW = new Date();
 const MOCK_KPIS = { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0, revenueMonth: 0, revenuePrevMonth: 0, averageTicket: 0, revenueGrowth: 0 };
@@ -3977,8 +3967,6 @@ const MENU = MENU_GROUPS.flatMap(g => g.items);
 
 function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   const themeId = useTheme();
-  const isMobile = useIsMobile();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [showThemes, setShowThemes] = useState(false);
   const [planInfo, setPlanInfo] = useState<any>(null);
   useEffect(() => {
@@ -3986,16 +3974,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   }, []);
   const isFree = planInfo?.effectivePlan === "basic";
   return (
-    <>
-      {isMobile && (
-        <button onClick={() => setDrawerOpen(v => !v)} style={{ position:"fixed", top:14, left:14, zIndex:200, width:40, height:40, borderRadius:10, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
-          {drawerOpen ? "✕" : "☰"}
-        </button>
-      )}
-      {isMobile && drawerOpen && (
-        <div onClick={() => setDrawerOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:99 }} />
-      )}
-    <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB, transform: isMobile ? (drawerOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)", transition:"transform 0.25s ease" }}>
+    <div style={{ width:220, minHeight:"100vh", background: C.card, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", position:"fixed", left:0, top:0, bottom:0, zIndex:100, fontFamily: FB }}>
       <div style={{ padding:"20px 16px", borderBottom:`1px solid ${C.border}`, textAlign:"center" }}>
         {tenantInfo?.logoUrl ? (
           <img src={tenantInfo.logoUrl} alt="Logo" style={{ width:"72px", height:"72px", borderRadius:"50%", objectFit:"cover", border:`2px solid ${C.rose}`, display:"block", margin:"0 auto 10px" }} />
@@ -4015,7 +3994,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
               const active = page === m.id;
               const locked = isFree && m.premium;
               return (
-                <button key={m.id} onClick={() => { if (locked) { alert("Este recurso requer plano pago. Acesse Planos para fazer upgrade."); return; } if (m.id === "ajuda") { window.open("/manual/Manual_ZenSalon.pdf", "_blank", "noopener,noreferrer"); return; } setPage(m.id); if (isMobile) setDrawerOpen(false); }}
+                <button key={m.id} onClick={() => { if (locked) { alert("Este recurso requer plano pago. Acesse Planos para fazer upgrade."); return; } if (m.id === "ajuda") { window.open("/manual/Manual_ZenSalon.pdf", "_blank", "noopener,noreferrer"); return; } setPage(m.id); }}
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 12px", marginBottom:2, borderRadius:10, border:"none", background: active ? `${C.rose}18` : "transparent", color: locked ? C.textMuted : active ? C.rose : C.text, cursor: locked ? "not-allowed" : "pointer", fontSize:14, fontWeight: active ? 600 : 400, textAlign:"left", opacity: locked ? 0.5 : 1, transition:"all 0.15s" }}>
                   {m.label}
                   {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>🔒</span>}
@@ -4053,13 +4032,11 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
         <button onClick={onLogout} style={{ background:"none", border:"none", color:C.ruby, fontSize:14, cursor:"pointer", padding:0, fontFamily:FB }}>Sair</button>
       </div>
     </div>
-    </>
   );
 }
 // --- APP -----------------------------------------------------
 export default function App() {
   useTheme();
-  const isMobile = useIsMobile();
   const isSuperAdmin = window.location.pathname === '/super-admin';
   const isSubdomain = !window.location.hostname.match(/localhost|beautytech-v2\.vercel\.app|zensalon\.com\.br/) && !sessionStorage.getItem('impersonation_token') && !new URLSearchParams(window.location.search).get('impersonating');
   const sobreMatch = window.location.pathname === '/sobre';
@@ -4152,7 +4129,7 @@ const logout = async () => {
         a { transition: opacity .15s; } a:hover { opacity:.8; }
       `}</style>
       <Sidebar page={page} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
-      <main style={{ marginLeft: isMobile ? 0 : 220, padding: isMobile ? "70px 16px 16px" : 36, minHeight:"100vh", background: C.bg }}>
+      <main style={{ marginLeft:220, padding:36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner />
         <PageComponent />
       </main>
