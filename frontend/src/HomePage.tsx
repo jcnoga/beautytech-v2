@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { InstallAppButton } from "./InstallAppButton";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1";
 
@@ -292,6 +293,7 @@ export default function HomePage() {
           <button className="zs-btn-ghost" onClick={() => scrollTo("precos")}>
             Ver Planos e Preços
           </button>
+          <InstallAppButton />
         </div>
       </section>
 
