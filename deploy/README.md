@@ -26,8 +26,8 @@ sh deploy/gerar-env.sh                           # cria .env e .env.api (não so
 nano .env.api                                    # preencha com as variáveis do Railway
 sh deploy/criar-banco.sh                         # papéis e bancos (idempotente)
 $C up -d zensalon-gotrue                         # o GoTrue cria o schema auth
-# cópia dos dados do Supabase: deploy/copia-dados.md (banco, usuários e arquivos)
 $C build zensalon-api zensalon-web
+# cópia dos dados do Supabase: siga deploy/copia-dados.md (banco, usuários e arquivos)
 $C up -d zensalon-api zensalon-web
 sh deploy/retrato.sh > /tmp/zensalon-depois.txt
 diff /tmp/zensalon-antes.txt /tmp/zensalon-depois.txt && echo "outros sistemas inalterados"
