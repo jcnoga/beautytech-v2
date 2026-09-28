@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { eq, and } from "drizzle-orm";
 import { db } from "@db/connection";
-import { userProfiles, tenants } from "@db/schema/index";
+import { userProfiles, tenants, passwordResets } from "@db/schema/index";
 import { authenticate, requireOwner } from "@middleware/auth";
+import { gotrueAdmin, findAuthUserByEmail } from "@config/gotrue";
 
 export async function teamModule(fastify: FastifyInstance) {
 
@@ -64,8 +65,6 @@ export async function teamModule(fastify: FastifyInstance) {
       .from(tenants)
       .where(eq(tenants.id, tenantId));
 
-    const supabaseUrl  = process.env.SUPABASE_URL!;
-    const serviceKey   = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const frontendUrl  = process.env.FRONTEND_URL ?? "https://zensalon.com.br";
     const resendApiKey = process.env.RESEND_API_KEY!;
 
@@ -73,13 +72,8 @@ export async function teamModule(fastify: FastifyInstance) {
       // Cria usuario no Supabase com senha temporaria
       const tempPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).toUpperCase().slice(2) + "!1";
 
-      const authRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+      const authRes = await gotrueAdmin("/admin/users", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-        },
         body: JSON.stringify({ email, password: tempPassword, email_confirm: true }),
       });
 
@@ -88,18 +82,15 @@ export async function teamModule(fastify: FastifyInstance) {
       // Se usuario ja existe no Supabase, usa o ID existente
       let authUserId: string;
       if (!authRes.ok) {
-        if (authData.message?.includes("already registered")) {
-          // Busca o usuario existente
-          const listRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}&per_page=1`, {
-            headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey },
-          });
-          const listData = await listRes.json() as any;
-          authUserId = listData?.users?.[0]?.id;
+        if (authData.error_code === "email_exists" || /already (been )?registered/i.test(authData.msg ?? authData.message ?? "")) {
+          // Busca o usuario existente (e-mail exato)
+          const existingUser = await findAuthUserByEmail(email);
+          authUserId = existingUser?.id as string;
           if (!authUserId) {
             return reply.status(400).send({ success: false, error: "Erro ao processar convite" });
           }
         } else {
-          return reply.status(400).send({ success: false, error: authData.message ?? "Erro ao criar usuario" });
+          return reply.status(400).send({ success: false, error: authData.msg ?? authData.message ?? "Erro ao criar usuario" });
         }
       } else {
         authUserId = authData.id;
@@ -122,16 +113,7 @@ export async function teamModule(fastify: FastifyInstance) {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
 
       // Salva token de convite
-      await fetch(`${supabaseUrl}/rest/v1/password_resets`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-          "Content-Type": "application/json",
-          "Prefer": "return=minimal",
-        },
-        body: JSON.stringify({ user_id: authUserId, token, expires_at: expiresAt.toISOString() }),
-      });
+      await db.insert(passwordResets).values({ userId: authUserId, token, expiresAt });
 
       const nomeCodificado = encodeURIComponent(name || email.split('@')[0]);
       const inviteLink = `${frontendUrl}/reset-senha?token=${token}&convite=1&nome=${nomeCodificado}`;

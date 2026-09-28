@@ -1,16 +1,12 @@
-// BEAUTYTECH v2 â€” Auth Middleware
-// âš ï¸ JWKS â€” Supabase ECC P-256
-// âš ï¸ NUNCA usar supabase.auth.getUser() â€” falha com novos tokens
-// âš ï¸ SEMPRE jose + createRemoteJWKSet
+// BEAUTYTECH v2 — Auth Middleware
+// Tokens do GoTrue próprio: JWT HS256 assinado com GOTRUE_JWT_SECRET.
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
 import { db } from "../db/connection.js";
 import { userProfiles, tenants } from "../db/schema/index.js";
-const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
-const JWKS = createRemoteJWKSet(
-  new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`)
-);
+import { env } from "../config/env.js";
+const JWT_KEY = new TextEncoder().encode(env.GOTRUE_JWT_SECRET);
 export interface TenantContext {
   tenantId: string;
   userId:   string;
@@ -36,9 +32,9 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
         req.tenantContext = { tenantId: imp.tenantId, userId: imp.userId, role: imp.role ?? "owner" };
         return;
       }
-    } catch (_) { /* nao e impersonation token, continuar com JWKS */ }
+    } catch (_) { /* nao e impersonation token, continuar com o GoTrue */ }
 
-    const { payload } = await jwtVerify(token, JWKS);
+    const { payload } = await jwtVerify(token, JWT_KEY, { algorithms: ["HS256"], audience: "authenticated" });
     const userId = payload.sub as string;
     const cached = null; // cache desabilitado temporariamente
     if (cached && cached.exp > Date.now()) { req.tenantContext = cached.data; return; }

@@ -7,9 +7,10 @@ const envSchema = z.object({
   HOST:       z.string().default("0.0.0.0"),
   API_PREFIX: z.string().default("/api/v1"),
   LOG_LEVEL:  z.enum(["fatal","error","warn","info","debug","trace"]).default("info"),
-  SUPABASE_URL:              z.string().url(),
-  SUPABASE_ANON_KEY:         z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // GoTrue próprio (VPS). GOTRUE_URL é o endereço interno, sem /auth/v1: ex. http://zensalon-gotrue:9999
+  GOTRUE_URL:         z.string().url().transform((v) => v.replace(/\/+$/, "")),
+  GOTRUE_JWT_SECRET:  z.string().min(32),
+  GOTRUE_SERVICE_KEY: z.string().min(1), // JWT com role service_role assinado com GOTRUE_JWT_SECRET
   POSTGRES_URL: z.string().min(1),
   CORS_ORIGINS: z.string().default("http://localhost:5173")
     .transform((v) => v.split(",").map((s) => s.trim())),

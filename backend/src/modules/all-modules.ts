@@ -18,8 +18,9 @@ import {
   leads, campaigns, messageTemplates, notifications,
   products, productCategories, suppliers, stockMovements,
   reviews, auditLogs, tenants, userProfiles,
-  autoReplySettings,
+  autoReplySettings, passwordResets,
 } from "@db/schema/index";
+import { gotrueAdmin, findAuthUserByEmail } from "@config/gotrue";
 import { authenticate, requireOwner, requireManager, requireFinancial } from "@middleware/auth";
 import {
   parseBody, clientCreateDto, clientUpdateDto, professionalCreateDto, professionalUpdateDto,
@@ -1200,18 +1201,12 @@ export async function authModule(fastify: FastifyInstance) {
     const { email } = req.body as any;
     if (!email) return reply.status(400).send({ success: false, error: "Email obrigatorio" });
 
-    const supabaseUrl     = process.env.SUPABASE_URL!;
-    const serviceKey      = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const frontendUrl     = process.env.FRONTEND_URL ?? "https://zensalon.com.br";
     const resendApiKey    = process.env.RESEND_API_KEY!;
 
     try {
-      // 1. Busca user_id pelo email via Admin API
-      const usersRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}&per_page=1`, {
-        headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey },
-      });
-      const usersData = await usersRes.json() as any;
-      const user = usersData?.users?.[0];
+      // 1. Busca user_id pelo email exato via Admin API do GoTrue
+      const user = await findAuthUserByEmail(String(email));
 
       // Resposta generica por seguranca (nao revela se email existe)
       if (!user) {
@@ -1225,28 +1220,11 @@ export async function authModule(fastify: FastifyInstance) {
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
       // 3. Invalida tokens anteriores do mesmo user
-      await fetch(`${supabaseUrl}/rest/v1/password_resets?user_id=eq.${user.id}&used_at=is.null`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey, "Content-Type": "application/json" },
-      });
+      await db.delete(passwordResets)
+        .where(and(eq(passwordResets.userId, user.id), isNull(passwordResets.usedAt)));
 
       // 4. Salva novo token
-      const saveRes = await fetch(`${supabaseUrl}/rest/v1/password_resets`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-          "Content-Type": "application/json",
-          "Prefer": "return=minimal",
-        },
-        body: JSON.stringify({ user_id: user.id, token, expires_at: expiresAt.toISOString() }),
-      });
-
-      if (!saveRes.ok) {
-        const err = await saveRes.text();
-        console.error("[FORGOT-PASSWORD] erro ao salvar token:", err);
-        return reply.status(500).send({ success: false, error: "Erro interno" });
-      }
+      await db.insert(passwordResets).values({ userId: user.id, token, expiresAt });
 
       // 5. Envia email via Resend
       const resetLink = `${frontendUrl}/reset-senha?token=${token}`;
@@ -1316,36 +1294,24 @@ export async function authModule(fastify: FastifyInstance) {
     if (!token || !password) return reply.status(400).send({ success: false, error: "Token e senha sao obrigatorios" });
     if (password.length < 6) return reply.status(400).send({ success: false, error: "Senha deve ter pelo menos 6 caracteres" });
 
-    const supabaseUrl = process.env.SUPABASE_URL!;
-    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
     try {
       // 1. Busca token no banco
-      const tokenRes = await fetch(
-        `${supabaseUrl}/rest/v1/password_resets?token=eq.${token}&used_at=is.null&select=*`,
-        { headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey } }
-      );
-      const rows = await tokenRes.json() as any[];
+      const [row] = await db.select().from(passwordResets)
+        .where(and(eq(passwordResets.token, String(token)), isNull(passwordResets.usedAt)))
+        .limit(1);
 
-      if (!rows || rows.length === 0) {
+      if (!row) {
         return reply.status(400).send({ success: false, error: "Link invalido ou expirado" });
       }
 
-      const row = rows[0];
-
       // 2. Verifica expiração
-      if (new Date(row.expires_at) < new Date()) {
+      if (row.expiresAt < new Date()) {
         return reply.status(400).send({ success: false, error: "Link expirado. Solicite um novo." });
       }
 
       // 3. Troca a senha via Admin API
-      const updateRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${row.user_id}`, {
+      const updateRes = await gotrueAdmin(`/admin/users/${row.userId}`, {
         method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ password }),
       });
 
@@ -1356,18 +1322,9 @@ export async function authModule(fastify: FastifyInstance) {
       }
 
       // 4. Marca token como usado
-      await fetch(`${supabaseUrl}/rest/v1/password_resets?id=eq.${row.id}`, {
-        method: "PATCH",
-        headers: {
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-          "Content-Type": "application/json",
-          "Prefer": "return=minimal",
-        },
-        body: JSON.stringify({ used_at: new Date().toISOString() }),
-      });
+      await db.update(passwordResets).set({ usedAt: new Date() }).where(eq(passwordResets.id, row.id));
 
-      console.log("[RESET-PASSWORD] senha alterada para user:", row.user_id);
+      console.log("[RESET-PASSWORD] senha alterada para user:", row.userId);
       return reply.send({ success: true, message: "Senha alterada com sucesso" });
 
     } catch (err: any) {
@@ -1388,23 +1345,15 @@ export async function authModule(fastify: FastifyInstance) {
     }
 
     // Criar usu├âãÆ├åÔÇÖ├âÔÇÜ├é┬írio via API REST do Supabase (sem SDK)
-    const supabaseUrl = process.env.SUPABASE_URL!;
-    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-    const authRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+    const authRes = await gotrueAdmin("/admin/users", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${serviceKey}`,
-        "apikey": serviceKey,
-      },
       body: JSON.stringify({ email, password, email_confirm: true }),
     });
 
     const authData = await authRes.json() as any;
 
     if (!authRes.ok) {
-      return reply.status(400).send({ success: false, error: authData.message ?? "Erro ao criar usu├âãÆ├åÔÇÖ├âÔÇÜ├é┬írio" });
+      return reply.status(400).send({ success: false, error: authData.msg ?? authData.message ?? "Erro ao criar usu├âãÆ├åÔÇÖ├âÔÇÜ├é┬írio" });
     }
 
     const authUserId = authData.id;
@@ -1537,13 +1486,7 @@ export async function authModule(fastify: FastifyInstance) {
 
     } catch (err: any) {
       // Remover usu├âãÆ├åÔÇÖ├âÔÇÜ├é┬írio do Supabase se falhou
-      await fetch(`${supabaseUrl}/auth/v1/admin/users/${authUserId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-        },
-      });
+      await gotrueAdmin(`/admin/users/${authUserId}`, { method: "DELETE" });
       console.error("[REGISTER ERROR]", err?.message, err?.stack);
       return reply.status(500).send({ success: false, error: err?.message ?? "Erro ao criar salao" });
 

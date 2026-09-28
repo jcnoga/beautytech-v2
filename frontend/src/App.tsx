@@ -359,11 +359,13 @@ function ForgotPasswordPage({ onBack }: any) {
 
   const submit = async () => {
     setLoading(true); setError(""); setMsg("");
-    const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/?reset=1"
-    });
-    if (e) setError(e.message);
-    else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
+    // Recuperacao pelo backend (token proprio + e-mail via Resend); o GoTrue da VPS nao tem SMTP.
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/forgot-password`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ email }) });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.success === false) setError(json.error ?? "Erro ao enviar e-mail");
+      else setMsg("E-mail enviado! Verifique sua caixa de entrada.");
+    } catch { setError("Erro de conexao"); }
     setLoading(false);
   };
 
