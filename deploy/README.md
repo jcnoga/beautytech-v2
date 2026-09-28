@@ -67,4 +67,5 @@ docker exec -i vps-migrator-postgres psql -U <superusuário> -d postgres \
 - `/auth/v1/admin` não é publicado: a API usa a API admin do GoTrue pela rede interna (`http://zensalon-gotrue:9999`).
 - O GoTrue não tem SMTP: recuperação de senha e convite de equipe saem pela API (token em `password_resets` + Resend).
 - `TRUST_PROXY` é o gateway da rede Docker (é por ele que o Traefik chega aos containers); sem ele o rate limit trataria todos os usuários como um só IP.
+- Jobs automáticos (lembretes, aniversários, reativação, fila do WhatsApp, desconexão de expirados, avisos de vencimento) só rodam com `JOBS_ENABLED=true` no `.env.api`. No teste fica `false`: os tenants guardam as credenciais reais da Evolution no banco e o Railway já roda os mesmos jobs. Na virada, ligar aqui e desligar no Railway.
 - Ao virar a chave do domínio (etapa C), atualizar: webhooks do Asaas e da Evolution, `FRONTEND_URL`/domínio no `.env`, e a credencial "Postgres account 3" do n8n (tabelas `sessoes_salao` e `atendimentos_humanos`).

@@ -76,6 +76,8 @@ else
 #NOTIFY_OWNER_EMAIL=
 #NOTIFY_OWNER_PHONE=
 #LOG_LEVEL=info
+# Jobs automáticos: true só no ambiente que atende os clientes (senão, mensagens em dobro).
+JOBS_ENABLED=false
 EOF
   chmod 600 .env.api
   echo ".env.api criado (chmod 600): preencha com os valores do Railway antes de subir a API."

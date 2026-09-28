@@ -122,7 +122,8 @@ async function bootstrap() {
   await loadPlansFromDb();
   await server.listen({ port: env.PORT, host: env.HOST });
   console.log(`BeautyTech v2 rodando na porta ${env.PORT}`);
-  startScheduler();
+  if (env.JOBS_ENABLED) startScheduler();
+  else console.log("[Scheduler] Jobs automaticos DESLIGADOS (JOBS_ENABLED=false).");
 }
 
 process.on("SIGTERM", async () => {

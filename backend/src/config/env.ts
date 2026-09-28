@@ -16,6 +16,10 @@ const envSchema = z.object({
   POSTGRES_SSL: z.enum(["true","false"]).default("true").transform((v) => v === "true"),
   // Proxy confiável (IP/CIDR, separados por vírgula) para req.ip e rate limit; vazio = nenhum
   TRUST_PROXY: z.string().default(""),
+  // Jobs automáticos (lembretes, aniversários, reativação, fila do WhatsApp, desconexão de expirados,
+  // avisos de vencimento). Desligados por padrão: só um ambiente por vez pode rodá-los, senão os clientes
+  // recebem mensagens em dobro (os tenants guardam as credenciais reais da Evolution no banco).
+  JOBS_ENABLED: z.enum(["true","false"]).default("false").transform((v) => v === "true"),
   // Uploads: volume compartilhado com o nginx do container web, publicado em PUBLIC_UPLOADS_URL
   UPLOADS_DIR:        z.string().default("./uploads"),
   PUBLIC_UPLOADS_URL: z.string().default("/uploads").transform((v) => v.replace(/\/+$/, "")),
