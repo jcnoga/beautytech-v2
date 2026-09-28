@@ -58,6 +58,20 @@ class ApiClient {
   post<T>(endpoint: string, body?: unknown) { return this.request<T>("POST", endpoint, body); }
   patch<T>(endpoint: string, body?: unknown) { return this.request<T>("PATCH", endpoint, body); }
   delete<T = void>(endpoint: string) { return this.request<T>("DELETE", endpoint); }
+
+  /** Envia uma imagem para o backend (volume da VPS) e devolve a URL publica. */
+  async upload(file: File, kind: "logo" | "cover" | "professional" | "gallery" | "photo"): Promise<string> {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${this.baseUrl}/uploads?kind=${kind}`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${await this.getToken()}` },
+      body: form,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.success === false) throw new Error(json.error ?? "Erro no upload");
+    return json.data.url;
+  }
 }
 
 export const api = new ApiClient();

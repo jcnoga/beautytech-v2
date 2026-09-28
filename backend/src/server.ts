@@ -5,6 +5,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 // asaasModule substituido por billingRoutes
 import { teamModule } from "./modules/team.module.js";
+import { uploadsModule } from "./modules/uploads.module.js";
 import { sendWelcomeEmail } from "./modules/email.module.js";
 import { prospectModule } from "./modules/prospect.module.js";
 import { billingRoutes } from "./modules/billing/billing.routes.js";
@@ -97,6 +98,7 @@ async function bootstrap() {
   await server.register(automationsModule,        { prefix });
   await server.register(whatsappModule,           { prefix });
   await server.register(teamModule,              { prefix });
+  await server.register(uploadsModule,            { prefix });
   await server.register(clientRecordsModule,      { prefix });
   await server.register(consentFormsModule,       { prefix });
   await server.register(appointmentPhotosModule,  { prefix });

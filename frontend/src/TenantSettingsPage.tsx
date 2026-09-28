@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState, useRef } from "react";
-import { api, supabase } from "./api/client";
+import { api } from "./api/client";
 
 const C = {
   bg: "#0f0f0f", card: "#1a1a1a", border: "rgba(255,255,255,0.08)",
@@ -117,14 +117,8 @@ export default function TenantSettingsPage() {
     finally { setSaving(false); }
   };
 
-  const uploadImage = async (file: File, path: string): Promise<string> => {
-    const ext = file.name.split(".").pop();
-    const fileName = `${path}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("tenant-assets").upload(fileName, file, { upsert:true, contentType:file.type });
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from("tenant-assets").getPublicUrl(fileName);
-    return publicUrl;
-  };
+  const uploadImage = (file: File, path: string): Promise<string> =>
+    api.upload(file, path === "logo" ? "logo" : "cover");
 
   const handleUpload = async (e: any, field: string) => {
     const file = e.target.files?.[0];

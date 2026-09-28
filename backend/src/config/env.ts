@@ -12,6 +12,9 @@ const envSchema = z.object({
   GOTRUE_JWT_SECRET:  z.string().min(32),
   GOTRUE_SERVICE_KEY: z.string().min(1), // JWT com role service_role assinado com GOTRUE_JWT_SECRET
   POSTGRES_URL: z.string().min(1),
+  // Uploads: volume compartilhado com o nginx do container web, publicado em PUBLIC_UPLOADS_URL
+  UPLOADS_DIR:        z.string().default("./uploads"),
+  PUBLIC_UPLOADS_URL: z.string().default("/uploads").transform((v) => v.replace(/\/+$/, "")),
   CORS_ORIGINS: z.string().default("http://localhost:5173")
     .transform((v) => v.split(",").map((s) => s.trim())),
   RATE_LIMIT_MAX:    z.coerce.number().default(200),

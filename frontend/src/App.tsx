@@ -1730,13 +1730,9 @@ function ProfessionalsPage() {
               if (!file) return;
               setUploadingAvatar(true);
               try {
-                const ext = file.name.split(".").pop();
-                const fileName = `professional-${Date.now()}.${ext}`;
-                const { error } = await supabase.storage.from("tenant-assets").upload(fileName, file, { upsert:true, contentType:file.type });
-                if (error) throw error;
-                const { data: { publicUrl } } = supabase.storage.from("tenant-assets").getPublicUrl(fileName);
+                const publicUrl = await api.upload(file, "professional");
                 setForm((p:any) => ({ ...p, avatarUrl: publicUrl }));
-              } catch (err) { console.error(err); }
+              } catch (err: any) { console.error(err); alert(err.message); }
               finally { setUploadingAvatar(false); }
             }} />
           </label>
