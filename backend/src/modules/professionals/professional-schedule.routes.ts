@@ -4,6 +4,7 @@
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "@db/connection.js";
 import { authenticate } from "@middleware/auth.js";
+import { rejectForeignRefs } from "../tenant-guard.js";
 
 export async function professionalScheduleRoutes(fastify: any) {
 
@@ -26,6 +27,8 @@ export async function professionalScheduleRoutes(fastify: any) {
   fastify.post("/professionals/:id/services", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { serviceId, commissionType = "percent", commissionValue = 0, durationMinutes = 60, isEnabled = true } = req.body as any;
+    if (!serviceId) return reply.status(400).send({ success: false, error: "serviceId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { professionals: [req.params.id], services: [serviceId] })) return;
     await db.execute(sql`
       INSERT INTO professional_services (tenant_id, professional_id, service_id, commission_type, commission_value, duration_minutes, is_enabled)
       VALUES (${tenantId}, ${req.params.id}, ${serviceId}, ${commissionType}, ${commissionValue}, ${durationMinutes}, ${isEnabled})
@@ -74,6 +77,7 @@ export async function professionalScheduleRoutes(fastify: any) {
   fastify.post("/professionals/:id/schedules", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { days } = req.body as any; // array de { dayOfWeek, isWorking, startTime, endTime, slotMinutes }
+    if (await rejectForeignRefs(reply, tenantId, { professionals: [req.params.id] })) return;
     for (const day of days) {
       await db.execute(sql`
         INSERT INTO professional_schedules (tenant_id, professional_id, day_of_week, is_working, start_time, end_time, slot_minutes, break_start, break_end)
@@ -109,6 +113,7 @@ export async function professionalScheduleRoutes(fastify: any) {
   fastify.post("/professionals/:id/blocks", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { startsAt, endsAt, reason } = req.body as any;
+    if (await rejectForeignRefs(reply, tenantId, { professionals: [req.params.id] })) return;
     await db.execute(sql`
       INSERT INTO professional_blocks (tenant_id, professional_id, starts_at, ends_at, reason)
       VALUES (${tenantId}, ${req.params.id}, ${startsAt}, ${endsAt}, ${reason ?? null})

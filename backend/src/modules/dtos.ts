@@ -259,9 +259,7 @@ export const templateCreateDto = z.object({
 });
 export const templateUpdateDto = templateCreateDto.partial();
 
-// ─── tenant settings (jsonb) ────────────────────────────────────────────────
-// Só o que a tela de configurações grava. Chaves como asaasCustomerId são do
-// backend e não podem vir do cliente.
-export const tenantSettingsDto = z.object({
-  cpfCnpj: z.string().regex(/^(\d{11}|\d{14})$/, "CPF (11) ou CNPJ (14 digitos)"),
-}).partial();
+// ─── CPF/CNPJ do salão (coluna tenants.cpf_cnpj, lida pela cobrança Asaas) ──
+export const tenantCpfCnpjDto = z.object({
+  cpfCnpj: z.string().transform((v) => v.replace(/\D/g, "")).pipe(z.string().regex(/^(\d{11}|\d{14})$/, "CPF (11) ou CNPJ (14 digitos)")),
+});

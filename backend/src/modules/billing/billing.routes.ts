@@ -33,7 +33,7 @@ export async function billingRoutes(fastify: any) {
   };
 
       const getOrCreateCustomer = async (tenant: any): Promise<string> => {
-        const cpfCnpj = (tenant.settings as any)?.cpfCnpj ?? null;
+        const cpfCnpj: string | null = tenant.cpfCnpj ?? null;
         if (!cpfCnpj) throw new Error("CPF/CNPJ necessario para criar assinatura.");
         const cleanCpf = cpfCnpj.replace(/\D/g, "");
 

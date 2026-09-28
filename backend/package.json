@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push:pg",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "node --import tsx --test tests/isolamento.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",

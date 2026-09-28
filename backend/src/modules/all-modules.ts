@@ -28,8 +28,9 @@ import {
   appointmentCreateDto, appointmentUpdateDto, serviceCreateDto, serviceUpdateDto,
   financialCreateDto, financialUpdateDto, goalCreateDto, leadCreateDto, leadUpdateDto,
   campaignCreateDto, productCreateDto, productUpdateDto, templateCreateDto, templateUpdateDto,
-  tenantSettingsDto,
+  tenantCpfCnpjDto,
 } from "./dtos";
+import { rejectForeignRefs } from "./tenant-guard";
 
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼ HELPER ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 
@@ -148,6 +149,7 @@ export async function clientsModule(fastify: FastifyInstance) {
       if (total >= plan.maxClients) return reply.status(403).send({ success: false, error: `Limite de ${plan.maxClients} clientes atingido no plano gratuito. Faca upgrade para continuar.` });
     }
     const body = parseBody(clientCreateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { clients: [body.referredById], professionals: [body.preferredProfessionalId] })) return;
     const [client] = await db.insert(clients).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     auditLog({ tenantId, userId, action: "client.created", tableName: "clients", recordId: client.id, newData: { fullName: client.fullName, whatsapp: client.whatsapp } });
     return reply.status(201).send({ success: true, data: client });
@@ -156,6 +158,7 @@ export async function clientsModule(fastify: FastifyInstance) {
   fastify.patch("/clients/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(clientUpdateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { clients: [body.referredById], professionals: [body.preferredProfessionalId] })) return;
     const [client] = await db.update(clients)
       .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(clients.id, req.params.id), eq(clients.tenantId, tenantId)))
@@ -335,6 +338,11 @@ export async function appointmentsModule(fastify: FastifyInstance) {
     }
     const parsed = parseBody(appointmentCreateDto, req, reply); if (!parsed) return;
     const { services: svcs, ...body } = parsed;
+    if (await rejectForeignRefs(reply, tenantId, {
+      clients: [body.clientId],
+      professionals: [body.professionalId, ...(svcs ?? []).map((s) => s.professionalId)],
+      services: (svcs ?? []).map((s) => s.serviceId),
+    })) return;
     const values = { ...body, tenantId, createdBy: userId, updatedBy: userId };
 const [appt] = await db.insert(appointments).values(values).returning();
     if (svcs?.length) {
@@ -347,6 +355,7 @@ const [appt] = await db.insert(appointments).values(values).returning();
   fastify.patch("/appointments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(appointmentUpdateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { clients: [body.clientId], professionals: [body.professionalId] })) return;
     const [appt] = await db.update(appointments)
       .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)))
@@ -537,6 +546,8 @@ export async function packagesModule(fastify: FastifyInstance) {
   fastify.post("/packages", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = req.body as any;
+    if (!body?.clientId) return reply.status(400).send({ success: false, error: "clientId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { clients: [body.clientId] })) return;
     const [pkg] = await db.insert(packages).values({
       tenantId, createdBy: userId, updatedBy: userId,
       clientId: body.clientId,
@@ -612,6 +623,7 @@ export async function financialModule(fastify: FastifyInstance) {
   fastify.post("/financial", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(financialCreateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { clients: [body.clientId], professionals: [body.professionalId], appointments: [body.appointmentId] })) return;
     const [tx] = await db.insert(financialTransactions).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: tx });
   });
@@ -619,6 +631,7 @@ export async function financialModule(fastify: FastifyInstance) {
   fastify.patch("/financial/:id", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(financialUpdateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { clients: [body.clientId], professionals: [body.professionalId], appointments: [body.appointmentId] })) return;
     const [tx] = await db.update(financialTransactions)
       .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(financialTransactions.id, req.params.id), eq(financialTransactions.tenantId, tenantId)))
@@ -690,6 +703,7 @@ export async function commissionsModule(fastify: FastifyInstance) {
   fastify.post("/goals", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(goalCreateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { professionals: [body.professionalId] })) return;
     const [goal] = await db.insert(goals).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: goal });
   });
@@ -982,6 +996,7 @@ export async function crmModule(fastify: FastifyInstance) {
   fastify.post("/leads", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(leadCreateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { professionals: [body.assignedTo] })) return;
     const [lead] = await db.insert(leads).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: lead });
   });
@@ -989,6 +1004,7 @@ export async function crmModule(fastify: FastifyInstance) {
   fastify.patch("/leads/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(leadUpdateDto, req, reply); if (!body) return;
+    if (await rejectForeignRefs(reply, tenantId, { professionals: [body.assignedTo] })) return;
     const [lead] = await db.update(leads)
       .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(leads.id, req.params.id), eq(leads.tenantId, tenantId)))
@@ -998,7 +1014,10 @@ export async function crmModule(fastify: FastifyInstance) {
 
   fastify.post("/leads/:id/convert", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const { clientData } = req.body as any;
+    const [lead] = await db.select({ id: leads.id }).from(leads).where(and(eq(leads.id, req.params.id), eq(leads.tenantId, tenantId)));
+    if (!lead) return reply.status(404).send({ success: false, error: "Lead nao encontrado", code: "NOT_FOUND" });
+    const clientData = parseBody(clientCreateDto, { body: (req.body as any)?.clientData }, reply); if (!clientData) return;
+    if (await rejectForeignRefs(reply, tenantId, { clients: [clientData.referredById], professionals: [clientData.preferredProfessionalId] })) return;
     const [client] = await db.insert(clients).values({ ...clientData, tenantId, createdBy: userId, updatedBy: userId, source: "lead" }).returning();
     await db.update(leads).set({ status: "converted", convertedTo: client.id, convertedAt: new Date(), updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(leads.id, req.params.id), eq(leads.tenantId, tenantId)));
@@ -1022,6 +1041,8 @@ export async function loyaltyModule(fastify: FastifyInstance) {
   fastify.post("/loyalty/add-points", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const { clientId, points, description, referenceId } = req.body as any;
+    if (!clientId) return reply.status(400).send({ success: false, error: "clientId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { clients: [clientId] })) return;
     const [tx] = await db.insert(loyaltyTransactions).values({ tenantId, clientId, points, type: "earned", description, referenceId }).returning();
     await db.update(clients).set({ loyaltyPoints: sql`loyalty_points + ${points}`, updatedBy: userId, updatedAt: new Date() }).where(and(eq(clients.id, clientId), eq(clients.tenantId, tenantId)));
     return reply.status(201).send({ success: true, data: tx });
@@ -1156,13 +1177,12 @@ export async function authModule(fastify: FastifyInstance) {
     }
     return reply.send({ success: true, data: updated });
   });
-  fastify.patch("/auth/me/settings", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+  // CPF/CNPJ do salão: coluna tenants.cpf_cnpj (a cobrança Asaas lê daqui).
+  fastify.patch("/auth/me/cpf-cnpj", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
-    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-    const body = parseBody(tenantSettingsDto, req, reply); if (!body) return;
-    const newSettings = { ...(tenant.settings ?? {}), ...body };
-    const [updated] = await db.update(tenants).set({ settings: newSettings, updatedAt: new Date() }).where(eq(tenants.id, tenantId)).returning();
-    return reply.send({ success: true, data: updated });
+    const body = parseBody(tenantCpfCnpjDto, req, reply); if (!body) return;
+    const [updated] = await db.update(tenants).set({ cpfCnpj: body.cpfCnpj, updatedAt: new Date() }).where(eq(tenants.id, tenantId)).returning();
+    return reply.send({ success: true, data: { cpfCnpj: updated.cpfCnpj } });
   });
 
   fastify.get("/auth/me", { preHandler: [authenticate] }, async (req: any, reply) => {
@@ -2436,6 +2456,8 @@ export async function clientRecordsModule(fastify: any) {
   fastify.post("/client-records", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
+    if (!b?.clientId) return reply.status(400).send({ success: false, error: "clientId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { clients: [b.clientId] })) return;
     const data = await db.execute(sql`INSERT INTO client_records (tenant_id,client_id,type,medications,medical_history,previous_procedures,skin_type,contraindications,notes,created_by) VALUES (${tenantId},${b.clientId},'anamnesis',${b.medications??null},${b.medicalHistory??null},${b.previousProcedures??null},${b.skinType??null},${b.contraindications??null},${b.notes??null},${userId}) RETURNING *`);
     const row = ((data as any).rows ?? (data as any) ?? [])[0] ?? (Array.isArray(data) ? (data as any)[0] : data);
     return reply.status(201).send({ success: true, data: row });
@@ -2458,6 +2480,8 @@ export async function consentFormsModule(fastify: any) {
   fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
+    if (!b?.clientId) return reply.status(400).send({ success: false, error: "clientId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { clients: [b.clientId] })) return;
     const existing = await db.execute(sql`SELECT * FROM consent_forms WHERE tenant_id=${tenantId} AND client_id=${b.clientId} AND is_signed=true LIMIT 1`);
     const existRows = (existing as any).rows ?? (Array.isArray(existing) ? existing : []);
     if (existRows.length > 0) return reply.status(201).send({ success: true, data: existRows[0] });
@@ -2489,6 +2513,8 @@ export async function appointmentPhotosModule(fastify: any) {
   fastify.post("/appointment-photos", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
+    if (!b?.clientId) return reply.status(400).send({ success: false, error: "clientId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { clients: [b.clientId], appointments: [b.appointmentId] })) return;
     const data = await db.execute(sql`INSERT INTO appointment_photos (tenant_id,client_id,appointment_id,type,storage_path,public_url,description,created_by) VALUES (${tenantId},${b.clientId},${b.appointmentId??null},${b.type??'before'},${b.storagePath},${b.publicUrl??null},${b.description??null},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
@@ -2509,6 +2535,7 @@ export async function protocolsModule(fastify: any) {
   fastify.post("/protocols", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
+    if (await rejectForeignRefs(reply, tenantId, { services: [b.serviceId] })) return;
     const data = await db.execute(sql`INSERT INTO protocols (tenant_id,name,description,service_id,created_by) VALUES (${tenantId},${b.name},${b.description??null},${b.serviceId??null},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
@@ -2535,12 +2562,15 @@ export async function protocolSessionsModule(fastify: any) {
   fastify.post("/protocol-sessions", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
+    if (!b?.clientId) return reply.status(400).send({ success: false, error: "clientId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { clients: [b.clientId], professionals: [b.performedBy] })) return;
     const data = await db.execute(sql`INSERT INTO protocol_sessions (tenant_id,client_id,protocol_id,session_number,performed_at,performed_by,evolution,observations,status,created_by) VALUES (${tenantId},${b.clientId},${b.protocolId},${b.sessionNumber},${b.performedAt??null},${b.performedBy??null},${b.evolution??null},${b.observations??null},${b.status??"scheduled"},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });
   });
   fastify.patch("/protocol-sessions/:id", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const b = req.body as any;
+    if (await rejectForeignRefs(reply, tenantId, { professionals: [b.performedBy] })) return;
     const data = await db.execute(sql`UPDATE protocol_sessions SET performed_at=COALESCE(${b.performedAt??null},performed_at),performed_by=COALESCE(${b.performedBy??null},performed_by),evolution=COALESCE(${b.evolution??null},evolution),observations=COALESCE(${b.observations??null},observations),status=COALESCE(${b.status??null},status),updated_at=now() WHERE id=${req.params.id} AND tenant_id=${tenantId} RETURNING *`);
     return reply.send({ success: true, data: ((data as any).rows??[])[0] });
   });
@@ -2588,6 +2618,8 @@ export async function packageSessionsModule(fastify: any) {
   fastify.post("/package-sessions", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;
     const b = req.body as any;
+    if (!b?.clientId) return reply.status(400).send({ success: false, error: "clientId obrigatorio" });
+    if (await rejectForeignRefs(reply, tenantId, { clients: [b.clientId] })) return;
     const expiresAt = b.expiresAt ?? null;
     const data = await db.execute(sql`INSERT INTO package_sessions (tenant_id,client_id,package_id,sessions_contracted,sessions_used,started_at,expires_at,status,created_by) VALUES (${tenantId},${b.clientId},${b.packageId},${b.sessionsContracted??0},0,now(),${expiresAt},${b.status??"active"},${userId}) RETURNING *`);
     return reply.status(201).send({ success: true, data: ((data as any).rows??[])[0] });

@@ -3837,7 +3837,7 @@ function UpgradeButton({ color, onPaymentSuccess, setPage }: any) {
   const saveCpfAndUpgrade = async () => {
     setSavingCpf(true);
     try {
-      await api.patch("/auth/me/settings", { cpfCnpj: cpf.replace(/\D/g, "") });
+      await api.patch("/auth/me/cpf-cnpj", { cpfCnpj: cpf.replace(/\D/g, "") });
       setShowCpf(false);
       await doUpgrade();
     } catch(e: any) {

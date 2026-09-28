@@ -46,7 +46,7 @@ echo "2/5 pg_restore no zensalon"
 pg sh -c "pg_restore --no-owner --no-privileges --dbname=\"\$DST\" /dump/$DUMP" 2>&1 \
   | grep -vE 'schema "public" already exists|transaction_timeout|errors ignored on restore|^(pg_restore: )?(error: could not execute query|Command was: (CREATE SCHEMA public|SET transaction_timeout)|while PROCESSING TOC|from TOC entry)|^$' || true
 
-echo "3/5 Removendo políticas RLS e desligando a RLS"
+echo "3/5 Removendo políticas RLS, desligando a RLS e movendo o CPF/CNPJ para a coluna"
 dst_sql <<'SQL'
 DO $$
 DECLARE r record;
@@ -59,6 +59,9 @@ BEGIN
   END LOOP;
 END $$;
 SQL
+
+# O CPF/CNPJ informado na tela de upgrade ficava em tenants.settings; agora a coluna cpf_cnpj é a fonte.
+echo "UPDATE tenants SET cpf_cnpj = COALESCE(cpf_cnpj, regexp_replace(settings->>'cpfCnpj', '\D', '', 'g')), settings = settings - 'cpfCnpj' WHERE settings ? 'cpfCnpj';" | dst_sql
 
 echo "4/5 Registrando migrations Drizzle 0000-0002 como aplicadas"
 docker compose -f docker-compose.vps.yml run --rm --no-deps -T zensalon-api node --import tsx scripts/migracao/registrar-migrations.ts
