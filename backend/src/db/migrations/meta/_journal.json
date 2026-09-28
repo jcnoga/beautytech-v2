@@ -15,6 +15,13 @@
       "when": 1783719613087,
       "tag": "0001_aromatic_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1790628581307,
+      "tag": "0002_minor_mantis",
+      "breakpoints": true
     }
   ]
 }

@@ -815,3 +815,290 @@ export const passwordResets = pgTable("password_resets", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+// BASELINE — tabelas que já existiam só no banco de produção (criadas à mão).
+// Definições copiadas do dump real (56 tabelas). Ficam de fora do Drizzle, mas
+// continuam no banco: sessoes_salao, atendimentos_humanos, bot_mensagens_log,
+// configuracoes (bot n8n), prospect_campaigns e subscriptions.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─── AGENDA DO PROFISSIONAL ─────────────────────────────────────────────────
+export const professionalSchedules = pgTable("professional_schedules", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  tenantId:       uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  professionalId: uuid("professional_id").notNull().references(() => professionals.id, { onDelete: "cascade" }),
+  dayOfWeek:      integer("day_of_week").notNull(), // CHECK 0..6
+  isWorking:      boolean("is_working").notNull().default(true),
+  startTime:      varchar("start_time", { length: 5 }).notNull().default("08:00"),
+  endTime:        varchar("end_time", { length: 5 }).notNull().default("18:00"),
+  slotMinutes:    integer("slot_minutes").notNull().default(30),
+  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  breakStart:     varchar("break_start", { length: 5 }),
+  breakEnd:       varchar("break_end", { length: 5 }),
+}, (t) => ({
+  profDayUnique: unique("professional_schedules_prof_day_unique").on(t.professionalId, t.dayOfWeek),
+  professionalIdx: index("professional_schedules_professional_id_idx").on(t.professionalId),
+  tenantIdx:     index("professional_schedules_tenant_id_idx").on(t.tenantId),
+}));
+
+export const professionalBlocks = pgTable("professional_blocks", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  tenantId:       uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  professionalId: uuid("professional_id").notNull().references(() => professionals.id, { onDelete: "cascade" }),
+  startsAt:       timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt:         timestamp("ends_at", { withTimezone: true }).notNull(),
+  reason:         text("reason"),
+  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  professionalIdx: index("professional_blocks_professional_id_idx").on(t.professionalId),
+  periodIdx:     index("professional_blocks_starts_at_ends_at_idx").on(t.startsAt, t.endsAt),
+  tenantIdx:     index("professional_blocks_tenant_id_idx").on(t.tenantId),
+}));
+
+export const professionalServices = pgTable("professional_services", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  tenantId:        uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  professionalId:  uuid("professional_id").notNull().references(() => professionals.id, { onDelete: "cascade" }),
+  serviceId:       uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  commissionType:  varchar("commission_type", { length: 10 }).notNull().default("percent"), // CHECK 'percent' | 'fixed'
+  commissionValue: numeric("commission_value", { precision: 10, scale: 2 }).notNull().default(sql`0`),
+  durationMinutes: integer("duration_minutes").notNull().default(60),
+  isEnabled:       boolean("is_enabled").notNull().default(true),
+  createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:       timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  profServiceUnique: unique("professional_services_professional_id_service_id_key").on(t.professionalId, t.serviceId),
+  professionalIdx: index("professional_services_professional_id_idx").on(t.professionalId),
+  serviceIdx:      index("professional_services_service_id_idx").on(t.serviceId),
+  tenantIdx:       index("professional_services_tenant_id_idx").on(t.tenantId),
+}));
+
+// ─── AUTOMAÇÕES, PLANOS E ASSINATURA ────────────────────────────────────────
+export const automationSettings = pgTable("automation_settings", {
+  id:                  uuid("id").primaryKey().defaultRandom(),
+  tenantId:            uuid("tenant_id").notNull().unique("automation_settings_tenant_id_key").references(() => tenants.id),
+  reminder24hEnabled:  boolean("reminder_24h_enabled").notNull().default(true),
+  reminder24hHours:    integer("reminder_24h_hours").notNull().default(24),
+  reminder2hEnabled:   boolean("reminder_2h_enabled").notNull().default(true),
+  reminder2hHours:     integer("reminder_2h_hours").notNull().default(2),
+  birthdayEnabled:     boolean("birthday_enabled").notNull().default(true),
+  birthdayHour:        integer("birthday_hour").notNull().default(9),
+  reactivationEnabled: boolean("reactivation_enabled").notNull().default(true),
+  reactivationDays:    integer("reactivation_days").notNull().default(30),
+  postServiceEnabled:  boolean("post_service_enabled").notNull().default(true),
+  postServiceHours:    integer("post_service_hours").notNull().default(2),
+  createdAt:           timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const planSettings = pgTable("plan_settings", {
+  id:          uuid("id").primaryKey().defaultRandom(),
+  key:         varchar("key", { length: 100 }).notNull().unique("plan_settings_key_key"),
+  value:       jsonb("value").notNull(),
+  description: text("description"),
+  updatedAt:   timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const subscriptionNotifications = pgTable("subscription_notifications", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  tenantId:       uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  // FK para public.subscriptions (tabela fora do Drizzle), ON DELETE CASCADE
+  subscriptionId: uuid("subscription_id").notNull(),
+  type:           varchar("type", { length: 30 }).notNull(), // CHECK expiring_7d|expiring_3d|expiring_1d|expired|renewed|upgraded|canceled
+  sentAt:         timestamp("sent_at", { withTimezone: true }).defaultNow(),
+  channel:        varchar("channel", { length: 10 }).default("email"),
+}, (t) => ({
+  tenantIdx: index("idx_sub_notifications_tenant").on(t.tenantId),
+}));
+
+// ─── FOTOS DE ATENDIMENTO ───────────────────────────────────────────────────
+export const appointmentPhotos = pgTable("appointment_photos", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  tenantId:      uuid("tenant_id").notNull().references(() => tenants.id),
+  clientId:      uuid("client_id").notNull().references(() => clients.id),
+  appointmentId: uuid("appointment_id").references(() => appointments.id),
+  type:          varchar("type", { length: 20 }).notNull().default("before"),
+  storagePath:   text("storage_path").notNull(),
+  publicUrl:     text("public_url"),
+  description:   text("description"),
+  takenAt:       timestamp("taken_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy:     uuid("created_by"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  appointmentIdx: index("appointment_photos_appointment_idx").on(t.appointmentId),
+  clientIdx:      index("appointment_photos_client_idx").on(t.clientId),
+  tenantIdx:      index("appointment_photos_tenant_idx").on(t.tenantId),
+}));
+
+// ─── CLÍNICA ESTÉTICA ───────────────────────────────────────────────────────
+export const clientRecords = pgTable("client_records", {
+  id:                    uuid("id").primaryKey().defaultRandom(),
+  tenantId:              uuid("tenant_id").notNull().references(() => tenants.id),
+  clientId:              uuid("client_id").notNull().references(() => clients.id),
+  type:                  varchar("type", { length: 50 }).notNull().default("anamnesis"),
+  allergies:             text("allergies").array().notNull().default(sql`'{}'::text[]`),
+  medications:           text("medications"),
+  medicalHistory:        text("medical_history"),
+  previousProcedures:    text("previous_procedures"),
+  skinType:              varchar("skin_type", { length: 50 }),
+  contraindications:     text("contraindications"),
+  notes:                 text("notes"),
+  createdBy:             uuid("created_by"),
+  createdAt:             timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:             timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  mainComplaint:         text("main_complaint"),
+  aestheticHistory:      text("aesthetic_history"),
+  pregnancy:             boolean("pregnancy").default(false),
+  preExistingConditions: text("pre_existing_conditions"),
+  clinicalObservations:  text("clinical_observations"),
+  treatmentEvolution:    text("treatment_evolution"),
+}, (t) => ({
+  clientIdx: index("client_records_client_idx").on(t.clientId),
+  tenantIdx: index("client_records_tenant_idx").on(t.tenantId),
+}));
+
+export const consentForms = pgTable("consent_forms", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id").notNull().references(() => tenants.id),
+  clientId:     uuid("client_id").notNull().references(() => clients.id),
+  type:         varchar("type", { length: 50 }).notNull().default("lgpd"),
+  content:      text("content"),
+  signedAt:     timestamp("signed_at", { withTimezone: true }),
+  signedByName: varchar("signed_by_name", { length: 255 }),
+  ipAddress:    varchar("ip_address", { length: 45 }),
+  isSigned:     boolean("is_signed").notNull().default(false),
+  expiresAt:    timestamp("expires_at", { withTimezone: true }),
+  createdBy:    uuid("created_by"),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  clientIdx: index("consent_forms_client_idx").on(t.clientId),
+  tenantIdx: index("consent_forms_tenant_idx").on(t.tenantId),
+}));
+
+export const protocols = pgTable("protocols", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  tenantId:      uuid("tenant_id").notNull().references(() => tenants.id),
+  name:          varchar("name", { length: 255 }).notNull(),
+  description:   text("description"),
+  serviceId:     uuid("service_id").references(() => services.id),
+  isActive:      boolean("is_active").notNull().default(true),
+  createdBy:     uuid("created_by"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  totalSessions: integer("total_sessions").default(1),
+  intervalDays:  integer("interval_days").default(7),
+  nicho:         varchar("nicho").default("clinic"),
+}, (t) => ({
+  tenantIdx: index("protocols_tenant_idx").on(t.tenantId),
+}));
+
+export const protocolSteps = pgTable("protocol_steps", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  tenantId:        uuid("tenant_id").notNull().references(() => tenants.id),
+  protocolId:      uuid("protocol_id").notNull().references(() => protocols.id, { onDelete: "cascade" }),
+  title:           varchar("title", { length: 255 }).notNull(),
+  description:     text("description"),
+  durationMinutes: integer("duration_minutes").default(0),
+  sortOrder:       integer("sort_order").notNull().default(0),
+  isRequired:      boolean("is_required").notNull().default(true),
+  createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  protocolIdx: index("protocol_steps_protocol_idx").on(t.protocolId),
+}));
+
+export const protocolSessions = pgTable("protocol_sessions", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  tenantId:      uuid("tenant_id").notNull().references(() => tenants.id),
+  clientId:      uuid("client_id").notNull().references(() => clients.id),
+  protocolId:    uuid("protocol_id").notNull().references(() => protocols.id),
+  sessionNumber: integer("session_number").notNull().default(1),
+  performedAt:   timestamp("performed_at", { withTimezone: true }),
+  performedBy:   uuid("performed_by").references(() => professionals.id),
+  evolution:     text("evolution"),
+  observations:  text("observations"),
+  status:        varchar("status").notNull().default("scheduled"),
+  createdBy:     uuid("created_by"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  clientIdx: index("idx_protocol_sessions_client").on(t.clientId),
+  tenantIdx: index("idx_protocol_sessions_tenant").on(t.tenantId),
+}));
+
+export const treatmentPackages = pgTable("treatment_packages", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  tenantId:      uuid("tenant_id").notNull().references(() => tenants.id),
+  name:          varchar("name").notNull(),
+  description:   text("description"),
+  protocolId:    uuid("protocol_id").references(() => protocols.id),
+  totalSessions: integer("total_sessions").notNull().default(5),
+  validityDays:  integer("validity_days").default(365),
+  price:         numeric("price", { precision: 10, scale: 2 }).default(sql`0`),
+  isActive:      boolean("is_active").default(true),
+  createdBy:     uuid("created_by"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  tenantIdx: index("idx_treatment_packages_tenant").on(t.tenantId),
+}));
+
+export const packageSessions = pgTable("package_sessions", {
+  id:                 uuid("id").primaryKey().defaultRandom(),
+  tenantId:           uuid("tenant_id").notNull().references(() => tenants.id),
+  clientId:           uuid("client_id").notNull().references(() => clients.id),
+  packageId:          uuid("package_id").notNull().references(() => treatmentPackages.id),
+  sessionsContracted: integer("sessions_contracted").notNull().default(0),
+  sessionsUsed:       integer("sessions_used").notNull().default(0),
+  // No banco: GENERATED ALWAYS AS (sessions_contracted - sessions_used) STORED.
+  // O drizzle-orm 0.29 não declara coluna gerada: só leitura, nunca gravar.
+  sessionsRemaining:  integer("sessions_remaining"),
+  startedAt:          timestamp("started_at", { withTimezone: true }).defaultNow(),
+  expiresAt:          timestamp("expires_at", { withTimezone: true }),
+  status:             varchar("status").notNull().default("active"),
+  createdBy:          uuid("created_by"),
+  createdAt:          timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt:          timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  clientIdx: index("idx_package_sessions_client").on(t.clientId),
+  tenantIdx: index("idx_package_sessions_tenant").on(t.tenantId),
+}));
+
+// ─── PROSPECÇÃO (super-admin, sem tenant_id) ────────────────────────────────
+export const prospectLeads = pgTable("prospect_leads", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  state:          varchar("state", { length: 10 }),
+  city:           varchar("city", { length: 100 }),
+  niche:          varchar("niche", { length: 100 }).notNull(),
+  businessName:   varchar("business_name", { length: 255 }).notNull(),
+  phone:          varchar("phone", { length: 30 }),
+  email:          varchar("email", { length: 255 }),
+  website:        varchar("website", { length: 255 }),
+  address:        text("address"),
+  type:           varchar("type", { length: 100 }),
+  rating:         numeric("rating", { precision: 3, scale: 1 }),
+  reviewCount:    integer("review_count"),
+  googleMapsLink: text("google_maps_link"),
+  status:         varchar("status", { length: 20 }).notNull().default("pending"),
+  sentCount:      integer("sent_count").notNull().default(0),
+  lastSentAt:     timestamp("last_sent_at", { withTimezone: true }),
+  notes:          text("notes"),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  nicheIdx:  index("idx_prospect_leads_niche").on(t.niche),
+  phoneIdx:  index("idx_prospect_leads_phone").on(t.phone),
+  statusIdx: index("idx_prospect_leads_status").on(t.status),
+}));
+
+export const prospectTemplates = pgTable("prospect_templates", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  niche:     varchar("niche", { length: 100 }).notNull(),
+  name:      varchar("name", { length: 100 }).notNull(),
+  message:   text("message").notNull(),
+  isActive:  boolean("is_active").notNull().default(true),
+  sentCount: integer("sent_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
