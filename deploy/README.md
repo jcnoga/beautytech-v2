@@ -68,4 +68,5 @@ docker exec -i vps-migrator-postgres psql -U <superusuário> -d postgres \
 - O GoTrue não tem SMTP: recuperação de senha e convite de equipe saem pela API (token em `password_resets` + Resend).
 - `TRUST_PROXY` é o gateway da rede Docker (é por ele que o Traefik chega aos containers); sem ele o rate limit trataria todos os usuários como um só IP.
 - Jobs automáticos (lembretes, aniversários, reativação, fila do WhatsApp, desconexão de expirados, avisos de vencimento) só rodam com `JOBS_ENABLED=true` no `.env.api`. No teste fica `false`: os tenants guardam as credenciais reais da Evolution no banco e o Railway já roda os mesmos jobs. Na virada, ligar aqui e desligar no Railway.
+- `WHATSAPP_SEND_ENABLED=false` (padrão) bloqueia, em qualquer rota, envio de WhatsApp e conexão/desconexão/exclusão de instância (resposta 503). As credenciais reais de cada salão estão no banco copiado; na virada, ligar junto com `JOBS_ENABLED`.
 - Ao virar a chave do domínio (etapa C), atualizar: webhooks do Asaas e da Evolution, `FRONTEND_URL`/domínio no `.env`, e a credencial "Postgres account 3" do n8n (tabelas `sessoes_salao` e `atendimentos_humanos`).

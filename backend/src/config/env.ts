@@ -20,6 +20,9 @@ const envSchema = z.object({
   // avisos de vencimento). Desligados por padrão: só um ambiente por vez pode rodá-los, senão os clientes
   // recebem mensagens em dobro (os tenants guardam as credenciais reais da Evolution no banco).
   JOBS_ENABLED: z.enum(["true","false"]).default("false").transform((v) => v === "true"),
+  // Trava do WhatsApp: com "false", nenhuma rota envia mensagem nem conecta/desconecta/apaga instância
+  // (as credenciais reais de cada salão estão no banco). Só o ambiente que atende os clientes usa "true".
+  WHATSAPP_SEND_ENABLED: z.enum(["true","false"]).default("false").transform((v) => v === "true"),
   // Uploads: volume compartilhado com o nginx do container web, publicado em PUBLIC_UPLOADS_URL
   UPLOADS_DIR:        z.string().default("./uploads"),
   PUBLIC_UPLOADS_URL: z.string().default("/uploads").transform((v) => v.replace(/\/+$/, "")),

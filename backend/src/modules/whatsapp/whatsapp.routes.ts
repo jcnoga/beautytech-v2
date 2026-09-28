@@ -11,7 +11,9 @@ import {
   connectInstance,
   disconnectInstance,
   deleteInstance,
+  WhatsappDisabledError,
 } from "./whatsapp.service.js";
+import { env } from "../../config/env.js";
 
 export async function whatsappModule(fastify: FastifyInstance) {
   fastify.get("/whatsapp/status", { preHandler: [authenticate] }, async (req: any, reply) => {
@@ -46,7 +48,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
           const apiUrl = process.env["WHATSAPP_API_URL"];
           const apiKey = process.env["WHATSAPP_API_KEY"];
           const instance = process.env["WHATSAPP_INSTANCE"];
-          if (ownerPhone && apiUrl && apiKey && instance) {
+          if (env.WHATSAPP_SEND_ENABLED && ownerPhone && apiUrl && apiKey && instance) {
             try {
               const msg = "* Salao Conectado!*\n\n" +
                 "*Salao:* " + name + "\n" +
@@ -68,6 +70,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
 
       return reply.send({ success: true, data });
     } catch (error: any) {
+      if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
@@ -78,6 +81,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
       const qr = await connectInstance(tenantId);
       return reply.send({ success: true, data: qr });
     } catch (error: any) {
+      if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
     console.error("[WA CONNECT ERROR]", error?.message);
     const st = error.message?.includes("manual") ? 400 : 500;
     return reply.status(st).send({ success: false, error: error.message });
@@ -90,6 +94,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
       const qr = await connectInstance(tenantId);
       return reply.send({ success: true, data: qr });
     } catch (error: any) {
+      if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
@@ -110,6 +115,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
 
       return reply.send({ success: true, data });
     } catch (error: any) {
+      if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
@@ -130,6 +136,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
 
       return reply.send({ success: true, data });
     } catch (error: any) {
+      if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
@@ -144,6 +151,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
       const data = await sendTextMessage(number, text, tenantId);
       return reply.send({ success: true, data });
     } catch (error: any) {
+      if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
@@ -158,6 +166,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
       const data = await sendTemplateMessage(number, template, variables || {}, tenantId);
       return reply.send({ success: true, data });
     } catch (error: any) {
+      if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
       return reply.status(500).send({ success: false, error: error.message });
     }
   });

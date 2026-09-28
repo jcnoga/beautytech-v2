@@ -78,6 +78,8 @@ else
 #LOG_LEVEL=info
 # Jobs automáticos: true só no ambiente que atende os clientes (senão, mensagens em dobro).
 JOBS_ENABLED=false
+# Trava do WhatsApp (envio, conexão, desconexão e exclusão de instância): true só no ambiente que atende os clientes.
+WHATSAPP_SEND_ENABLED=false
 EOF
   chmod 600 .env.api
   echo ".env.api criado (chmod 600): preencha com os valores do Railway antes de subir a API."

@@ -1,6 +1,15 @@
 import { db } from "@db/connection";
 import { tenants, clients, services, professionals, appointmentServices } from "@db/schema/index";
 import { eq, and } from "drizzle-orm";
+import { env } from "@config/env";
+
+/** Lançado quando WHATSAPP_SEND_ENABLED=false (ambiente de teste). */
+export class WhatsappDisabledError extends Error {
+  constructor() { super("WhatsApp desligado neste ambiente (WHATSAPP_SEND_ENABLED=false)"); this.name = "WhatsappDisabledError"; }
+}
+export function assertWhatsappEnabled() {
+  if (!env.WHATSAPP_SEND_ENABLED) throw new WhatsappDisabledError();
+}
 
 const EVOLUTION_TIMEOUT_MS = 25000;
 const EVOLUTION_MAX_RETRIES = 1;
@@ -160,6 +169,7 @@ export async function getInstanceStatus(tenantId: string) {
 }
 
 export async function connectInstance(tenantId: string) {
+  assertWhatsappEnabled();
   const cfg = await getTenantWhatsappConfig(tenantId);
 
   if (cfg.mode === "manual") throw new Error("Modo manual nao suporta conexao automatica");
@@ -193,6 +203,7 @@ export async function connectInstance(tenantId: string) {
 }
 
 export async function disconnectInstance(tenantId: string) {
+  assertWhatsappEnabled();
   const cfg = await getTenantWhatsappConfig(tenantId);
   if (cfg.mode === "manual") return { message: "Modo manual" };
   if (cfg.mode === "zapi") {
@@ -207,6 +218,7 @@ export async function disconnectInstance(tenantId: string) {
 }
 
 export async function deleteInstance(tenantId: string) {
+  assertWhatsappEnabled();
   const cfg = await getTenantWhatsappConfig(tenantId);
   if (cfg.mode === "manual" || cfg.mode === "zapi") return { message: "Operacao nao aplicavel para este modo" };
   const apiUrl = cfg.mode === "cloud" ? getCloudConfig().apiUrl : (cfg.apiUrl ?? "");
@@ -217,6 +229,7 @@ export async function deleteInstance(tenantId: string) {
 }
 
 export async function sendTextMessage(number: string, text: string, tenantId: string) {
+  assertWhatsappEnabled();
   const cfg = await getTenantWhatsappConfig(tenantId);
   if (cfg.mode === "manual") throw new Error("Modo manual - envio automatico desabilitado");
   if (cfg.mode === "meta") {

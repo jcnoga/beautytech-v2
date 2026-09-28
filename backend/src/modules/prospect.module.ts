@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../db/connection.js";
 import { sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
 
 export async function prospectModule(fastify: FastifyInstance) {
 
@@ -182,6 +183,7 @@ export async function prospectModule(fastify: FastifyInstance) {
 
   // ── POST /super-admin/prospects/send ─────────────────────────────────────
   fastify.post("/super-admin/prospects/send", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    if (!env.WHATSAPP_SEND_ENABLED) return reply.status(503).send({ success: false, error: "WhatsApp desligado neste ambiente (WHATSAPP_SEND_ENABLED=false)", code: "WHATSAPP_DISABLED" });
     const { niche, daily_limit = 50, min_interval = 30, max_interval = 60 } = req.body as any;
     const nicheFilter = niche ? `AND LOWER(UNACCENT(niche)) = LOWER(UNACCENT('${esc(niche)}'))` : "";
 
@@ -270,6 +272,7 @@ export async function prospectModule(fastify: FastifyInstance) {
 
   // WhatsApp prospecção
   fastify.post("/super-admin/prospects/whatsapp/connect", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    if (!env.WHATSAPP_SEND_ENABLED) return reply.status(503).send({ success: false, error: "WhatsApp desligado neste ambiente (WHATSAPP_SEND_ENABLED=false)", code: "WHATSAPP_DISABLED" });
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
     const evolutionKey = process.env.EVOLUTION_API_KEY;
     if (!evolutionKey) {
@@ -315,6 +318,7 @@ export async function prospectModule(fastify: FastifyInstance) {
   });
 
   fastify.post("/super-admin/prospects/whatsapp/disconnect", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    if (!env.WHATSAPP_SEND_ENABLED) return reply.status(503).send({ success: false, error: "WhatsApp desligado neste ambiente (WHATSAPP_SEND_ENABLED=false)", code: "WHATSAPP_DISABLED" });
     const evolutionUrl = process.env.EVOLUTION_API_URL ?? "https://evolution.zensalon.com.br";
     const evolutionKey = process.env.EVOLUTION_API_KEY;
     if (!evolutionKey) {
@@ -331,6 +335,7 @@ export async function prospectModule(fastify: FastifyInstance) {
 
 
   fastify.post("/super-admin/prospects/send-one", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
+    if (!env.WHATSAPP_SEND_ENABLED) return reply.status(503).send({ success: false, error: "WhatsApp desligado neste ambiente (WHATSAPP_SEND_ENABLED=false)", code: "WHATSAPP_DISABLED" });
     const { leadId } = req.body as any;
     if (!leadId) return reply.status(400).send({ error: "leadId obrigatorio" });
 
