@@ -29,6 +29,8 @@ const count = async (db: postgres.Sql, table: string) =>
   Number((await db.unsafe(`SELECT count(*) AS n FROM auth.${table}`))[0].n);
 
 try {
+  // Supabase somente leitura: qualquer escrita nesta sessão falha no próprio Postgres.
+  await src`SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`;
   const existing = await count(dst, "users");
   if (existing > 0) {
     if (process.env.SUBSTITUIR !== "1") {

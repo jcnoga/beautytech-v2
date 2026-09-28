@@ -4,13 +4,13 @@
 //   -> PUBLIC_UPLOADS_URL/tenant-assets/<nome>
 // A troca de URL varre todas as colunas de texto/json/array do schema public, então pega qualquer
 // lugar onde a URL tenha sido gravada. No fim, lista o que ainda aponta para o Supabase.
-// O Supabase não é alterado (só leitura). Idempotente: arquivo já baixado é pulado.
+// O Supabase não é alterado (só leitura). Idempotente: arquivo já baixado é pulado; LIMPAR=1 recopia tudo.
 //
 // Variáveis: SUPABASE_DB_URL (lista os objetos em storage.objects), SUPABASE_URL (https://<ref>.supabase.co),
 // POSTGRES_URL, UPLOADS_DIR, PUBLIC_UPLOADS_URL (já definidas no container da API).
 // Uso (no container da API): node --import tsx scripts/migracao/copiar-arquivos.ts
 import postgres from "postgres";
-import { mkdir, writeFile, stat } from "node:fs/promises";
+import { mkdir, writeFile, stat, rm } from "node:fs/promises";
 import path from "node:path";
 
 const BUCKET = "tenant-assets";
@@ -26,6 +26,11 @@ const src = postgres(SUPABASE_DB_URL, { max: 1, prepare: false, onnotice: () => 
 const db = postgres(POSTGRES_URL, { max: 1, onnotice: () => {}, ssl: process.env.POSTGRES_SSL === "true" ? { rejectUnauthorized: false } : false });
 
 try {
+  // Supabase somente leitura: qualquer escrita nesta sessão falha no próprio Postgres.
+  await src`SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`;
+  // LIMPAR=1: apaga só a pasta tenant-assets do volume (cópia anterior); uploads feitos na VPS ficam.
+  if (process.env.LIMPAR === "1") { await rm(baseDir, { recursive: true, force: true }); console.log("Pasta tenant-assets do volume limpa."); }
+
   // ── 1. arquivos ──────────────────────────────────────────────────────────
   const objects = await src`SELECT name FROM storage.objects WHERE bucket_id = ${BUCKET} ORDER BY name`;
   let copied = 0, skipped = 0, failed = 0;

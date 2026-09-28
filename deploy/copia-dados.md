@@ -18,6 +18,22 @@ As 4 tabelas do bot (`sessoes_salao`, `atendimentos_humanos`, `bot_mensagens_log
 - A URL do projeto (`https://<ref>.supabase.co`).
 - Espaço em disco para o dump em `/opt/backups/zensalon` (pasta criada com `chmod 700`).
 
+## Jeito rápido: um comando (ensaio e dia da virada)
+
+Grave a URL do Session Pooler num arquivo só do root, sem passar pelo histórico nem pelo chat:
+
+```bash
+ssh -t root@187.77.236.36 'umask 077; read -rsp "URL do Session Pooler: " U; echo; printf "SUPABASE_DB_URL=%s\n" "$U" > /root/zensalon-supabase.env'
+```
+
+Depois, na VPS:
+
+```bash
+cd /opt/apps/zensalon && sh deploy/copiar-tudo.sh
+```
+
+O script para a API, **limpa o destino** (banco `zensalon`, usuários do GoTrue e a pasta `tenant-assets` do volume), copia tudo de novo, sobe a API e mostra o resumo: linhas por tabela (Supabase × VPS), usuários e arquivos. Pode rodar quantas vezes quiser. No Supabase só há leitura (as sessões ficam em `READ ONLY`).
+
 ## Passo a passo (na VPS, em `/opt/apps/zensalon`)
 
 ```bash

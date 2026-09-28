@@ -68,7 +68,7 @@ docker compose -f docker-compose.vps.yml run --rm --no-deps -T zensalon-api node
 
 echo "5/5 Conferindo linhas por tabela (Supabase x VPS)"
 COUNT_SQL="SELECT format('SELECT %L, count(*) FROM public.%I;', tablename, tablename) FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
-pg sh -c "psql \"\$SRC\" -X -tA -c \"$COUNT_SQL\" | psql \"\$SRC\" -X -tA -F ' '" > "$DUMP_DIR/contagem_supabase.txt"
+pg sh -c "psql \"\$SRC\" -X -tA -c \"$COUNT_SQL\" | (echo 'SET default_transaction_read_only = on;'; cat) | psql \"\$SRC\" -X -q -tA -F ' '" > "$DUMP_DIR/contagem_supabase.txt"
 pg sh -c "psql \"\$DST\" -X -tA -c \"$COUNT_SQL\" | psql \"\$DST\" -X -tA -F ' '" > "$DUMP_DIR/contagem_vps.txt"
 if diff "$DUMP_DIR/contagem_supabase.txt" "$DUMP_DIR/contagem_vps.txt"; then
   echo "OK: $(wc -l < "$DUMP_DIR/contagem_vps.txt") tabelas, mesma contagem de linhas nos dois lados."
