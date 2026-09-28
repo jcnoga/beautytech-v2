@@ -21,6 +21,13 @@ import {
   autoReplySettings,
 } from "@db/schema/index";
 import { authenticate, requireOwner, requireManager, requireFinancial } from "@middleware/auth";
+import {
+  parseBody, clientCreateDto, clientUpdateDto, professionalCreateDto, professionalUpdateDto,
+  appointmentCreateDto, appointmentUpdateDto, serviceCreateDto, serviceUpdateDto,
+  financialCreateDto, financialUpdateDto, goalCreateDto, leadCreateDto, leadUpdateDto,
+  campaignCreateDto, productCreateDto, productUpdateDto, templateCreateDto, templateUpdateDto,
+  tenantSettingsDto,
+} from "./dtos";
 
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼ HELPER ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 
@@ -138,15 +145,17 @@ export async function clientsModule(fastify: FastifyInstance) {
       const total = Number(countRows[0]?.total ?? countRows[0]?.count ?? 0);
       if (total >= plan.maxClients) return reply.status(403).send({ success: false, error: `Limite de ${plan.maxClients} clientes atingido no plano gratuito. Faca upgrade para continuar.` });
     }
-    const [client] = await db.insert(clients).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(clientCreateDto, req, reply); if (!body) return;
+    const [client] = await db.insert(clients).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     auditLog({ tenantId, userId, action: "client.created", tableName: "clients", recordId: client.id, newData: { fullName: client.fullName, whatsapp: client.whatsapp } });
     return reply.status(201).send({ success: true, data: client });
   });
 
   fastify.patch("/clients/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(clientUpdateDto, req, reply); if (!body) return;
     const [client] = await db.update(clients)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(clients.id, req.params.id), eq(clients.tenantId, tenantId)))
       .returning();
     if (!client) return reply.status(404).send({ success: false, error: "Cliente n├âãÆ├åÔÇÖ├âÔÇÜ├é┬úo encontrado" });
@@ -187,7 +196,8 @@ export async function professionalsModule(fastify: FastifyInstance) {
     const { tenantId, userId } = req.tenantContext;
     const chkP = await checkProfessionalLimit(tenantId);
     if (!chkP.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${chkP.current}/${chkP.limit} profissionais. Faca upgrade.`, code: "PLAN_LIMIT_PROFESSIONALS" });
-    const [prof] = await db.insert(professionals).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(professionalCreateDto, req, reply); if (!body) return;
+    const [prof] = await db.insert(professionals).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
 
     // Gera grade de horarios automaticamente baseado no businessType do tenant
     try {
@@ -225,8 +235,9 @@ export async function professionalsModule(fastify: FastifyInstance) {
 
   fastify.patch("/professionals/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(professionalUpdateDto, req, reply); if (!body) return;
     const [prof] = await db.update(professionals)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(professionals.id, req.params.id), eq(professionals.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: prof });
@@ -320,18 +331,12 @@ export async function appointmentsModule(fastify: FastifyInstance) {
       const total = Number(countRows[0]?.total ?? countRows[0]?.count ?? 0);
       if (total >= planAppt.maxAppointmentsMonth) return reply.status(403).send({ success: false, error: `Limite de ${planAppt.maxAppointmentsMonth} agendamentos/mes atingido no plano gratuito. Faca upgrade para continuar.` });
     }
-  const { services: svcs, ...body } = req.body as any;
-const values = {
-  ...body,
-  tenantId,
-  createdBy:      userId,
-  updatedBy:      userId,
-  scheduledAt:    new Date(body.scheduledAt),
-  endsAt:         new Date(body.endsAt),
-};
+    const parsed = parseBody(appointmentCreateDto, req, reply); if (!parsed) return;
+    const { services: svcs, ...body } = parsed;
+    const values = { ...body, tenantId, createdBy: userId, updatedBy: userId };
 const [appt] = await db.insert(appointments).values(values).returning();
     if (svcs?.length) {
-      await db.insert(appointmentServices).values(svcs.map((s: any) => ({ ...s, appointmentId: appt.id, tenantId })));
+      await db.insert(appointmentServices).values(svcs.map((s) => ({ ...s, appointmentId: appt.id, tenantId })));
     }
     auditLog({ tenantId, userId, action: "appointment.created", tableName: "appointments", recordId: appt.id, newData: { scheduledAt: appt.scheduledAt, totalPrice: appt.totalPrice } });
     return reply.status(201).send({ success: true, data: appt });
@@ -339,8 +344,9 @@ const [appt] = await db.insert(appointments).values(values).returning();
 
   fastify.patch("/appointments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(appointmentUpdateDto, req, reply); if (!body) return;
     const [appt] = await db.update(appointments)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: appt });
@@ -434,14 +440,16 @@ export async function servicesModule(fastify: FastifyInstance) {
 
   fastify.post("/services", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [service] = await db.insert(services).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(serviceCreateDto, req, reply); if (!body) return;
+    const [service] = await db.insert(services).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: service });
   });
 
   fastify.patch("/services/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(serviceUpdateDto, req, reply); if (!body) return;
     const [service] = await db.update(services)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(services.id, req.params.id), eq(services.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: service });
@@ -601,14 +609,16 @@ export async function financialModule(fastify: FastifyInstance) {
 
   fastify.post("/financial", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [tx] = await db.insert(financialTransactions).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(financialCreateDto, req, reply); if (!body) return;
+    const [tx] = await db.insert(financialTransactions).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: tx });
   });
 
   fastify.patch("/financial/:id", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(financialUpdateDto, req, reply); if (!body) return;
     const [tx] = await db.update(financialTransactions)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(financialTransactions.id, req.params.id), eq(financialTransactions.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: tx });
@@ -677,7 +687,8 @@ export async function commissionsModule(fastify: FastifyInstance) {
 
   fastify.post("/goals", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [goal] = await db.insert(goals).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(goalCreateDto, req, reply); if (!body) return;
+    const [goal] = await db.insert(goals).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: goal });
   });
 }
@@ -968,14 +979,16 @@ export async function crmModule(fastify: FastifyInstance) {
 
   fastify.post("/leads", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [lead] = await db.insert(leads).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(leadCreateDto, req, reply); if (!body) return;
+    const [lead] = await db.insert(leads).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: lead });
   });
 
   fastify.patch("/leads/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(leadUpdateDto, req, reply); if (!body) return;
     const [lead] = await db.update(leads)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(leads.id, req.params.id), eq(leads.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: lead });
@@ -1033,7 +1046,8 @@ export async function campaignsModule(fastify: FastifyInstance) {
 
   fastify.post("/campaigns", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [campaign] = await db.insert(campaigns).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(campaignCreateDto, req, reply); if (!body) return;
+    const [campaign] = await db.insert(campaigns).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: campaign });
   });
 
@@ -1061,14 +1075,16 @@ export async function productsModule(fastify: FastifyInstance) {
 
   fastify.post("/products", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [product] = await db.insert(products).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(productCreateDto, req, reply); if (!body) return;
+    const [product] = await db.insert(products).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: product });
   });
 
   fastify.patch("/products/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(productUpdateDto, req, reply); if (!body) return;
     const [product] = await db.update(products)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(products.id, req.params.id), eq(products.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: product });
@@ -1141,7 +1157,8 @@ export async function authModule(fastify: FastifyInstance) {
   fastify.patch("/auth/me/settings", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-    const newSettings = { ...(tenant.settings ?? {}), ...(req.body as any) };
+    const body = parseBody(tenantSettingsDto, req, reply); if (!body) return;
+    const newSettings = { ...(tenant.settings ?? {}), ...body };
     const [updated] = await db.update(tenants).set({ settings: newSettings, updatedAt: new Date() }).where(eq(tenants.id, tenantId)).returning();
     return reply.send({ success: true, data: updated });
   });
@@ -1583,14 +1600,16 @@ export async function automationsModule(fastify: FastifyInstance) {
 
   fastify.post("/automations/templates", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    const [template] = await db.insert(messageTemplates).values({ ...req.body, tenantId, createdBy: userId, updatedBy: userId }).returning();
+    const body = parseBody(templateCreateDto, req, reply); if (!body) return;
+    const [template] = await db.insert(messageTemplates).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
     return reply.status(201).send({ success: true, data: template });
   });
 
   fastify.patch("/automations/templates/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
+    const body = parseBody(templateUpdateDto, req, reply); if (!body) return;
     const [template] = await db.update(messageTemplates)
-      .set({ ...req.body, updatedBy: userId, updatedAt: new Date() })
+      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(messageTemplates.id, req.params.id), eq(messageTemplates.tenantId, tenantId)))
       .returning();
     return reply.send({ success: true, data: template });
