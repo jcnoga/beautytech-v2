@@ -14,6 +14,10 @@ export default defineConfig({
         navigateFallbackDenylist: [
           /^\/manual\//,
           /\.pdf$/,
+          // VPS: GoTrue, API e arquivos enviados ficam no mesmo dominio
+          /^\/auth\//,
+          /^\/api\//,
+          /^\/uploads\//,
         ],
         runtimeCaching: [
           {

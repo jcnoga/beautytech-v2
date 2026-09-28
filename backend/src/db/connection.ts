@@ -13,7 +13,7 @@ const queryClient = postgres(env.POSTGRES_URL, {
   idle_timeout:    30,
   connect_timeout: 10,
   prepare:         false,
-  ssl:             { rejectUnauthorized: false },
+  ssl:             env.POSTGRES_SSL ? { rejectUnauthorized: false } : false,
   onnotice:        () => {},
 });
  

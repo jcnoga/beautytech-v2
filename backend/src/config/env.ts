@@ -12,6 +12,10 @@ const envSchema = z.object({
   GOTRUE_JWT_SECRET:  z.string().min(32),
   GOTRUE_SERVICE_KEY: z.string().min(1), // JWT com role service_role assinado com GOTRUE_JWT_SECRET
   POSTGRES_URL: z.string().min(1),
+  // SSL na conexão do banco: "true" no Supabase (pooler), "false" no Postgres da VPS (rede interna)
+  POSTGRES_SSL: z.enum(["true","false"]).default("true").transform((v) => v === "true"),
+  // Proxy confiável (IP/CIDR, separados por vírgula) para req.ip e rate limit; vazio = nenhum
+  TRUST_PROXY: z.string().default(""),
   // Uploads: volume compartilhado com o nginx do container web, publicado em PUBLIC_UPLOADS_URL
   UPLOADS_DIR:        z.string().default("./uploads"),
   PUBLIC_UPLOADS_URL: z.string().default("/uploads").transform((v) => v.replace(/\/+$/, "")),

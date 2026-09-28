@@ -1,0 +1,122 @@
+# ZenSalon na VPS (https://zensalon.99labpro.com.br), ramo git "vps".
+# Usa o Traefik que já existe (rede externa + labels), sem publicar portas e sem criar outro Traefik.
+# Banco no Postgres compartilhado da VPS (vps-migrator-postgres): bancos zensalon e gotrue_zensalon,
+# com papéis próprios (deploy/criar-banco.sh). Não toca em petshop-* nem nos bancos do PetShop.
+# Segredos: .env (infra, gerado por deploy/gerar-env.sh) e .env.api (integrações). Nunca no git.
+# Uso (na pasta do projeto): docker compose -f docker-compose.vps.yml <comando>
+name: zensalon
+
+x-traefik: &traefik
+  traefik.enable: "true"
+  traefik.docker.network: vps-migrator_default
+
+services:
+  zensalon-gotrue:
+    image: supabase/gotrue:v2.197.0
+    container_name: zensalon-gotrue
+    restart: unless-stopped
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${PUBLIC_URL}/auth/v1
+      GOTRUE_SITE_URL: ${PUBLIC_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: ${GOTRUE_DATABASE_URL}
+      # HS256 com o mesmo segredo que a API usa para validar os tokens.
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_EXP: 3600
+      # Contas nascem só pelo POST /api/v1/auth/register e pelo convite de equipe (API admin).
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      # Sem SMTP: recuperação de senha e convite são feitos pela API (token próprio + Resend).
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      # Igual ao mínimo validado pela API no cadastro e na troca de senha.
+      GOTRUE_PASSWORD_MIN_LENGTH: 6
+    labels:
+      <<: *traefik
+      # supabase-js chama <domínio>/auth/v1/*. A API admin não é publicada: a API usa pela rede interna.
+      traefik.http.routers.zensalon-auth.rule: Host(`${PUBLIC_HOST}`) && PathPrefix(`/auth/v1/`) && !PathPrefix(`/auth/v1/admin`)
+      traefik.http.routers.zensalon-auth.priority: "100"
+      traefik.http.routers.zensalon-auth.entrypoints: websecure
+      traefik.http.routers.zensalon-auth.tls: "true"
+      traefik.http.routers.zensalon-auth.tls.certresolver: letsencrypt
+      traefik.http.routers.zensalon-auth.middlewares: zensalon-auth-strip
+      traefik.http.middlewares.zensalon-auth-strip.stripprefix.prefixes: /auth/v1
+      traefik.http.services.zensalon-auth.loadbalancer.server.port: "9999"
+    networks: [vps]
+
+  zensalon-api:
+    build:
+      context: ./backend
+    image: zensalon-api
+    container_name: zensalon-api
+    restart: unless-stopped
+    depends_on: [zensalon-gotrue]
+    # Integrações (Asaas, Resend, Evolution, super admin...): mesmas variáveis do Railway.
+    env_file: [.env.api]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      POSTGRES_URL: ${DATABASE_URL}
+      POSTGRES_SSL: "false"
+      GOTRUE_URL: http://zensalon-gotrue:9999
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_SERVICE_KEY: ${GOTRUE_SERVICE_KEY}
+      CORS_ORIGINS: ${PUBLIC_URL}
+      FRONTEND_URL: ${PUBLIC_URL}
+      TRUST_PROXY: ${TRUST_PROXY}
+      UPLOADS_DIR: /data/uploads
+      PUBLIC_UPLOADS_URL: ${PUBLIC_URL}/uploads
+    volumes:
+      - uploads:/data/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      <<: *traefik
+      # O prefixo /api/v1 é da própria API (API_PREFIX): não remover.
+      traefik.http.routers.zensalon-api.rule: Host(`${PUBLIC_HOST}`) && PathPrefix(`/api/`)
+      traefik.http.routers.zensalon-api.priority: "100"
+      traefik.http.routers.zensalon-api.entrypoints: websecure
+      traefik.http.routers.zensalon-api.tls: "true"
+      traefik.http.routers.zensalon-api.tls.certresolver: letsencrypt
+      traefik.http.services.zensalon-api.loadbalancer.server.port: "3000"
+    networks: [vps]
+
+  zensalon-web:
+    build:
+      context: ./frontend
+      args:
+        VITE_SUPABASE_URL: ${PUBLIC_URL}
+        VITE_SUPABASE_ANON_KEY: ${GOTRUE_ANON_KEY}
+        VITE_API_URL: ${PUBLIC_URL}/api/v1
+    image: zensalon-web
+    container_name: zensalon-web
+    restart: unless-stopped
+    volumes:
+      # Mesmo volume da API, só leitura: o nginx publica em /uploads.
+      - uploads:/srv/uploads:ro
+    labels:
+      <<: *traefik
+      traefik.http.routers.zensalon-web.rule: Host(`${PUBLIC_HOST}`)
+      traefik.http.routers.zensalon-web.priority: "10"
+      traefik.http.routers.zensalon-web.entrypoints: websecure
+      traefik.http.routers.zensalon-web.tls: "true"
+      traefik.http.routers.zensalon-web.tls.certresolver: letsencrypt
+      traefik.http.services.zensalon-web.loadbalancer.server.port: "80"
+    networks: [vps]
+
+volumes:
+  uploads:
+    name: zensalon_uploads
+
+networks:
+  vps:
+    name: vps-migrator_default
+    external: true

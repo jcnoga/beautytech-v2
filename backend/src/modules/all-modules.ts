@@ -9,7 +9,8 @@ import type { FastifyInstance } from "fastify";
 import { eq, and, ilike, isNull, desc, gte, lte, sql, count } from "drizzle-orm";
 import { db } from "@db/connection";
 import postgres from "postgres";
-const _rawClient = postgres(process.env.POSTGRES_URL!, { prepare: false, ssl: { rejectUnauthorized: false } });
+import { env } from "@config/env";
+const _rawClient = postgres(env.POSTGRES_URL, { prepare: false, ssl: env.POSTGRES_SSL ? { rejectUnauthorized: false } : false });
 import {
   clients, professionals, appointments, appointmentServices,
   services, serviceCategories, packages, giftCards,

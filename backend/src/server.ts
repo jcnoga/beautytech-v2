@@ -48,7 +48,11 @@ import {
   packageSessionsModule,
 } from "./modules/all-modules.js";
 
-const server = Fastify({ logger: { level: env.LOG_LEVEL } });
+const server = Fastify({
+  logger: { level: env.LOG_LEVEL },
+  // Atrás do Traefik: sem isso, req.ip (e o rate limit) seria o do proxy para todo mundo.
+  trustProxy: env.TRUST_PROXY || false,
+});
 
 async function bootstrap() {
   await server.register(helmet, { global: true });
