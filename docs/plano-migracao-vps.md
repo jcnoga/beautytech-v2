@@ -8,7 +8,7 @@ Trabalho só no ramo git `vps`. O `main` continua publicando o site atual (Supab
 3. DTOs zod nas 19 rotas com `...req.body`.
 4. Login/senha no GoTrue.
 5. Uploads.
-6. docker-compose para `zensalon.99labpro.com.br`.
+6. docker-compose para `vps.zensalon.com.br`.
 7. Roteiro de cópia dos dados.
 
 ## Decisões
@@ -21,7 +21,7 @@ Trabalho só no ramo git `vps`. O `main` continua publicando o site atual (Supab
   (credencial "Postgres account 3"), que precisará apontar para o banco novo.
 - **Login:** GoTrue próprio com JWT HS256 (`jwtVerify` do `jose`). A API admin `/auth/v1/admin/users` continua igual,
   só muda URL e chave. `password_resets` passa a usar Drizzle, sem `/rest/v1`.
-- **Frontend:** manter `@supabase/supabase-js` e apontar `VITE_SUPABASE_URL` para `zensalon.99labpro.com.br`, com o
+- **Frontend:** manter `@supabase/supabase-js` e apontar `VITE_SUPABASE_URL` para `vps.zensalon.com.br`, com o
   caminho `/auth/v1` roteado pelo Traefik para o GoTrue.
 - **env.ts:** trocar `SUPABASE_URL`/`ANON_KEY`/`SERVICE_ROLE_KEY` por `GOTRUE_URL`, `GOTRUE_JWT_SECRET` e `GOTRUE_SERVICE_KEY`.
 - **Banco:** na restauração, remover as políticas RLS; o backend conecta como dono das tabelas. SSL por variável de ambiente.

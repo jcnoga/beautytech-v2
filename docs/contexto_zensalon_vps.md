@@ -30,7 +30,7 @@ Atualizado em 28/09/2026. Colar no início das próximas conversas.
 ## Infra da VPS (187.77.236.36)
 - Traefik existente: `traefik-traefik-1`, network_mode host, entrypoint `websecure`, certresolver `letsencrypt`, exposedbydefault=false (usar `traefik.enable=true`). Não criar outro Traefik.
 - DNS do domínio 99labpro.com.br fica no **Registro.br** (Editar zona → Nova entrada tipo A).
-- Teste do ZenSalon na VPS: `zensalon.99labpro.com.br` (criar entrada A `zensalon` → 187.77.236.36).
+- Teste do ZenSalon na VPS: `vps.zensalon.com.br` (entrada A `vps.zensalon.com.br` → 187.77.236.36, criada em 28/09/2026).
 
 ## Projeto PetShop (núcleo novo) — PAUSADO
 - Repo `jcnoga/petshop` (privado), pasta `C:\projetos\PetShop`, último commit `d65e7ba`.

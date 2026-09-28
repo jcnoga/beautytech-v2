@@ -1,4 +1,4 @@
-# ZenSalon na VPS (https://zensalon.99labpro.com.br), ramo git "vps".
+# ZenSalon na VPS (https://vps.zensalon.com.br), ramo git "vps".
 # Usa o Traefik que já existe (rede externa + labels), sem publicar portas e sem criar outro Traefik.
 # Banco no Postgres compartilhado da VPS (vps-migrator-postgres): bancos zensalon e gotrue_zensalon,
 # com papéis próprios (deploy/criar-banco.sh). Não toca em petshop-* nem nos bancos do PetShop.

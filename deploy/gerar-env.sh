@@ -1,11 +1,11 @@
 #!/bin/sh
 # Gera, NA VPS, o .env (infra) e o modelo do .env.api (integrações). Nunca sobrescreve arquivos existentes.
 # Os dois ficam só na VPS (chmod 600) e nunca vão para o git. Guarde uma cópia no seu gerenciador de senhas.
-# Uso: sh deploy/gerar-env.sh [domínio]   (padrão: zensalon.99labpro.com.br)
+# Uso: sh deploy/gerar-env.sh [domínio]   (padrão: vps.zensalon.com.br)
 set -eu
 cd "$(dirname "$0")/.."
 
-HOST="${1:-zensalon.99labpro.com.br}"
+HOST="${1:-vps.zensalon.com.br}"
 NETWORK="vps-migrator_default"
 DB_HOST="vps-migrator-postgres"
 umask 077

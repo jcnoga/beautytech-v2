@@ -1,6 +1,6 @@
 # Deploy do ZenSalon na VPS
 
-Teste em `https://zensalon.99labpro.com.br` (ramo git `vps`): web na raiz, API em `/api/v1`, GoTrue em `/auth/v1`, arquivos enviados em `/uploads`.
+Teste em `https://vps.zensalon.com.br` (ramo git `vps`): web na raiz, API em `/api/v1`, GoTrue em `/auth/v1`, arquivos enviados em `/uploads`.
 
 - Pasta na VPS: `/opt/apps/zensalon` (clone do repositório `jcnoga/beautytech-v2`, ramo `vps`).
 - Containers: `zensalon-web` (nginx), `zensalon-api`, `zensalon-gotrue`, na rede externa `vps-migrator_default`, **sem portas publicadas**; publicados pelo Traefik que já existe (labels em `docker-compose.vps.yml`). Não mexe em `petshop-*`.
@@ -16,7 +16,7 @@ C="docker compose -f docker-compose.vps.yml"
 
 ## Antes: DNS
 
-No Registro.br, zona de `99labpro.com.br` → Nova entrada tipo **A**: `zensalon` → `187.77.236.36`. Confirme com `dig +short zensalon.99labpro.com.br`.
+Entrada tipo **A** `vps.zensalon.com.br` → `187.77.236.36` na zona DNS de `zensalon.com.br`. Confirme com `dig +short vps.zensalon.com.br`.
 
 ## Primeiro deploy
 
@@ -46,8 +46,8 @@ sh deploy/retrato.sh > /tmp/zensalon-depois.txt && diff /tmp/zensalon-antes.txt 
 ## Verificar
 
 ```bash
-curl -s https://zensalon.99labpro.com.br/auth/v1/health            # versão do GoTrue
-curl -s https://zensalon.99labpro.com.br/api/v1/plan-info -o /dev/null -w '%{http_code}\n'   # 401 = API no ar
+curl -s https://vps.zensalon.com.br/auth/v1/health            # versão do GoTrue
+curl -s https://vps.zensalon.com.br/api/v1/plan-info -o /dev/null -w '%{http_code}\n'   # 401 = API no ar
 $C ps
 $C logs --tail 50 zensalon-api
 ```

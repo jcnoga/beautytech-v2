@@ -7,7 +7,7 @@ Copia **tudo** do ZenSalon para a VPS, sem alterar o Supabase (só leitura):
 | Banco: 56 tabelas com todos os dados | schema `public` | banco `zensalon` (dono `zensalon_app`) | `deploy/copiar-banco.sh` |
 | Usuários (mesmos IDs e senhas) | `auth.users`, `auth.identities` | banco `gotrue_zensalon` | `scripts/migracao/copiar-usuarios.ts` |
 | Arquivos (logo, capa, fotos) | bucket `tenant-assets` | volume `zensalon_uploads`, pasta `tenant-assets/` | `scripts/migracao/copiar-arquivos.ts` |
-| URLs gravadas no banco | `https://<ref>.supabase.co/storage/v1/object/public/tenant-assets/...` | `https://zensalon.99labpro.com.br/uploads/tenant-assets/...` | idem (mesmo script) |
+| URLs gravadas no banco | `https://<ref>.supabase.co/storage/v1/object/public/tenant-assets/...` | `https://vps.zensalon.com.br/uploads/tenant-assets/...` | idem (mesmo script) |
 
 As 4 tabelas do bot (`sessoes_salao`, `atendimentos_humanos`, `bot_mensagens_log`, `configuracoes`), `prospect_campaigns` e `subscriptions` vão junto na cópia do banco, embora fiquem fora do Drizzle.
 
@@ -60,7 +60,7 @@ $C up -d zensalon-api zensalon-web
 unset SUPABASE_DB_URL
 ```
 
-- Entrar em `https://zensalon.99labpro.com.br` com um usuário real (a senha é a mesma do site atual).
+- Entrar em `https://vps.zensalon.com.br` com um usuário real (a senha é a mesma do site atual).
 - Conferir logo/capa do salão e foto de um profissional (devem vir de `/uploads/tenant-assets/...`).
 - Conferir agenda, clientes e financeiro de um salão.
 
