@@ -17,6 +17,8 @@ import AuditLogsPage from './AuditLogsPage';
 import OnboardingWizard from './OnboardingWizard';
 import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
+import { can, setCurrentBusinessType } from './config/nicho';
+import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type Feature } from './config/features';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
@@ -925,10 +927,10 @@ function ClientsPage() {
     { key:"lastVisitAt", label:"Ultima Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
     { key:"action", label:"", render: (c: any) => (
       <div style={{ display:"flex", gap:6 }}>
-        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setClinicClient(c); }} style={{ background:"#7c3aed22", color:"#7c3aed", border:"1px solid #7c3aed44" }}>Clinica</Btn>
+        {can("clinical_records") && <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setClinicClient(c); }} style={{ background:"#7c3aed22", color:"#7c3aed", border:"1px solid #7c3aed44" }}>Clinica</Btn>}
         <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn>
-        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setAnamneseClient(c); }}>Anamnese</Btn>
-        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setLgpdClient(c); }}>LGPD</Btn>
+        {can("clinical_records") && <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setAnamneseClient(c); }}>Anamnese</Btn>}
+        {can("consent_forms") && <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setLgpdClient(c); }}>LGPD</Btn>}
       </div>
     )},
   ];
@@ -2705,6 +2707,19 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     load();
   };
 
+  // Nicho da empresa: define quais telas e funções ela vê (config/features.ts). Só o Super Admin troca.
+  const changeBusinessType = async (id: string, businessType: string) => {
+    const label = BUSINESS_TYPE_LABELS[businessType as keyof typeof BUSINESS_TYPE_LABELS] ?? businessType;
+    if (!confirm(`Trocar o nicho desta empresa para "${label}"? As telas e funções disponíveis mudam na hora.`)) return;
+    try {
+      await saFetch("PATCH", `/super-admin/tenants/${id}`, { businessType });
+      setSelected((s: any) => (s && s.id === id ? { ...s, businessType } : s));
+      load();
+    } catch (e: any) {
+      alert("Erro ao trocar o nicho: " + (e?.message ?? "erro desconhecido"));
+    }
+  };
+
   const unblock = async (id: string) => {
     await saFetch("POST", `/super-admin/tenants/${id}/unblock`);
     load();
@@ -2839,6 +2854,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
         {t.phone && <div style={{ fontSize:11, color:C.textMuted }}>{t.phone}</div>}
       </div>
     )},
+    { key:"businessType", label:"Nicho", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{BUSINESS_TYPE_LABELS[(t.businessType || "beauty_salon") as keyof typeof BUSINESS_TYPE_LABELS] ?? t.businessType}</span> },
     { key:"trialStatus", label:"Status", render: (t: any) => {
       const s = TRIAL_STATUS[t.trialStatus];
       return <Badge label={s?.label ?? t.trialStatus} color={s?.color ?? C.textMuted} />;
@@ -2987,6 +3003,16 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                   <div style={{ fontSize:13, color:C.text }}>{fmtDate(selected.trialEndsAt)}</div>
                 </div>
               </div>
+            </div>
+
+            {/* Nicho */}
+            <div style={{ background:C.surface, borderRadius:12, padding:16, marginBottom:20 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>Nicho</div>
+              <select value={selected.businessType || "beauty_salon"} onChange={(e) => changeBusinessType(selected.id, e.target.value)}
+                style={{ width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:13 }}>
+                {BUSINESS_TYPES.map((bt) => <option key={bt} value={bt}>{BUSINESS_TYPE_LABELS[bt]}</option>)}
+              </select>
+              <div style={{ fontSize:11, color:C.textMuted, marginTop:8 }}>Define quais telas e funções a empresa vê.</div>
             </div>
 
             {/* Status WhatsApp */}
@@ -3919,6 +3945,15 @@ function TrialBanner() {
 }
 
 // --- SIDEBAR -------------------------------------------------
+// Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
+const PAGE_FEATURES: Record<string, Feature> = {
+  dashboard: "dashboard", performance: "performance", agenda: "agenda", clients: "clients",
+  professionals: "professionals", services: "services", packages: "packages", financial: "financial",
+  commissions: "commissions", crm: "crm", fidelity: "loyalty", whatsapp: "whatsapp",
+  automations: "automations", notifications: "notifications", pricing: "subscription",
+  checkout: "subscription", settings: "settings", auditlogs: "audit_logs", ajuda: "help",
+};
+
 const MENU_GROUPS = [
   {
     group: "VISAO GERAL",
@@ -3983,6 +4018,9 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
     api.get<any>("/plan-info").then((r: any) => setPlanInfo(r.data)).catch(() => {});
   }, []);
   const isFree = planInfo?.effectivePlan === "basic";
+  const menuGroups = MENU_GROUPS
+    .map((g: any) => ({ ...g, items: g.items.filter((m: any) => can(PAGE_FEATURES[m.id], tenantInfo?.businessType)) }))
+    .filter((g: any) => g.items.length > 0);
   return (
     <>
       {isMobile && (
@@ -4001,10 +4039,10 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
           <div style={{ width:72, height:72, borderRadius:"50%", background:`${C.rose}20`, border:`2px solid ${C.rose}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 10px" }}>?</div>
         )}
         <div style={{ fontSize:20, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:4 }}>{tenantInfo?.name ?? "ZenSalon"}</div>
-        <div style={{ fontSize:13, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
+        <div style={{ fontSize:13, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "pilates" ? "Studio de Pilates" : tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
       </div>
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
-        {MENU_GROUPS.map((group: any, gi: number) => (
+        {menuGroups.map((group: any, gi: number) => (
           <div key={gi}>
             <div style={{ fontSize:9, fontWeight:700, color: C.textMuted, letterSpacing:"0.15em", padding:"12px 10px 4px", opacity:0.6 }}>
               {group.group}
@@ -4021,7 +4059,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
                 </button>
               );
             })}
-            {gi < MENU_GROUPS.length - 1 && (
+            {gi < menuGroups.length - 1 && (
               <div style={{ height:1, background: C.border, margin:"6px 10px" }} />
             )}
           </div>
@@ -4074,7 +4112,7 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
+      if (session?.user || sessionStorage.getItem("impersonation_token")) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
@@ -4125,7 +4163,11 @@ const logout = async () => {
   if (discoveryMatch) return <DiscoveryPage />;
   if (isRootDomain && !appMatch) return <HomePage />;
   if (isRootDomain && !appMatch) return <HomePage />;
-  const PageComponent = PAGES[page] ?? PAGES["dashboard"];
+  // Nicho: tela não permitida cai na primeira liberada (o bloqueio real é o 403 do backend).
+  setCurrentBusinessType(tenantInfo?.businessType ?? null);
+  const canPage = (id: string) => can(PAGE_FEATURES[id], tenantInfo?.businessType);
+  const pageId = canPage(page) ? page : (["dashboard", "settings"].find(canPage) ?? "settings");
+  const PageComponent = PAGES[pageId] ?? PAGES["settings"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>ZenSalon</div>
@@ -4149,7 +4191,7 @@ const logout = async () => {
         select option { background:${C.surface}; color:${C.text}; }
         a { transition: opacity .15s; } a:hover { opacity:.8; }
       `}</style>
-      <Sidebar page={page} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
+      <Sidebar page={pageId} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft: isMobile ? 0 : 220, padding: isMobile ? "70px 16px 16px" : 36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner />
         <PageComponent />

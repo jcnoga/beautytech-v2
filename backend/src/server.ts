@@ -3,50 +3,16 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
-// asaasModule substituido por billingRoutes
-import { teamModule } from "./modules/team.module.js";
-import { uploadsModule } from "./modules/uploads.module.js";
 import { sendWelcomeEmail } from "./modules/email.module.js";
-import { prospectModule } from "./modules/prospect.module.js";
-import { billingRoutes } from "./modules/billing/billing.routes.js";
-import { professionalScheduleRoutes } from "./modules/professionals/professional-schedule.routes.js";
 import { loadPlansFromDb } from "./modules/billing/billing.service.js";
 
-import { publicBookingModule } from "./modules/appointments/appointments.routes.js";
-import { autoReplyController } from "./modules/auto-reply/auto-reply.controller.js";
-import { salonProfilePublicModule } from "./modules/salon-profile/salon-profile.routes.js";
-import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
 import { env } from "./config/env.js";
 import { checkDatabaseHealth, closeDatabaseConnection } from "./db/connection.js";
 import { startScheduler } from "./jobs/scheduler.js";
 import { authenticate } from "./middleware/auth.js";
 
-import {
-  clientsModule,
-  demoModule,
-  professionalsModule,
-  appointmentsModule,
-  servicesModule,
-  packagesModule,
-  financialModule,
-  commissionsModule,
-  dashboardModule,
-  crmModule,
-  loyaltyModule,
-  campaignsModule,
-  productsModule,
-  authModule,
-  superAdminModule,
-  automationsModule,
-  whatsappModule,
-  clientRecordsModule,
-  consentFormsModule,
-  appointmentPhotosModule,
-  protocolsModule,
-  protocolSessionsModule,
-  treatmentPackagesModule,
-  packageSessionsModule,
-} from "./modules/all-modules.js";
+import { API_MODULES } from "./api-modules.js";
+import { installFeatureGuard } from "./middleware/feature-guard.js";
 
 const server = Fastify({
   logger: { level: env.LOG_LEVEL },
@@ -84,40 +50,9 @@ async function bootstrap() {
   });
 
   const prefix = env.API_PREFIX;
-  await server.register(authModule,               { prefix });
-  await server.register(clientsModule,            { prefix });
-  await server.register(professionalsModule,      { prefix });
-  await server.register(appointmentsModule,       { prefix });
-  await server.register(servicesModule,           { prefix });
-  await server.register(packagesModule,           { prefix });
-  await server.register(financialModule,          { prefix });
-  await server.register(commissionsModule,        { prefix });
-  await server.register(dashboardModule,          { prefix });
-  await server.register(crmModule,                { prefix });
-  await server.register(loyaltyModule,            { prefix });
-  await server.register(campaignsModule,          { prefix });
-  await server.register(productsModule,           { prefix });
-  await server.register(superAdminModule,         { prefix });
-  await server.register(prospectModule,          { prefix });
-  await server.register(automationsModule,        { prefix });
-  await server.register(whatsappModule,           { prefix });
-  await server.register(teamModule,              { prefix });
-  await server.register(uploadsModule,            { prefix });
-  await server.register(clientRecordsModule,      { prefix });
-  await server.register(consentFormsModule,       { prefix });
-  await server.register(appointmentPhotosModule,  { prefix });
-  await server.register(protocolsModule,          { prefix });
-  await server.register(protocolSessionsModule,   { prefix });
-  await server.register(treatmentPackagesModule,  { prefix });
-  await server.register(packageSessionsModule,    { prefix });
-  await server.register(demoModule,               { prefix });
-  await server.register(billingRoutes,            { prefix });
-  await server.register(professionalScheduleRoutes, { prefix });
-  // asaasModule desativado - substituido por billingRoutes
-  await server.register(publicBookingModule,      { prefix });
-  await server.register(autoReplyController, { prefix });
-  await server.register(salonProfilePublicModule, { prefix });
-  await server.register(tenantPublicModule,       { prefix });
+  // Controle de funcionalidades por nicho: instalado antes dos módulos para valer em todas as rotas.
+  installFeatureGuard(server, prefix);
+  for (const mod of API_MODULES) await server.register(mod as any, { prefix });
 
   await loadPlansFromDb();
   await server.listen({ port: env.PORT, host: env.HOST });

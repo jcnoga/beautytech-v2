@@ -11,6 +11,8 @@ export interface TenantContext {
   tenantId: string;
   userId:   string;
   role:     string;
+  /** tenants.business_type (controle de funcionalidades por nicho, ver config/features.ts). */
+  businessType?: string | null;
 }
 declare module "fastify" {
   interface FastifyRequest { tenantContext: TenantContext; }
@@ -29,7 +31,8 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
       const jwt = await import("jsonwebtoken");
       const imp = jwt.default.verify(token, process.env.SUPER_ADMIN_SECRET!) as any;
       if (imp?.impersonation === true && imp?.tenantId && imp?.userId) {
-        req.tenantContext = { tenantId: imp.tenantId, userId: imp.userId, role: imp.role ?? "owner" };
+        const [t] = await db.select({ businessType: tenants.businessType }).from(tenants).where(eq(tenants.id, imp.tenantId)).limit(1);
+        req.tenantContext = { tenantId: imp.tenantId, userId: imp.userId, role: imp.role ?? "owner", businessType: t?.businessType ?? null };
         return;
       }
     } catch (_) { /* nao e impersonation token, continuar com o GoTrue */ }
@@ -39,7 +42,7 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
     const cached = null; // cache desabilitado temporariamente
     if (cached && cached.exp > Date.now()) { req.tenantContext = cached.data; return; }
     const [profile] = await db
-      .select({ tenantId: userProfiles.tenantId, role: userProfiles.role, tenantDeletedAt: tenants.deletedAt })
+      .select({ tenantId: userProfiles.tenantId, role: userProfiles.role, tenantDeletedAt: tenants.deletedAt, businessType: tenants.businessType })
       .from(userProfiles)
       .leftJoin(tenants, eq(tenants.id, userProfiles.tenantId))
       .where(eq(userProfiles.authUserId, userId)).limit(1);
@@ -51,7 +54,7 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
       reply.status(403).send({ success: false, error: "SalÃ£o desativado", code: "TENANT_DELETED" });
       return;
     }
-    const ctx: TenantContext = { tenantId: profile.tenantId, userId, role: profile.role };
+    const ctx: TenantContext = { tenantId: profile.tenantId, userId, role: profile.role, businessType: profile.businessType };
     // cache.set(userId, { data: ctx, exp: Date.now() + 10_000 });
     req.tenantContext = ctx;
   } catch (err: unknown) {

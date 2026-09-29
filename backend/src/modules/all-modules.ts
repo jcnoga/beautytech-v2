@@ -10,6 +10,7 @@ import { eq, and, ilike, isNull, desc, gte, lte, sql, count } from "drizzle-orm"
 import { db } from "@db/connection";
 import postgres from "postgres";
 import { env, EMAIL_FROM } from "@config/env";
+import { normalizeBusinessType, isFeatureAllowed } from "@config/features";
 const _rawClient = postgres(env.POSTGRES_URL, { prepare: false, ssl: env.POSTGRES_SSL ? { rejectUnauthorized: false } : false });
 import {
   clients, professionals, appointments, appointmentServices,
@@ -1366,6 +1367,12 @@ export async function authModule(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: "Senha deve ter no m├âãÆ├åÔÇÖ├âÔÇÜ├é┬¡nimo 6 caracteres" });
     }
 
+    // Nicho: vazio = salão (padrão); valor fora da lista = recusado antes de criar qualquer coisa.
+    const businessTypeOk = normalizeBusinessType(businessType);
+    if (!businessTypeOk) {
+      return reply.status(400).send({ success: false, error: "Tipo de negócio inválido", code: "INVALID_BUSINESS_TYPE" });
+    }
+
     // Criar usu├âãÆ├åÔÇÖ├âÔÇÜ├é┬írio via API REST do Supabase (sem SDK)
     const authRes = await gotrueAdmin("/admin/users", {
       method: "POST",
@@ -1392,8 +1399,8 @@ export async function authModule(fastify: FastifyInstance) {
         aesthetics_clinic: ["Limpeza de Pele", "Peeling", "Microagulhamento", "Depilacao", "Massagem Estetica"],
         barbershop: ["Corte Masculino", "Barba", "Pigmentacao", "Sobrancelha Masculina", "Tratamento Capilar"],
       }
-      const resolvedBusinessType = (businessType && categoriesByType[businessType as keyof typeof categoriesByType]) ? businessType : "beauty_salon"
-      const defaultCategories = categoriesByType[resolvedBusinessType as keyof typeof categoriesByType]
+      const resolvedBusinessType = businessTypeOk
+      const defaultCategories: string[] = categoriesByType[resolvedBusinessType as keyof typeof categoriesByType] ?? []
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2,7),
@@ -1429,7 +1436,7 @@ export async function authModule(fastify: FastifyInstance) {
         isActive: true,
       });
 
-      await db.insert(serviceCategories).values(
+      if (defaultCategories.length) await db.insert(serviceCategories).values(
         defaultCategories.map((name, i) => ({
           tenantId: tenant.id,
           name,
@@ -1441,7 +1448,8 @@ export async function authModule(fastify: FastifyInstance) {
       // Popula o tenant com dados demo automaticamente (profissionais, servicos,
       // horarios, clientes e agendamentos de exemplo), chamando a rota /demo/seed
       // internamente via fastify.inject (sem requisicao de rede real).
-      try {
+      // So para nichos com a funcionalidade "demo" (ver config/features.ts).
+      if (isFeatureAllowed("demo", resolvedBusinessType)) try {
         const jwt = await import("jsonwebtoken");
         const demoToken = jwt.default.sign(
           {
@@ -1689,7 +1697,7 @@ export async function superAdminModule(fastify: FastifyInstance) {
     const { search, status } = req.query as any;
     const cond: any[] = [isNull(tenants.deletedAt)];
     if (search) cond.push(ilike(tenants.name, `%${search}%`));
-    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers, whatsapp_status: tenants.whatsappStatus, whatsapp_phone: tenants.whatsappPhone, whatsapp_connected_at: tenants.whatsappConnectedAt, whatsapp_mode: tenants.whatsappMode }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
+    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, businessType: tenants.businessType, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers, whatsapp_status: tenants.whatsappStatus, whatsapp_phone: tenants.whatsappPhone, whatsapp_connected_at: tenants.whatsappConnectedAt, whatsapp_mode: tenants.whatsappMode }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
     const now = new Date();
     const enriched = data.map(t => {
       const trialEnd = t.trialEndsAt ? new Date(t.trialEndsAt) : null;
@@ -1713,8 +1721,14 @@ export async function superAdminModule(fastify: FastifyInstance) {
   });
 
   fastify.patch("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
-    const { trialDays, planTier, isActive, maxUsers } = req.body as any;
+    const { trialDays, planTier, isActive, maxUsers, businessType } = req.body as any;
     const updates: any = { updatedAt: new Date() };
+    // Nicho: só o Super Admin troca, e só para um valor da lista.
+    if (businessType !== undefined) {
+      const bt = businessType ? normalizeBusinessType(businessType) : null;
+      if (!bt) return reply.status(400).send({ success: false, error: "Tipo de negócio inválido", code: "INVALID_BUSINESS_TYPE" });
+      updates.businessType = bt;
+    }
     if (planTier  !== undefined) updates.planTier  = planTier;
     if (isActive  !== undefined) updates.isActive  = isActive;
     if (maxUsers         !== undefined) updates.maxUsers         = maxUsers;

@@ -22,6 +22,13 @@
       "when": 1790628581307,
       "tag": "0002_minor_mantis",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1790700000000,
+      "tag": "0003_business_type_check",
+      "breakpoints": true
     }
   ]
 }
