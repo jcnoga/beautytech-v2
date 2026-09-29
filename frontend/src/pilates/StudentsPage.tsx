@@ -12,14 +12,14 @@ const EMPTY = {
   goal: "", level: "beginner", startDate: "", weeklyFrequency: "", status: "active", instructorId: "",
   notes: "", emergencyContactName: "", emergencyContactPhone: "", initialAssessmentDate: "", declaredRestrictions: "",
 };
-const FILTERS = [["", "Todos"], ["active", "Ativos"], ["paused", "Pausados"], ["inactive", "Inativos"], ["cancelled", "Cancelados"]];
+const FILTERS = [["", "Todos"], ["active", "Ativos"], ["paused", "Pausados"], ["inactive", "Inativos"], ["cancelled", "Cancelados"], ["incomplete", "Ficha incompleta"]];
 
 export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
   const t = { C, FD, FB };
   const [students, setStudents] = useState<any[]>([]);
   const [instructors, setInstructors] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
-  const [status, setStatus] = useState("active");
+  const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,10 +48,10 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
   const open = async (s: any | null) => {
     setFormError("");
     setEditing(s ?? {});
-    setForm(s ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, s[k] ?? ""])) : { ...EMPTY, startDate: todaySP() });
+    setForm(s ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, s[k] ?? (EMPTY as any)[k]])) : { ...EMPTY, startDate: todaySP() });
     setEnrollments([]); setConsent(null);
     setEnroll({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
-    if (s?.id) {
+    if (s?.id && s.hasProfile) {
       api.get<any>("/pilates/enrollments", { studentId: s.id }).then((r) => setEnrollments(r.data ?? [])).catch(() => {});
       api.get<any>(`/consent-forms/${s.id}`).then((r) => setConsent((r.data ?? []).find((c: any) => c.type === "lgpd") ?? null)).catch(() => {});
     }
@@ -65,7 +65,7 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
     try {
       const r: any = editing?.id ? await api.patch(`/pilates/students/${editing.id}`, body) : await api.post("/pilates/students", body);
       await load();
-      if (!editing?.id) await open(r.data); else setEditing(r.data);
+      if (!editing?.id || !editing.hasProfile) await open(r.data); else setEditing(r.data);
     } catch (e: any) { setFormError(e.message); }
     finally { setSaving(false); }
   };
@@ -132,8 +132,11 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
               <Card key={s.id} C={C} onClick={() => open(s)}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
                   <div style={{ fontWeight: 700, color: C.text, fontSize: 15 }}>{s.fullName}</div>
-                  <Badge label={st.label} color={st.color(C)} />
+                  {s.hasProfile ? <Badge label={st.label} color={st.color(C)} /> : <Badge label="Ficha de Pilates incompleta" color={C.gold} />}
                 </div>
+                {!s.hasProfile ? (
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>Cliente do studio sem ficha de Pilates. Toque para completar.</div>
+                ) : (<>
                 <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
                   {LEVEL_LABELS[s.level] ?? s.level}{s.instructorName ? ` · Instrutor: ${s.instructorName}` : ""}
                 </div>
@@ -141,6 +144,7 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
                   {s.activeEnrollments > 0 ? `${s.activeEnrollments} matrícula(s) ativa(s)` : "Sem matrícula ativa"}
                 </div>
                 {s.declaredRestrictions && <div style={{ fontSize: 12, color: C.gold, marginTop: 6 }}>⚠ {s.declaredRestrictions}</div>}
+                </>)}
               </Card>
             );
           })}
@@ -149,6 +153,9 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
 
       <Modal {...t} open={editing !== null} onClose={() => setEditing(null)} title={editing?.id ? `Aluno: ${editing.fullName}` : "Novo aluno"}>
         {formError && <Notice C={C}>{formError}</Notice>}
+        {editing?.id && !editing.hasProfile && (
+          <Notice C={C} kind="info">Ficha de Pilates incompleta: confira os dados abaixo e salve para completar. O cadastro do cliente é o mesmo (nada é duplicado).</Notice>
+        )}
         <Section C={C} title="Dados do aluno">
           <Field C={C} label="Nome completo"><input value={form.fullName} onChange={set("fullName")} style={inp} autoFocus /></Field>
           <Grid>
@@ -199,10 +206,10 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
         </Section>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", margin: "8px 0 4px" }}>
           <Button {...t} variant="secondary" onClick={() => setEditing(null)}>Fechar</Button>
-          <Button {...t} onClick={save} disabled={saving}>{saving ? "Salvando..." : editing?.id ? "Salvar alterações" : "Cadastrar aluno"}</Button>
+          <Button {...t} onClick={save} disabled={saving}>{saving ? "Salvando..." : !editing?.id ? "Cadastrar aluno" : editing.hasProfile ? "Salvar alterações" : "Completar ficha"}</Button>
         </div>
 
-        {editing?.id && (
+        {editing?.id && editing.hasProfile && (
           <>
             <Section C={C} title="Matrículas">
               {enrollments.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 10 }}>Nenhuma matrícula ainda.</div>}

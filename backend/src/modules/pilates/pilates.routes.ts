@@ -54,6 +54,8 @@ function endAfterDays(start: string, days: number) {
 // ─── consultas ──────────────────────────────────────────────────────────────
 const studentFields = {
   id: clients.id,
+  // false = cliente do studio ainda sem ficha de Pilates ("ficha incompleta"); salvar a ficha a cria.
+  hasProfile: sql<boolean>`("pilates_student_profiles"."id" IS NOT NULL)`,
   fullName: clients.fullName,
   phone: clients.phone,
   whatsapp: clients.whatsapp,
@@ -75,9 +77,10 @@ const studentFields = {
     WHERE e.client_id = "clients"."id" AND e.tenant_id = "clients"."tenant_id" AND e.status = 'active')`,
 };
 
+/** Todos os clientes do studio, com a ficha de Pilates quando existir (mesmo cadastro, sem duplicar). */
 function studentsQuery(tenantId: string) {
   return db.select(studentFields).from(clients)
-    .innerJoin(pilatesStudentProfiles, and(eq(pilatesStudentProfiles.clientId, clients.id), eq(pilatesStudentProfiles.tenantId, tenantId)))
+    .leftJoin(pilatesStudentProfiles, and(eq(pilatesStudentProfiles.clientId, clients.id), eq(pilatesStudentProfiles.tenantId, tenantId)))
     .leftJoin(professionals, eq(professionals.id, pilatesStudentProfiles.instructorId));
 }
 
@@ -114,7 +117,8 @@ export async function pilatesModule(fastify: FastifyInstance) {
     const { tenantId } = req.tenantContext;
     const { status, search } = req.query as any;
     const cond = [eq(clients.tenantId, tenantId), isNull(clients.deletedAt)];
-    if (typeof status === "string" && status) cond.push(eq(pilatesStudentProfiles.status, status));
+    if (status === "incomplete") cond.push(isNull(pilatesStudentProfiles.id));
+    else if (typeof status === "string" && status) cond.push(eq(pilatesStudentProfiles.status, status));
     if (typeof search === "string" && search.trim()) cond.push(ilike(clients.fullName, `%${search.trim()}%`));
     const data = await studentsQuery(tenantId).where(and(...cond)).orderBy(asc(clients.fullName));
     return reply.send({ success: true, data: data.map((r) => withDays(r, STUDENT_DAYS)) });
@@ -168,7 +172,10 @@ export async function pilatesModule(fastify: FastifyInstance) {
         await tx.update(clients).set({ ...(clientData as any), updatedBy: userId, updatedAt: new Date() })
           .where(and(eq(clients.id, current.id), eq(clients.tenantId, tenantId)));
       }
-      if (Object.keys(profileData).length) {
+      if (!current.hasProfile) {
+        // Cliente sem ficha: salvar cria a ficha de Pilates (completa o cadastro).
+        await tx.insert(pilatesStudentProfiles).values({ ...(profileData as any), tenantId, clientId: current.id });
+      } else if (Object.keys(profileData).length) {
         await tx.update(pilatesStudentProfiles).set({ ...(profileData as any), updatedAt: new Date() })
           .where(and(eq(pilatesStudentProfiles.clientId, current.id), eq(pilatesStudentProfiles.tenantId, tenantId)));
       }
@@ -318,7 +325,9 @@ export async function pilatesModule(fastify: FastifyInstance) {
   fastify.post("/pilates/enrollments", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(enrollmentCreateDto, req, reply); if (!body) return;
-    if (!(await findStudent(tenantId, body.studentId))) return notFound(reply, "Aluno nao encontrado");
+    const student = await findStudent(tenantId, body.studentId);
+    if (!student) return notFound(reply, "Aluno nao encontrado");
+    if (!student.hasProfile) return reply.status(400).send({ success: false, error: "Complete a ficha de Pilates do aluno antes de matricular", code: "INCOMPLETE_PROFILE" });
     const plan = await findPlan(tenantId, body.planId);
     if (!plan) return notFound(reply, "Plano nao encontrado");
     if (plan.status !== "active") return reply.status(400).send({ success: false, error: "Plano inativo" });

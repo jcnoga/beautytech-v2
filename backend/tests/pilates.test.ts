@@ -147,7 +147,11 @@ test("alunos: edição, lista, filtro e isolamento", async () => {
   const pausados = data(await call("GET", "/pilates/students?status=paused", A.token));
   assert.deepEqual(pausados.map((s: any) => s.id), [alunoA]);
   const todos = data(await call("GET", "/pilates/students", A.token));
-  assert.ok(todos.every((s: any) => s.id !== A.client), "cliente sem dados de Pilates não aparece como aluno");
+  const semFicha = todos.find((s: any) => s.id === A.client);
+  assert.ok(semFicha, "cliente do studio sem ficha aparece na lista (mesmo cadastro)");
+  assert.equal(semFicha.hasProfile, false);
+  assert.equal(todos.find((s: any) => s.id === alunoA).hasProfile, true);
+  assert.deepEqual(data(await call("GET", "/pilates/students?status=incomplete", A.token)).map((s: any) => s.id), [A.client]);
   assert.ok(todos.every((s: any) => s.id !== alunoB));
 
   assert.equal((await call("GET", `/pilates/students/${alunoB}`, A.token)).statusCode, 404);
@@ -229,10 +233,26 @@ test("matrículas: plano inativo, aluno/plano de outra empresa e isolamento", as
   assert.equal((await call("POST", "/pilates/enrollments", A.token, { studentId: alunoA, planId: experimental, startDate: "2026-10-01" })).statusCode, 400);
   assert.equal((await call("POST", "/pilates/enrollments", A.token, { studentId: alunoB, planId: pacote10, startDate: "2026-10-01" })).statusCode, 404);
   assert.equal((await call("POST", "/pilates/enrollments", A.token, { studentId: alunoA, planId: planoB, startDate: "2026-10-01" })).statusCode, 404);
-  assert.equal((await call("POST", "/pilates/enrollments", A.token, { studentId: A.client, planId: pacote10, startDate: "2026-10-01" })).statusCode, 404, "cliente sem dados de Pilates não é aluno");
+  const incompleta = await call("POST", "/pilates/enrollments", A.token, { studentId: A.client, planId: pacote10, startDate: "2026-10-01" });
+  assert.equal(incompleta.statusCode, 400, "matrícula exige a ficha de Pilates");
+  assert.equal(incompleta.json().code, "INCOMPLETE_PROFILE");
   const eB = data(await call("POST", "/pilates/enrollments", B.token, { studentId: alunoB, planId: planoB, startDate: "2026-10-01" }));
   assert.equal((await call("PATCH", `/pilates/enrollments/${eB.id}`, A.token, { status: "cancelled" })).statusCode, 404);
   assert.deepEqual(data(await call("GET", `/pilates/enrollments?studentId=${alunoB}`, A.token)), []);
+});
+
+test("ficha incompleta: salvar cria a ficha no mesmo cadastro, sem duplicar", async () => {
+  const antes = (await sql`SELECT count(*)::int AS n FROM clients WHERE tenant_id = ${A.id}`)[0].n;
+  const res = await call("PATCH", `/pilates/students/${A.client}`, A.token, { level: "beginner", goal: "Postura" });
+  assert.equal(res.statusCode, 200, res.body);
+  assert.equal(data(res).hasProfile, true);
+  assert.equal(data(res).goal, "Postura");
+  const depois = (await sql`SELECT count(*)::int AS n FROM clients WHERE tenant_id = ${A.id}`)[0].n;
+  assert.equal(depois, antes, "não cria outro cliente");
+  const [p] = await sql`SELECT count(*)::int AS n FROM pilates_student_profiles WHERE client_id = ${A.client}`;
+  assert.equal(p.n, 1);
+  const m = await call("POST", "/pilates/enrollments", A.token, { studentId: A.client, planId: pacote10, startDate: "2026-10-01" });
+  assert.equal(m.statusCode, 201, "com a ficha completa, matricula normalmente");
 });
 
 // ─── nichos e Super Admin ───────────────────────────────────────────────────

@@ -5,4 +5,4 @@ set -eu
 cd "$(dirname "$0")/../backend"
 mkdir -p ../dev-local/uploads
 export DOTENV_CONFIG_PATH=../dev-local/.env.backend
-exec npx tsx src/server.ts
+exec npx tsx watch src/server.ts   # recarrega sozinho quando o código muda
