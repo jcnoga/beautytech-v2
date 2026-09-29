@@ -301,7 +301,7 @@ function RegisterPage({ onBack }: any) {
             ))}
           </div>
           <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
-          <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
+          <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>ZenSalon</div>
           <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
@@ -404,7 +404,7 @@ function ForgotPasswordPage({ onBack }: any) {
 }
 
 function LoginPage({ onLogin }: any) {
-  const [email, setEmail] = useState("admin@beautytech.com.br");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -427,7 +427,7 @@ function LoginPage({ onLogin }: any) {
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12, fontFamily: FB }}>Sistema de Gestao</div>
-          <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>BeautyTech</div>
+          <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>ZenSalon</div>
           <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
@@ -820,7 +820,7 @@ function ClientsPage() {
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Relatorio de Clientes - BeautyTech", 14, 20);
+    doc.text("Relatorio de Clientes - ZenSalon", 14, 20);
     doc.setFontSize(11);
     doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
     doc.text(`Total de clientes: ${filtered.length}`, 14, 36);
@@ -1611,7 +1611,7 @@ function ProfessionalsPage() {
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.text("Relatorio Financeiro - ZenSalon", 14, 20);
     doc.setFontSize(11);
     doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
     doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
@@ -2126,7 +2126,7 @@ function FinancialPage() {
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.text("Relatorio Financeiro - ZenSalon", 14, 20);
     doc.setFontSize(11);
     doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
     doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
@@ -2284,7 +2284,7 @@ function CommissionsPage() {
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Relatorio de Comissoes - BeautyTech", 14, 20);
+    doc.text("Relatorio de Comissoes - ZenSalon", 14, 20);
     doc.setFontSize(11);
     doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
     const rows = data.map((c: any) => [
@@ -2384,7 +2384,7 @@ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Relatorio Financeiro - BeautyTech", 14, 20);
+    doc.text("Relatorio Financeiro - ZenSalon", 14, 20);
     doc.setFontSize(11);
     doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
     doc.text(`Receitas: R$ ${Number(summary.revenue).toFixed(2)}  |  Despesas: R$ ${Number(summary.expenses).toFixed(2)}  |  Lucro: R$ ${Number(summary.profit).toFixed(2)}`, 14, 36);
@@ -2566,7 +2566,7 @@ function FidelityPage() {
 
 function SuperAdminApp() {
   const [token, setToken]     = useState<string | null>(() => sessionStorage.getItem("sa_token"));
-  const [email, setEmail]     = useState("superadmin@beautytech.com.br");
+  const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -2601,7 +2601,7 @@ function SuperAdminApp() {
         <div style={{ textAlign:"center", marginBottom:40 }}>
           <div style={{ fontSize:12, letterSpacing:"0.3em", color:C.gold, textTransform:"uppercase", marginBottom:8 }}>Acesso Restrito</div>
           <div style={{ fontSize:36, fontWeight:700, color:C.text, fontFamily:FD }}>Super Admin</div>
-          <div style={{ fontSize:13, color:C.textMuted, marginTop:6 }}>BeautyTech Enterprise v2</div>
+          <div style={{ fontSize:13, color:C.textMuted, marginTop:6 }}>ZenSalon</div>
         </div>
         <div style={{ background:C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:32 }}>
           <Inp label="E-mail" value={email} onChange={setEmail} type="email" />
@@ -2882,7 +2882,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       {/* Header */}
       <div style={{ background:C.card, borderBottom:`1px solid ${C.border}`, padding:"16px 32px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-          <div style={{ fontSize:20, fontWeight:700, color:C.text, fontFamily:FD }}>BeautyTech</div>
+          <div style={{ fontSize:20, fontWeight:700, color:C.text, fontFamily:FD }}>ZenSalon</div>
           <Badge label="SUPER ADMIN" color={C.gold} />
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:16 }}>
@@ -4128,7 +4128,7 @@ const logout = async () => {
   const PageComponent = PAGES[page] ?? PAGES["dashboard"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>BeautyTech</div>
+      <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>ZenSalon</div>
     </div>
   );
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
