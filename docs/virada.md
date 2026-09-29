@@ -88,8 +88,7 @@ Anote também o **TTL** que aparece na zona: é o tempo máximo que alguns usuá
 
 ## Passo 6 — Ligar as integrações de verdade [você cola, claude reinicia] (15 min)
 
-As senhas não passam pelo chat. No Railway → serviço backend → **Variables** → **Raw Editor**, copie as linhas abaixo.
-Na VPS (`ssh root@187.77.236.36`), rode `nano /opt/apps/zensalon/.env.api`, apague as linhas comentadas equivalentes e cole:
+Sem nano e sem valores no chat: no Railway → serviço backend → **Variables**, você copia o **valor** de UMA variável e escreve aqui "copiei NOME". Eu leio a área de transferência (Get-Clipboard) e gravo no `.env.api` da VPS sem exibir, respondendo só 1 (gravado) ou 0 (falhou). Se a variável não existir no Railway, escreva "não existe NOME". Ordem:
 
 - **Resend:** `RESEND_API_KEY` (troca o `re_desativado`), `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME`
 - **Asaas:** `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_ENV`, `ASAAS_WEBHOOK_TOKEN`, `ASAAS_TEST_EMAIL` (se existir)
