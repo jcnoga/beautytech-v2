@@ -70,7 +70,7 @@ export async function asaasModule(fastify: any) {
       billingType: "UNDEFINED",
       value: 49.90,
       dueDate: new Date().toISOString().split("T")[0],
-      description: "BeautyTech - Plano Profissional (mensal)",
+      description: "ZenSalon - Plano Profissional (mensal)",
       externalReference: tenantId,
     });
 

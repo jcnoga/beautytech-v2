@@ -9,7 +9,7 @@ import type { FastifyInstance } from "fastify";
 import { eq, and, ilike, isNull, desc, gte, lte, sql, count } from "drizzle-orm";
 import { db } from "@db/connection";
 import postgres from "postgres";
-import { env } from "@config/env";
+import { env, EMAIL_FROM } from "@config/env";
 const _rawClient = postgres(env.POSTGRES_URL, { prepare: false, ssl: env.POSTGRES_SSL ? { rejectUnauthorized: false } : false });
 import {
   clients, professionals, appointments, appointmentServices,
@@ -1253,7 +1253,7 @@ export async function authModule(fastify: FastifyInstance) {
         method: "POST",
         headers: { "Authorization": `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: "ZenSalon <noreply@zensalon.com.br>",
+          from: EMAIL_FROM,
           to: [email],
           subject: "Redefinir senha — ZenSalon",
           html: `<!DOCTYPE html>
@@ -1294,11 +1294,12 @@ export async function authModule(fastify: FastifyInstance) {
         }),
       });
 
+      const resendBody = await emailRes.text();
       if (!emailRes.ok) {
-        const err = await emailRes.text();
-        console.error("[FORGOT-PASSWORD] erro Resend:", err);
+        console.error("[FORGOT-PASSWORD] erro Resend: status", emailRes.status, resendBody);
       } else {
-        console.log("[FORGOT-PASSWORD] email enviado para:", email);
+        let id = ""; try { id = JSON.parse(resendBody).id ?? ""; } catch {}
+        console.log("[FORGOT-PASSWORD] Resend aceitou: status", emailRes.status, "id", id, "para", email);
       }
 
       return reply.send({ success: true });

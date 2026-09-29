@@ -4,6 +4,7 @@ import { db } from "@db/connection";
 import { userProfiles, tenants, passwordResets } from "@db/schema/index";
 import { authenticate, requireOwner } from "@middleware/auth";
 import { gotrueAdmin, findAuthUserByEmail } from "@config/gotrue";
+import { EMAIL_FROM } from "@config/env";
 
 export async function teamModule(fastify: FastifyInstance) {
 
@@ -127,7 +128,7 @@ export async function teamModule(fastify: FastifyInstance) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "ZenSalon <noreply@zensalon.com.br>",
+          from: EMAIL_FROM,
           to: [email],
           subject: `Voce foi convidado para o ${tenant?.name ?? "ZenSalon"}`,
           html: `<!DOCTYPE html>

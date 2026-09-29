@@ -1,17 +1,18 @@
 import { Resend } from "resend";
+import { EMAIL_FROM } from "../config/env.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = `${process.env.RESEND_FROM_NAME ?? "BeautyTech"} <${process.env.RESEND_FROM_EMAIL ?? "noreply@beautytech.com.br"}>`;
-const FRONTEND = process.env.FRONTEND_URL ?? "https://beautytech-v2.vercel.app";
+const FROM = EMAIL_FROM;
+const FRONTEND = process.env.FRONTEND_URL ?? "https://zensalon.com.br";
 
 // -- Boas-vindas -----------------------------------------------
 export async function sendWelcomeEmail(to: string, salonName: string) {
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: `Bem-vindo ao BeautyTech, ${salonName}!`,
+      subject: `Bem-vindo ao ZenSalon, ${salonName}!`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#1a0a2e;">Ola, ${salonName}!</h2>
         <p style="color:#444;line-height:1.6;">Sua conta foi criada com sucesso. Voce esta no <strong>periodo de teste gratuito de 30 dias</strong> com acesso completo a plataforma.</p>
         <ul style="color:#444;line-height:2;">
@@ -23,7 +24,7 @@ export async function sendWelcomeEmail(to: string, salonName: string) {
         <div style="text-align:center;margin:32px 0;">
           <a href="${FRONTEND}" style="background:#2d1b69;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;">Acessar meu painel</a>
         </div>
-        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe BeautyTech</p>
+        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe ZenSalon</p>
       </div>`,
     });
     console.log(`[RESEND] Boas-vindas enviado para ${to}`);
@@ -37,9 +38,9 @@ export async function sendPlanActivatedEmail(to: string, salonName: string, plan
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: `Plano ${planName} ativado - BeautyTech`,
+      subject: `Plano ${planName} ativado - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#166534;">Plano ${planName} Ativado!</h2>
         <p style="color:#444;">Ola, <strong>${salonName}</strong>! Seu pagamento foi confirmado.</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
@@ -57,7 +58,7 @@ export async function sendPlanActivatedEmail(to: string, salonName: string, plan
         <div style="text-align:center;margin:32px 0;">
           <a href="${FRONTEND}" style="background:#2d1b69;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;">Acessar meu painel</a>
         </div>
-        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Obrigado por escolher o BeautyTech!</p>
+        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Obrigado por escolher o ZenSalon!</p>
       </div>`,
     });
     console.log(`[RESEND] Plano ativado enviado para ${to}`);
@@ -70,16 +71,16 @@ export async function sendPaymentConfirmedEmail(to: string, salonName: string, v
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: `Pagamento confirmado - BeautyTech`,
+      subject: `Pagamento confirmado - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#166534;">Pagamento Confirmado!</h2>
         <p style="color:#444;">Ola, <strong>${salonName}</strong>! Seu pagamento de <strong>R$ ${Number(value).toFixed(2)}</strong> foi confirmado.</p>
         <p style="color:#444;">Seu plano esta ativo ate <strong>${expiry}</strong>.</p>
         <div style="text-align:center;margin:32px 0;">
           <a href="${FRONTEND}" style="background:#2d1b69;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;">Acessar meu painel</a>
         </div>
-        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe BeautyTech</p>
+        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe ZenSalon</p>
       </div>`,
     });
     console.log(`[RESEND] Pagamento confirmado enviado para ${to}`);
@@ -91,16 +92,16 @@ export async function sendPaymentOverdueEmail(to: string, salonName: string) {
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: `Pagamento pendente - BeautyTech`,
+      subject: `Pagamento pendente - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#991b1b;">Pagamento Pendente</h2>
         <p style="color:#444;">Ola, <strong>${salonName}</strong>. Identificamos um pagamento em atraso.</p>
         <p style="color:#444;">Regularize para manter acesso a todos os recursos do seu plano.</p>
         <div style="text-align:center;margin:32px 0;">
           <a href="${FRONTEND}/billing" style="background:#ef4444;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;">Regularizar pagamento</a>
         </div>
-        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe BeautyTech</p>
+        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe ZenSalon</p>
       </div>`,
     });
     console.log(`[RESEND] Pagamento vencido enviado para ${to}`);
@@ -116,16 +117,16 @@ export async function sendPlanExpiringEmail(to: string, salonName: string, daysL
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: `Seu plano vence em ${daysLeft} dia(s) - BeautyTech`,
+      subject: `Seu plano vence em ${daysLeft} dia(s) - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#b45309;">Aviso de Vencimento</h2>
         <p style="color:#444;">Ola, <strong>${salonName}</strong>!</p>
         <p style="color:#444;">${msg}</p>
         <div style="text-align:center;margin:32px 0;">
           <a href="${FRONTEND}/billing" style="background:#2d1b69;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;">Gerenciar assinatura</a>
         </div>
-        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe BeautyTech</p>
+        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe ZenSalon</p>
       </div>`,
     });
     console.log(`[RESEND] Aviso ${daysLeft}d enviado para ${to}`);
@@ -137,16 +138,16 @@ export async function sendPlanExpiredEmail(to: string, salonName: string) {
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: `Seu plano expirou - BeautyTech`,
+      subject: `Seu plano expirou - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#991b1b;">Plano Expirado</h2>
         <p style="color:#444;">Ola, <strong>${salonName}</strong>. Seu plano expirou e sua conta foi rebaixada para o plano <strong>Free</strong>.</p>
         <p style="color:#444;">Reative seu plano para recuperar acesso a todos os recursos.</p>
         <div style="text-align:center;margin:32px 0;">
           <a href="${FRONTEND}/billing" style="background:#2d1b69;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;">Reativar plano</a>
         </div>
-        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe BeautyTech</p>
+        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe ZenSalon</p>
       </div>`,
     });
     console.log(`[RESEND] Plano expirado enviado para ${to}`);
@@ -159,9 +160,9 @@ export async function sendPlanCanceledEmail(to: string, salonName: string, expir
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: `Assinatura cancelada - BeautyTech`,
+      subject: `Assinatura cancelada - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#991b1b;">Assinatura Cancelada</h2>
         <p style="color:#444;">Ola, <strong>${salonName}</strong>. Sua assinatura foi cancelada com sucesso.</p>
         <p style="color:#444;">Voce ainda tem acesso a todos os recursos ate <strong>${expiry}</strong>.</p>
@@ -169,7 +170,7 @@ export async function sendPlanCanceledEmail(to: string, salonName: string, expir
         <div style="text-align:center;margin:32px 0;">
           <a href="${FRONTEND}/billing" style="background:#2d1b69;color:#fff;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:700;">Reativar plano</a>
         </div>
-        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe BeautyTech</p>
+        <p style="color:#6b5e8a;font-size:13px;text-align:center;">Equipe ZenSalon</p>
       </div>`,
     });
     console.log(`[RESEND] Cancelamento enviado para ${to}`);
@@ -185,7 +186,7 @@ export async function sendOwnerNotificationEmail(salonName: string, phone: strin
       from: FROM, to: ownerEmail,
       subject: "Novo salao conectou o WhatsApp - " + salonName,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
-        <h1 style="color:#1a0a2e;">BeautyTech</h1>
+        <h1 style="color:#1a0a2e;">ZenSalon</h1>
         <h2 style="color:#166534;">Salao Conectado ao WhatsApp!</h2>
         <p><strong>Salao:</strong> ${salonName}</p>
         <p><strong>Numero:</strong> ${phone}</p>

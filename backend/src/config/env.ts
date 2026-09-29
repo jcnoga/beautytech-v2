@@ -53,5 +53,8 @@ function parseEnv() {
 export const env = parseEnv();
 export type Env = typeof env;
 
+// Remetente único dos e-mails (Resend). O domínio precisa estar verificado na conta do Resend da RESEND_API_KEY.
+export const EMAIL_FROM = `${env.RESEND_FROM_NAME ?? "ZenSalon"} <${env.RESEND_FROM_EMAIL ?? "noreply@99labpro.com.br"}>`;
+
 
 

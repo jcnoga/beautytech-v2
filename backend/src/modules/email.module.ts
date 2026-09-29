@@ -1,8 +1,8 @@
 import { Resend } from "resend";
-import { env } from "../config/env.js";
+import { env, EMAIL_FROM } from "../config/env.js";
 
 const resend = new Resend(env.RESEND_API_KEY);
-const FROM = `${env.RESEND_FROM_NAME ?? "ZenSalon"} <${env.RESEND_FROM_EMAIL ?? "noreply@zensalon.com.br"}>`;
+const FROM = EMAIL_FROM;
 
 export async function sendWelcomeEmail(params: {
   to: string;
@@ -10,7 +10,7 @@ export async function sendWelcomeEmail(params: {
   ownerName: string;
   loginUrl?: string;
 }) {
-  const { to, tenantName, ownerName, loginUrl = "https://app.zensalon.com.br" } = params;
+  const { to, tenantName, ownerName, loginUrl = "https://zensalon.com.br" } = params;
   return resend.emails.send({
     from: FROM,
     to,
@@ -89,7 +89,7 @@ export async function sendPaymentOverdueEmail(params: {
   daysOverdue: number;
   paymentUrl?: string;
 }) {
-  const { to, tenantName, ownerName, daysOverdue, paymentUrl = "https://app.zensalon.com.br/billing" } = params;
+  const { to, tenantName, ownerName, daysOverdue, paymentUrl = "https://zensalon.com.br" } = params;
   return resend.emails.send({
     from: FROM,
     to,

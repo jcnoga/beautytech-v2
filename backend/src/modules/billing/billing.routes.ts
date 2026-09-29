@@ -153,7 +153,7 @@ export async function billingRoutes(fastify: any) {
       value:             calcPlanAmount(tier, period),
       nextDueDate:       dueDate,
       cycle:             ASAAS_CYCLE[period],
-      description:       `BeautyTech - Plano ${PLANS[tier].name} (${period})`,
+      description:       `ZenSalon - Plano ${PLANS[tier].name} (${period})`,
       externalReference: `${tenantId}|${tier}|${period}`,
     });
 
@@ -169,7 +169,7 @@ export async function billingRoutes(fastify: any) {
         billingType:       "UNDEFINED",
         value:             finalAmount,
         dueDate,
-        description:       `BeautyTech - Upgrade para ${PLANS[tier].name} (credito R$${creditBrl.toFixed(2)} aplicado)`,
+        description:       `ZenSalon - Upgrade para ${PLANS[tier].name} (credito R$${creditBrl.toFixed(2)} aplicado)`,
         externalReference: `${tenantId}|${tier}|${period}|upgrade`,
       });
     }
