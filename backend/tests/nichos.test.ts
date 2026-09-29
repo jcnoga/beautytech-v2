@@ -199,6 +199,7 @@ const soPilates: Record<string, (t: Tenant) => string> = {
   pilates_instructors: () => "/pilates/instructors",
   pilates_plans: () => "/pilates/plans",
   pilates_settings: () => "/pilates/modalities",
+  pilates_classes: () => "/pilates/schedules",
 };
 
 test("sondas cobrem todas as features que têm rota na API", () => {

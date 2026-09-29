@@ -10,6 +10,7 @@ import { autoReplyController } from "./modules/auto-reply/auto-reply.controller.
 import { salonProfilePublicModule } from "./modules/salon-profile/salon-profile.routes.js";
 import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
 import { pilatesModule } from "./modules/pilates/pilates.routes.js";
+import { pilatesClassesModule } from "./modules/pilates/classes.routes.js";
 import {
   clientsModule, demoModule, professionalsModule, appointmentsModule, servicesModule, packagesModule,
   financialModule, commissionsModule, dashboardModule, crmModule, loyaltyModule, campaignsModule,
@@ -54,4 +55,5 @@ export const API_MODULES = [
   salonProfilePublicModule,
   tenantPublicModule,
   pilatesModule,
+  pilatesClassesModule,
 ] as const;

@@ -1436,6 +1436,8 @@ export async function authModule(fastify: FastifyInstance) {
         isActive: true,
       });
 
+      // Pilates: padrões das regras do studio (Configurações do Studio) criados no cadastro.
+      if (resolvedBusinessType === "pilates") await db.execute(sql`INSERT INTO pilates_settings (tenant_id) VALUES (${tenant.id}) ON CONFLICT (tenant_id) DO NOTHING`);
       if (defaultCategories.length) await db.insert(serviceCategories).values(
         defaultCategories.map((name, i) => ({
           tenantId: tenant.id,

@@ -61,7 +61,8 @@ export const FEATURES = {
   pilates_students:    ["pilates"], // alunos (clients + dados de Pilates)
   pilates_instructors: ["pilates"], // instrutores (professionals) e horários de trabalho
   pilates_plans:       ["pilates"], // planos de Pilates e matrículas
-  pilates_settings:    ["pilates"], // configurações do studio (modalidades)
+  pilates_settings:    ["pilates"], // configurações do studio (modalidades e regras)
+  pilates_classes:     ["pilates"], // grade, aulas, horários fixos, inscrições, presença, reposições, pausas
 } as const satisfies Record<string, readonly BusinessType[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -118,6 +119,13 @@ export const ROUTE_FEATURES: Record<string, Feature> = {
   "/pilates/plans": "pilates_plans",
   "/pilates/enrollments": "pilates_plans",
   "/pilates/modalities": "pilates_settings",
+  "/pilates/settings": "pilates_settings",
+  "/pilates/schedules": "pilates_classes",
+  "/pilates/sessions": "pilates_classes",
+  "/pilates/slots": "pilates_classes",
+  "/pilates/bookings": "pilates_classes",
+  "/pilates/makeups": "pilates_classes",
+  "/pilates/pauses": "pilates_classes",
 };
 
 /** Normaliza o business_type do banco: vazio → padrão; conhecido → ele mesmo; desconhecido → null. */

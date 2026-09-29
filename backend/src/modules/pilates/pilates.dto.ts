@@ -57,7 +57,9 @@ export const instructorCreateDto = z.object({
   commissionPct:            opt(z.coerce.number().finite().min(0).max(100).transform((n) => n.toFixed(2))),
   isActive:                 opt(z.boolean()),
 });
-export const instructorUpdateDto = instructorCreateDto.partial();
+export const instructorUpdateDto = instructorCreateDto.partial().extend({
+  userProfileId: nul(id), // login do instrutor (usuário da equipe); null = sem login
+});
 
 export const instructorSchedulesDto = z.array(z.object({
   dayOfWeek:  int.min(0).max(6),
@@ -69,6 +71,47 @@ export const instructorSchedulesDto = z.array(z.object({
 })).max(7)
   .refine((rows) => new Set(rows.map((r) => r.dayOfWeek)).size === rows.length, "dia da semana repetido")
   .refine((rows) => rows.every((r) => !r.isWorking || r.startTime < r.endTime), "início deve ser antes do fim");
+
+// ─── regras (Fase 3): padrão do studio e exceção por plano ──────────────────
+const boolRule = () => z.boolean();
+const RULE_SCHEMAS = {
+  allowIndividualSlot:             boolRule(),
+  individualSlotCapacity:          int.refine((n) => n === 1 || n === 2, "use 1 ou 2"),
+  cancelDeadlineEnabled:           boolRule(),
+  cancelMinHours:                  int.min(0).max(168),
+  makeupEnabled:                   boolRule(),
+  makeupValidityDays:              int.min(1).max(365),
+  makeupMonthlyLimitEnabled:       boolRule(),
+  makeupMaxPerMonth:               int.min(0).max(31),
+  unexcusedAbsenceConsumesCredit:  boolRule(),
+  unexcusedAbsenceGeneratesMakeup: boolRule(),
+  excusedAbsenceGeneratesMakeup:   boolRule(),
+  excusedAbsenceConsumesCredit:    boolRule(),
+  timelyCancelGeneratesMakeup:     boolRule(),
+  lateCancelConsumesCredit:        boolRule(),
+  pauseEnabled:                    boolRule(),
+  pauseMaxDays:                    int.min(1).max(365),
+};
+const STUDIO_CANCEL = z.enum(["refund_credit", "generate_makeup"] as const);
+/** No plano: cada regra aceita null (= usar o padrão do studio). */
+function planRuleOverrides() {
+  const o: Record<string, z.ZodTypeAny> = {};
+  for (const [k, v] of Object.entries(RULE_SCHEMAS)) o[k] = z.preprocess((x) => (x === "" ? null : x), (v as z.ZodTypeAny).nullable().optional());
+  o.studioCancelAction = z.preprocess((x) => (x === "" ? null : x), STUDIO_CANCEL.nullable().optional());
+  return o as { [K in keyof typeof RULE_SCHEMAS | "studioCancelAction"]: z.ZodTypeAny };
+}
+export const PLAN_OVERRIDE_KEYS = [...Object.keys(RULE_SCHEMAS), "studioCancelAction"];
+
+/** Padrões do studio: tudo opcional na edição, nunca null. */
+export const studioSettingsDto = z.object({
+  ...Object.fromEntries(Object.entries(RULE_SCHEMAS).map(([k, v]) => [k, opt(v as z.ZodTypeAny)])),
+  studioCancelActionPackage:   opt(STUDIO_CANCEL),
+  studioCancelActionFrequency: opt(STUDIO_CANCEL),
+  instructorAttendanceScope:   opt(z.enum(["own", "all"] as const)),
+  instructorEditWindowHours:   opt(int.min(0).max(720)),
+  defaultClassDuration:        opt(int.min(10).max(300)),
+  defaultClassCapacity:        opt(int.min(1).max(50)),
+});
 
 // ─── planos (pilates_plans) ─────────────────────────────────────────────────
 export const planCreateDto = z.object({
@@ -83,6 +126,7 @@ export const planCreateDto = z.object({
   modalityId:     nul(id),
   isTrial:        opt(z.boolean()),
   status:         opt(z.enum(["active", "inactive"] as const)),
+  ...planRuleOverrides(),
 });
 export const planUpdateDto = planCreateDto.partial();
 
@@ -127,3 +171,68 @@ export const modalityCreateDto = z.object({
   isActive:        opt(z.boolean()),
 });
 export const modalityUpdateDto = modalityCreateDto.partial();
+
+// ─── Fase 3: grade, aulas, horários fixos, inscrições, presença, pausas ─────
+export const CLASS_TYPES = ["individual", "duo", "group"] as const;
+
+export const scheduleCreateDto = z.object({
+  instructorId:    id,
+  modalityId:      nul(id),
+  dayOfWeek:       int.min(0).max(6),
+  startTime:       hhmm,
+  durationMinutes: opt(int.min(10).max(300)),
+  room:            nul(str(100)),
+  capacity:        opt(int.min(1).max(50)),
+  classType:       opt(z.enum(CLASS_TYPES)),
+});
+export const scheduleUpdateDto = scheduleCreateDto.partial().extend({ isActive: opt(z.boolean()) });
+
+/** Aula avulsa (sem grade), ex.: avaliação inicial ou aula extra fora da grade. */
+export const sessionCreateDto = z.object({
+  date:            day,
+  startTime:       hhmm,
+  durationMinutes: opt(int.min(10).max(300)),
+  instructorId:    id,
+  modalityId:      nul(id),
+  room:            nul(str(100)),
+  capacity:        opt(int.min(1).max(50)),
+  classType:       opt(z.enum([...CLASS_TYPES, "assessment"] as const)),
+  notes:           nul(str(1000)),
+});
+/** Nesta aula (uma ocorrência): trocar instrutor, sala ou observação. */
+export const sessionUpdateDto = z.object({
+  instructorId: opt(id),
+  room:         nul(str(100)),
+  notes:        nul(str(1000)),
+});
+export const sessionCancelDto = z.object({ reason: nul(str(255)) });
+
+export const slotCreateDto = z.object({
+  enrollmentId: id,
+  scheduleId:   opt(id),
+  individual:   opt(z.object({
+    dayOfWeek:       int.min(0).max(6),
+    startTime:       hhmm,
+    instructorId:    id,
+    modalityId:      nul(id),
+    durationMinutes: opt(int.min(10).max(300)),
+    room:            nul(str(100)),
+  })),
+}).refine((b) => !!b.scheduleId !== !!b.individual, "informe a turma (scheduleId) OU o horário individual");
+
+export const bookingCreateDto = z.object({
+  sessionId:      id,
+  studentId:      id,
+  enrollmentId:   opt(id),   // pacote / experimental: de qual matrícula sai o crédito
+  makeupCreditId: opt(id),   // reposição: qual crédito de reposição usar
+}).refine((b) => !!b.enrollmentId !== !!b.makeupCreditId, "informe a matrícula (pacote) OU a reposição");
+
+export const extraClassDto = z.object({ studentId: id, planId: id, sessionId: id });
+export const attendanceDto = z.object({ status: z.enum(["present", "absent", "excused"] as const) });
+
+export const pauseCreateDto = z.object({
+  enrollmentId: id,
+  startDate:    day,
+  endDate:      day,
+  reason:       nul(str(200)),
+});

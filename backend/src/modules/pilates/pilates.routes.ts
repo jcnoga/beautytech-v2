@@ -14,6 +14,8 @@ import { authenticate, requireManager } from "@middleware/auth";
 import { parseBody } from "../dtos";
 import { rejectForeignRefs } from "../tenant-guard";
 import { auditLog, checkClientLimit, checkProfessionalLimit, getPlanInfo } from "../all-modules";
+import { creditUsage, materializeFixed, pruneFixed, TZ } from "./classes.service";
+import { rows } from "./rules";
 import {
   studentCreateDto, studentUpdateDto, STUDENT_CLIENT_FIELDS,
   instructorCreateDto, instructorUpdateDto, instructorSchedulesDto,
@@ -196,6 +198,8 @@ export async function pilatesModule(fastify: FastifyInstance) {
     professionalRegistration: professionals.professionalRegistration,
     commissionPct: professionals.commissionPct,
     isActive: professionals.isActive,
+    userProfileId: professionals.userProfileId,
+    loginName: sql<string | null>`(SELECT up.full_name FROM user_profiles up WHERE up.id = "professionals"."user_profile_id")`,
     studentsCount: sql<number>`(SELECT count(*)::int FROM pilates_student_profiles p
       WHERE p.instructor_id = "professionals"."id" AND p.tenant_id = "professionals"."tenant_id" AND p.status = 'active')`,
   };
@@ -226,6 +230,11 @@ export async function pilatesModule(fastify: FastifyInstance) {
     if (!(await findInstructor(tenantId, req.params.id))) return notFound(reply, "Instrutor nao encontrado");
     const body = parseBody(instructorUpdateDto, req, reply); if (!body) return;
     const changes = defined(body);
+    if (changes.userProfileId) {
+      // Login do instrutor: precisa ser um usuário da própria equipe.
+      const [up] = rows(await db.execute(sql`SELECT id FROM user_profiles WHERE id = ${changes.userProfileId as string} AND tenant_id = ${tenantId}`));
+      if (!up) return notFound(reply, "Usuario da equipe nao encontrado");
+    }
     if (Object.keys(changes).length) {
       await db.update(professionals).set({ ...(changes as any), updatedBy: userId, updatedAt: new Date() })
         .where(and(eq(professionals.id, req.params.id), eq(professionals.tenantId, tenantId)));
@@ -301,7 +310,8 @@ export async function pilatesModule(fastify: FastifyInstance) {
     const { id: _id, tenantId: _t, createdAt: _c, ...set } = merged as any;
     const [row] = await db.update(pilatesPlans).set({ ...set, updatedAt: new Date() })
       .where(and(eq(pilatesPlans.id, current.id), eq(pilatesPlans.tenantId, tenantId))).returning();
-    auditLog({ tenantId, userId, action: "pilates.plan.updated", tableName: "pilates_plans", recordId: row.id, newData: changes });
+    auditLog({ tenantId, userId, action: "pilates.plan.updated", tableName: "pilates_plans", recordId: row.id,
+      oldData: Object.fromEntries(Object.keys(changes).map((k) => [k, (current as any)[k]])), newData: changes });
     return reply.send({ success: true, data: row });
   });
 
@@ -319,7 +329,23 @@ export async function pilatesModule(fastify: FastifyInstance) {
       .innerJoin(pilatesPlans, eq(pilatesPlans.id, pilatesEnrollments.planId))
       .innerJoin(clients, eq(clients.id, pilatesEnrollments.clientId))
       .where(and(...cond)).orderBy(desc(pilatesEnrollments.startDate));
-    return reply.send({ success: true, data: data.map((r) => withDays({ ...r.enrollment, planName: r.planName, planKind: r.planKind, studentName: r.studentName }, ENROLLMENT_DAYS)) });
+    const out = [];
+    for (const r of data) {
+      const e: any = withDays({ ...r.enrollment, planName: r.planName, planKind: r.planKind, studentName: r.studentName }, ENROLLMENT_DAYS);
+      // Uso (C1): pacote = créditos; frequência = aulas desta semana (semana de Brasília, segunda a domingo).
+      if (r.planKind === "package") e.usage = await creditUsage(db, e.id);
+      else {
+        const [w] = rows(await db.execute(sql`SELECT count(*)::int AS n, p.classes_per_week AS per_week
+          FROM pilates_enrollments en JOIN pilates_plans p ON p.id = en.plan_id
+          LEFT JOIN pilates_bookings b ON b.enrollment_id = en.id AND b.status IN ('booked','present','absent','excused')
+            AND b.session_id IN (SELECT id FROM pilates_class_sessions WHERE session_date BETWEEN date_trunc('week', (now() AT TIME ZONE ${TZ}))::date
+              AND date_trunc('week', (now() AT TIME ZONE ${TZ}))::date + 6)
+          WHERE en.id = ${e.id} GROUP BY p.classes_per_week`));
+        e.usage = { thisWeek: Number(w?.n ?? 0), perWeek: Number(w?.per_week ?? 0) };
+      }
+      out.push(e);
+    }
+    return reply.send({ success: true, data: out });
   });
 
   fastify.post("/pilates/enrollments", { preHandler: [authenticate] }, async (req: any, reply) => {
@@ -356,6 +382,9 @@ export async function pilatesModule(fastify: FastifyInstance) {
     if (endDate && endDate < (toDay(current.startDate) as string)) return reply.status(400).send({ success: false, error: "Fim antes do inicio" });
     const [row] = await db.update(pilatesEnrollments).set({ ...(changes as any), updatedAt: new Date() })
       .where(and(eq(pilatesEnrollments.id, current.id), eq(pilatesEnrollments.tenantId, tenantId))).returning();
+    // Horários fixos (Fase 3): encerrar/cancelar/antecipar o fim tira as aulas futuras; prorrogar gera as novas.
+    await pruneFixed(db, tenantId, current.id);
+    await materializeFixed(db, tenantId);
     auditLog({ tenantId, userId, action: "pilates.enrollment.updated", tableName: "pilates_enrollments", recordId: row.id, newData: changes });
     return reply.send({ success: true, data: withDays(row, ENROLLMENT_DAYS) });
   });
