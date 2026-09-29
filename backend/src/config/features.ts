@@ -54,8 +54,14 @@ export const FEATURES = {
   clinical_records:   ["beauty_salon", "barbershop", "aesthetics_clinic"], // prontuário / anamnese
   protocols:          ["beauty_salon", "barbershop", "aesthetics_clinic"], // protocolos e sessões
   appointment_photos: ["beauty_salon", "barbershop", "aesthetics_clinic"], // fotos antes/depois
-  consent_forms:      ["beauty_salon", "barbershop", "aesthetics_clinic"], // termos (LGPD)
+  consent_forms:      ["beauty_salon", "barbershop", "aesthetics_clinic", "pilates"], // termo LGPD (Pilates: C8)
   treatment_packages: ["beauty_salon", "barbershop", "aesthetics_clinic"], // pacotes de tratamento
+
+  // ── Pilates (exclusivas) ─────────────────────────────────────────────────
+  pilates_students:    ["pilates"], // alunos (clients + dados de Pilates)
+  pilates_instructors: ["pilates"], // instrutores (professionals) e horários de trabalho
+  pilates_plans:       ["pilates"], // planos de Pilates e matrículas
+  pilates_settings:    ["pilates"], // configurações do studio (modalidades)
 } as const satisfies Record<string, readonly BusinessType[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -106,6 +112,12 @@ export const ROUTE_FEATURES: Record<string, Feature> = {
   "/consent-forms": "consent_forms",
   "/treatment-packages": "treatment_packages",
   "/package-sessions": "treatment_packages",
+
+  "/pilates/students": "pilates_students",
+  "/pilates/instructors": "pilates_instructors",
+  "/pilates/plans": "pilates_plans",
+  "/pilates/enrollments": "pilates_plans",
+  "/pilates/modalities": "pilates_settings",
 };
 
 /** Normaliza o business_type do banco: vazio → padrão; conhecido → ele mesmo; desconhecido → null. */

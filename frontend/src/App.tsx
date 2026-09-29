@@ -19,6 +19,10 @@ import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
 import { can, setCurrentBusinessType } from './config/nicho';
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type Feature } from './config/features';
+import PilatesStudentsPage from './pilates/StudentsPage';
+import PilatesPlansPage from './pilates/PlansPage';
+import PilatesInstructorsPage from './pilates/InstructorsPage';
+import PilatesModalitiesPage from './pilates/ModalitiesPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
@@ -281,7 +285,7 @@ function RegisterPage({ onBack }: any) {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setSuccess("Salao cadastrado com sucesso! Faca login para continuar.");
+      setSuccess(businessType === "pilates" ? "Studio cadastrado com sucesso! Faca login para continuar." : "Salao cadastrado com sucesso! Faca login para continuar.");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -294,7 +298,7 @@ function RegisterPage({ onBack }: any) {
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
-            {[{v:"beauty_salon",l:"Salao de Beleza",i:"💇"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"💆"},{v:"barbershop",l:"Barbearia",i:"🪒"}].map(opt => (
+            {[{v:"beauty_salon",l:"Salao de Beleza",i:"💇"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"💆"},{v:"barbershop",l:"Barbearia",i:"🪒"},{v:"pilates",l:"Studio de Pilates",i:"🧘"}].map(opt => (
               <label key={opt.v} onClick={() => setBusinessType(opt.v)} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", borderRadius:10, border:`1px solid ${businessType === opt.v ? "#c9a96e" : "#2a2a2a"}`, background: businessType === opt.v ? "#c9a96e15" : "transparent", cursor:"pointer", transition:"all 0.2s" }}>
                 <span style={{ fontSize:20 }}>{opt.i}</span>
                 <span style={{ flex:1, fontSize:14, color: businessType === opt.v ? "#c9a96e" : "#a0998f", fontWeight: businessType === opt.v ? 600 : 400 }}>{opt.l}</span>
@@ -302,9 +306,9 @@ function RegisterPage({ onBack }: any) {
               </label>
             ))}
           </div>
-          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "pilates" ? "Novo Studio" : businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>ZenSalon</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica, Barbearia ou Studio de Pilates</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           {success ? (
@@ -314,7 +318,7 @@ function RegisterPage({ onBack }: any) {
             </div>
           ) : (
             <>
-              <Inp label="Nome do Salao" value={salonName} onChange={setSalonName} placeholder="Salao Bella Arte" required />
+              <Inp label={businessType === "pilates" ? "Nome do Studio" : "Nome do Salao"} value={salonName} onChange={setSalonName} placeholder={businessType === "pilates" ? "Studio Equilibrio Pilates" : "Salao Bella Arte"} required />
               <Inp label="Seu Nome" value={ownerName} onChange={setOwnerName} placeholder="Maria da Silva" required />
               <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
               <Inp label="Senha" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="minimo 6 caracteres" required />
@@ -430,7 +434,7 @@ function LoginPage({ onLogin }: any) {
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12, fontFamily: FB }}>Sistema de Gestao</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>ZenSalon</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica, Barbearia ou Studio de Pilates</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="seu@email.com" autoComplete="off" />
@@ -2630,6 +2634,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [tenants, setTenants] = useState<any[]>([]);
   const [search, setSearch]   = useState("");
   const [filter, setFilter]   = useState("all");
+  const [nicheFilter, setNicheFilter] = useState("all");
   const [selected, setSelected] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
@@ -2689,6 +2694,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (filter !== "all") params.set("status", filter);
+      if (nicheFilter !== "all") params.set("businessType", nicheFilter);
       const qs = params.toString();
       const [s, t] = await Promise.all([
         saFetch("GET", "/super-admin/stats"),
@@ -2700,7 +2706,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, [search, filter]);
+  useEffect(() => { load(); }, [search, filter, nicheFilter]);
 
   const block = async (id: string) => {
     await saFetch("POST", `/super-admin/tenants/${id}/block`);
@@ -2855,6 +2861,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       </div>
     )},
     { key:"businessType", label:"Nicho", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{BUSINESS_TYPE_LABELS[(t.businessType || "beauty_salon") as keyof typeof BUSINESS_TYPE_LABELS] ?? t.businessType}</span> },
+    { key:"clientsCount", label:"Uso", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{t.clientsCount ?? 0} {t.businessType === "pilates" ? "alunos" : "clientes"}</span> },
     { key:"trialStatus", label:"Status", render: (t: any) => {
       const s = TRIAL_STATUS[t.trialStatus];
       return <Badge label={s?.label ?? t.trialStatus} color={s?.color ?? C.textMuted} />;
@@ -2930,6 +2937,17 @@ function SuperAdminDashboard({ token, onLogout }: any) {
             <KpiCard icon="Agt" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
           </div>
         )}
+        {stats?.byBusinessType && (
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:20 }}>
+            {BUSINESS_TYPES.map((bt) => (
+              <button key={bt} onClick={() => setNicheFilter(nicheFilter === bt ? "all" : bt)}
+                style={{ padding:"10px 14px", borderRadius:12, border:`1px solid ${nicheFilter===bt?C.gold:C.border}`, background:nicheFilter===bt?`${C.gold}15`:C.card, color:C.text, fontSize:12, cursor:"pointer", textAlign:"left" }}>
+                <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", letterSpacing:".08em" }}>{BUSINESS_TYPE_LABELS[bt]}</div>
+                <div style={{ fontSize:18, fontWeight:700 }}>{stats.byBusinessType[bt]?.total ?? 0} <span style={{ fontSize:11, color:C.sage, fontWeight:600 }}>{stats.byBusinessType[bt]?.active ?? 0} ativas</span></div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Filtros e busca */}
         <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
@@ -2940,6 +2958,11 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 style={{ padding:"7px 14px", borderRadius:8, border:`1px solid ${filter===f.v?C.gold:C.border}`, background:filter===f.v?`${C.gold}15`:C.card, color:filter===f.v?C.gold:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f.l}</button>
             ))}
           </div>
+          <select value={nicheFilter} onChange={(e) => setNicheFilter(e.target.value)} aria-label="Filtrar por nicho"
+            style={{ padding:"7px 10px", borderRadius:8, border:`1px solid ${nicheFilter!=="all"?C.gold:C.border}`, background:C.card, color:C.text, fontSize:12 }}>
+            <option value="all">Todos os nichos</option>
+            {BUSINESS_TYPES.map((bt) => <option key={bt} value={bt}>{BUSINESS_TYPE_LABELS[bt]}</option>)}
+          </select>
           <Btn small variant="secondary" onClick={load}>? Atualizar</Btn>
         </div>
 
@@ -3945,6 +3968,13 @@ function TrialBanner() {
 }
 
 // --- SIDEBAR -------------------------------------------------
+// Telas do Pilates com identidade estável (definidas fora do App): assim o React não desmonta a tela
+// a cada renderização do App (o que refaria as buscas e fecharia um formulário aberto).
+function PilatesStudentsScreen()    { useTheme(); return <PilatesStudentsPage C={C} FD={FD} FB={FB} />; }
+function PilatesPlansScreen()       { useTheme(); return <PilatesPlansPage C={C} FD={FD} FB={FB} />; }
+function PilatesInstructorsScreen() { useTheme(); return <PilatesInstructorsPage C={C} FD={FD} FB={FB} />; }
+function PilatesModalitiesScreen()  { useTheme(); return <PilatesModalitiesPage C={C} FD={FD} FB={FB} />; }
+
 // Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
 const PAGE_FEATURES: Record<string, Feature> = {
   dashboard: "dashboard", performance: "performance", agenda: "agenda", clients: "clients",
@@ -3952,6 +3982,8 @@ const PAGE_FEATURES: Record<string, Feature> = {
   commissions: "commissions", crm: "crm", fidelity: "loyalty", whatsapp: "whatsapp",
   automations: "automations", notifications: "notifications", pricing: "subscription",
   checkout: "subscription", settings: "settings", auditlogs: "audit_logs", ajuda: "help",
+  pilates_students: "pilates_students", pilates_plans: "pilates_plans",
+  pilates_instructors: "pilates_instructors", pilates_modalities: "pilates_settings",
 };
 
 const MENU_GROUPS = [
@@ -3960,6 +3992,15 @@ const MENU_GROUPS = [
     items: [
       { id:"dashboard",   label:"Dashboard",   icon:"*", premium:false },
       { id:"performance", label:"Desempenho",  icon:"*", premium:false },
+    ]
+  },
+  {
+    group: "STUDIO",
+    items: [
+      { id:"pilates_students",    label:"Alunos",      icon:"o", premium:false },
+      { id:"pilates_plans",       label:"Planos",      icon:"$", premium:false },
+      { id:"pilates_instructors", label:"Instrutores", icon:"*", premium:false },
+      { id:"pilates_modalities",  label:"Modalidades", icon:"*", premium:false },
     ]
   },
   {
@@ -3997,7 +4038,7 @@ const MENU_GROUPS = [
   {
     group: "SISTEMA",
     items: [
-      { id:"pricing",  label:"Planos",        icon:"$", premium:false },
+      { id:"pricing",  label:"Planos",        icon:"$", premium:false, pilatesLabel:"Assinatura ZenSalon" },
       { id:"settings", label:"Configuracoes", icon:"?", premium:false },
       { id:"auditlogs", label:"Log de Acoes",  icon:"L", premium:false },
       { id:"ajuda",     label:"Ajuda",          icon:"?", premium:false },
@@ -4053,7 +4094,7 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
               return (
                 <button key={m.id} onClick={() => { if (locked) { alert("Este recurso requer plano pago. Acesse Planos para fazer upgrade."); return; } if (m.id === "ajuda") { window.open("/manual/Manual_ZenSalon.pdf", "_blank", "noopener,noreferrer"); return; } setPage(m.id); if (isMobile) setDrawerOpen(false); }}
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 12px", marginBottom:2, borderRadius:10, border:"none", background: active ? `${C.rose}18` : "transparent", color: locked ? C.textMuted : active ? C.rose : C.text, cursor: locked ? "not-allowed" : "pointer", fontSize:14, fontWeight: active ? 600 : 400, textAlign:"left", opacity: locked ? 0.5 : 1, transition:"all 0.15s" }}>
-                  {m.label}
+                  {(tenantInfo?.businessType === "pilates" && m.pilatesLabel) || m.label}
                   {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>🔒</span>}
                   {active && !locked && <div style={{ marginLeft:"auto", width:6, height:6, borderRadius:"50%", background: C.rose }} />}
                 </button>
@@ -4105,6 +4146,8 @@ export default function App() {
   const discoveryMatch = window.location.pathname === '/buscar';
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
+  // Só mostra as telas depois de saber o nicho (/auth/me), para não montar tela de outro nicho por um instante.
+  const [tenantLoaded, setTenantLoaded] = useState(false);
   const [page, setPage] = useState('dashboard');
   const [currentPage, setCurrentPage] = useState<string>('app');
   const [loading, setLoading] = useState(true);
@@ -4112,13 +4155,13 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user || sessionStorage.getItem("impersonation_token")) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
+      if (session?.user || sessionStorage.getItem("impersonation_token")) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}).finally(() => setTenantLoaded(true)); }
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
-      else { setTenantInfo(null); }
+      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}).finally(() => setTenantLoaded(true)); }
+      else { setTenantInfo(null); setTenantLoaded(false); }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -4152,6 +4195,10 @@ const logout = async () => {
     auditlogs: AuditLogsPage,
     checkout: () => <CheckoutPage setPage={setPage} />,
     ajuda:    () => <HelpPage />,
+    pilates_students:    PilatesStudentsScreen,
+    pilates_plans:       PilatesPlansScreen,
+    pilates_instructors: PilatesInstructorsScreen,
+    pilates_modalities:  PilatesModalitiesScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
@@ -4166,7 +4213,7 @@ const logout = async () => {
   // Nicho: tela não permitida cai na primeira liberada (o bloqueio real é o 403 do backend).
   setCurrentBusinessType(tenantInfo?.businessType ?? null);
   const canPage = (id: string) => can(PAGE_FEATURES[id], tenantInfo?.businessType);
-  const pageId = canPage(page) ? page : (["dashboard", "settings"].find(canPage) ?? "settings");
+  const pageId = canPage(page) ? page : (["dashboard", "pilates_students", "settings"].find(canPage) ?? "settings");
   const PageComponent = PAGES[pageId] ?? PAGES["settings"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -4176,6 +4223,11 @@ const logout = async () => {
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
   const isImpersonating = !!sessionStorage.getItem("impersonation_token");
   if (!user && !isImpersonating) return <LoginPage onLogin={(data: any) => { setUser(data.user); }} />;
+  if (!tenantLoaded) return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>ZenSalon</div>
+    </div>
+  );
 
   return (
     <>

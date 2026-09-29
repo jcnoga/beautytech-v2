@@ -130,10 +130,11 @@ test("frontend: toda tela do menu tem feature válida; pilates só vê as telas 
   assert.ok(menu, "MENU_GROUPS não encontrado");
   for (const m of menu[1].matchAll(/\{ id:"(\w+)"/g)) assert.ok(m[1] in pages, `item de menu ${m[1]} sem feature (ficaria escondido)`);
   const pilates = Object.keys(pages).filter((p) => F.isFeatureAllowed(pages[p], "pilates")).sort();
-  assert.deepEqual(pilates, ["ajuda", "auditlogs", "checkout", "pricing", "settings"]);
+  const telasPilates = ["pilates_instructors", "pilates_modalities", "pilates_plans", "pilates_students"];
+  assert.deepEqual(pilates, ["ajuda", "auditlogs", "checkout", ...telasPilates, "pricing", "settings"].sort());
   for (const bt of CLASSIC) {
-    const escondidas = Object.keys(pages).filter((p) => !F.isFeatureAllowed(pages[p], bt));
-    assert.deepEqual(escondidas, [], `${bt} perdeu telas`);
+    const escondidas = Object.keys(pages).filter((p) => !F.isFeatureAllowed(pages[p], bt)).sort();
+    assert.deepEqual(escondidas, telasPilates, `${bt}: só as telas do Pilates ficam escondidas`);
   }
 });
 
@@ -168,6 +169,7 @@ const globals: Record<string, (t: Tenant) => string> = {
   subscription: () => "/plan-info",
   settings: () => "/team",
   audit_logs: () => "/audit-logs",
+  consent_forms: (t) => `/consent-forms/${t.client}`, // termo LGPD: 3 nichos atuais + Pilates (C8)
 };
 const exclusivas: Record<string, (t: Tenant) => string> = {
   dashboard: () => "/dashboard/kpis",
@@ -190,27 +192,37 @@ const exclusivas: Record<string, (t: Tenant) => string> = {
   clinical_records: (t) => `/client-records/${t.client}`,
   protocols: () => "/protocols",
   appointment_photos: (t) => `/appointment-photos/${t.client}`,
-  consent_forms: (t) => `/consent-forms/${t.client}`,
   treatment_packages: () => "/treatment-packages",
+};
+const soPilates: Record<string, (t: Tenant) => string> = {
+  pilates_students: () => "/pilates/students",
+  pilates_instructors: () => "/pilates/instructors",
+  pilates_plans: () => "/pilates/plans",
+  pilates_settings: () => "/pilates/modalities",
 };
 
 test("sondas cobrem todas as features que têm rota na API", () => {
   const comRota = new Set(Object.values(F.ROUTE_FEATURES));
-  for (const f of comRota) assert.ok(f in globals || f in exclusivas || f === "demo", `sem sonda para ${f}`);
+  for (const f of comRota) assert.ok(f in globals || f in exclusivas || f in soPilates || f === "demo", `sem sonda para ${f}`);
 });
 
 for (const bt of CLASSIC) {
-  test(`${bt}: acessa todas as funcionalidades de hoje (nenhuma regressão)`, async () => {
+  test(`${bt}: acessa todas as funcionalidades de hoje (nenhuma regressão) e nada do Pilates`, async () => {
     for (const [feature, url] of Object.entries({ ...globals, ...exclusivas })) {
       const res = await call("GET", url(T[bt]), T[bt].token);
       assert.ok(!featureDenied(res), `${bt} bloqueado em ${feature} (${url(T[bt])})`);
     }
+    for (const [feature, url] of Object.entries(soPilates)) {
+      const res = await call("GET", url(T[bt]), T[bt].token);
+      assert.ok(featureDenied(res), `${bt} deveria receber 403 em ${feature} (${url(T[bt])}), veio ${res.statusCode}`);
+    }
+    assert.ok(featureDenied(await call("POST", "/pilates/students", T[bt].token, { fullName: "X" })), `${bt} criou aluno de Pilates`);
   });
 }
 
-test("pilates: só as funcionalidades globais; o resto é 403 pela API", async () => {
+test("pilates: globais + Pilates liberados; o resto é 403 pela API", async () => {
   const p = T.pilates;
-  for (const [feature, url] of Object.entries(globals)) {
+  for (const [feature, url] of Object.entries({ ...globals, ...soPilates })) {
     const res = await call("GET", url(p), p.token);
     assert.ok(!featureDenied(res), `pilates deveria acessar ${feature} (${url(p)}), veio ${res.statusCode}`);
   }

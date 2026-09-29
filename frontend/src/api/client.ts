@@ -58,6 +58,7 @@ class ApiClient {
   get<T>(endpoint: string, params?: Record<string, any>) { return this.request<T>("GET", endpoint, undefined, params); }
   post<T>(endpoint: string, body?: unknown) { return this.request<T>("POST", endpoint, body); }
   patch<T>(endpoint: string, body?: unknown) { return this.request<T>("PATCH", endpoint, body); }
+  put<T>(endpoint: string, body?: unknown) { return this.request<T>("PUT", endpoint, body); }
   delete<T = void>(endpoint: string) { return this.request<T>("DELETE", endpoint); }
 
   /** Envia uma imagem para o backend (volume da VPS) e devolve a URL publica. */

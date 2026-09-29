@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, useRef } from "react";
 import { api } from "./api/client";
+import { businessTypeIs } from "./config/nicho";
 
 const C = {
   bg: "#0f0f0f", card: "#1a1a1a", border: "rgba(255,255,255,0.08)",
@@ -21,6 +22,8 @@ function Inp({ label, value, onChange, placeholder, type = "text" }: any) {
 }
 
 export default function TenantSettingsPage() {
+  // Pilates: textos de studio/instrutor e sem o link público de agendamento (aluno agendar sozinho é fase futura, C12).
+  const isPilates = businessTypeIs("pilates");
   const [form, setForm] = useState<any>({ name:"", logoUrl:"", coverUrl:"", primaryColor:"#c9a96e", whatsapp:"", instagram:"", facebook:"", phone:"", website:"", addressStreet:"", addressCity:"", addressState:"", addressZip:"", hasWifi:false, hasParking:false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -137,14 +140,14 @@ export default function TenantSettingsPage() {
     { id:"address",  label:"Endereço" },
     { id:"landing",  label:"Landing Page" },
     { id:"equipe",   label:"Equipe" },
-  ];
+  ].filter(tab => !(isPilates && tab.id === "landing")); // página pública do studio: fase futura (C12)
 
   if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400, color:C.textMuted, fontFamily:FB }}>Carregando...</div>;
 
   return (
     <div style={{ fontFamily:FB, maxWidth:800, margin:"0 auto" }}>
       <div style={{ marginBottom:32 }}>
-        <h1 style={{ fontFamily:FD, fontSize:28, color:C.text, marginBottom:6 }}>Configurações do Salão</h1>
+        <h1 style={{ fontFamily:FD, fontSize:28, color:C.text, marginBottom:6 }}>{isPilates ? "Configurações do Studio" : "Configurações do Salão"}</h1>
         <p style={{ fontSize:13, color:C.textMuted }}>Personalize as informações do seu estabelecimento</p>
       </div>
 
@@ -161,7 +164,7 @@ export default function TenantSettingsPage() {
 
         {activeTab === "identity" && (
           <div>
-            <Inp label="Nome do estabelecimento" value={form.name} onChange={f("name")} placeholder="Ex: Salão Beleza Total" />
+            <Inp label="Nome do estabelecimento" value={form.name} onChange={f("name")} placeholder={isPilates ? "Ex: Studio Equilíbrio Pilates" : "Ex: Salão Beleza Total"} />
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Cor principal</label>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -242,9 +245,9 @@ export default function TenantSettingsPage() {
               <Inp label="Ou cole a URL da capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
             </div>
 
-            <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 16px", fontSize:12, color:C.textMuted }}>
+            {!isPilates && <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 16px", fontSize:12, color:C.textMuted }}>
               💡 A landing page em <strong style={{ color:C.gold }}>{form.slug||"seu-salao"}.zensalon.com.br</strong> será atualizada automaticamente após salvar.
-            </div>
+            </div>}
           </div>
         )}
 
@@ -265,7 +268,7 @@ export default function TenantSettingsPage() {
                     style={{ width:"100%", padding:"10px 14px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:13, fontFamily:FB, outline:"none", boxSizing:"border-box" as any }}>
                     <option value="admin">Administrador</option>
                     <option value="receptionist">Recepcionista</option>
-                    <option value="professional">Profissional</option>
+                    <option value="professional">{isPilates ? "Instrutor" : "Profissional"}</option>
                   </select>
                 </div>
               </div>
@@ -312,7 +315,7 @@ export default function TenantSettingsPage() {
                           color: u.role === "admin" ? C.gold : u.role === "professional" ? C.sage : C.rose,
                           border: `1px solid ${u.role === "admin" ? C.gold : u.role === "professional" ? C.sage : C.rose}40`
                         }}>
-                          {u.role === "admin" ? "Administrador" : u.role === "professional" ? "Profissional" : "Recepcionista"}
+                          {u.role === "admin" ? "Administrador" : u.role === "professional" ? (isPilates ? "Instrutor" : "Profissional") : "Recepcionista"}
                         </span>
                         <span style={{ fontSize:11, padding:"3px 10px", borderRadius:20, fontWeight:700,
                           background: u.status === "active" ? `${C.sage}20` : `${C.gold}20`,
@@ -335,7 +338,7 @@ export default function TenantSettingsPage() {
             </div>
 
             <div style={{ marginTop:20, background:`${C.gold}10`, border:`1px solid ${C.gold}25`, borderRadius:12, padding:"12px 16px", fontSize:12, color:C.textMuted }}>
-              💡 <strong style={{ color:C.gold }}>Perfis de acesso:</strong> Administrador ve tudo · Recepcionista gerencia agenda e clientes · Profissional ve apenas sua propria agenda
+              💡 <strong style={{ color:C.gold }}>Perfis de acesso:</strong> {isPilates ? "Administrador vê tudo · Recepcionista gerencia alunos e matrículas · Instrutor vê apenas o que é dele" : "Administrador ve tudo · Recepcionista gerencia agenda e clientes · Profissional ve apenas sua propria agenda"}
             </div>
           </div>
         )}
@@ -349,6 +352,7 @@ export default function TenantSettingsPage() {
         </div>}
       </div>
 
+      {!isPilates && (<>
       <div style={{ marginTop:24, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
         <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16 }}>🔗 Sua URL Pública de Agendamento</div>
         <div style={{ background:C.surface, borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
@@ -387,6 +391,7 @@ export default function TenantSettingsPage() {
           </div>
         </div>
       </div>
+      </>)}
     </div>
   );
 }

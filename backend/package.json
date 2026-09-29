@@ -14,7 +14,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push:pg",
     "db:studio": "drizzle-kit studio",
-    "test": "node --import tsx --test --test-concurrency=1 tests/isolamento.test.ts tests/nichos.test.ts tests/whatsapp-trava.test.ts",
+    "test": "node --import tsx --test --test-concurrency=1 tests/isolamento.test.ts tests/nichos.test.ts tests/pilates.test.ts tests/whatsapp-trava.test.ts",
     "test:whatsapp": "node --import tsx --test tests/whatsapp-trava.test.ts"
   },
   "dependencies": {

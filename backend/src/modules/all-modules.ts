@@ -10,7 +10,7 @@ import { eq, and, ilike, isNull, desc, gte, lte, sql, count } from "drizzle-orm"
 import { db } from "@db/connection";
 import postgres from "postgres";
 import { env, EMAIL_FROM } from "@config/env";
-import { normalizeBusinessType, isFeatureAllowed } from "@config/features";
+import { normalizeBusinessType, isFeatureAllowed, BUSINESS_TYPES } from "@config/features";
 const _rawClient = postgres(env.POSTGRES_URL, { prepare: false, ssl: env.POSTGRES_SSL ? { rejectUnauthorized: false } : false });
 import {
   clients, professionals, appointments, appointmentServices,
@@ -38,7 +38,7 @@ import { rejectForeignRefs } from "./tenant-guard";
 // ============================================================
 // AUDIT LOG HELPER
 // ============================================================
-async function auditLog(params: {
+export async function auditLog(params: {
   tenantId: string;
   userId?: string;
   action: string;
@@ -72,7 +72,7 @@ function paginate(page = 1, limit = 20) {
 // CLIENTS MODULE
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 // PLAN ENFORCEMENT HELPER
-async function getPlanInfo(tenantId: string) {
+export async function getPlanInfo(tenantId: string) {
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
   const settings = await db.execute(sql`SELECT key, value FROM plan_settings`);
   const rows = (settings as any).rows ?? (Array.isArray(settings) ? settings : []);
@@ -519,14 +519,14 @@ export async function servicesModule(fastify: FastifyInstance) {
 // PACKAGES MODULE
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 import { PLAN_LIMITS } from "../config/plan-limits.js";
-async function checkProfessionalLimit(tenantId: string) {
+export async function checkProfessionalLimit(tenantId: string) {
   const [t] = await db.select({ plan: tenants.planTier, max: tenants.maxProfessionals }).from(tenants).where(eq(tenants.id, tenantId));
   const limit = t?.max ?? PLAN_LIMITS[t?.plan ?? "free"]?.professionals ?? 1;
   const [{ count }] = await db.select({ count: sql`count(*)` }).from(professionals).where(and(eq(professionals.tenantId, tenantId), eq(professionals.isActive, true)));
   return { allowed: Number(count) < limit, limit, current: Number(count) };
 }
 
-async function checkClientLimit(tenantId: string) {
+export async function checkClientLimit(tenantId: string) {
   const [t] = await db.select({ plan: tenants.planTier, max: tenants.maxClients }).from(tenants).where(eq(tenants.id, tenantId));
   const limit = t?.max ?? PLAN_LIMITS[t?.plan ?? "free"]?.clients ?? 100;
   const [{ count }] = await db.select({ count: sql`count(*)` }).from(clients).where(and(eq(clients.tenantId, tenantId), isNull(clients.deletedAt)));
@@ -1694,10 +1694,11 @@ export async function superAdminModule(fastify: FastifyInstance) {
   });
 
       fastify.get("/super-admin/tenants", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
-    const { search, status } = req.query as any;
+    const { search, status, businessType } = req.query as any;
     const cond: any[] = [isNull(tenants.deletedAt)];
     if (search) cond.push(ilike(tenants.name, `%${search}%`));
-    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, businessType: tenants.businessType, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers, whatsapp_status: tenants.whatsappStatus, whatsapp_phone: tenants.whatsappPhone, whatsapp_connected_at: tenants.whatsappConnectedAt, whatsapp_mode: tenants.whatsappMode }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
+    if ((BUSINESS_TYPES as readonly string[]).includes(businessType)) cond.push(eq(tenants.businessType, businessType));
+    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, businessType: tenants.businessType, clientsCount: sql<number>`(SELECT count(*)::int FROM clients c WHERE c.tenant_id = "tenants"."id" AND c.deleted_at IS NULL)`, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers, whatsapp_status: tenants.whatsappStatus, whatsapp_phone: tenants.whatsappPhone, whatsapp_connected_at: tenants.whatsappConnectedAt, whatsapp_mode: tenants.whatsappMode }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
     const now = new Date();
     const enriched = data.map(t => {
       const trialEnd = t.trialEndsAt ? new Date(t.trialEndsAt) : null;
@@ -2136,6 +2137,13 @@ fastify.get(
         db.execute(sql.raw("SELECT COUNT(*)::int as count FROM clients")),
         db.execute(sql.raw("SELECT COUNT(*)::int as count FROM appointments")),
       ]);
+      // Empresas por nicho (item 37): total e ativas.
+      const byType = await db.execute(sql.raw("SELECT business_type, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE is_active)::int AS active FROM tenants WHERE deleted_at IS NULL GROUP BY business_type"));
+      const byTypeRows: any[] = (byType as any).rows ?? (Array.isArray(byType) ? byType : []);
+      const byBusinessType = Object.fromEntries(BUSINESS_TYPES.map((bt) => {
+        const r = byTypeRows.find((x) => x.business_type === bt);
+        return [bt, { total: Number(r?.total ?? 0), active: Number(r?.active ?? 0) }];
+      }));
       const n = (r: any) => Number(Array.isArray(r) ? r[0]?.count : (r?.rows?.[0]?.count ?? 0));
       return reply.send({ success: true, data: {
         totalTenants:   n(t1),
@@ -2144,6 +2152,7 @@ fastify.get(
         blockedTenants: n(t4),
         totalClients:   n(t5),
         totalAppts:     n(t6),
+        byBusinessType,
       }});
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
@@ -2490,7 +2499,7 @@ export async function consentFormsModule(fastify: any) {
   fastify.get("/consent-forms/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const data = await db.execute(sql`SELECT * FROM consent_forms WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY is_signed DESC, created_at DESC`);
-    return reply.send({ success: true, data: (data as any).rows ?? [] });
+    return reply.send({ success: true, data: (data as any).rows ?? (Array.isArray(data) ? data : []) });
   });
   fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;

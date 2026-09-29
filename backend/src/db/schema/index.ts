@@ -158,6 +158,7 @@ export const professionals = pgTable("professionals", {
   breakTimes:           jsonb("break_times").notNull().default([]),
   sortOrder:            integer("sort_order").notNull().default(0),
   monthlyGoal:          numeric("monthly_goal", { precision: 10, scale: 2 }).notNull().default("0"),
+  professionalRegistration: varchar("professional_registration", { length: 40 }), // Pilates: CREF/CREFITO (opcional)
   ...audit,
 }, (t) => ({
   tenantIdx: index("professionals_tenant_idx").on(t.tenantId),
@@ -1102,3 +1103,67 @@ export const prospectTemplates = pgTable("prospect_templates", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ─── PILATES (Fase 2): alunos, planos e matrículas ─────────────────────────
+// Alunos, instrutores e modalidades reaproveitam clients, professionals e services.
+// Migration: 0004_pilates_base.sql (CHECKs de nível, status, tipo de plano etc. ficam no banco).
+
+export const pilatesStudentProfiles = pgTable("pilates_student_profiles", {
+  id:                    uuid("id").primaryKey().defaultRandom(),
+  tenantId:              uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  clientId:              uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  goal:                  text("goal"),
+  level:                 varchar("level", { length: 20 }).notNull().default("beginner"), // beginner | intermediate | advanced
+  startDate:             date("start_date"),
+  weeklyFrequency:       integer("weekly_frequency"),
+  status:                varchar("status", { length: 20 }).notNull().default("active"), // active | paused | inactive | cancelled
+  instructorId:          uuid("instructor_id").references(() => professionals.id, { onDelete: "set null" }),
+  notes:                 text("notes"),
+  emergencyContactName:  varchar("emergency_contact_name", { length: 255 }),
+  emergencyContactPhone: varchar("emergency_contact_phone", { length: 20 }),
+  initialAssessmentDate: date("initial_assessment_date"),
+  declaredRestrictions:  text("declared_restrictions"), // "Restrições e cuidados informados pelo aluno" (C8)
+  createdAt:             timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:             timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  clientUnique:    unique("pilates_student_profiles_client_unique").on(t.clientId),
+  tenantStatusIdx: index("pilates_student_profiles_tenant_status_idx").on(t.tenantId, t.status),
+}));
+
+export const pilatesPlans = pgTable("pilates_plans", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  tenantId:       uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  name:           varchar("name", { length: 255 }).notNull(),
+  description:    text("description"),
+  kind:           varchar("kind", { length: 20 }).notNull(), // frequency | package
+  price:          numeric("price", { precision: 10, scale: 2 }).notNull().default("0"),
+  classesPerWeek: integer("classes_per_week"), // frequency
+  durationMonths: integer("duration_months"),  // frequency: vigência (1, 3, 6...)
+  totalClasses:   integer("total_classes"),    // package
+  validityDays:   integer("validity_days"),    // package
+  modalityId:     uuid("modality_id").references(() => services.id, { onDelete: "set null" }),
+  isTrial:        boolean("is_trial").notNull().default(false),
+  status:         varchar("status", { length: 20 }).notNull().default("active"), // active | inactive
+  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tenantStatusIdx: index("pilates_plans_tenant_status_idx").on(t.tenantId, t.status),
+}));
+
+export const pilatesEnrollments = pgTable("pilates_enrollments", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  tenantId:  uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  clientId:  uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  planId:    uuid("plan_id").notNull().references(() => pilatesPlans.id, { onDelete: "restrict" }),
+  startDate: date("start_date").notNull(),
+  endDate:   date("end_date"),
+  dueDay:    integer("due_day"),
+  price:     numeric("price", { precision: 10, scale: 2 }).notNull(),
+  status:    varchar("status", { length: 20 }).notNull().default("active"), // active | paused | ended | cancelled
+  notes:     text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tenantStatusIdx: index("pilates_enrollments_tenant_status_idx").on(t.tenantId, t.status),
+  clientIdx:       index("pilates_enrollments_client_idx").on(t.clientId),
+  planIdx:         index("pilates_enrollments_plan_idx").on(t.planId),
+}));
