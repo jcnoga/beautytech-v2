@@ -15,7 +15,7 @@ export async function billingRoutes(fastify: any) {
   const ASAAS_KEY = (process.env.ASAAS_API_KEY ?? "").startsWith("$") ? process.env.ASAAS_API_KEY! : `$${process.env.ASAAS_API_KEY ?? ""}`;
   const ASAAS_URL = process.env.ASAAS_BASE_URL ?? "https://api.asaas.com/v3";
   const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? "";
-  console.log("[BILLING] KEY_PREFIX:", ASAAS_KEY.substring(0,20), "URL:", ASAAS_URL);
+  console.log("[BILLING] Asaas URL:", ASAAS_URL);
 
   if (!ASAAS_KEY) {
     console.warn("[BILLING] ASAAS_API_KEY nao configurada");
@@ -245,7 +245,9 @@ export async function billingRoutes(fastify: any) {
     if (!ref) return reply.send({ ok: true });
 
     const [tenantId, tier, period] = ref.split("|");
-    if (!tenantId) return reply.send({ ok: true });
+    // A conta Asaas é compartilhada com outros sistemas: referência que não começa com UUID não é do
+    // ZenSalon. Responder ok (e não 500 na consulta por uuid), senão o Asaas interrompe o webhook.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId ?? "")) return reply.send({ ok: true });
 
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
     if (!tenant) return reply.send({ ok: true });
