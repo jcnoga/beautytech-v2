@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API = "https://beautytech-v2-production.up.railway.app/api/v1";
+const API = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 const DAYS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sab"];
 
 function ProfessionalScheduleModal({ professional, token, onClose }: any) {

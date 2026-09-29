@@ -51,7 +51,7 @@ const PERIODS = [
   { id: "annual",     label: "Anual",     discount: 20, months: 12 },
 ];
 
-const API = "https://beautytech-v2-production.up.railway.app/api/v1";
+const API = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 
 export default function PricingPage({ currentPlan, setPage }: { token?: string; currentPlan?: string; setPage?: (p: string) => void }) {
   const [period, setPeriod] = useState("monthly");

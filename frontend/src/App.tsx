@@ -1329,7 +1329,7 @@ function AgendaPage() {
     if (!serviceId || !date) return;
     const lsKey = Object.keys(localStorage).find(k => k.includes("auth-token"));
     const token = lsKey ? JSON.parse(localStorage.getItem(lsKey) || "{}")?.access_token : "";
-    const r = await fetch(`https://beautytech-v2-production.up.railway.app/api/v1/professionals/available?serviceId=${serviceId}&date=${date}`, { headers: { Authorization: `Bearer ${token}` } });
+    const r = await fetch(`${import.meta.env["VITE_API_URL"]}/professionals/available?serviceId=${serviceId}&date=${date}`, { headers: { Authorization: `Bearer ${token}` } });
     const d = await r.json();
     setAvailableProfs(d.data ?? []);
   };
@@ -1339,7 +1339,7 @@ function AgendaPage() {
     setLoadingSlots(true);
     const lsKey = Object.keys(localStorage).find(k => k.includes("auth-token"));
     const token = lsKey ? JSON.parse(localStorage.getItem(lsKey) || "{}")?.access_token : "";
-    const r = await fetch(`https://beautytech-v2-production.up.railway.app/api/v1/professionals/${professionalId}/slots?serviceId=${serviceId}&date=${date}`, { headers: { Authorization: `Bearer ${token}` } });
+    const r = await fetch(`${import.meta.env["VITE_API_URL"]}/professionals/${professionalId}/slots?serviceId=${serviceId}&date=${date}`, { headers: { Authorization: `Bearer ${token}` } });
     const d = await r.json();
     setSlots(d.data ?? []);
     setLoadingSlots(false);
