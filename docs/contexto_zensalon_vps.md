@@ -35,7 +35,9 @@ Atualizado em 29/09/2026 (fim do dia). Colar no início da próxima conversa.
 4. **1 semana estável (até ~06/10):** acompanhar logs e backup; depois desligar Railway/Vercel, trocar a senha do banco no Supabase e desativá-lo, apagar `/opt/backups/zensalon/` e os `.bak-*`, juntar `vps` → `main` (antes, desligar o deploy automático do Railway).
 5. **Chave do Asaas:** 20 primeiros caracteres ficaram em logs do Railway/VPS (log já removido). Trocar afeta também o AgroConsult.
 6. **Domínios próprios** (`websitelog.com.br`, `www.dominioteste-nogueira.com.br`, ambos de teste, do Salão Beleza Pura) pararam: ainda apontam para a Vercel. Rota de domínio próprio na VPS fica para depois.
-7. Melhorias opcionais: painel mostrar "conta sem salão vinculado" em vez de zeros; exclusão de salão pelo super admin apagar também os logins; evento `SUBSCRIPTION_INACTIVATED` do Asaas nunca funciona (lê a referência do lugar errado).
+7. **OdontoPro e AgroNexo removidos da VPS (29/09):** containers, imagens, bancos `agronexo`/`gotrue_agronexo`/`gotrue_odontopro`, schema `odontopro` do `apps_production`, usuário `agronexo_app` e pastas em `/root`. AgroLab e AgroConsult conferidos intactos. Backup completo (dumps, pastas, imagens) em `/opt/backups/removidos/2026-09-29/` → apagar em ~29/10/2026. Falta (você): apagar no Registro.br (zona 99labpro.com.br) `agronexo`, `api-agronexo`, `gotrue-agronexo`, `api.odontopro`, `gotrue-odontopro`.
+8. **Isolamento dos bancos:** AgroLab e gotrue-test ainda usam o superusuário `vps_migrator_user` (enxerga todos os bancos, inclusive `zensalon`); bancos do AgroConsult aceitam conexão de qualquer usuário. Plano: usuários próprios + fechar CONNECT, em sessão separada.
+9. Melhorias opcionais: painel mostrar "conta sem salão vinculado" em vez de zeros; exclusão de salão pelo super admin apagar também os logins; evento `SUBSCRIPTION_INACTIVATED` do Asaas nunca funciona (lê a referência do lugar errado).
 
 ## Problemas conhecidos (não urgentes)
 - 32 erros antigos de TypeScript. O teste de isolamento precisa de `TEST_DATABASE_URL` (banco de teste) para rodar.
