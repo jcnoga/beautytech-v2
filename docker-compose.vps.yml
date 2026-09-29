@@ -1,4 +1,5 @@
 # ZenSalon na VPS (https://vps.zensalon.com.br), ramo git "vps".
+# Domínios atendidos: ROTEADOR_HOSTS no .env, ex.: Host(`zensalon.com.br`) || Host(`vps.zensalon.com.br`).
 # Usa o Traefik que já existe (rede externa + labels), sem publicar portas e sem criar outro Traefik.
 # Banco no Postgres compartilhado da VPS (vps-migrator-postgres): bancos zensalon e gotrue_zensalon,
 # com papéis próprios (deploy/criar-banco.sh). Não toca em petshop-* nem nos bancos do PetShop.
@@ -38,7 +39,7 @@ services:
     labels:
       <<: *traefik
       # supabase-js chama <domínio>/auth/v1/*. A API admin não é publicada: a API usa pela rede interna.
-      traefik.http.routers.zensalon-auth.rule: Host(`${PUBLIC_HOST}`) && PathPrefix(`/auth/v1/`) && !PathPrefix(`/auth/v1/admin`)
+      traefik.http.routers.zensalon-auth.rule: (${ROTEADOR_HOSTS}) && PathPrefix(`/auth/v1/`) && !PathPrefix(`/auth/v1/admin`)
       traefik.http.routers.zensalon-auth.priority: "100"
       traefik.http.routers.zensalon-auth.entrypoints: websecure
       traefik.http.routers.zensalon-auth.tls: "true"
@@ -81,7 +82,7 @@ services:
     labels:
       <<: *traefik
       # O prefixo /api/v1 é da própria API (API_PREFIX): não remover.
-      traefik.http.routers.zensalon-api.rule: Host(`${PUBLIC_HOST}`) && PathPrefix(`/api/`)
+      traefik.http.routers.zensalon-api.rule: (${ROTEADOR_HOSTS}) && PathPrefix(`/api/`)
       traefik.http.routers.zensalon-api.priority: "100"
       traefik.http.routers.zensalon-api.entrypoints: websecure
       traefik.http.routers.zensalon-api.tls: "true"
@@ -93,9 +94,11 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_SUPABASE_URL: ${PUBLIC_URL}
+        # Vazios/relativos: o mesmo build serve todos os domínios de ROTEADOR_HOSTS, cada um falando
+        # com o GoTrue e a API do próprio domínio.
+        VITE_SUPABASE_URL: ""
         VITE_SUPABASE_ANON_KEY: ${GOTRUE_ANON_KEY}
-        VITE_API_URL: ${PUBLIC_URL}/api/v1
+        VITE_API_URL: /api/v1
     image: zensalon-web
     container_name: zensalon-web
     restart: unless-stopped
@@ -104,7 +107,7 @@ services:
       - uploads:/srv/uploads:ro
     labels:
       <<: *traefik
-      traefik.http.routers.zensalon-web.rule: Host(`${PUBLIC_HOST}`)
+      traefik.http.routers.zensalon-web.rule: (${ROTEADOR_HOSTS})
       traefik.http.routers.zensalon-web.priority: "10"
       traefik.http.routers.zensalon-web.entrypoints: websecure
       traefik.http.routers.zensalon-web.tls: "true"

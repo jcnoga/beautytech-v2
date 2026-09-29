@@ -36,6 +36,8 @@ else
 # Gerado por deploy/gerar-env.sh em $(date -u +%Y-%m-%dT%H:%M:%SZ). Não versionar.
 PUBLIC_HOST=$HOST
 PUBLIC_URL=https://$HOST
+# Domínios que o Traefik entrega ao ZenSalon (mais de um: Host(\`a\`) || Host(\`b\`))
+ROTEADOR_HOSTS='Host(\`$HOST\`)'
 ZENSALON_DB_PASSWORD=$APP_PW
 GOTRUE_DB_PASSWORD=$AUTH_PW
 DATABASE_URL=postgres://zensalon_app:$APP_PW@$DB_HOST:5432/zensalon

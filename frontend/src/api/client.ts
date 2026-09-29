@@ -1,7 +1,8 @@
 ﻿import { createClient } from "@supabase/supabase-js";
 
+// Vazio no build da VPS: o GoTrue fica em /auth/v1 do próprio domínio (zensalon.com.br, www ou vps).
 export const supabase = createClient(
-  import.meta.env["VITE_SUPABASE_URL"],
+  import.meta.env["VITE_SUPABASE_URL"] || window.location.origin,
   import.meta.env["VITE_SUPABASE_ANON_KEY"],
   { auth: { detectSessionInUrl: true, flowType: "implicit" } }
 );

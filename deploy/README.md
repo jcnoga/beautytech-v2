@@ -62,6 +62,25 @@ docker exec -i vps-migrator-postgres psql -U <superusuário> -d postgres \
   -c "DROP DATABASE zensalon" -c "DROP DATABASE gotrue_zensalon" -c "DROP ROLE zensalon_app" -c "DROP ROLE zensalon_auth"
 ```
 
+## Backup (todos os bancos da VPS + uploads do ZenSalon)
+
+`deploy/backup-bancos.sh` faz um `pg_dump` de **cada banco** do `vps-migrator-postgres` (todos os sistemas, não só o ZenSalon), `pg_dumpall --globals-only` (papéis) e um `tar.gz` do volume `zensalon_uploads`. Guarda os 7 mais recentes em `/opt/backups/diario/` e, se existir `/root/backup-r2.env` (formato no cabeçalho do script), envia uma cópia para o Cloudflare R2 (retenção de 30 dias lá).
+
+```bash
+# Cron: todo dia às 03:10 de Brasília (06:10 UTC; a VPS está em UTC)
+cat > /etc/cron.d/backup-bancos <<'EOF'
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+10 6 * * * root sh /opt/apps/zensalon/deploy/backup-bancos.sh >> /var/log/backup-bancos.log 2>&1
+EOF
+tail -n 30 /var/log/backup-bancos.log                   # resultado das últimas execuções
+sh deploy/testar-restauracao.sh zensalon                # restaura num banco temporário, compara e apaga
+```
+
+Restaurar de verdade um banco (ex.: `zensalon`), com o sistema parado:
+`docker exec -i vps-migrator-postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d zensalon --clean --if-exists' < /opt/backups/diario/<data>/zensalon.dump`.
+Não cobre `evolution-postgres` nem o volume do n8n (ficam fora do Postgres compartilhado).
+
 ## Observações
 
 - `/auth/v1/admin` não é publicado: a API usa a API admin do GoTrue pela rede interna (`http://zensalon-gotrue:9999`).
