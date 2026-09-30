@@ -1,4 +1,4 @@
-// Regras configuráveis do Pilates (Fase 3): PADRÃO DO STUDIO (class_settings) + EXCEÇÃO POR PLANO
+// Regras configuráveis das Aulas em turma (Fase 3): PADRÃO DO STUDIO (class_settings) + EXCEÇÃO POR PLANO
 // (colunas opcionais em membership_plans; NULL = usa o padrão). Todo cálculo usa effectiveRules().
 import { sql } from "drizzle-orm";
 

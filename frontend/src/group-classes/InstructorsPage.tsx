@@ -1,4 +1,4 @@
-// Pilates: Instrutores (reaproveita o cadastro de profissionais) e horários de trabalho.
+// Aulas em turma: Instrutores (reaproveita o cadastro de profissionais) e horários de trabalho.
 // API: /class-instructors e /class-instructors/:id/schedules.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -7,7 +7,7 @@ import { type Theme, WEEKDAYS, PageHeader, Button, Field, inputStyle, Badge, Car
 const EMPTY = { fullName: "", phone: "", whatsapp: "", email: "", specialties: "", professionalRegistration: "", commissionPct: "0", isActive: true, bio: "" };
 const DEFAULT_DAYS = WEEKDAYS.map((_, d) => ({ dayOfWeek: d, isWorking: d >= 1 && d <= 5, startTime: "07:00", endTime: "12:00" }));
 
-export default function PilatesInstructorsPage({ C, FD, FB }: Theme) {
+export default function ClassInstructorsPage({ C, FD, FB }: Theme) {
   const t = { C, FD, FB };
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

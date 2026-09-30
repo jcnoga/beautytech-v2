@@ -1,4 +1,4 @@
-// Pilates: Modalidades (configuração do studio, item 27). Reaproveita a tabela de serviços.
+// Aulas em turma: Modalidades (configuração do studio, item 27). Reaproveita a tabela de serviços.
 // API: /classes/modalities.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -6,7 +6,7 @@ import { type Theme, brl, PageHeader, Button, Field, inputStyle, Badge, Card, Mo
 
 const EMPTY = { name: "", description: "", durationMinutes: "50", price: "", isActive: true };
 
-export default function PilatesModalitiesPage({ C, FD, FB }: Theme) {
+export default function ClassModalitiesPage({ C, FD, FB }: Theme) {
   const t = { C, FD, FB };
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

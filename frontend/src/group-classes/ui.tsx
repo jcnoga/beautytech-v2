@@ -1,4 +1,4 @@
-// Componentes visuais das telas de Pilates. Usam o tema atual do ZenSalon (C, FD, FB vêm do App),
+// Componentes visuais das telas de Aulas em turma. Usam o tema atual do ZenSalon (C, FD, FB vêm do App),
 // então seguem o tema escolhido pelo usuário. Pensados para funcionar no celular.
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 

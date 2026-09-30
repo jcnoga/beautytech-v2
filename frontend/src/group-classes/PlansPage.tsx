@@ -1,4 +1,4 @@
-// Pilates: Planos (C1). Dois tipos: por frequência (mensalidade, aulas/semana, vigência em meses)
+// Aulas em turma: Planos (C1). Dois tipos: por frequência (mensalidade, aulas/semana, vigência em meses)
 // e pacote de aulas (créditos com validade). Aula experimental = pacote marcado como experimental.
 // API: /memberships/plans e /classes/modalities.
 import { useEffect, useState } from "react";
@@ -14,7 +14,7 @@ export function describePlan(p: any) {
   return `${p.totalClasses} aula${p.totalClasses > 1 ? "s" : ""} · validade de ${p.validityDays} dias`;
 }
 
-export default function PilatesPlansPage({ C, FD, FB }: Theme) {
+export default function MembershipsPage({ C, FD, FB }: Theme) {
   const t = { C, FD, FB };
   const [plans, setPlans] = useState<any[]>([]);
   const [modalities, setModalities] = useState<any[]>([]);

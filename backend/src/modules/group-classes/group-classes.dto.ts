@@ -1,4 +1,4 @@
-// DTOs das rotas /pilates/*. Só entram campos editáveis pelo usuário (lista explícita);
+// DTOs das rotas de Aulas em turma (/class-students, /class-instructors, /memberships/*, /classes/*). Só entram campos editáveis pelo usuário (lista explícita);
 // campos desconhecidos são descartados (zod strip). tenantId e ids nunca vêm do corpo.
 import { z } from "zod";
 
@@ -29,7 +29,7 @@ export const studentCreateDto = z.object({
   whatsapp:              nul(str(20)),
   email:                 nul(z.string().trim().email().max(255)),
   birthDate:             nul(day),
-  // dados de Pilates (student_profiles)
+  // ficha do aluno (student_profiles)
   goal:                  nul(str(1000)),
   level:                 opt(z.enum(STUDENT_LEVELS)),
   startDate:             nul(day),

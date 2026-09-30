@@ -19,10 +19,10 @@ import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
 import { can, setCurrentBusinessType } from './config/nicho';
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type Feature } from './config/features';
-import PilatesStudentsPage from './group-classes/StudentsPage';
-import PilatesPlansPage from './group-classes/PlansPage';
-import PilatesInstructorsPage from './group-classes/InstructorsPage';
-import PilatesModalitiesPage from './group-classes/ModalitiesPage';
+import ClassStudentsPage from './group-classes/StudentsPage';
+import MembershipsPage from './group-classes/PlansPage';
+import ClassInstructorsPage from './group-classes/InstructorsPage';
+import ClassModalitiesPage from './group-classes/ModalitiesPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
@@ -3968,12 +3968,12 @@ function TrialBanner() {
 }
 
 // --- SIDEBAR -------------------------------------------------
-// Telas do Pilates com identidade estável (definidas fora do App): assim o React não desmonta a tela
+// Telas de Aulas em turma com identidade estável (definidas fora do App): assim o React não desmonta a tela
 // a cada renderização do App (o que refaria as buscas e fecharia um formulário aberto).
-function PilatesStudentsScreen()    { useTheme(); return <PilatesStudentsPage C={C} FD={FD} FB={FB} />; }
-function PilatesPlansScreen()       { useTheme(); return <PilatesPlansPage C={C} FD={FD} FB={FB} />; }
-function PilatesInstructorsScreen() { useTheme(); return <PilatesInstructorsPage C={C} FD={FD} FB={FB} />; }
-function PilatesModalitiesScreen()  { useTheme(); return <PilatesModalitiesPage C={C} FD={FD} FB={FB} />; }
+function ClassStudentsScreen()    { useTheme(); return <ClassStudentsPage C={C} FD={FD} FB={FB} />; }
+function MembershipsScreen()       { useTheme(); return <MembershipsPage C={C} FD={FD} FB={FB} />; }
+function ClassInstructorsScreen() { useTheme(); return <ClassInstructorsPage C={C} FD={FD} FB={FB} />; }
+function ClassModalitiesScreen()  { useTheme(); return <ClassModalitiesPage C={C} FD={FD} FB={FB} />; }
 
 // Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
 const PAGE_FEATURES: Record<string, Feature> = {
@@ -4195,10 +4195,10 @@ const logout = async () => {
     auditlogs: AuditLogsPage,
     checkout: () => <CheckoutPage setPage={setPage} />,
     ajuda:    () => <HelpPage />,
-    class_students:    PilatesStudentsScreen,
-    memberships:       PilatesPlansScreen,
-    class_instructors: PilatesInstructorsScreen,
-    class_modalities:  PilatesModalitiesScreen,
+    class_students:    ClassStudentsScreen,
+    memberships:       MembershipsScreen,
+    class_instructors: ClassInstructorsScreen,
+    class_modalities:  ClassModalitiesScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;

@@ -1,4 +1,4 @@
-// Pilates: Alunos (reaproveita o cadastro de clientes + dados de Pilates) e suas matrículas.
+// Aulas em turma: Alunos (reaproveita o cadastro de clientes + ficha do aluno) e suas matrículas.
 // API: /class-students, /memberships/enrollments, /memberships/plans, /class-instructors, /consent-forms (C8).
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -14,7 +14,7 @@ const EMPTY = {
 };
 const FILTERS = [["", "Todos"], ["active", "Ativos"], ["paused", "Pausados"], ["inactive", "Inativos"], ["cancelled", "Cancelados"], ["incomplete", "Ficha incompleta"]];
 
-export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
+export default function ClassStudentsPage({ C, FD, FB }: Theme) {
   const t = { C, FD, FB };
   const [students, setStudents] = useState<any[]>([]);
   const [instructors, setInstructors] = useState<any[]>([]);

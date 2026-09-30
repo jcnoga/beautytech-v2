@@ -1,4 +1,4 @@
-// Rotas do Pilates, Fase 3: regras do studio, grade, aulas, horários fixos, inscrições, presença,
+// Aulas em turma, Fase 3 (rotas): regras do studio, grade, aulas, horários fixos, inscrições, presença,
 // reposições e pausas. Todas sob /classes/* e protegidas pelo feature-guard (group_classes / class_settings).
 // A regra de negócio fica em classes.service.ts; aqui: DTO, permissão, transação e Log de ações.
 import type { FastifyInstance } from "fastify";
@@ -16,7 +16,7 @@ import {
 import {
   studioSettingsDto, scheduleCreateDto, scheduleUpdateDto, sessionCreateDto, sessionUpdateDto, sessionCancelDto,
   slotCreateDto, bookingCreateDto, extraClassDto, attendanceDto, pauseCreateDto,
-} from "./pilates.dto";
+} from "./group-classes.dto";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -92,7 +92,7 @@ async function studentExists(tenantId: string, clientId: string) {
   return !!s;
 }
 
-export async function pilatesClassesModule(fastify: FastifyInstance) {
+export async function classesModule(fastify: FastifyInstance) {
   // ═══ REGRAS DO STUDIO ═════════════════════════════════════════════════════
   fastify.get("/classes/settings", { preHandler: [authenticate] }, async (req: any, reply) => {
     return reply.send({ success: true, data: settingsToApi(await getStudioSettings(db, req.tenantContext.tenantId)) });

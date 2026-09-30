@@ -1,4 +1,4 @@
-// Rotas do nicho Pilates (Fase 2: alunos, instrutores, planos, matrículas e modalidades).
+// Aulas em turma, Fase 2 (rotas: alunos, instrutores, planos, matrículas e modalidades).
 // Ficam sob /class-students, /class-instructors, /memberships/* e /classes/modalities e passam pelo feature-guard (ROUTE_FEATURES em config/features.ts):
 // só empresas com business_type = "pilates" acessam; os outros nichos recebem 403.
 // Reaproveitam as tabelas existentes: aluno = clients (+ student_profiles),
@@ -22,7 +22,7 @@ import {
   planCreateDto, planUpdateDto, planRuleError,
   enrollmentCreateDto, enrollmentUpdateDto,
   modalityCreateDto, modalityUpdateDto,
-} from "./pilates.dto";
+} from "./group-classes.dto";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const notFound = (reply: any, error: string) => reply.status(404).send({ success: false, error, code: "NOT_FOUND" });
@@ -56,7 +56,7 @@ function endAfterDays(start: string, days: number) {
 // ─── consultas ──────────────────────────────────────────────────────────────
 const studentFields = {
   id: clients.id,
-  // false = cliente do studio ainda sem ficha de Pilates ("ficha incompleta"); salvar a ficha a cria.
+  // false = cliente do studio ainda sem ficha de aluno ("ficha incompleta"); salvar a ficha a cria.
   hasProfile: sql<boolean>`("student_profiles"."id" IS NOT NULL)`,
   fullName: clients.fullName,
   phone: clients.phone,
@@ -79,7 +79,7 @@ const studentFields = {
     WHERE e.client_id = "clients"."id" AND e.tenant_id = "clients"."tenant_id" AND e.status = 'active')`,
 };
 
-/** Todos os clientes do studio, com a ficha de Pilates quando existir (mesmo cadastro, sem duplicar). */
+/** Todos os clientes do studio, com a ficha do aluno quando existir (mesmo cadastro, sem duplicar). */
 function studentsQuery(tenantId: string) {
   return db.select(studentFields).from(clients)
     .leftJoin(studentProfiles, and(eq(studentProfiles.clientId, clients.id), eq(studentProfiles.tenantId, tenantId)))
@@ -113,7 +113,7 @@ function normalizePlan<T extends Record<string, any>>(p: T): T {
   return p;
 }
 
-export async function pilatesModule(fastify: FastifyInstance) {
+export async function membershipsModule(fastify: FastifyInstance) {
   // ═══ ALUNOS ═══════════════════════════════════════════════════════════════
   fastify.get("/class-students", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
@@ -175,7 +175,7 @@ export async function pilatesModule(fastify: FastifyInstance) {
           .where(and(eq(clients.id, current.id), eq(clients.tenantId, tenantId)));
       }
       if (!current.hasProfile) {
-        // Cliente sem ficha: salvar cria a ficha de Pilates (completa o cadastro).
+        // Cliente sem ficha: salvar cria a ficha do aluno (completa o cadastro).
         await tx.insert(studentProfiles).values({ ...(profileData as any), tenantId, clientId: current.id });
       } else if (Object.keys(profileData).length) {
         await tx.update(studentProfiles).set({ ...(profileData as any), updatedAt: new Date() })

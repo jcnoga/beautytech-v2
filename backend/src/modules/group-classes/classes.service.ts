@@ -1,4 +1,4 @@
-// Pilates, Fase 3: regras de negócio das aulas (sem HTTP). Usado por classes.routes.ts.
+// Aulas em turma, Fase 3: regras de negócio das aulas (sem HTTP). Usado por classes.routes.ts.
 //
 // TRAVAS (C4): toda operação que ocupa vaga trava SEMPRE nesta ordem:
 //   1) a linha da grade (class_schedules)  — se a aula vier de uma grade;
