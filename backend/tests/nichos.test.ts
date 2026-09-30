@@ -130,7 +130,7 @@ test("frontend: toda tela do menu tem feature válida; pilates só vê as telas 
   assert.ok(menu, "MENU_GROUPS não encontrado");
   for (const m of menu[1].matchAll(/\{ id:"(\w+)"/g)) assert.ok(m[1] in pages, `item de menu ${m[1]} sem feature (ficaria escondido)`);
   const pilates = Object.keys(pages).filter((p) => F.isFeatureAllowed(pages[p], "pilates")).sort();
-  const telasPilates = ["pilates_instructors", "pilates_modalities", "pilates_plans", "pilates_students"];
+  const telasPilates = ["class_instructors", "class_modalities", "class_students", "memberships"];
   assert.deepEqual(pilates, ["ajuda", "auditlogs", "checkout", ...telasPilates, "pricing", "settings"].sort());
   for (const bt of CLASSIC) {
     const escondidas = Object.keys(pages).filter((p) => !F.isFeatureAllowed(pages[p], bt)).sort();
@@ -195,11 +195,11 @@ const exclusivas: Record<string, (t: Tenant) => string> = {
   treatment_packages: () => "/treatment-packages",
 };
 const soPilates: Record<string, (t: Tenant) => string> = {
-  pilates_students: () => "/pilates/students",
-  pilates_instructors: () => "/pilates/instructors",
-  pilates_plans: () => "/pilates/plans",
-  pilates_settings: () => "/pilates/modalities",
-  pilates_classes: () => "/pilates/schedules",
+  class_students: () => "/class-students",
+  class_instructors: () => "/class-instructors",
+  memberships: () => "/memberships/plans",
+  class_settings: () => "/classes/modalities",
+  group_classes: () => "/classes/schedules",
 };
 
 test("sondas cobrem todas as features que têm rota na API", () => {
@@ -217,7 +217,7 @@ for (const bt of CLASSIC) {
       const res = await call("GET", url(T[bt]), T[bt].token);
       assert.ok(featureDenied(res), `${bt} deveria receber 403 em ${feature} (${url(T[bt])}), veio ${res.statusCode}`);
     }
-    assert.ok(featureDenied(await call("POST", "/pilates/students", T[bt].token, { fullName: "X" })), `${bt} criou aluno de Pilates`);
+    assert.ok(featureDenied(await call("POST", "/class-students", T[bt].token, { fullName: "X" })), `${bt} criou aluno de Pilates`);
   });
 }
 

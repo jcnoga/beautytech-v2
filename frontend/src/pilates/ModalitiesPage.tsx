@@ -1,5 +1,5 @@
 // Pilates: Modalidades (configuração do studio, item 27). Reaproveita a tabela de serviços.
-// API: /pilates/modalities.
+// API: /classes/modalities.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { type Theme, brl, PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Grid, Notice, Empty } from "./ui";
@@ -18,7 +18,7 @@ export default function PilatesModalitiesPage({ C, FD, FB }: Theme) {
 
   const load = async () => {
     setLoading(true); setError("");
-    try { const r: any = await api.get("/pilates/modalities"); setList(r.data ?? []); }
+    try { const r: any = await api.get("/classes/modalities"); setList(r.data ?? []); }
     catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
@@ -35,7 +35,7 @@ export default function PilatesModalitiesPage({ C, FD, FB }: Theme) {
     setSaving(true); setFormError("");
     const body = { ...form, durationMinutes: Number(form.durationMinutes || 50), price: form.price === "" ? 0 : Number(form.price) };
     try {
-      editing?.id ? await api.patch(`/pilates/modalities/${editing.id}`, body) : await api.post("/pilates/modalities", body);
+      editing?.id ? await api.patch(`/classes/modalities/${editing.id}`, body) : await api.post("/classes/modalities", body);
       await load(); setEditing(null);
     } catch (e: any) { setFormError(e.message); }
     finally { setSaving(false); }

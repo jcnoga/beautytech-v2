@@ -1,6 +1,6 @@
 // Pilates: Planos (C1). Dois tipos: por frequência (mensalidade, aulas/semana, vigência em meses)
 // e pacote de aulas (créditos com validade). Aula experimental = pacote marcado como experimental.
-// API: /pilates/plans e /pilates/modalities.
+// API: /memberships/plans e /classes/modalities.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { type Theme, brl, PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Grid, Notice, Empty } from "./ui";
@@ -27,13 +27,13 @@ export default function PilatesPlansPage({ C, FD, FB }: Theme) {
 
   const load = async () => {
     setLoading(true); setError("");
-    try { const r: any = await api.get("/pilates/plans"); setPlans(r.data ?? []); }
+    try { const r: any = await api.get("/memberships/plans"); setPlans(r.data ?? []); }
     catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => {
     load();
-    api.get<any>("/pilates/modalities").then((r) => setModalities((r.data ?? []).filter((m: any) => m.isActive))).catch(() => {});
+    api.get<any>("/classes/modalities").then((r) => setModalities((r.data ?? []).filter((m: any) => m.isActive))).catch(() => {});
   }, []);
 
   const open = (p: any | null, preset?: any) => {
@@ -53,7 +53,7 @@ export default function PilatesPlansPage({ C, FD, FB }: Theme) {
     if (form.kind === "frequency") Object.assign(body, { classesPerWeek: n(form.classesPerWeek), durationMonths: n(form.durationMonths), isTrial: false });
     else Object.assign(body, { totalClasses: n(form.totalClasses), validityDays: n(form.validityDays), isTrial: !!form.isTrial });
     try {
-      editing?.id ? await api.patch(`/pilates/plans/${editing.id}`, body) : await api.post("/pilates/plans", body);
+      editing?.id ? await api.patch(`/memberships/plans/${editing.id}`, body) : await api.post("/memberships/plans", body);
       await load();
       setEditing(null);
     } catch (e: any) { setFormError(e.message); }

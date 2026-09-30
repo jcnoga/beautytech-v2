@@ -1,5 +1,5 @@
 // Pilates: Alunos (reaproveita o cadastro de clientes + dados de Pilates) e suas matrículas.
-// API: /pilates/students, /pilates/enrollments, /pilates/plans, /pilates/instructors, /consent-forms (C8).
+// API: /class-students, /memberships/enrollments, /memberships/plans, /class-instructors, /consent-forms (C8).
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import {
@@ -34,15 +34,15 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
   const load = async () => {
     setLoading(true); setError("");
     try {
-      const r: any = await api.get("/pilates/students", { status, search });
+      const r: any = await api.get("/class-students", { status, search });
       setStudents(r.data ?? []);
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [status]);
   useEffect(() => {
-    api.get<any>("/pilates/instructors").then((r) => setInstructors((r.data ?? []).filter((i: any) => i.isActive))).catch(() => {});
-    api.get<any>("/pilates/plans", { status: "active" }).then((r) => setPlans(r.data ?? [])).catch(() => {});
+    api.get<any>("/class-instructors").then((r) => setInstructors((r.data ?? []).filter((i: any) => i.isActive))).catch(() => {});
+    api.get<any>("/memberships/plans", { status: "active" }).then((r) => setPlans(r.data ?? [])).catch(() => {});
   }, []);
 
   const open = async (s: any | null) => {
@@ -52,7 +52,7 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
     setEnrollments([]); setConsent(null);
     setEnroll({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
     if (s?.id && s.hasProfile) {
-      api.get<any>("/pilates/enrollments", { studentId: s.id }).then((r) => setEnrollments(r.data ?? [])).catch(() => {});
+      api.get<any>("/memberships/enrollments", { studentId: s.id }).then((r) => setEnrollments(r.data ?? [])).catch(() => {});
       api.get<any>(`/consent-forms/${s.id}`).then((r) => setConsent((r.data ?? []).find((c: any) => c.type === "lgpd") ?? null)).catch(() => {});
     }
   };
@@ -63,7 +63,7 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
     setSaving(true); setFormError("");
     const body = { ...form, weeklyFrequency: form.weeklyFrequency === "" ? null : Number(form.weeklyFrequency) };
     try {
-      const r: any = editing?.id ? await api.patch(`/pilates/students/${editing.id}`, body) : await api.post("/pilates/students", body);
+      const r: any = editing?.id ? await api.patch(`/class-students/${editing.id}`, body) : await api.post("/class-students", body);
       await load();
       if (!editing?.id || !editing.hasProfile) await open(r.data); else setEditing(r.data);
     } catch (e: any) { setFormError(e.message); }
@@ -74,11 +74,11 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
     if (!enroll.planId) { setFormError("Escolha o plano."); return; }
     setFormError("");
     try {
-      await api.post("/pilates/enrollments", {
+      await api.post("/memberships/enrollments", {
         studentId: editing.id, planId: enroll.planId, startDate: enroll.startDate,
         dueDay: enroll.dueDay === "" ? undefined : Number(enroll.dueDay), price: enroll.price === "" ? undefined : Number(enroll.price),
       });
-      const r: any = await api.get("/pilates/enrollments", { studentId: editing.id });
+      const r: any = await api.get("/memberships/enrollments", { studentId: editing.id });
       setEnrollments(r.data ?? []);
       setEnroll({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
       load();
@@ -86,8 +86,8 @@ export default function PilatesStudentsPage({ C, FD, FB }: Theme) {
   };
   const setEnrollmentStatus = async (id: string, st: string) => {
     try {
-      await api.patch(`/pilates/enrollments/${id}`, { status: st });
-      const r: any = await api.get("/pilates/enrollments", { studentId: editing.id });
+      await api.patch(`/memberships/enrollments/${id}`, { status: st });
+      const r: any = await api.get("/memberships/enrollments", { studentId: editing.id });
       setEnrollments(r.data ?? []);
       load();
     } catch (e: any) { setFormError(e.message); }

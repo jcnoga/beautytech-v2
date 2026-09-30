@@ -1,14 +1,14 @@
 // Rotas do nicho Pilates (Fase 2: alunos, instrutores, planos, matrículas e modalidades).
-// Todas ficam sob /pilates/* e passam pelo feature-guard (ROUTE_FEATURES em config/features.ts):
+// Ficam sob /class-students, /class-instructors, /memberships/* e /classes/modalities e passam pelo feature-guard (ROUTE_FEATURES em config/features.ts):
 // só empresas com business_type = "pilates" acessam; os outros nichos recebem 403.
-// Reaproveitam as tabelas existentes: aluno = clients (+ pilates_student_profiles),
+// Reaproveitam as tabelas existentes: aluno = clients (+ student_profiles),
 // instrutor = professionals (+ professional_schedules), modalidade = services.
 import type { FastifyInstance } from "fastify";
 import { and, asc, desc, eq, ilike, isNull, sql } from "drizzle-orm";
 import { db } from "@db/connection";
 import {
   clients, professionals, services, professionalSchedules,
-  pilatesStudentProfiles, pilatesPlans, pilatesEnrollments,
+  studentProfiles, membershipPlans, membershipEnrollments,
 } from "@db/schema/index";
 import { authenticate, requireManager } from "@middleware/auth";
 import { parseBody } from "../dtos";
@@ -57,33 +57,33 @@ function endAfterDays(start: string, days: number) {
 const studentFields = {
   id: clients.id,
   // false = cliente do studio ainda sem ficha de Pilates ("ficha incompleta"); salvar a ficha a cria.
-  hasProfile: sql<boolean>`("pilates_student_profiles"."id" IS NOT NULL)`,
+  hasProfile: sql<boolean>`("student_profiles"."id" IS NOT NULL)`,
   fullName: clients.fullName,
   phone: clients.phone,
   whatsapp: clients.whatsapp,
   email: clients.email,
   birthDate: clients.birthDate,
-  goal: pilatesStudentProfiles.goal,
-  level: pilatesStudentProfiles.level,
-  startDate: pilatesStudentProfiles.startDate,
-  weeklyFrequency: pilatesStudentProfiles.weeklyFrequency,
-  status: pilatesStudentProfiles.status,
-  instructorId: pilatesStudentProfiles.instructorId,
+  goal: studentProfiles.goal,
+  level: studentProfiles.level,
+  startDate: studentProfiles.startDate,
+  weeklyFrequency: studentProfiles.weeklyFrequency,
+  status: studentProfiles.status,
+  instructorId: studentProfiles.instructorId,
   instructorName: professionals.fullName,
-  notes: pilatesStudentProfiles.notes,
-  emergencyContactName: pilatesStudentProfiles.emergencyContactName,
-  emergencyContactPhone: pilatesStudentProfiles.emergencyContactPhone,
-  initialAssessmentDate: pilatesStudentProfiles.initialAssessmentDate,
-  declaredRestrictions: pilatesStudentProfiles.declaredRestrictions,
-  activeEnrollments: sql<number>`(SELECT count(*)::int FROM pilates_enrollments e
+  notes: studentProfiles.notes,
+  emergencyContactName: studentProfiles.emergencyContactName,
+  emergencyContactPhone: studentProfiles.emergencyContactPhone,
+  initialAssessmentDate: studentProfiles.initialAssessmentDate,
+  declaredRestrictions: studentProfiles.declaredRestrictions,
+  activeEnrollments: sql<number>`(SELECT count(*)::int FROM membership_enrollments e
     WHERE e.client_id = "clients"."id" AND e.tenant_id = "clients"."tenant_id" AND e.status = 'active')`,
 };
 
 /** Todos os clientes do studio, com a ficha de Pilates quando existir (mesmo cadastro, sem duplicar). */
 function studentsQuery(tenantId: string) {
   return db.select(studentFields).from(clients)
-    .leftJoin(pilatesStudentProfiles, and(eq(pilatesStudentProfiles.clientId, clients.id), eq(pilatesStudentProfiles.tenantId, tenantId)))
-    .leftJoin(professionals, eq(professionals.id, pilatesStudentProfiles.instructorId));
+    .leftJoin(studentProfiles, and(eq(studentProfiles.clientId, clients.id), eq(studentProfiles.tenantId, tenantId)))
+    .leftJoin(professionals, eq(professionals.id, studentProfiles.instructorId));
 }
 
 async function findStudent(tenantId: string, clientId: string) {
@@ -102,7 +102,7 @@ async function findInstructor(tenantId: string, id: string) {
 
 async function findPlan(tenantId: string, id: string) {
   if (!UUID.test(id)) return undefined;
-  const [row] = await db.select().from(pilatesPlans).where(and(eq(pilatesPlans.id, id), eq(pilatesPlans.tenantId, tenantId)));
+  const [row] = await db.select().from(membershipPlans).where(and(eq(membershipPlans.id, id), eq(membershipPlans.tenantId, tenantId)));
   return row;
 }
 
@@ -115,25 +115,25 @@ function normalizePlan<T extends Record<string, any>>(p: T): T {
 
 export async function pilatesModule(fastify: FastifyInstance) {
   // ═══ ALUNOS ═══════════════════════════════════════════════════════════════
-  fastify.get("/pilates/students", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/class-students", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const { status, search } = req.query as any;
     const cond = [eq(clients.tenantId, tenantId), isNull(clients.deletedAt)];
-    if (status === "incomplete") cond.push(isNull(pilatesStudentProfiles.id));
-    else if (typeof status === "string" && status) cond.push(eq(pilatesStudentProfiles.status, status));
+    if (status === "incomplete") cond.push(isNull(studentProfiles.id));
+    else if (typeof status === "string" && status) cond.push(eq(studentProfiles.status, status));
     if (typeof search === "string" && search.trim()) cond.push(ilike(clients.fullName, `%${search.trim()}%`));
     const data = await studentsQuery(tenantId).where(and(...cond)).orderBy(asc(clients.fullName));
     return reply.send({ success: true, data: data.map((r) => withDays(r, STUDENT_DAYS)) });
   });
 
-  fastify.get("/pilates/students/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/class-students/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const student = await findStudent(tenantId, req.params.id);
     if (!student) return notFound(reply, "Aluno nao encontrado");
     return reply.send({ success: true, data: student });
   });
 
-  fastify.post("/pilates/students", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.post("/class-students", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     // Mesmos limites da assinatura do cadastro de clientes (item 36).
     const lim = await checkClientLimit(tenantId);
@@ -151,14 +151,14 @@ export async function pilatesModule(fastify: FastifyInstance) {
 
     const clientId = await db.transaction(async (tx) => {
       const [c] = await tx.insert(clients).values({ ...(defined(clientData) as any), tenantId, createdBy: userId, updatedBy: userId }).returning({ id: clients.id });
-      await tx.insert(pilatesStudentProfiles).values({ ...(defined(profileData) as any), tenantId, clientId: c.id });
+      await tx.insert(studentProfiles).values({ ...(defined(profileData) as any), tenantId, clientId: c.id });
       return c.id;
     });
-    auditLog({ tenantId, userId, action: "pilates.student.created", tableName: "clients", recordId: clientId, newData: { fullName: body.fullName } });
+    auditLog({ tenantId, userId, action: "classes.student.created", tableName: "clients", recordId: clientId, newData: { fullName: body.fullName } });
     return reply.status(201).send({ success: true, data: await findStudent(tenantId, clientId) });
   });
 
-  fastify.patch("/pilates/students/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.patch("/class-students/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const current = await findStudent(tenantId, req.params.id);
     if (!current) return notFound(reply, "Aluno nao encontrado");
@@ -176,13 +176,13 @@ export async function pilatesModule(fastify: FastifyInstance) {
       }
       if (!current.hasProfile) {
         // Cliente sem ficha: salvar cria a ficha de Pilates (completa o cadastro).
-        await tx.insert(pilatesStudentProfiles).values({ ...(profileData as any), tenantId, clientId: current.id });
+        await tx.insert(studentProfiles).values({ ...(profileData as any), tenantId, clientId: current.id });
       } else if (Object.keys(profileData).length) {
-        await tx.update(pilatesStudentProfiles).set({ ...(profileData as any), updatedAt: new Date() })
-          .where(and(eq(pilatesStudentProfiles.clientId, current.id), eq(pilatesStudentProfiles.tenantId, tenantId)));
+        await tx.update(studentProfiles).set({ ...(profileData as any), updatedAt: new Date() })
+          .where(and(eq(studentProfiles.clientId, current.id), eq(studentProfiles.tenantId, tenantId)));
       }
     });
-    auditLog({ tenantId, userId, action: "pilates.student.updated", tableName: "clients", recordId: current.id, newData: defined(body) });
+    auditLog({ tenantId, userId, action: "classes.student.updated", tableName: "clients", recordId: current.id, newData: defined(body) });
     return reply.send({ success: true, data: await findStudent(tenantId, current.id) });
   });
 
@@ -200,11 +200,11 @@ export async function pilatesModule(fastify: FastifyInstance) {
     isActive: professionals.isActive,
     userProfileId: professionals.userProfileId,
     loginName: sql<string | null>`(SELECT up.full_name FROM user_profiles up WHERE up.id = "professionals"."user_profile_id")`,
-    studentsCount: sql<number>`(SELECT count(*)::int FROM pilates_student_profiles p
+    studentsCount: sql<number>`(SELECT count(*)::int FROM student_profiles p
       WHERE p.instructor_id = "professionals"."id" AND p.tenant_id = "professionals"."tenant_id" AND p.status = 'active')`,
   };
 
-  fastify.get("/pilates/instructors", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/class-instructors", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const data = await db.select(instructorFields).from(professionals)
       .where(and(eq(professionals.tenantId, tenantId), isNull(professionals.deletedAt)))
@@ -212,7 +212,7 @@ export async function pilatesModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data });
   });
 
-  fastify.post("/pilates/instructors", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
+  fastify.post("/class-instructors", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const lim = await checkProfessionalLimit(tenantId);
     if (!lim.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${lim.current}/${lim.limit} instrutores. Faca upgrade.`, code: "PLAN_LIMIT" });
@@ -220,12 +220,12 @@ export async function pilatesModule(fastify: FastifyInstance) {
     const [row] = await db.insert(professionals)
       .values({ ...(defined(body) as any), tenantId, commissionType: "percentage", createdBy: userId, updatedBy: userId })
       .returning({ id: professionals.id });
-    auditLog({ tenantId, userId, action: "pilates.instructor.created", tableName: "professionals", recordId: row.id, newData: { fullName: body.fullName } });
+    auditLog({ tenantId, userId, action: "classes.instructor.created", tableName: "professionals", recordId: row.id, newData: { fullName: body.fullName } });
     const [data] = await db.select(instructorFields).from(professionals).where(eq(professionals.id, row.id));
     return reply.status(201).send({ success: true, data });
   });
 
-  fastify.patch("/pilates/instructors/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
+  fastify.patch("/class-instructors/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     if (!(await findInstructor(tenantId, req.params.id))) return notFound(reply, "Instrutor nao encontrado");
     const body = parseBody(instructorUpdateDto, req, reply); if (!body) return;
@@ -239,12 +239,12 @@ export async function pilatesModule(fastify: FastifyInstance) {
       await db.update(professionals).set({ ...(changes as any), updatedBy: userId, updatedAt: new Date() })
         .where(and(eq(professionals.id, req.params.id), eq(professionals.tenantId, tenantId)));
     }
-    auditLog({ tenantId, userId, action: "pilates.instructor.updated", tableName: "professionals", recordId: req.params.id, newData: changes });
+    auditLog({ tenantId, userId, action: "classes.instructor.updated", tableName: "professionals", recordId: req.params.id, newData: changes });
     const [data] = await db.select(instructorFields).from(professionals).where(eq(professionals.id, req.params.id));
     return reply.send({ success: true, data });
   });
 
-  fastify.get("/pilates/instructors/:id/schedules", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/class-instructors/:id/schedules", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     if (!(await findInstructor(tenantId, req.params.id))) return notFound(reply, "Instrutor nao encontrado");
     const data = await db.select({
@@ -257,7 +257,7 @@ export async function pilatesModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data });
   });
 
-  fastify.put("/pilates/instructors/:id/schedules", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
+  fastify.put("/class-instructors/:id/schedules", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     if (!(await findInstructor(tenantId, req.params.id))) return notFound(reply, "Instrutor nao encontrado");
     const rows = parseBody(instructorSchedulesDto, req, reply); if (!rows) return;
@@ -270,34 +270,34 @@ export async function pilatesModule(fastify: FastifyInstance) {
           .onConflictDoUpdate({ target: [professionalSchedules.professionalId, professionalSchedules.dayOfWeek], set: values });
       }
     });
-    auditLog({ tenantId, userId, action: "pilates.instructor.schedules", tableName: "professional_schedules", recordId: req.params.id });
+    auditLog({ tenantId, userId, action: "classes.instructor.schedules", tableName: "professional_schedules", recordId: req.params.id });
     return reply.send({ success: true });
   });
 
   // ═══ PLANOS ═══════════════════════════════════════════════════════════════
-  fastify.get("/pilates/plans", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/memberships/plans", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const { status } = req.query as any;
-    const cond = [eq(pilatesPlans.tenantId, tenantId)];
-    if (status === "active" || status === "inactive") cond.push(eq(pilatesPlans.status, status));
-    const data = await db.select({ plan: pilatesPlans, modalityName: services.name }).from(pilatesPlans)
-      .leftJoin(services, eq(services.id, pilatesPlans.modalityId))
-      .where(and(...cond)).orderBy(asc(pilatesPlans.status), asc(pilatesPlans.name));
+    const cond = [eq(membershipPlans.tenantId, tenantId)];
+    if (status === "active" || status === "inactive") cond.push(eq(membershipPlans.status, status));
+    const data = await db.select({ plan: membershipPlans, modalityName: services.name }).from(membershipPlans)
+      .leftJoin(services, eq(services.id, membershipPlans.modalityId))
+      .where(and(...cond)).orderBy(asc(membershipPlans.status), asc(membershipPlans.name));
     return reply.send({ success: true, data: data.map((r) => ({ ...r.plan, modalityName: r.modalityName })) });
   });
 
-  fastify.post("/pilates/plans", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
+  fastify.post("/memberships/plans", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(planCreateDto, req, reply); if (!body) return;
     const ruleError = planRuleError(body);
     if (ruleError) return reply.status(400).send({ success: false, error: ruleError });
     if (await rejectForeignRefs(reply, tenantId, { services: [body.modalityId] })) return;
-    const [row] = await db.insert(pilatesPlans).values({ ...(normalizePlan(defined(body)) as any), tenantId }).returning();
-    auditLog({ tenantId, userId, action: "pilates.plan.created", tableName: "pilates_plans", recordId: row.id, newData: { name: row.name } });
+    const [row] = await db.insert(membershipPlans).values({ ...(normalizePlan(defined(body)) as any), tenantId }).returning();
+    auditLog({ tenantId, userId, action: "classes.plan.created", tableName: "membership_plans", recordId: row.id, newData: { name: row.name } });
     return reply.status(201).send({ success: true, data: row });
   });
 
-  fastify.patch("/pilates/plans/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
+  fastify.patch("/memberships/plans/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const current = await findPlan(tenantId, req.params.id);
     if (!current) return notFound(reply, "Plano nao encontrado");
@@ -308,27 +308,27 @@ export async function pilatesModule(fastify: FastifyInstance) {
     if (ruleError) return reply.status(400).send({ success: false, error: ruleError });
     if (await rejectForeignRefs(reply, tenantId, { services: [body.modalityId] })) return;
     const { id: _id, tenantId: _t, createdAt: _c, ...set } = merged as any;
-    const [row] = await db.update(pilatesPlans).set({ ...set, updatedAt: new Date() })
-      .where(and(eq(pilatesPlans.id, current.id), eq(pilatesPlans.tenantId, tenantId))).returning();
-    auditLog({ tenantId, userId, action: "pilates.plan.updated", tableName: "pilates_plans", recordId: row.id,
+    const [row] = await db.update(membershipPlans).set({ ...set, updatedAt: new Date() })
+      .where(and(eq(membershipPlans.id, current.id), eq(membershipPlans.tenantId, tenantId))).returning();
+    auditLog({ tenantId, userId, action: "classes.plan.updated", tableName: "membership_plans", recordId: row.id,
       oldData: Object.fromEntries(Object.keys(changes).map((k) => [k, (current as any)[k]])), newData: changes });
     return reply.send({ success: true, data: row });
   });
 
   // ═══ MATRÍCULAS ═══════════════════════════════════════════════════════════
-  fastify.get("/pilates/enrollments", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/memberships/enrollments", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const { studentId } = req.query as any;
-    const cond = [eq(pilatesEnrollments.tenantId, tenantId)];
+    const cond = [eq(membershipEnrollments.tenantId, tenantId)];
     if (studentId !== undefined) {
       if (typeof studentId !== "string" || !UUID.test(studentId)) return reply.send({ success: true, data: [] });
-      cond.push(eq(pilatesEnrollments.clientId, studentId));
+      cond.push(eq(membershipEnrollments.clientId, studentId));
     }
-    const data = await db.select({ enrollment: pilatesEnrollments, planName: pilatesPlans.name, planKind: pilatesPlans.kind, studentName: clients.fullName })
-      .from(pilatesEnrollments)
-      .innerJoin(pilatesPlans, eq(pilatesPlans.id, pilatesEnrollments.planId))
-      .innerJoin(clients, eq(clients.id, pilatesEnrollments.clientId))
-      .where(and(...cond)).orderBy(desc(pilatesEnrollments.startDate));
+    const data = await db.select({ enrollment: membershipEnrollments, planName: membershipPlans.name, planKind: membershipPlans.kind, studentName: clients.fullName })
+      .from(membershipEnrollments)
+      .innerJoin(membershipPlans, eq(membershipPlans.id, membershipEnrollments.planId))
+      .innerJoin(clients, eq(clients.id, membershipEnrollments.clientId))
+      .where(and(...cond)).orderBy(desc(membershipEnrollments.startDate));
     const out = [];
     for (const r of data) {
       const e: any = withDays({ ...r.enrollment, planName: r.planName, planKind: r.planKind, studentName: r.studentName }, ENROLLMENT_DAYS);
@@ -336,9 +336,9 @@ export async function pilatesModule(fastify: FastifyInstance) {
       if (r.planKind === "package") e.usage = await creditUsage(db, e.id);
       else {
         const [w] = rows(await db.execute(sql`SELECT count(*)::int AS n, p.classes_per_week AS per_week
-          FROM pilates_enrollments en JOIN pilates_plans p ON p.id = en.plan_id
-          LEFT JOIN pilates_bookings b ON b.enrollment_id = en.id AND b.status IN ('booked','present','absent','excused')
-            AND b.session_id IN (SELECT id FROM pilates_class_sessions WHERE session_date BETWEEN date_trunc('week', (now() AT TIME ZONE ${TZ}))::date
+          FROM membership_enrollments en JOIN membership_plans p ON p.id = en.plan_id
+          LEFT JOIN class_bookings b ON b.enrollment_id = en.id AND b.status IN ('booked','present','absent','excused')
+            AND b.session_id IN (SELECT id FROM class_sessions WHERE session_date BETWEEN date_trunc('week', (now() AT TIME ZONE ${TZ}))::date
               AND date_trunc('week', (now() AT TIME ZONE ${TZ}))::date + 6)
           WHERE en.id = ${e.id} GROUP BY p.classes_per_week`));
         e.usage = { thisWeek: Number(w?.n ?? 0), perWeek: Number(w?.per_week ?? 0) };
@@ -348,7 +348,7 @@ export async function pilatesModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: out });
   });
 
-  fastify.post("/pilates/enrollments", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.post("/memberships/enrollments", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(enrollmentCreateDto, req, reply); if (!body) return;
     const student = await findStudent(tenantId, body.studentId);
@@ -362,30 +362,30 @@ export async function pilatesModule(fastify: FastifyInstance) {
       : endAfterDays(body.startDate, plan.validityDays ?? 30));
     if (endDate < body.startDate) return reply.status(400).send({ success: false, error: "Fim antes do inicio" });
     const dueDay = body.dueDay ?? (plan.kind === "frequency" ? Math.min(Number(body.startDate.slice(8, 10)), 28) : null);
-    const [row] = await db.insert(pilatesEnrollments).values({
+    const [row] = await db.insert(membershipEnrollments).values({
       tenantId, clientId: body.studentId, planId: plan.id, startDate: body.startDate, endDate, dueDay,
       price: body.price ?? plan.price, notes: body.notes ?? null,
     }).returning();
-    auditLog({ tenantId, userId, action: "pilates.enrollment.created", tableName: "pilates_enrollments", recordId: row.id, newData: { studentId: body.studentId, planId: plan.id } });
+    auditLog({ tenantId, userId, action: "classes.enrollment.created", tableName: "membership_enrollments", recordId: row.id, newData: { studentId: body.studentId, planId: plan.id } });
     return reply.status(201).send({ success: true, data: withDays({ ...row, planName: plan.name, planKind: plan.kind }, ENROLLMENT_DAYS) });
   });
 
-  fastify.patch("/pilates/enrollments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.patch("/memberships/enrollments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     if (!UUID.test(req.params.id)) return notFound(reply, "Matricula nao encontrada");
-    const [current] = await db.select().from(pilatesEnrollments)
-      .where(and(eq(pilatesEnrollments.id, req.params.id), eq(pilatesEnrollments.tenantId, tenantId)));
+    const [current] = await db.select().from(membershipEnrollments)
+      .where(and(eq(membershipEnrollments.id, req.params.id), eq(membershipEnrollments.tenantId, tenantId)));
     if (!current) return notFound(reply, "Matricula nao encontrada");
     const body = parseBody(enrollmentUpdateDto, req, reply); if (!body) return;
     const changes = defined(body);
     const endDate = "endDate" in changes ? (changes.endDate as string | null) : toDay(current.endDate);
     if (endDate && endDate < (toDay(current.startDate) as string)) return reply.status(400).send({ success: false, error: "Fim antes do inicio" });
-    const [row] = await db.update(pilatesEnrollments).set({ ...(changes as any), updatedAt: new Date() })
-      .where(and(eq(pilatesEnrollments.id, current.id), eq(pilatesEnrollments.tenantId, tenantId))).returning();
+    const [row] = await db.update(membershipEnrollments).set({ ...(changes as any), updatedAt: new Date() })
+      .where(and(eq(membershipEnrollments.id, current.id), eq(membershipEnrollments.tenantId, tenantId))).returning();
     // Horários fixos (Fase 3): encerrar/cancelar/antecipar o fim tira as aulas futuras; prorrogar gera as novas.
     await pruneFixed(db, tenantId, current.id);
     await materializeFixed(db, tenantId);
-    auditLog({ tenantId, userId, action: "pilates.enrollment.updated", tableName: "pilates_enrollments", recordId: row.id, newData: changes });
+    auditLog({ tenantId, userId, action: "classes.enrollment.updated", tableName: "membership_enrollments", recordId: row.id, newData: changes });
     return reply.send({ success: true, data: withDays(row, ENROLLMENT_DAYS) });
   });
 
@@ -395,7 +395,7 @@ export async function pilatesModule(fastify: FastifyInstance) {
     durationMinutes: services.durationMinutes, price: services.price, isActive: services.isActive,
   };
 
-  fastify.get("/pilates/modalities", { preHandler: [authenticate] }, async (req: any, reply) => {
+  fastify.get("/classes/modalities", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const data = await db.select(modalityFields).from(services)
       .where(and(eq(services.tenantId, tenantId), isNull(services.deletedAt)))
@@ -403,15 +403,15 @@ export async function pilatesModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data });
   });
 
-  fastify.post("/pilates/modalities", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
+  fastify.post("/classes/modalities", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(modalityCreateDto, req, reply); if (!body) return;
     const [row] = await db.insert(services).values({ ...(defined(body) as any), tenantId, createdBy: userId, updatedBy: userId }).returning(modalityFields);
-    auditLog({ tenantId, userId, action: "pilates.modality.created", tableName: "services", recordId: row.id, newData: { name: row.name } });
+    auditLog({ tenantId, userId, action: "classes.modality.created", tableName: "services", recordId: row.id, newData: { name: row.name } });
     return reply.status(201).send({ success: true, data: row });
   });
 
-  fastify.patch("/pilates/modalities/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
+  fastify.patch("/classes/modalities/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     if (!UUID.test(req.params.id)) return notFound(reply, "Modalidade nao encontrada");
     const body = parseBody(modalityUpdateDto, req, reply); if (!body) return;
@@ -419,7 +419,7 @@ export async function pilatesModule(fastify: FastifyInstance) {
     const [row] = await db.update(services).set({ ...(changes as any), updatedBy: userId, updatedAt: new Date() })
       .where(and(eq(services.id, req.params.id), eq(services.tenantId, tenantId), isNull(services.deletedAt))).returning(modalityFields);
     if (!row) return notFound(reply, "Modalidade nao encontrada");
-    auditLog({ tenantId, userId, action: "pilates.modality.updated", tableName: "services", recordId: row.id, newData: changes });
+    auditLog({ tenantId, userId, action: "classes.modality.updated", tableName: "services", recordId: row.id, newData: changes });
     return reply.send({ success: true, data: row });
   });
 }

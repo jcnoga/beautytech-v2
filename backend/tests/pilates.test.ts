@@ -74,42 +74,42 @@ after(async () => {
 // ─── instrutores ────────────────────────────────────────────────────────────
 let instA: string, instB: string;
 test("instrutores: cadastro com registro profissional, edição e horários", async () => {
-  const res = await call("POST", "/pilates/instructors", A.token,
+  const res = await call("POST", "/class-instructors", A.token,
     { fullName: "Fernanda", specialties: ["Reformer"], professionalRegistration: "CREF 012345-G/SP", commissionPct: 30, tenantId: B.id });
   assert.equal(res.statusCode, 201, res.body);
   instA = data(res).id;
   assert.equal(data(res).professionalRegistration, "CREF 012345-G/SP");
   const [row] = await sql`SELECT tenant_id FROM professionals WHERE id = ${instA}`;
   assert.equal(row.tenant_id, A.id, "tenantId do corpo é ignorado");
-  instB = data(await call("POST", "/pilates/instructors", B.token, { fullName: "Rafael" })).id;
+  instB = data(await call("POST", "/class-instructors", B.token, { fullName: "Rafael" })).id;
 
-  const upd = await call("PATCH", `/pilates/instructors/${instA}`, A.token, { phone: "34999990000", isActive: true });
+  const upd = await call("PATCH", `/class-instructors/${instA}`, A.token, { phone: "34999990000", isActive: true });
   assert.equal(upd.statusCode, 200);
   assert.equal(data(upd).phone, "34999990000");
 
-  const put = await call("PUT", `/pilates/instructors/${instA}/schedules`, A.token, [
+  const put = await call("PUT", `/class-instructors/${instA}/schedules`, A.token, [
     { dayOfWeek: 1, isWorking: true, startTime: "07:00", endTime: "12:00" },
     { dayOfWeek: 3, isWorking: true, startTime: "07:00", endTime: "12:00" },
   ]);
   assert.equal(put.statusCode, 200, put.body);
-  const sch = data(await call("GET", `/pilates/instructors/${instA}/schedules`, A.token));
+  const sch = data(await call("GET", `/class-instructors/${instA}/schedules`, A.token));
   assert.deepEqual(sch.map((r: any) => r.dayOfWeek), [1, 3]);
-  const bad = await call("PUT", `/pilates/instructors/${instA}/schedules`, A.token, [{ dayOfWeek: 1, isWorking: true, startTime: "12:00", endTime: "07:00" }]);
+  const bad = await call("PUT", `/class-instructors/${instA}/schedules`, A.token, [{ dayOfWeek: 1, isWorking: true, startTime: "12:00", endTime: "07:00" }]);
   assert.equal(bad.statusCode, 400, "início depois do fim");
 });
 
 test("instrutores: recepção não cadastra; outra empresa não enxerga nem altera", async () => {
-  assert.equal((await call("POST", "/pilates/instructors", A.reception, { fullName: "X" })).statusCode, 403);
-  assert.equal((await call("PATCH", `/pilates/instructors/${instB}`, A.token, { fullName: "Invadido" })).statusCode, 404);
-  assert.equal((await call("GET", `/pilates/instructors/${instB}/schedules`, A.token)).statusCode, 404);
-  const lista = data(await call("GET", "/pilates/instructors", A.token));
+  assert.equal((await call("POST", "/class-instructors", A.reception, { fullName: "X" })).statusCode, 403);
+  assert.equal((await call("PATCH", `/class-instructors/${instB}`, A.token, { fullName: "Invadido" })).statusCode, 404);
+  assert.equal((await call("GET", `/class-instructors/${instB}/schedules`, A.token)).statusCode, 404);
+  const lista = data(await call("GET", "/class-instructors", A.token));
   assert.ok(lista.every((i: any) => i.id !== instB));
 });
 
 // ─── alunos ─────────────────────────────────────────────────────────────────
 let alunoA: string, alunoB: string;
 test("alunos: cadastro reaproveita clients e grava os dados de Pilates", async () => {
-  const res = await call("POST", "/pilates/students", A.token, {
+  const res = await call("POST", "/class-students", A.token, {
     fullName: "Maria Silva", whatsapp: "34999991111", goal: "Postura", level: "intermediate", startDate: "2026-10-01",
     weeklyFrequency: 2, status: "active", instructorId: instA, emergencyContactName: "João", emergencyContactPhone: "34988887777",
     initialAssessmentDate: "2026-09-30", declaredRestrictions: "Cirurgia no joelho em 2024", notes: "Prefere manhã",
@@ -124,39 +124,39 @@ test("alunos: cadastro reaproveita clients e grava os dados de Pilates", async (
   const [c] = await sql`SELECT tenant_id, segment FROM clients WHERE id = ${alunoA}`;
   assert.equal(c.tenant_id, A.id, "o aluno é um registro de clients da própria empresa");
   assert.equal(c.segment, "new", "campo de salão (segment) não é gravável pela rota de Pilates");
-  alunoB = data(await call("POST", "/pilates/students", B.token, { fullName: "Aluno B", instructorId: instB }));
+  alunoB = data(await call("POST", "/class-students", B.token, { fullName: "Aluno B", instructorId: instB }));
   alunoB = (alunoB as any).id;
-  const insts = data(await call("GET", "/pilates/instructors", A.token));
+  const insts = data(await call("GET", "/class-instructors", A.token));
   assert.equal(insts.find((i: any) => i.id === instA).studentsCount, 1, "alunos ativos do instrutor (só da própria empresa)");
 });
 
 test("alunos: validação de nível/status e instrutor de outra empresa", async () => {
-  assert.equal((await call("POST", "/pilates/students", A.token, { fullName: "X", level: "expert" })).statusCode, 400);
-  assert.equal((await call("POST", "/pilates/students", A.token, { fullName: "X", status: "vip" })).statusCode, 400);
-  assert.equal((await call("POST", "/pilates/students", A.token, { fullName: "X", instructorId: instB })).statusCode, 404);
-  assert.equal((await call("POST", "/pilates/students", A.token, { fullName: "" })).statusCode, 400);
+  assert.equal((await call("POST", "/class-students", A.token, { fullName: "X", level: "expert" })).statusCode, 400);
+  assert.equal((await call("POST", "/class-students", A.token, { fullName: "X", status: "vip" })).statusCode, 400);
+  assert.equal((await call("POST", "/class-students", A.token, { fullName: "X", instructorId: instB })).statusCode, 404);
+  assert.equal((await call("POST", "/class-students", A.token, { fullName: "" })).statusCode, 400);
 });
 
 test("alunos: edição, lista, filtro e isolamento", async () => {
-  const upd = await call("PATCH", `/pilates/students/${alunoA}`, A.token, { status: "paused", phone: "3433334444" });
+  const upd = await call("PATCH", `/class-students/${alunoA}`, A.token, { status: "paused", phone: "3433334444" });
   assert.equal(upd.statusCode, 200, upd.body);
   assert.equal(data(upd).status, "paused");
   assert.equal(data(upd).phone, "3433334444");
-  assert.equal((await call("PATCH", `/pilates/students/${alunoA}`, A.token, { instructorId: instB })).statusCode, 404);
+  assert.equal((await call("PATCH", `/class-students/${alunoA}`, A.token, { instructorId: instB })).statusCode, 404);
 
-  const pausados = data(await call("GET", "/pilates/students?status=paused", A.token));
+  const pausados = data(await call("GET", "/class-students?status=paused", A.token));
   assert.deepEqual(pausados.map((s: any) => s.id), [alunoA]);
-  const todos = data(await call("GET", "/pilates/students", A.token));
+  const todos = data(await call("GET", "/class-students", A.token));
   const semFicha = todos.find((s: any) => s.id === A.client);
   assert.ok(semFicha, "cliente do studio sem ficha aparece na lista (mesmo cadastro)");
   assert.equal(semFicha.hasProfile, false);
   assert.equal(todos.find((s: any) => s.id === alunoA).hasProfile, true);
-  assert.deepEqual(data(await call("GET", "/pilates/students?status=incomplete", A.token)).map((s: any) => s.id), [A.client]);
+  assert.deepEqual(data(await call("GET", "/class-students?status=incomplete", A.token)).map((s: any) => s.id), [A.client]);
   assert.ok(todos.every((s: any) => s.id !== alunoB));
 
-  assert.equal((await call("GET", `/pilates/students/${alunoB}`, A.token)).statusCode, 404);
-  assert.equal((await call("PATCH", `/pilates/students/${alunoB}`, A.token, { fullName: "Invadido" })).statusCode, 404);
-  assert.equal((await call("GET", "/pilates/students/nao-e-uuid", A.token)).statusCode, 404);
+  assert.equal((await call("GET", `/class-students/${alunoB}`, A.token)).statusCode, 404);
+  assert.equal((await call("PATCH", `/class-students/${alunoB}`, A.token, { fullName: "Invadido" })).statusCode, 404);
+  assert.equal((await call("GET", "/class-students/nao-e-uuid", A.token)).statusCode, 404);
   const [b] = await sql`SELECT full_name FROM clients WHERE id = ${alunoB}`;
   assert.equal(b.full_name, "Aluno B");
 });
@@ -164,100 +164,100 @@ test("alunos: edição, lista, filtro e isolamento", async () => {
 // ─── modalidades ────────────────────────────────────────────────────────────
 let modA: string;
 test("modalidades: cadastro, edição e isolamento", async () => {
-  const res = await call("POST", "/pilates/modalities", A.token, { name: "Reformer", durationMinutes: 50, price: 90 });
+  const res = await call("POST", "/classes/modalities", A.token, { name: "Reformer", durationMinutes: 50, price: 90 });
   assert.equal(res.statusCode, 201, res.body);
   modA = data(res).id;
-  assert.equal((await call("PATCH", `/pilates/modalities/${modA}`, A.token, { isActive: false })).statusCode, 200);
-  assert.equal((await call("PATCH", `/pilates/modalities/${B.service}`, A.token, { name: "X" })).statusCode, 404);
-  const lista = data(await call("GET", "/pilates/modalities", A.token));
+  assert.equal((await call("PATCH", `/classes/modalities/${modA}`, A.token, { isActive: false })).statusCode, 200);
+  assert.equal((await call("PATCH", `/classes/modalities/${B.service}`, A.token, { name: "X" })).statusCode, 404);
+  const lista = data(await call("GET", "/classes/modalities", A.token));
   assert.ok(lista.some((m: any) => m.id === modA) && lista.every((m: any) => m.id !== B.service));
-  assert.equal((await call("POST", "/pilates/modalities", A.reception, { name: "X" })).statusCode, 403);
+  assert.equal((await call("POST", "/classes/modalities", A.reception, { name: "X" })).statusCode, 403);
 });
 
 // ─── planos ─────────────────────────────────────────────────────────────────
 let planoMensal: string, pacote10: string, experimental: string, planoB: string;
 test("planos: regras de frequência x pacote (C1)", async () => {
-  assert.equal((await call("POST", "/pilates/plans", A.token, { name: "X", kind: "frequency", price: 100 })).statusCode, 400, "frequência sem aulas/semana");
-  assert.equal((await call("POST", "/pilates/plans", A.token, { name: "X", kind: "package", totalClasses: 10 })).statusCode, 400, "pacote sem validade");
-  assert.equal((await call("POST", "/pilates/plans", A.token, { name: "X", kind: "frequency", classesPerWeek: 1, durationMonths: 1, isTrial: true })).statusCode, 400, "experimental não é frequência");
-  assert.equal((await call("POST", "/pilates/plans", A.token, { name: "X", kind: "outro" })).statusCode, 400);
+  assert.equal((await call("POST", "/memberships/plans", A.token, { name: "X", kind: "frequency", price: 100 })).statusCode, 400, "frequência sem aulas/semana");
+  assert.equal((await call("POST", "/memberships/plans", A.token, { name: "X", kind: "package", totalClasses: 10 })).statusCode, 400, "pacote sem validade");
+  assert.equal((await call("POST", "/memberships/plans", A.token, { name: "X", kind: "frequency", classesPerWeek: 1, durationMonths: 1, isTrial: true })).statusCode, 400, "experimental não é frequência");
+  assert.equal((await call("POST", "/memberships/plans", A.token, { name: "X", kind: "outro" })).statusCode, 400);
 
-  const m = await call("POST", "/pilates/plans", A.token, { name: "Pilates 2x por semana", kind: "frequency", classesPerWeek: 2, durationMonths: 1, price: 280, modalityId: A.service, totalClasses: 99 });
+  const m = await call("POST", "/memberships/plans", A.token, { name: "Pilates 2x por semana", kind: "frequency", classesPerWeek: 2, durationMonths: 1, price: 280, modalityId: A.service, totalClasses: 99 });
   assert.equal(m.statusCode, 201, m.body);
   planoMensal = data(m).id;
   assert.equal(data(m).totalClasses, null, "campo de pacote é zerado em plano por frequência");
-  pacote10 = data(await call("POST", "/pilates/plans", A.token, { name: "10 aulas", kind: "package", totalClasses: 10, validityDays: 60, price: 450 })).id;
-  experimental = data(await call("POST", "/pilates/plans", A.token, { name: "Aula experimental", kind: "package", totalClasses: 1, validityDays: 7, price: 0, isTrial: true })).id;
-  planoB = data(await call("POST", "/pilates/plans", B.token, { name: "Plano B", kind: "package", totalClasses: 5, validityDays: 30 })).id;
-  assert.equal((await call("POST", "/pilates/plans", A.token, { name: "X", kind: "package", totalClasses: 5, validityDays: 30, modalityId: B.service })).statusCode, 404);
+  pacote10 = data(await call("POST", "/memberships/plans", A.token, { name: "10 aulas", kind: "package", totalClasses: 10, validityDays: 60, price: 450 })).id;
+  experimental = data(await call("POST", "/memberships/plans", A.token, { name: "Aula experimental", kind: "package", totalClasses: 1, validityDays: 7, price: 0, isTrial: true })).id;
+  planoB = data(await call("POST", "/memberships/plans", B.token, { name: "Plano B", kind: "package", totalClasses: 5, validityDays: 30 })).id;
+  assert.equal((await call("POST", "/memberships/plans", A.token, { name: "X", kind: "package", totalClasses: 5, validityDays: 30, modalityId: B.service })).statusCode, 404);
 });
 
 test("planos: edição valida o registro final; recepção não edita; isolamento", async () => {
-  assert.equal((await call("PATCH", `/pilates/plans/${pacote10}`, A.token, { kind: "frequency" })).statusCode, 400, "virar frequência sem aulas/semana");
-  const ok = await call("PATCH", `/pilates/plans/${pacote10}`, A.token, { price: 480 });
+  assert.equal((await call("PATCH", `/memberships/plans/${pacote10}`, A.token, { kind: "frequency" })).statusCode, 400, "virar frequência sem aulas/semana");
+  const ok = await call("PATCH", `/memberships/plans/${pacote10}`, A.token, { price: 480 });
   assert.equal(ok.statusCode, 200);
   assert.equal(data(ok).price, "480.00");
-  assert.equal((await call("PATCH", `/pilates/plans/${pacote10}`, A.reception, { price: 1 })).statusCode, 403);
-  assert.equal((await call("PATCH", `/pilates/plans/${planoB}`, A.token, { price: 1 })).statusCode, 404);
-  const lista = data(await call("GET", "/pilates/plans", A.token));
+  assert.equal((await call("PATCH", `/memberships/plans/${pacote10}`, A.reception, { price: 1 })).statusCode, 403);
+  assert.equal((await call("PATCH", `/memberships/plans/${planoB}`, A.token, { price: 1 })).statusCode, 404);
+  const lista = data(await call("GET", "/memberships/plans", A.token));
   assert.deepEqual(lista.map((p: any) => p.name).sort(), ["10 aulas", "Aula experimental", "Pilates 2x por semana"]);
 });
 
 // ─── matrículas ─────────────────────────────────────────────────────────────
 test("matrículas: várias ativas por aluno, cada uma com seus dados", async () => {
-  const m = await call("POST", "/pilates/enrollments", A.reception, { studentId: alunoA, planId: planoMensal, startDate: "2026-10-15" });
+  const m = await call("POST", "/memberships/enrollments", A.reception, { studentId: alunoA, planId: planoMensal, startDate: "2026-10-15" });
   assert.equal(m.statusCode, 201, m.body);
   assert.equal(data(m).endDate, "2026-11-14", "vigência de 1 mês");
   assert.equal(data(m).dueDay, 15);
   assert.equal(data(m).price, "280.00", "preço do plano no momento da matrícula");
-  const p = await call("POST", "/pilates/enrollments", A.token, { studentId: alunoA, planId: pacote10, startDate: "2026-10-15", price: 400 });
+  const p = await call("POST", "/memberships/enrollments", A.token, { studentId: alunoA, planId: pacote10, startDate: "2026-10-15", price: 400 });
   assert.equal(p.statusCode, 201, p.body);
   assert.equal(data(p).endDate, "2026-12-13", "validade de 60 dias contando o início");
   assert.equal(data(p).dueDay, null);
   assert.equal(data(p).price, "400.00");
 
-  const lista = data(await call("GET", `/pilates/enrollments?studentId=${alunoA}`, A.token));
+  const lista = data(await call("GET", `/memberships/enrollments?studentId=${alunoA}`, A.token));
   assert.equal(lista.length, 2);
   assert.ok(lista.every((e: any) => e.status === "active"));
-  const aluno = data(await call("GET", `/pilates/students/${alunoA}`, A.token));
+  const aluno = data(await call("GET", `/class-students/${alunoA}`, A.token));
   assert.equal(aluno.activeEnrollments, 2);
 
-  const upd = await call("PATCH", `/pilates/enrollments/${data(p).id}`, A.token, { status: "cancelled", notes: "Desistiu" });
+  const upd = await call("PATCH", `/memberships/enrollments/${data(p).id}`, A.token, { status: "cancelled", notes: "Desistiu" });
   assert.equal(upd.statusCode, 200);
   assert.equal(data(upd).status, "cancelled");
-  assert.equal((await call("PATCH", `/pilates/enrollments/${data(p).id}`, A.token, { endDate: "2026-01-01" })).statusCode, 400, "fim antes do início");
+  assert.equal((await call("PATCH", `/memberships/enrollments/${data(p).id}`, A.token, { endDate: "2026-01-01" })).statusCode, 400, "fim antes do início");
 });
 
 test("matrículas: plano inativo, aluno/plano de outra empresa e isolamento", async () => {
-  await call("PATCH", `/pilates/plans/${experimental}`, A.token, { status: "inactive" });
-  assert.equal((await call("POST", "/pilates/enrollments", A.token, { studentId: alunoA, planId: experimental, startDate: "2026-10-01" })).statusCode, 400);
-  assert.equal((await call("POST", "/pilates/enrollments", A.token, { studentId: alunoB, planId: pacote10, startDate: "2026-10-01" })).statusCode, 404);
-  assert.equal((await call("POST", "/pilates/enrollments", A.token, { studentId: alunoA, planId: planoB, startDate: "2026-10-01" })).statusCode, 404);
-  const incompleta = await call("POST", "/pilates/enrollments", A.token, { studentId: A.client, planId: pacote10, startDate: "2026-10-01" });
+  await call("PATCH", `/memberships/plans/${experimental}`, A.token, { status: "inactive" });
+  assert.equal((await call("POST", "/memberships/enrollments", A.token, { studentId: alunoA, planId: experimental, startDate: "2026-10-01" })).statusCode, 400);
+  assert.equal((await call("POST", "/memberships/enrollments", A.token, { studentId: alunoB, planId: pacote10, startDate: "2026-10-01" })).statusCode, 404);
+  assert.equal((await call("POST", "/memberships/enrollments", A.token, { studentId: alunoA, planId: planoB, startDate: "2026-10-01" })).statusCode, 404);
+  const incompleta = await call("POST", "/memberships/enrollments", A.token, { studentId: A.client, planId: pacote10, startDate: "2026-10-01" });
   assert.equal(incompleta.statusCode, 400, "matrícula exige a ficha de Pilates");
   assert.equal(incompleta.json().code, "INCOMPLETE_PROFILE");
-  const eB = data(await call("POST", "/pilates/enrollments", B.token, { studentId: alunoB, planId: planoB, startDate: "2026-10-01" }));
-  assert.equal((await call("PATCH", `/pilates/enrollments/${eB.id}`, A.token, { status: "cancelled" })).statusCode, 404);
-  assert.deepEqual(data(await call("GET", `/pilates/enrollments?studentId=${alunoB}`, A.token)), []);
+  const eB = data(await call("POST", "/memberships/enrollments", B.token, { studentId: alunoB, planId: planoB, startDate: "2026-10-01" }));
+  assert.equal((await call("PATCH", `/memberships/enrollments/${eB.id}`, A.token, { status: "cancelled" })).statusCode, 404);
+  assert.deepEqual(data(await call("GET", `/memberships/enrollments?studentId=${alunoB}`, A.token)), []);
 });
 
 test("ficha incompleta: salvar cria a ficha no mesmo cadastro, sem duplicar", async () => {
   const antes = (await sql`SELECT count(*)::int AS n FROM clients WHERE tenant_id = ${A.id}`)[0].n;
-  const res = await call("PATCH", `/pilates/students/${A.client}`, A.token, { level: "beginner", goal: "Postura" });
+  const res = await call("PATCH", `/class-students/${A.client}`, A.token, { level: "beginner", goal: "Postura" });
   assert.equal(res.statusCode, 200, res.body);
   assert.equal(data(res).hasProfile, true);
   assert.equal(data(res).goal, "Postura");
   const depois = (await sql`SELECT count(*)::int AS n FROM clients WHERE tenant_id = ${A.id}`)[0].n;
   assert.equal(depois, antes, "não cria outro cliente");
-  const [p] = await sql`SELECT count(*)::int AS n FROM pilates_student_profiles WHERE client_id = ${A.client}`;
+  const [p] = await sql`SELECT count(*)::int AS n FROM student_profiles WHERE client_id = ${A.client}`;
   assert.equal(p.n, 1);
-  const m = await call("POST", "/pilates/enrollments", A.token, { studentId: A.client, planId: pacote10, startDate: "2026-10-01" });
+  const m = await call("POST", "/memberships/enrollments", A.token, { studentId: A.client, planId: pacote10, startDate: "2026-10-01" });
   assert.equal(m.statusCode, 201, "com a ficha completa, matricula normalmente");
 });
 
 // ─── nichos e Super Admin ───────────────────────────────────────────────────
 test("salão não usa nenhuma rota do Pilates; Pilates não usa rotas de salão", async () => {
-  for (const url of ["/pilates/students", "/pilates/instructors", "/pilates/plans", "/pilates/enrollments", "/pilates/modalities"]) {
+  for (const url of ["/class-students", "/class-instructors", "/memberships/plans", "/memberships/enrollments", "/classes/modalities"]) {
     const res = await call("GET", url, S.token);
     assert.equal(res.statusCode, 403, `${url}: ${res.statusCode}`);
     assert.equal(res.json().code, "FEATURE_NOT_ALLOWED");

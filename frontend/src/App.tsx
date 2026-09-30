@@ -3982,8 +3982,8 @@ const PAGE_FEATURES: Record<string, Feature> = {
   commissions: "commissions", crm: "crm", fidelity: "loyalty", whatsapp: "whatsapp",
   automations: "automations", notifications: "notifications", pricing: "subscription",
   checkout: "subscription", settings: "settings", auditlogs: "audit_logs", ajuda: "help",
-  pilates_students: "pilates_students", pilates_plans: "pilates_plans",
-  pilates_instructors: "pilates_instructors", pilates_modalities: "pilates_settings",
+  class_students: "class_students", memberships: "memberships",
+  class_instructors: "class_instructors", class_modalities: "class_settings",
 };
 
 const MENU_GROUPS = [
@@ -3997,10 +3997,10 @@ const MENU_GROUPS = [
   {
     group: "STUDIO",
     items: [
-      { id:"pilates_students",    label:"Alunos",      icon:"o", premium:false },
-      { id:"pilates_plans",       label:"Planos",      icon:"$", premium:false },
-      { id:"pilates_instructors", label:"Instrutores", icon:"*", premium:false },
-      { id:"pilates_modalities",  label:"Modalidades", icon:"*", premium:false },
+      { id:"class_students",    label:"Alunos",      icon:"o", premium:false },
+      { id:"memberships",       label:"Planos",      icon:"$", premium:false },
+      { id:"class_instructors", label:"Instrutores", icon:"*", premium:false },
+      { id:"class_modalities",  label:"Modalidades", icon:"*", premium:false },
     ]
   },
   {
@@ -4195,10 +4195,10 @@ const logout = async () => {
     auditlogs: AuditLogsPage,
     checkout: () => <CheckoutPage setPage={setPage} />,
     ajuda:    () => <HelpPage />,
-    pilates_students:    PilatesStudentsScreen,
-    pilates_plans:       PilatesPlansScreen,
-    pilates_instructors: PilatesInstructorsScreen,
-    pilates_modalities:  PilatesModalitiesScreen,
+    class_students:    PilatesStudentsScreen,
+    memberships:       PilatesPlansScreen,
+    class_instructors: PilatesInstructorsScreen,
+    class_modalities:  PilatesModalitiesScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
@@ -4213,7 +4213,7 @@ const logout = async () => {
   // Nicho: tela não permitida cai na primeira liberada (o bloqueio real é o 403 do backend).
   setCurrentBusinessType(tenantInfo?.businessType ?? null);
   const canPage = (id: string) => can(PAGE_FEATURES[id], tenantInfo?.businessType);
-  const pageId = canPage(page) ? page : (["dashboard", "pilates_students", "settings"].find(canPage) ?? "settings");
+  const pageId = canPage(page) ? page : (["dashboard", "class_students", "settings"].find(canPage) ?? "settings");
   const PageComponent = PAGES[pageId] ?? PAGES["settings"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>

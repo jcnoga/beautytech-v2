@@ -1,5 +1,5 @@
-// Regras configuráveis do Pilates (Fase 3): PADRÃO DO STUDIO (pilates_settings) + EXCEÇÃO POR PLANO
-// (colunas opcionais em pilates_plans; NULL = usa o padrão). Todo cálculo usa effectiveRules().
+// Regras configuráveis do Pilates (Fase 3): PADRÃO DO STUDIO (class_settings) + EXCEÇÃO POR PLANO
+// (colunas opcionais em membership_plans; NULL = usa o padrão). Todo cálculo usa effectiveRules().
 import { sql } from "drizzle-orm";
 
 export type Exec = { execute: (q: any) => Promise<any> };
@@ -50,8 +50,8 @@ export type Rules = {
 
 /** Padrões do studio (linha criada na hora se ainda não existir). Devolve a linha em snake_case. */
 export async function getStudioSettings(exec: Exec, tenantId: string): Promise<Record<string, any>> {
-  await exec.execute(sql`INSERT INTO pilates_settings (tenant_id) VALUES (${tenantId}) ON CONFLICT (tenant_id) DO NOTHING`);
-  const [s] = rows(await exec.execute(sql`SELECT * FROM pilates_settings WHERE tenant_id = ${tenantId}`));
+  await exec.execute(sql`INSERT INTO class_settings (tenant_id) VALUES (${tenantId}) ON CONFLICT (tenant_id) DO NOTHING`);
+  const [s] = rows(await exec.execute(sql`SELECT * FROM class_settings WHERE tenant_id = ${tenantId}`));
   return s;
 }
 
@@ -79,7 +79,7 @@ export function effectiveRules(studio: Record<string, any>, plan: Record<string,
 export async function rulesForEnrollment(exec: Exec, tenantId: string, enrollmentId: string | null) {
   const studio = await getStudioSettings(exec, tenantId);
   if (!enrollmentId) return { rules: effectiveRules(studio, null), studio, plan: null as any };
-  const [plan] = rows(await exec.execute(sql`SELECT p.* FROM pilates_enrollments e JOIN pilates_plans p ON p.id = e.plan_id
+  const [plan] = rows(await exec.execute(sql`SELECT p.* FROM membership_enrollments e JOIN membership_plans p ON p.id = e.plan_id
     WHERE e.id = ${enrollmentId} AND e.tenant_id = ${tenantId}`));
   return { rules: effectiveRules(studio, plan ?? null), studio, plan: plan ?? null };
 }

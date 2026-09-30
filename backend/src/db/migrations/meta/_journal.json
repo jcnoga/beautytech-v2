@@ -34,14 +34,14 @@
       "idx": 4,
       "version": "5",
       "when": 1790800000000,
-      "tag": "0004_pilates_base",
+      "tag": "0004_memberships_base",
       "breakpoints": true
     },
     {
       "idx": 5,
       "version": "5",
       "when": 1790900000000,
-      "tag": "0005_pilates_classes",
+      "tag": "0005_group_classes",
       "breakpoints": true
     }
   ]

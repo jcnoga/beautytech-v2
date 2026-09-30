@@ -1,10 +1,10 @@
 -- Pilates, Fase 3: regras configuráveis, grade de aulas, aulas (ocorrências), horários fixos,
 -- inscrições/presença, reposições e pausas. Ver docs/prompt_pilates_zensalon.md (itens 8-15, C2-C7).
--- Regra geral: padrão do studio (pilates_settings) + exceção opcional por plano (colunas em pilates_plans,
+-- Regra geral: padrão do studio (class_settings) + exceção opcional por plano (colunas em membership_plans,
 -- NULL = usa o padrão do studio). Horários em UTC; "hoje" e prazos calculados em America/Sao_Paulo.
 
 -- ─── padrões do studio ──────────────────────────────────────────────────────
-CREATE TABLE "pilates_settings" (
+CREATE TABLE "class_settings" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
   "allow_individual_slot" boolean DEFAULT true NOT NULL,
@@ -31,24 +31,24 @@ CREATE TABLE "pilates_settings" (
   "default_class_capacity" integer DEFAULT 4 NOT NULL,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "pilates_settings_tenant_unique" UNIQUE ("tenant_id"),
-  CONSTRAINT "pilates_settings_individual_capacity_check" CHECK ("individual_slot_capacity" IN (1, 2)),
-  CONSTRAINT "pilates_settings_cancel_hours_check" CHECK ("cancel_min_hours" BETWEEN 0 AND 168),
-  CONSTRAINT "pilates_settings_makeup_validity_check" CHECK ("makeup_validity_days" BETWEEN 1 AND 365),
-  CONSTRAINT "pilates_settings_makeup_max_check" CHECK ("makeup_max_per_month" BETWEEN 0 AND 31),
-  CONSTRAINT "pilates_settings_studio_cancel_check" CHECK ("studio_cancel_action_package" IN ('refund_credit', 'generate_makeup')
+  CONSTRAINT "class_settings_tenant_unique" UNIQUE ("tenant_id"),
+  CONSTRAINT "class_settings_individual_capacity_check" CHECK ("individual_slot_capacity" IN (1, 2)),
+  CONSTRAINT "class_settings_cancel_hours_check" CHECK ("cancel_min_hours" BETWEEN 0 AND 168),
+  CONSTRAINT "class_settings_makeup_validity_check" CHECK ("makeup_validity_days" BETWEEN 1 AND 365),
+  CONSTRAINT "class_settings_makeup_max_check" CHECK ("makeup_max_per_month" BETWEEN 0 AND 31),
+  CONSTRAINT "class_settings_studio_cancel_check" CHECK ("studio_cancel_action_package" IN ('refund_credit', 'generate_makeup')
     AND "studio_cancel_action_frequency" IN ('refund_credit', 'generate_makeup')),
-  CONSTRAINT "pilates_settings_pause_check" CHECK ("pause_max_days" BETWEEN 1 AND 365),
-  CONSTRAINT "pilates_settings_scope_check" CHECK ("instructor_attendance_scope" IN ('own', 'all')),
-  CONSTRAINT "pilates_settings_edit_window_check" CHECK ("instructor_edit_window_hours" BETWEEN 0 AND 720),
-  CONSTRAINT "pilates_settings_defaults_check" CHECK ("default_class_duration" BETWEEN 10 AND 300 AND "default_class_capacity" BETWEEN 1 AND 50)
+  CONSTRAINT "class_settings_pause_check" CHECK ("pause_max_days" BETWEEN 1 AND 365),
+  CONSTRAINT "class_settings_scope_check" CHECK ("instructor_attendance_scope" IN ('own', 'all')),
+  CONSTRAINT "class_settings_edit_window_check" CHECK ("instructor_edit_window_hours" BETWEEN 0 AND 720),
+  CONSTRAINT "class_settings_defaults_check" CHECK ("default_class_duration" BETWEEN 10 AND 300 AND "default_class_capacity" BETWEEN 1 AND 50)
 );--> statement-breakpoint
 -- Studios que já existem recebem os padrões.
-INSERT INTO "pilates_settings" ("tenant_id") SELECT "id" FROM "tenants" WHERE "business_type" = 'pilates'
+INSERT INTO "class_settings" ("tenant_id") SELECT "id" FROM "tenants" WHERE "business_type" = 'pilates'
 ON CONFLICT ("tenant_id") DO NOTHING;--> statement-breakpoint
 
 -- ─── exceções por plano (NULL = padrão do studio) ───────────────────────────
-ALTER TABLE "pilates_plans"
+ALTER TABLE "membership_plans"
   ADD COLUMN "allow_individual_slot" boolean,
   ADD COLUMN "individual_slot_capacity" smallint,
   ADD COLUMN "cancel_deadline_enabled" boolean,
@@ -66,7 +66,7 @@ ALTER TABLE "pilates_plans"
   ADD COLUMN "studio_cancel_action" varchar(20),
   ADD COLUMN "pause_enabled" boolean,
   ADD COLUMN "pause_max_days" integer,
-  ADD CONSTRAINT "pilates_plans_rule_ranges_check" CHECK (
+  ADD CONSTRAINT "membership_plans_rule_ranges_check" CHECK (
     ("individual_slot_capacity" IS NULL OR "individual_slot_capacity" IN (1, 2))
     AND ("cancel_min_hours" IS NULL OR "cancel_min_hours" BETWEEN 0 AND 168)
     AND ("makeup_validity_days" IS NULL OR "makeup_validity_days" BETWEEN 1 AND 365)
@@ -75,7 +75,7 @@ ALTER TABLE "pilates_plans"
     AND ("pause_max_days" IS NULL OR "pause_max_days" BETWEEN 1 AND 365));--> statement-breakpoint
 
 -- ─── grade semanal ──────────────────────────────────────────────────────────
-CREATE TABLE "pilates_class_schedules" (
+CREATE TABLE "class_schedules" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
   "modality_id" uuid REFERENCES "services"("id") ON DELETE SET NULL,
@@ -87,23 +87,23 @@ CREATE TABLE "pilates_class_schedules" (
   "capacity" integer NOT NULL,
   "class_type" varchar(20) DEFAULT 'group' NOT NULL,
   "is_active" boolean DEFAULT true NOT NULL,
-  "owner_enrollment_id" uuid REFERENCES "pilates_enrollments"("id") ON DELETE SET NULL, -- horário individual criado por uma matrícula
+  "owner_enrollment_id" uuid REFERENCES "membership_enrollments"("id") ON DELETE SET NULL, -- horário individual criado por uma matrícula
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "pilates_class_schedules_dow_check" CHECK ("day_of_week" BETWEEN 0 AND 6),
-  CONSTRAINT "pilates_class_schedules_time_check" CHECK ("start_time" ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
-  CONSTRAINT "pilates_class_schedules_duration_check" CHECK ("duration_minutes" BETWEEN 10 AND 300),
-  CONSTRAINT "pilates_class_schedules_capacity_check" CHECK ("capacity" BETWEEN 1 AND 50),
-  CONSTRAINT "pilates_class_schedules_type_check" CHECK ("class_type" IN ('individual', 'duo', 'group'))
+  CONSTRAINT "class_schedules_dow_check" CHECK ("day_of_week" BETWEEN 0 AND 6),
+  CONSTRAINT "class_schedules_time_check" CHECK ("start_time" ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  CONSTRAINT "class_schedules_duration_check" CHECK ("duration_minutes" BETWEEN 10 AND 300),
+  CONSTRAINT "class_schedules_capacity_check" CHECK ("capacity" BETWEEN 1 AND 50),
+  CONSTRAINT "class_schedules_type_check" CHECK ("class_type" IN ('individual', 'duo', 'group'))
 );--> statement-breakpoint
-CREATE INDEX "pilates_class_schedules_tenant_idx" ON "pilates_class_schedules" ("tenant_id", "is_active");--> statement-breakpoint
-CREATE INDEX "pilates_class_schedules_instructor_idx" ON "pilates_class_schedules" ("instructor_id", "day_of_week");--> statement-breakpoint
+CREATE INDEX "class_schedules_tenant_idx" ON "class_schedules" ("tenant_id", "is_active");--> statement-breakpoint
+CREATE INDEX "class_schedules_instructor_idx" ON "class_schedules" ("instructor_id", "day_of_week");--> statement-breakpoint
 
 -- ─── aulas (ocorrências) ────────────────────────────────────────────────────
-CREATE TABLE "pilates_class_sessions" (
+CREATE TABLE "class_sessions" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
-  "schedule_id" uuid REFERENCES "pilates_class_schedules"("id") ON DELETE SET NULL,
+  "schedule_id" uuid REFERENCES "class_schedules"("id") ON DELETE SET NULL,
   "session_date" date NOT NULL,
   "starts_at" timestamp with time zone NOT NULL,
   "ends_at" timestamp with time zone NOT NULL,
@@ -120,31 +120,31 @@ CREATE TABLE "pilates_class_sessions" (
   "cancelled_by" uuid,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "pilates_class_sessions_schedule_date_unique" UNIQUE ("schedule_id", "session_date"),
-  CONSTRAINT "pilates_class_sessions_capacity_check" CHECK ("capacity" BETWEEN 1 AND 50),
-  CONSTRAINT "pilates_class_sessions_type_check" CHECK ("class_type" IN ('individual', 'duo', 'group', 'assessment')),
-  CONSTRAINT "pilates_class_sessions_status_check" CHECK ("status" IN ('scheduled', 'cancelled')),
-  CONSTRAINT "pilates_class_sessions_times_check" CHECK ("ends_at" > "starts_at")
+  CONSTRAINT "class_sessions_schedule_date_unique" UNIQUE ("schedule_id", "session_date"),
+  CONSTRAINT "class_sessions_capacity_check" CHECK ("capacity" BETWEEN 1 AND 50),
+  CONSTRAINT "class_sessions_type_check" CHECK ("class_type" IN ('individual', 'duo', 'group', 'assessment')),
+  CONSTRAINT "class_sessions_status_check" CHECK ("status" IN ('scheduled', 'cancelled')),
+  CONSTRAINT "class_sessions_times_check" CHECK ("ends_at" > "starts_at")
 );--> statement-breakpoint
-CREATE INDEX "pilates_class_sessions_tenant_start_idx" ON "pilates_class_sessions" ("tenant_id", "starts_at");--> statement-breakpoint
+CREATE INDEX "class_sessions_tenant_start_idx" ON "class_sessions" ("tenant_id", "starts_at");--> statement-breakpoint
 
 -- ─── horários fixos da matrícula (C2) ───────────────────────────────────────
-CREATE TABLE "pilates_enrollment_slots" (
+CREATE TABLE "class_enrollment_slots" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
-  "enrollment_id" uuid NOT NULL REFERENCES "pilates_enrollments"("id") ON DELETE CASCADE,
-  "schedule_id" uuid NOT NULL REFERENCES "pilates_class_schedules"("id") ON DELETE CASCADE,
+  "enrollment_id" uuid NOT NULL REFERENCES "membership_enrollments"("id") ON DELETE CASCADE,
+  "schedule_id" uuid NOT NULL REFERENCES "class_schedules"("id") ON DELETE CASCADE,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "pilates_enrollment_slots_unique" UNIQUE ("enrollment_id", "schedule_id")
+  CONSTRAINT "class_enrollment_slots_unique" UNIQUE ("enrollment_id", "schedule_id")
 );--> statement-breakpoint
-CREATE INDEX "pilates_enrollment_slots_schedule_idx" ON "pilates_enrollment_slots" ("schedule_id");--> statement-breakpoint
+CREATE INDEX "class_enrollment_slots_schedule_idx" ON "class_enrollment_slots" ("schedule_id");--> statement-breakpoint
 
 -- ─── reposições (C5) ────────────────────────────────────────────────────────
-CREATE TABLE "pilates_makeup_credits" (
+CREATE TABLE "class_makeup_credits" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
   "client_id" uuid NOT NULL REFERENCES "clients"("id") ON DELETE CASCADE,
-  "enrollment_id" uuid REFERENCES "pilates_enrollments"("id") ON DELETE SET NULL,
+  "enrollment_id" uuid REFERENCES "membership_enrollments"("id") ON DELETE SET NULL,
   "origin_booking_id" uuid,
   "reason" varchar(30) NOT NULL,
   "expires_on" date NOT NULL,
@@ -153,22 +153,22 @@ CREATE TABLE "pilates_makeup_credits" (
   "used_at" timestamp with time zone,
   "rule_source" varchar(10), -- regra aplicada ao gerar: 'studio' ou 'plan' (histórico do aluno)
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "pilates_makeup_credits_reason_check" CHECK ("reason" IN ('timely_cancel', 'excused_absence', 'unexcused_absence', 'studio_cancel')),
-  CONSTRAINT "pilates_makeup_credits_status_check" CHECK ("status" IN ('available', 'used', 'expired'))
+  CONSTRAINT "class_makeup_credits_reason_check" CHECK ("reason" IN ('timely_cancel', 'excused_absence', 'unexcused_absence', 'studio_cancel')),
+  CONSTRAINT "class_makeup_credits_status_check" CHECK ("status" IN ('available', 'used', 'expired'))
 );--> statement-breakpoint
-CREATE INDEX "pilates_makeup_credits_client_idx" ON "pilates_makeup_credits" ("tenant_id", "client_id", "status");--> statement-breakpoint
+CREATE INDEX "class_makeup_credits_client_idx" ON "class_makeup_credits" ("tenant_id", "client_id", "status");--> statement-breakpoint
 
 -- ─── inscrições e presença ──────────────────────────────────────────────────
-CREATE TABLE "pilates_bookings" (
+CREATE TABLE "class_bookings" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
-  "session_id" uuid NOT NULL REFERENCES "pilates_class_sessions"("id") ON DELETE CASCADE,
+  "session_id" uuid NOT NULL REFERENCES "class_sessions"("id") ON DELETE CASCADE,
   "client_id" uuid NOT NULL REFERENCES "clients"("id") ON DELETE CASCADE,
-  "enrollment_id" uuid REFERENCES "pilates_enrollments"("id") ON DELETE SET NULL,
+  "enrollment_id" uuid REFERENCES "membership_enrollments"("id") ON DELETE SET NULL,
   "kind" varchar(20) NOT NULL,
   "status" varchar(20) DEFAULT 'booked' NOT NULL,
   "credit_consumed" boolean DEFAULT false NOT NULL,
-  "makeup_credit_id" uuid REFERENCES "pilates_makeup_credits"("id") ON DELETE SET NULL,
+  "makeup_credit_id" uuid REFERENCES "class_makeup_credits"("id") ON DELETE SET NULL,
   "attendance_marked_by" uuid,
   "attendance_marked_at" timestamp with time zone,
   "attendance_updated_by" uuid,
@@ -182,25 +182,25 @@ CREATE TABLE "pilates_bookings" (
   "notes" text,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "pilates_bookings_session_client_unique" UNIQUE ("session_id", "client_id"),
-  CONSTRAINT "pilates_bookings_kind_check" CHECK ("kind" IN ('fixed', 'credit', 'makeup')),
-  CONSTRAINT "pilates_bookings_status_check" CHECK ("status" IN ('booked', 'present', 'absent', 'excused',
+  CONSTRAINT "class_bookings_session_client_unique" UNIQUE ("session_id", "client_id"),
+  CONSTRAINT "class_bookings_kind_check" CHECK ("kind" IN ('fixed', 'credit', 'makeup')),
+  CONSTRAINT "class_bookings_status_check" CHECK ("status" IN ('booked', 'present', 'absent', 'excused',
     'cancelled', 'cancelled_late', 'cancelled_studio', 'paused'))
 );--> statement-breakpoint
-CREATE INDEX "pilates_bookings_client_idx" ON "pilates_bookings" ("tenant_id", "client_id");--> statement-breakpoint
-CREATE INDEX "pilates_bookings_enrollment_idx" ON "pilates_bookings" ("enrollment_id");--> statement-breakpoint
+CREATE INDEX "class_bookings_client_idx" ON "class_bookings" ("tenant_id", "client_id");--> statement-breakpoint
+CREATE INDEX "class_bookings_enrollment_idx" ON "class_bookings" ("enrollment_id");--> statement-breakpoint
 
 -- ─── pausas (C6) ────────────────────────────────────────────────────────────
-CREATE TABLE "pilates_plan_pauses" (
+CREATE TABLE "membership_pauses" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
-  "enrollment_id" uuid NOT NULL REFERENCES "pilates_enrollments"("id") ON DELETE CASCADE,
+  "enrollment_id" uuid NOT NULL REFERENCES "membership_enrollments"("id") ON DELETE CASCADE,
   "start_date" date NOT NULL,
   "end_date" date NOT NULL,
   "days" integer NOT NULL,
   "reason" varchar(200),
   "created_by" uuid,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
-  CONSTRAINT "pilates_plan_pauses_dates_check" CHECK ("end_date" >= "start_date" AND "days" = ("end_date" - "start_date" + 1))
+  CONSTRAINT "membership_pauses_dates_check" CHECK ("end_date" >= "start_date" AND "days" = ("end_date" - "start_date" + 1))
 );--> statement-breakpoint
-CREATE INDEX "pilates_plan_pauses_enrollment_idx" ON "pilates_plan_pauses" ("enrollment_id");
+CREATE INDEX "membership_pauses_enrollment_idx" ON "membership_pauses" ("enrollment_id");

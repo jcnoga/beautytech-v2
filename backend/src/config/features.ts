@@ -58,11 +58,11 @@ export const FEATURES = {
   treatment_packages: ["beauty_salon", "barbershop", "aesthetics_clinic"], // pacotes de tratamento
 
   // ── Pilates (exclusivas) ─────────────────────────────────────────────────
-  pilates_students:    ["pilates"], // alunos (clients + dados de Pilates)
-  pilates_instructors: ["pilates"], // instrutores (professionals) e horários de trabalho
-  pilates_plans:       ["pilates"], // planos de Pilates e matrículas
-  pilates_settings:    ["pilates"], // configurações do studio (modalidades e regras)
-  pilates_classes:     ["pilates"], // grade, aulas, horários fixos, inscrições, presença, reposições, pausas
+  class_students:    ["pilates"], // alunos (clients + dados de Pilates)
+  class_instructors: ["pilates"], // instrutores (professionals) e horários de trabalho
+  memberships:       ["pilates"], // planos de Pilates e matrículas
+  class_settings:    ["pilates"], // configurações do studio (modalidades e regras)
+  group_classes:     ["pilates"], // grade, aulas, horários fixos, inscrições, presença, reposições, pausas
 } as const satisfies Record<string, readonly BusinessType[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -114,18 +114,18 @@ export const ROUTE_FEATURES: Record<string, Feature> = {
   "/treatment-packages": "treatment_packages",
   "/package-sessions": "treatment_packages",
 
-  "/pilates/students": "pilates_students",
-  "/pilates/instructors": "pilates_instructors",
-  "/pilates/plans": "pilates_plans",
-  "/pilates/enrollments": "pilates_plans",
-  "/pilates/modalities": "pilates_settings",
-  "/pilates/settings": "pilates_settings",
-  "/pilates/schedules": "pilates_classes",
-  "/pilates/sessions": "pilates_classes",
-  "/pilates/slots": "pilates_classes",
-  "/pilates/bookings": "pilates_classes",
-  "/pilates/makeups": "pilates_classes",
-  "/pilates/pauses": "pilates_classes",
+  "/class-students": "class_students",
+  "/class-instructors": "class_instructors",
+  "/memberships/plans": "memberships",
+  "/memberships/enrollments": "memberships",
+  "/classes/modalities": "class_settings",
+  "/classes/settings": "class_settings",
+  "/classes/schedules": "group_classes",
+  "/classes/sessions": "group_classes",
+  "/classes/slots": "group_classes",
+  "/classes/bookings": "group_classes",
+  "/classes/makeups": "group_classes",
+  "/classes/pauses": "group_classes",
 };
 
 /** Normaliza o business_type do banco: vazio → padrão; conhecido → ele mesmo; desconhecido → null. */

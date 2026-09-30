@@ -1105,9 +1105,9 @@ export const prospectTemplates = pgTable("prospect_templates", {
 
 // ─── PILATES (Fase 2): alunos, planos e matrículas ─────────────────────────
 // Alunos, instrutores e modalidades reaproveitam clients, professionals e services.
-// Migration: 0004_pilates_base.sql (CHECKs de nível, status, tipo de plano etc. ficam no banco).
+// Migration: 0004_memberships_base.sql (CHECKs de nível, status, tipo de plano etc. ficam no banco).
 
-export const pilatesStudentProfiles = pgTable("pilates_student_profiles", {
+export const studentProfiles = pgTable("student_profiles", {
   id:                    uuid("id").primaryKey().defaultRandom(),
   tenantId:              uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   clientId:              uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
@@ -1125,11 +1125,11 @@ export const pilatesStudentProfiles = pgTable("pilates_student_profiles", {
   createdAt:             timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:             timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  clientUnique:    unique("pilates_student_profiles_client_unique").on(t.clientId),
-  tenantStatusIdx: index("pilates_student_profiles_tenant_status_idx").on(t.tenantId, t.status),
+  clientUnique:    unique("student_profiles_client_unique").on(t.clientId),
+  tenantStatusIdx: index("student_profiles_tenant_status_idx").on(t.tenantId, t.status),
 }));
 
-export const pilatesPlans = pgTable("pilates_plans", {
+export const membershipPlans = pgTable("membership_plans", {
   id:             uuid("id").primaryKey().defaultRandom(),
   tenantId:       uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   name:           varchar("name", { length: 255 }).notNull(),
@@ -1143,7 +1143,7 @@ export const pilatesPlans = pgTable("pilates_plans", {
   modalityId:     uuid("modality_id").references(() => services.id, { onDelete: "set null" }),
   isTrial:        boolean("is_trial").notNull().default(false),
   status:         varchar("status", { length: 20 }).notNull().default("active"), // active | inactive
-  // Exceções de regra deste plano (NULL = padrão do studio em pilates_settings). Migration 0005.
+  // Exceções de regra deste plano (NULL = padrão do studio em class_settings). Migration 0005.
   allowIndividualSlot:             boolean("allow_individual_slot"),
   individualSlotCapacity:          integer("individual_slot_capacity"),
   cancelDeadlineEnabled:           boolean("cancel_deadline_enabled"),
@@ -1164,14 +1164,14 @@ export const pilatesPlans = pgTable("pilates_plans", {
   createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  tenantStatusIdx: index("pilates_plans_tenant_status_idx").on(t.tenantId, t.status),
+  tenantStatusIdx: index("membership_plans_tenant_status_idx").on(t.tenantId, t.status),
 }));
 
-export const pilatesEnrollments = pgTable("pilates_enrollments", {
+export const membershipEnrollments = pgTable("membership_enrollments", {
   id:        uuid("id").primaryKey().defaultRandom(),
   tenantId:  uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   clientId:  uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
-  planId:    uuid("plan_id").notNull().references(() => pilatesPlans.id, { onDelete: "restrict" }),
+  planId:    uuid("plan_id").notNull().references(() => membershipPlans.id, { onDelete: "restrict" }),
   startDate: date("start_date").notNull(),
   endDate:   date("end_date"),
   dueDay:    integer("due_day"),
@@ -1181,15 +1181,15 @@ export const pilatesEnrollments = pgTable("pilates_enrollments", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  tenantStatusIdx: index("pilates_enrollments_tenant_status_idx").on(t.tenantId, t.status),
-  clientIdx:       index("pilates_enrollments_client_idx").on(t.clientId),
-  planIdx:         index("pilates_enrollments_plan_idx").on(t.planId),
+  tenantStatusIdx: index("membership_enrollments_tenant_status_idx").on(t.tenantId, t.status),
+  clientIdx:       index("membership_enrollments_client_idx").on(t.clientId),
+  planIdx:         index("membership_enrollments_plan_idx").on(t.planId),
 }));
 
 // ─── PILATES (Fase 3): regras, grade, aulas, horários fixos, inscrições, reposições, pausas ──
-// Migration: 0005_pilates_classes.sql (CHECKs e índices únicos ficam no banco).
+// Migration: 0005_group_classes.sql (CHECKs e índices únicos ficam no banco).
 
-export const pilatesSettings = pgTable("pilates_settings", {
+export const classSettings = pgTable("class_settings", {
   id:                              uuid("id").primaryKey().defaultRandom(),
   tenantId:                        uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   allowIndividualSlot:             boolean("allow_individual_slot").notNull().default(true),
@@ -1216,9 +1216,9 @@ export const pilatesSettings = pgTable("pilates_settings", {
   defaultClassCapacity:            integer("default_class_capacity").notNull().default(4),
   createdAt:                       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:                       timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => ({ tenantUnique: unique("pilates_settings_tenant_unique").on(t.tenantId) }));
+}, (t) => ({ tenantUnique: unique("class_settings_tenant_unique").on(t.tenantId) }));
 
-export const pilatesClassSchedules = pgTable("pilates_class_schedules", {
+export const classSchedules = pgTable("class_schedules", {
   id:                uuid("id").primaryKey().defaultRandom(),
   tenantId:          uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   modalityId:        uuid("modality_id").references(() => services.id, { onDelete: "set null" }),
@@ -1230,15 +1230,15 @@ export const pilatesClassSchedules = pgTable("pilates_class_schedules", {
   capacity:          integer("capacity").notNull(),
   classType:         varchar("class_type", { length: 20 }).notNull().default("group"), // individual | duo | group
   isActive:          boolean("is_active").notNull().default(true),
-  ownerEnrollmentId: uuid("owner_enrollment_id").references(() => pilatesEnrollments.id, { onDelete: "set null" }),
+  ownerEnrollmentId: uuid("owner_enrollment_id").references(() => membershipEnrollments.id, { onDelete: "set null" }),
   createdAt:         timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:         timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const pilatesClassSessions = pgTable("pilates_class_sessions", {
+export const classSessions = pgTable("class_sessions", {
   id:           uuid("id").primaryKey().defaultRandom(),
   tenantId:     uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  scheduleId:   uuid("schedule_id").references(() => pilatesClassSchedules.id, { onDelete: "set null" }),
+  scheduleId:   uuid("schedule_id").references(() => classSchedules.id, { onDelete: "set null" }),
   sessionDate:  date("session_date").notNull(),
   startsAt:     timestamp("starts_at", { withTimezone: true }).notNull(),
   endsAt:       timestamp("ends_at", { withTimezone: true }).notNull(),
@@ -1257,19 +1257,19 @@ export const pilatesClassSessions = pgTable("pilates_class_sessions", {
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const pilatesEnrollmentSlots = pgTable("pilates_enrollment_slots", {
+export const classEnrollmentSlots = pgTable("class_enrollment_slots", {
   id:           uuid("id").primaryKey().defaultRandom(),
   tenantId:     uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  enrollmentId: uuid("enrollment_id").notNull().references(() => pilatesEnrollments.id, { onDelete: "cascade" }),
-  scheduleId:   uuid("schedule_id").notNull().references(() => pilatesClassSchedules.id, { onDelete: "cascade" }),
+  enrollmentId: uuid("enrollment_id").notNull().references(() => membershipEnrollments.id, { onDelete: "cascade" }),
+  scheduleId:   uuid("schedule_id").notNull().references(() => classSchedules.id, { onDelete: "cascade" }),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const pilatesMakeupCredits = pgTable("pilates_makeup_credits", {
+export const classMakeupCredits = pgTable("class_makeup_credits", {
   id:              uuid("id").primaryKey().defaultRandom(),
   tenantId:        uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   clientId:        uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
-  enrollmentId:    uuid("enrollment_id").references(() => pilatesEnrollments.id, { onDelete: "set null" }),
+  enrollmentId:    uuid("enrollment_id").references(() => membershipEnrollments.id, { onDelete: "set null" }),
   originBookingId: uuid("origin_booking_id"),
   reason:          varchar("reason", { length: 30 }).notNull(), // timely_cancel | excused_absence | unexcused_absence | studio_cancel
   expiresOn:       date("expires_on").notNull(),
@@ -1280,16 +1280,16 @@ export const pilatesMakeupCredits = pgTable("pilates_makeup_credits", {
   createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const pilatesBookings = pgTable("pilates_bookings", {
+export const classBookings = pgTable("class_bookings", {
   id:                  uuid("id").primaryKey().defaultRandom(),
   tenantId:            uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  sessionId:           uuid("session_id").notNull().references(() => pilatesClassSessions.id, { onDelete: "cascade" }),
+  sessionId:           uuid("session_id").notNull().references(() => classSessions.id, { onDelete: "cascade" }),
   clientId:            uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
-  enrollmentId:        uuid("enrollment_id").references(() => pilatesEnrollments.id, { onDelete: "set null" }),
+  enrollmentId:        uuid("enrollment_id").references(() => membershipEnrollments.id, { onDelete: "set null" }),
   kind:                varchar("kind", { length: 20 }).notNull(), // fixed | credit | makeup
   status:              varchar("status", { length: 20 }).notNull().default("booked"),
   creditConsumed:      boolean("credit_consumed").notNull().default(false),
-  makeupCreditId:      uuid("makeup_credit_id").references(() => pilatesMakeupCredits.id, { onDelete: "set null" }),
+  makeupCreditId:      uuid("makeup_credit_id").references(() => classMakeupCredits.id, { onDelete: "set null" }),
   attendanceMarkedBy:  uuid("attendance_marked_by"),
   attendanceMarkedAt:  timestamp("attendance_marked_at", { withTimezone: true }),
   attendanceUpdatedBy: uuid("attendance_updated_by"),
@@ -1304,10 +1304,10 @@ export const pilatesBookings = pgTable("pilates_bookings", {
   updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const pilatesPlanPauses = pgTable("pilates_plan_pauses", {
+export const membershipPauses = pgTable("membership_pauses", {
   id:           uuid("id").primaryKey().defaultRandom(),
   tenantId:     uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  enrollmentId: uuid("enrollment_id").notNull().references(() => pilatesEnrollments.id, { onDelete: "cascade" }),
+  enrollmentId: uuid("enrollment_id").notNull().references(() => membershipEnrollments.id, { onDelete: "cascade" }),
   startDate:    date("start_date").notNull(),
   endDate:      date("end_date").notNull(),
   days:         integer("days").notNull(),

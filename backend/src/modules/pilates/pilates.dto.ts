@@ -21,7 +21,7 @@ export const STUDENT_STATUSES = ["active", "paused", "inactive", "cancelled"] as
 export const PLAN_KINDS = ["frequency", "package"] as const;
 export const ENROLLMENT_STATUSES = ["active", "paused", "ended", "cancelled"] as const;
 
-// ─── alunos (clients + pilates_student_profiles) ────────────────────────────
+// ─── alunos (clients + student_profiles) ────────────────────────────
 export const studentCreateDto = z.object({
   // dados do cadastro (clients)
   fullName:              name(255),
@@ -29,7 +29,7 @@ export const studentCreateDto = z.object({
   whatsapp:              nul(str(20)),
   email:                 nul(z.string().trim().email().max(255)),
   birthDate:             nul(day),
-  // dados de Pilates (pilates_student_profiles)
+  // dados de Pilates (student_profiles)
   goal:                  nul(str(1000)),
   level:                 opt(z.enum(STUDENT_LEVELS)),
   startDate:             nul(day),
@@ -113,7 +113,7 @@ export const studioSettingsDto = z.object({
   defaultClassCapacity:        opt(int.min(1).max(50)),
 });
 
-// ─── planos (pilates_plans) ─────────────────────────────────────────────────
+// ─── planos (membership_plans) ─────────────────────────────────────────────────
 export const planCreateDto = z.object({
   name:           name(255),
   description:    nul(str(2000)),
@@ -145,7 +145,7 @@ export function planRuleError(p: { kind?: string | null; classesPerWeek?: number
   return null;
 }
 
-// ─── matrículas (pilates_enrollments) ───────────────────────────────────────
+// ─── matrículas (membership_enrollments) ───────────────────────────────────────
 export const enrollmentCreateDto = z.object({
   studentId: id,
   planId:    id,

@@ -1,5 +1,5 @@
 // Pilates: Instrutores (reaproveita o cadastro de profissionais) e horários de trabalho.
-// API: /pilates/instructors e /pilates/instructors/:id/schedules.
+// API: /class-instructors e /class-instructors/:id/schedules.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { type Theme, WEEKDAYS, PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Section, Grid, Notice, Empty } from "./ui";
@@ -21,7 +21,7 @@ export default function PilatesInstructorsPage({ C, FD, FB }: Theme) {
 
   const load = async () => {
     setLoading(true); setError("");
-    try { const r: any = await api.get("/pilates/instructors"); setList(r.data ?? []); }
+    try { const r: any = await api.get("/class-instructors"); setList(r.data ?? []); }
     catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
@@ -34,7 +34,7 @@ export default function PilatesInstructorsPage({ C, FD, FB }: Theme) {
     setDays(DEFAULT_DAYS);
     if (i?.id) {
       try {
-        const r: any = await api.get(`/pilates/instructors/${i.id}/schedules`);
+        const r: any = await api.get(`/class-instructors/${i.id}/schedules`);
         const saved = r.data ?? [];
         if (saved.length) setDays(DEFAULT_DAYS.map((d) => ({ ...d, isWorking: false, ...(saved.find((s: any) => s.dayOfWeek === d.dayOfWeek) ?? {}) })));
       } catch { /* sem horários ainda */ }
@@ -47,7 +47,7 @@ export default function PilatesInstructorsPage({ C, FD, FB }: Theme) {
     setSaving(true); setFormError("");
     const body = { ...form, specialties: form.specialties.split(",").map((s: string) => s.trim()).filter(Boolean), commissionPct: Number(form.commissionPct || 0) };
     try {
-      const r: any = editing?.id ? await api.patch(`/pilates/instructors/${editing.id}`, body) : await api.post("/pilates/instructors", body);
+      const r: any = editing?.id ? await api.patch(`/class-instructors/${editing.id}`, body) : await api.post("/class-instructors", body);
       await load();
       setEditing(r.data);
     } catch (e: any) { setFormError(e.message); }
@@ -56,7 +56,7 @@ export default function PilatesInstructorsPage({ C, FD, FB }: Theme) {
   const saveDays = async () => {
     setFormError(""); setSavedDays(false);
     try {
-      await api.put(`/pilates/instructors/${editing.id}/schedules`, days.map(({ dayOfWeek, isWorking, startTime, endTime }) => ({ dayOfWeek, isWorking, startTime, endTime })));
+      await api.put(`/class-instructors/${editing.id}/schedules`, days.map(({ dayOfWeek, isWorking, startTime, endTime }) => ({ dayOfWeek, isWorking, startTime, endTime })));
       setSavedDays(true);
     } catch (e: any) { setFormError(e.message); }
   };
