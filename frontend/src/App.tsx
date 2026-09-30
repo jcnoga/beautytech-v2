@@ -25,6 +25,7 @@ import ClassInstructorsPage from './group-classes/InstructorsPage';
 import ClassModalitiesPage from './group-classes/ModalitiesPage';
 import SchedulesPage from './group-classes/SchedulesPage';
 import AgendaPage from './group-classes/AgendaPage';
+import TodayPage from './group-classes/TodayPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
@@ -3978,6 +3979,7 @@ function ClassInstructorsScreen() { useTheme(); return <ClassInstructorsPage C={
 function ClassModalitiesScreen()  { useTheme(); return <ClassModalitiesPage C={C} FD={FD} FB={FB} />; }
 function ClassSchedulesScreen()   { useTheme(); return <SchedulesPage C={C} FD={FD} FB={FB} />; }
 function ClassAgendaScreen()      { useTheme(); return <AgendaPage C={C} FD={FD} FB={FB} />; }
+function ClassTodayScreen()       { useTheme(); return <TodayPage C={C} FD={FD} FB={FB} />; }
 
 // Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
 const PAGE_FEATURES: Record<string, Feature> = {
@@ -3988,7 +3990,7 @@ const PAGE_FEATURES: Record<string, Feature> = {
   checkout: "subscription", settings: "settings", auditlogs: "audit_logs", ajuda: "help",
   class_students: "class_students", memberships: "memberships",
   class_instructors: "class_instructors", class_modalities: "class_settings",
-  class_schedules: "group_classes", class_agenda: "group_classes",
+  class_schedules: "group_classes", class_agenda: "group_classes", class_today: "group_classes",
 };
 
 const MENU_GROUPS = [
@@ -4002,6 +4004,7 @@ const MENU_GROUPS = [
   {
     group: "STUDIO",
     items: [
+      { id:"class_today",       label:"Aulas de hoje", icon:"*", premium:false },
       { id:"class_agenda",      label:"Agenda de aulas", icon:"o", premium:false },
       { id:"class_students",    label:"Alunos",      icon:"o", premium:false },
       { id:"memberships",       label:"Planos",      icon:"$", premium:false },
@@ -4208,6 +4211,7 @@ const logout = async () => {
     class_modalities:  ClassModalitiesScreen,
     class_schedules:   ClassSchedulesScreen,
     class_agenda:      ClassAgendaScreen,
+    class_today:       ClassTodayScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
@@ -4222,7 +4226,7 @@ const logout = async () => {
   // Nicho: tela não permitida cai na primeira liberada (o bloqueio real é o 403 do backend).
   setCurrentBusinessType(tenantInfo?.businessType ?? null);
   const canPage = (id: string) => can(PAGE_FEATURES[id], tenantInfo?.businessType);
-  const pageId = canPage(page) ? page : (["dashboard", "class_students", "settings"].find(canPage) ?? "settings");
+  const pageId = canPage(page) ? page : (["dashboard", "class_today", "settings"].find(canPage) ?? "settings");
   const PageComponent = PAGES[pageId] ?? PAGES["settings"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
