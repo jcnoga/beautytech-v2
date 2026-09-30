@@ -1,9 +1,12 @@
 // Aulas em turma: Planos (C1). Dois tipos: por frequência (mensalidade, aulas/semana, vigência em meses)
 // e pacote de aulas (créditos com validade). Aula experimental = pacote marcado como experimental.
-// API: /memberships/plans e /classes/modalities.
+// Cada plano pode ter exceções às Regras das aulas (PlanRulesSection).
+// API: /memberships/plans, /classes/modalities e /classes/settings (padrões exibidos).
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { type Theme, brl, PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Grid, Notice, Empty } from "./ui";
+import PlanRulesSection, { PLAN_RULE_KEYS } from "./PlanRulesSection";
+import { humanizeRuleError } from "./ruleFields";
 
 const EMPTY = { name: "", description: "", kind: "frequency", price: "", classesPerWeek: "2", durationMonths: "1",
   totalClasses: "10", validityDays: "60", modalityId: "", isTrial: false, status: "active" };
@@ -24,6 +27,8 @@ export default function MembershipsPage({ C, FD, FB }: Theme) {
   const [form, setForm] = useState<any>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [studio, setStudio] = useState<any>(null);
+  const [rules, setRules] = useState<Record<string, any>>({});
 
   const load = async () => {
     setLoading(true); setError("");
@@ -34,6 +39,7 @@ export default function MembershipsPage({ C, FD, FB }: Theme) {
   useEffect(() => {
     load();
     api.get<any>("/classes/modalities").then((r) => setModalities((r.data ?? []).filter((m: any) => m.isActive))).catch(() => {});
+    api.get<any>("/classes/settings").then((r) => setStudio(r.data)).catch(() => {});
   }, []);
 
   const open = (p: any | null, preset?: any) => {
@@ -41,6 +47,7 @@ export default function MembershipsPage({ C, FD, FB }: Theme) {
     setEditing(p ?? {});
     setForm(p ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, p[k] === null || p[k] === undefined ? (EMPTY as any)[k] : typeof p[k] === "boolean" ? p[k] : String(p[k])]))
       : { ...EMPTY, ...preset });
+    setRules(Object.fromEntries(PLAN_RULE_KEYS.map((k) => [k, p?.[k] ?? null])));
   };
   const set = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
 
@@ -52,11 +59,16 @@ export default function MembershipsPage({ C, FD, FB }: Theme) {
       modalityId: form.modalityId || null, status: form.status };
     if (form.kind === "frequency") Object.assign(body, { classesPerWeek: n(form.classesPerWeek), durationMonths: n(form.durationMonths), isTrial: false });
     else Object.assign(body, { totalClasses: n(form.totalClasses), validityDays: n(form.validityDays), isTrial: !!form.isTrial });
+    // Exceções: manda só o que mudou (null = volta ao padrão do studio).
+    for (const k of PLAN_RULE_KEYS) {
+      const v = rules[k] === "" ? null : rules[k];
+      if (editing?.id ? String(v ?? "") !== String(editing[k] ?? "") : v !== null) body[k] = v;
+    }
     try {
       editing?.id ? await api.patch(`/memberships/plans/${editing.id}`, body) : await api.post("/memberships/plans", body);
       await load();
       setEditing(null);
-    } catch (e: any) { setFormError(e.message); }
+    } catch (e: any) { setFormError(humanizeRuleError(e.message)); }
     finally { setSaving(false); }
   };
 
@@ -141,6 +153,7 @@ export default function MembershipsPage({ C, FD, FB }: Theme) {
             <input type="checkbox" checked={!!form.isTrial} onChange={set("isTrial")} style={{ width: 18, height: 18 }} /> É aula experimental
           </label>
         )}
+        {editing !== null && <PlanRulesSection key={editing?.id ?? "new"} C={C} FB={FB} studio={studio} kind={form.kind} rules={rules} setRules={setRules} />}
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text, marginBottom: 14 }}>
           <input type="checkbox" checked={form.status === "active"} onChange={(e) => setForm((f: any) => ({ ...f, status: e.target.checked ? "active" : "inactive" }))} style={{ width: 18, height: 18 }} />
           Plano ativo (disponível para novas matrículas)
