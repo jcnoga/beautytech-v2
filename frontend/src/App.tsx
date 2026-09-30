@@ -24,7 +24,7 @@ import MembershipsPage from './group-classes/PlansPage';
 import ClassInstructorsPage from './group-classes/InstructorsPage';
 import ClassModalitiesPage from './group-classes/ModalitiesPage';
 import SchedulesPage from './group-classes/SchedulesPage';
-import AgendaPage from './group-classes/AgendaPage';
+import ClassAgendaPage from './group-classes/AgendaPage';
 import TodayPage from './group-classes/TodayPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
@@ -3978,7 +3978,7 @@ function MembershipsScreen()       { useTheme(); return <MembershipsPage C={C} F
 function ClassInstructorsScreen() { useTheme(); return <ClassInstructorsPage C={C} FD={FD} FB={FB} />; }
 function ClassModalitiesScreen()  { useTheme(); return <ClassModalitiesPage C={C} FD={FD} FB={FB} />; }
 function ClassSchedulesScreen()   { useTheme(); return <SchedulesPage C={C} FD={FD} FB={FB} />; }
-function ClassAgendaScreen()      { useTheme(); return <AgendaPage C={C} FD={FD} FB={FB} />; }
+function ClassAgendaScreen()      { useTheme(); return <ClassAgendaPage C={C} FD={FD} FB={FB} />; }
 function ClassTodayScreen()       { useTheme(); return <TodayPage C={C} FD={FD} FB={FB} />; }
 
 // Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
