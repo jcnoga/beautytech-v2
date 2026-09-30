@@ -19,10 +19,10 @@ import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
 import { can, setCurrentBusinessType } from './config/nicho';
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type Feature } from './config/features';
-import PilatesStudentsPage from './pilates/StudentsPage';
-import PilatesPlansPage from './pilates/PlansPage';
-import PilatesInstructorsPage from './pilates/InstructorsPage';
-import PilatesModalitiesPage from './pilates/ModalitiesPage';
+import PilatesStudentsPage from './group-classes/StudentsPage';
+import PilatesPlansPage from './group-classes/PlansPage';
+import PilatesInstructorsPage from './group-classes/InstructorsPage';
+import PilatesModalitiesPage from './group-classes/ModalitiesPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream

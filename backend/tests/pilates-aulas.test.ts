@@ -138,7 +138,7 @@ test("regras: padrões do studio criados na hora, editáveis e no Log (antigo �
 });
 
 test("regras: exceção por plano (vazio = padrão do studio) e Log da exceção", async () => {
-  const { effectiveRules } = await import("../src/modules/pilates/rules");
+  const { effectiveRules } = await import("../src/modules/group-classes/rules");
   const studio = { cancel_min_hours: 12, cancel_deadline_enabled: true, studio_cancel_action_package: "refund_credit", studio_cancel_action_frequency: "generate_makeup" } as any;
   const r1 = effectiveRules(studio, { kind: "package", cancel_min_hours: null });
   assert.equal(r1.cancelMinHours, 12); assert.equal(r1.studioCancelAction, "refund_credit"); assert.deepEqual(r1.fromPlan, []);

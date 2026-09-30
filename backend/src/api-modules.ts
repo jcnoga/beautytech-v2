@@ -9,8 +9,8 @@ import { publicBookingModule } from "./modules/appointments/appointments.routes.
 import { autoReplyController } from "./modules/auto-reply/auto-reply.controller.js";
 import { salonProfilePublicModule } from "./modules/salon-profile/salon-profile.routes.js";
 import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
-import { pilatesModule } from "./modules/pilates/pilates.routes.js";
-import { pilatesClassesModule } from "./modules/pilates/classes.routes.js";
+import { pilatesModule } from "./modules/group-classes/pilates.routes.js";
+import { pilatesClassesModule } from "./modules/group-classes/classes.routes.js";
 import {
   clientsModule, demoModule, professionalsModule, appointmentsModule, servicesModule, packagesModule,
   financialModule, commissionsModule, dashboardModule, crmModule, loyaltyModule, campaignsModule,
