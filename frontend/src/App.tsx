@@ -24,6 +24,7 @@ import MembershipsPage from './group-classes/PlansPage';
 import ClassInstructorsPage from './group-classes/InstructorsPage';
 import ClassModalitiesPage from './group-classes/ModalitiesPage';
 import SchedulesPage from './group-classes/SchedulesPage';
+import AgendaPage from './group-classes/AgendaPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
@@ -3976,6 +3977,7 @@ function MembershipsScreen()       { useTheme(); return <MembershipsPage C={C} F
 function ClassInstructorsScreen() { useTheme(); return <ClassInstructorsPage C={C} FD={FD} FB={FB} />; }
 function ClassModalitiesScreen()  { useTheme(); return <ClassModalitiesPage C={C} FD={FD} FB={FB} />; }
 function ClassSchedulesScreen()   { useTheme(); return <SchedulesPage C={C} FD={FD} FB={FB} />; }
+function ClassAgendaScreen()      { useTheme(); return <AgendaPage C={C} FD={FD} FB={FB} />; }
 
 // Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
 const PAGE_FEATURES: Record<string, Feature> = {
@@ -3986,7 +3988,7 @@ const PAGE_FEATURES: Record<string, Feature> = {
   checkout: "subscription", settings: "settings", auditlogs: "audit_logs", ajuda: "help",
   class_students: "class_students", memberships: "memberships",
   class_instructors: "class_instructors", class_modalities: "class_settings",
-  class_schedules: "group_classes",
+  class_schedules: "group_classes", class_agenda: "group_classes",
 };
 
 const MENU_GROUPS = [
@@ -4000,6 +4002,7 @@ const MENU_GROUPS = [
   {
     group: "STUDIO",
     items: [
+      { id:"class_agenda",      label:"Agenda de aulas", icon:"o", premium:false },
       { id:"class_students",    label:"Alunos",      icon:"o", premium:false },
       { id:"memberships",       label:"Planos",      icon:"$", premium:false },
       { id:"class_instructors", label:"Instrutores", icon:"*", premium:false },
@@ -4204,6 +4207,7 @@ const logout = async () => {
     class_instructors: ClassInstructorsScreen,
     class_modalities:  ClassModalitiesScreen,
     class_schedules:   ClassSchedulesScreen,
+    class_agenda:      ClassAgendaScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;

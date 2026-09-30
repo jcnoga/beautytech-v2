@@ -18,6 +18,22 @@ export const ENROLLMENT_STATUS: Record<string, { label: string; color: (C: any) 
   cancelled: { label: "Cancelada", color: (C) => C.ruby },
 };
 export const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+export const BOOKING_KIND: Record<string, string> = { fixed: "Fixo", credit: "Crédito", makeup: "Reposição" };
+export const BOOKING_STATUS: Record<string, { label: string; color: (C: any) => string }> = {
+  booked:           { label: "Inscrito",            color: (C) => C.textMuted },
+  present:          { label: "Presente",            color: (C) => C.sage },
+  absent:           { label: "Falta",               color: (C) => C.ruby },
+  excused:          { label: "Falta justificada",   color: (C) => C.gold },
+  cancelled:        { label: "Cancelou no prazo",   color: (C) => C.textMuted },
+  cancelled_late:   { label: "Cancelou fora do prazo", color: (C) => C.ruby },
+  cancelled_studio: { label: "Aula cancelada pelo studio", color: (C) => C.textMuted },
+  paused:           { label: "Plano pausado",       color: (C) => C.gold },
+};
+
+/** Dia (AAAA-MM-DD) + n dias, sem fuso (conta em UTC só para andar no calendário). */
+export const addDays = (d: string, n: number) => new Date(Date.parse(d + "T00:00:00Z") + n * 86_400_000).toISOString().slice(0, 10);
+/** Dia da semana (0 = domingo) de um AAAA-MM-DD. */
+export const weekday = (d: string) => new Date(d + "T00:00:00Z").getUTCDay();
 
 export const brl = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 /** Hoje (AAAA-MM-DD) no fuso de Brasília. */
