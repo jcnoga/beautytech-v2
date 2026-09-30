@@ -1,11 +1,13 @@
 // Aulas em turma: Alunos (reaproveita o cadastro de clientes + ficha do aluno) e suas matrículas.
-// API: /class-students, /memberships/enrollments, /memberships/plans, /class-instructors, /consent-forms (C8).
+// Matrícula por frequência ativa mostra os horários fixos (EnrollmentSlots).
+// API: /class-students, /memberships/enrollments, /memberships/plans, /class-instructors, /consent-forms (C8), /classes/slots.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import {
   type Theme, LEVEL_LABELS, STUDENT_STATUS, ENROLLMENT_STATUS, brl, todaySP, fmtDay,
   PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Section, Grid, Notice, Empty,
 } from "./ui";
+import EnrollmentSlots from "./EnrollmentSlots";
 
 const EMPTY = {
   fullName: "", phone: "", whatsapp: "", email: "", birthDate: "",
@@ -229,6 +231,9 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
                         <Button {...t} small variant="secondary" onClick={() => setEnrollmentStatus(e.id, "ended")}>Encerrar</Button>
                         <Button {...t} small variant="danger" onClick={() => { if (confirm("Cancelar esta matrícula?")) setEnrollmentStatus(e.id, "cancelled"); }}>Cancelar</Button>
                       </div>
+                    )}
+                    {e.status === "active" && e.planKind === "frequency" && (
+                      <div style={{ flexBasis: "100%" }}><EnrollmentSlots {...t} enrollment={e} /></div>
                     )}
                   </div>
                 );
