@@ -1,11 +1,18 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 30/09/2026 (fim da Fase 3b). Colar no início da próxima conversa.
+Atualizado em 30/09/2026 (fim da sessão, Fase 3b aprovada). Colar no início da próxima conversa.
+
+## ONDE PARAMOS (30/09, fim do dia)
+- **Fase 3b aprovada pelo usuário** (Agenda de aulas, Aulas de hoje e Histórico testados no navegador: OK).
+- Último commit no `ramo-pilates`: **`03ea0e3`** (apagado `frontend/src/App_HEAD.tsx`; base do tsc continua **17**).
+- **85 testes** no backend, todos passando. Uso semanal do Claude em **82%** ao encerrar (renova em 04/10, ~01h de Brasília).
+- **Próxima sessão: Fase 4** — avaliação inicial, evolução, aula experimental, mensalidade no financeiro (C9) e comissão. Começar mostrando o PLANO e esperar aprovação.
+- Erros antigos de TypeScript que parecem bugs reais (lista abaixo, em "Bugs antigos"): **não corrigir sem pedido**; todos também estão no ramo `vps` (produção).
 
 ## Onde paramos (resumo)
 - **Virada feita em 29/09/2026.** O ZenSalon oficial roda na VPS: **https://zensalon.com.br**, **https://www.zensalon.com.br** e **https://vps.zensalon.com.br** (mesmo sistema nos três). Roteiro e plano de volta: `docs/virada.md`.
 - Railway **pausado** (deployment `3c0cc9d6` removido; serviço e variáveis mantidos). Vercel e Supabase de reserva até ~06/10.
-- **Nicho Pilates, ramo `ramo-pilates`: Fase 3b (telas) concluída em 30/09, último commit `cdfcb5c`. NADA publicado na VPS.** Próximo passo: o usuário testar o Histórico do aluno; depois, Fase 4.
+- **Nicho Pilates, ramo `ramo-pilates`: Fase 3b (telas) concluída e aprovada em 30/09, último commit `03ea0e3`. NADA publicado na VPS.** Próximo passo: Fase 4.
 
 ## Regras até ~06/10
 - Repo `jcnoga/beautytech-v2`, pasta `C:\projetos\beautytech-v2`. Produção = ramo **`vps`**; Pilates = ramo **`ramo-pilates`**.
@@ -41,13 +48,21 @@ Atualizado em 30/09/2026 (fim da Fase 3b). Colar no início da próxima conversa
 2. `npm run check` (em `frontend/`) — analisa todo `src` com o mesmo parser do `vite dev` (Babel: sintaxe e nome repetido) + `tsc --noEmit` contra uma base de erros antigos. **Base hoje: 17 erros** (`frontend/scripts/tsc-baseline.json`); o check falha se aumentar. Se cair: `npm run check -- --update-baseline`.
 3. `npm run build`.
 - Motivo: o `vite build` (esbuild + Rollup) aceitou calado um nome repetido que quebrava o `vite dev`.
-- `frontend/src/App_HEAD.tsx` (cópia antiga do App.tsx em UTF-16, não importada) fica fora do check. Pode ser apagada.
 - Um commit por tela; push só no `ramo-pilates`; parar a cada 2 telas para o usuário testar.
 
 ### Próximos passos
-1. Usuário testa o Histórico do aluno (`cdfcb5c`). No banco local, os 2 alunos estão sem ficha de Pilates: completar a ficha e matricular para ver a seção.
-2. **Fase 4:** avaliação inicial, evolução, aula experimental (CRM), mensalidade no financeiro (C9), comissão. Começar mostrando o PLANO e esperar aprovação.
-3. Erros antigos de TypeScript que parecem bugs reais (nomes não definidos): `App.tsx` 1605/1626/2378/2399 (`filtered`, `summary`), 3967 (`setCurrentPage`, `setPage`), `PricingPage.tsx:148` (`activeToken`), propriedade repetida em `App.tsx:455`; e `group-classes/StudentsPage.tsx:100` (`.data` em `unknown`, só tipo).
+1. ~~Teste do Histórico~~ — aprovado em 30/09.
+2. **Fase 4 (próxima sessão):** avaliação inicial, evolução, aula experimental (CRM), mensalidade no financeiro (C9), comissão. Começar mostrando o PLANO e esperar aprovação.
+3. **Bugs antigos** (achados pelo tsc em 30/09; NÃO corrigidos; o mesmo código está no ramo `vps`, em produção):
+   | Arquivo:linha | Tela | Problema | Efeito |
+   |---|---|---|---|
+   | `App.tsx` 1602–1640 | Profissionais (`ProfessionalsPage`) | `exportXLSX`/`exportPDF` usam `filtered` e `summary`, que não existem ali (cópia do Financeiro) | Nenhum botão chama essas funções: código morto |
+   | `App.tsx` 2375–2410 | CRM (`CRMPage`) | Mesma cópia com `filtered`/`summary` | Também sem botão: código morto |
+   | `App.tsx:1733` | Profissionais, formulário | `form.avatarUrl` não está no estado do formulário | Foto do profissional nunca aparece no formulário (sempre o emoji) |
+   | `App.tsx:3967` | Faixa do teste grátis (`TrialBanner`) | `setCurrentPage` e `setPage` não existem nesse componente | Ao concluir o pagamento pelo botão de upgrade da faixa: **erro na tela** (ReferenceError) |
+   | `PricingPage.tsx:148` | Planos, "Cancelar assinatura" (`handleCancel`) | `activeToken` não existe | Ao cancelar: **erro**, não recarrega o status |
+   | `App.tsx:455` | Login, botão "Cadastre seu salão" | `background` repetido no mesmo estilo | Só visual: vale o último |
+   | `group-classes/StudentsPage.tsx:102` | Alunos, termo LGPD | `.data` em `unknown` | Só tipo; funciona |
 
 ### Ambiente local
 - Docker Desktop; `sh dev-local/start.sh` (Postgres na porta 55433 + GoTrue na 9998 + migrations). Backend e frontend: configurações `zensalon-api-local` (porta 3301) e `zensalon-web-local` (http://localhost:5273/app) em `.claude/launch.json` (ou `sh dev-local/api.sh` / `sh dev-local/web.sh`).
