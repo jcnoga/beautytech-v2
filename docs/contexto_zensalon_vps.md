@@ -1,56 +1,96 @@
-# Contexto — ZenSalon: migração para VPS + ramo Pet Shop
+# Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 29/09/2026 (fim do dia). Colar no início da próxima conversa.
+Atualizado em 30/09/2026 (fim da Fase 3b). Colar no início da próxima conversa.
 
 ## Onde paramos (resumo)
-- **Virada feita em 29/09/2026.** O ZenSalon oficial roda na VPS: **https://zensalon.com.br**, **https://www.zensalon.com.br** e **https://vps.zensalon.com.br** (mesmo sistema nos três).
-- Railway **pausado** (deployment `3c0cc9d6` removido; serviço e variáveis mantidos). Vercel e Supabase continuam existindo, mas sem uso.
-- Roteiro completo e plano de volta: `docs/virada.md`.
+- **Virada feita em 29/09/2026.** O ZenSalon oficial roda na VPS: **https://zensalon.com.br**, **https://www.zensalon.com.br** e **https://vps.zensalon.com.br** (mesmo sistema nos três). Roteiro e plano de volta: `docs/virada.md`.
+- Railway **pausado** (deployment `3c0cc9d6` removido; serviço e variáveis mantidos). Vercel e Supabase de reserva até ~06/10.
+- **Nicho Pilates, ramo `ramo-pilates`: Fase 3b (telas) concluída em 30/09, último commit `cdfcb5c`. NADA publicado na VPS.** Próximo passo: o usuário testar o Histórico do aluno; depois, Fase 4.
 
-## Decisão de rumo
-- Repo `jcnoga/beautytech-v2`, pasta `C:\projetos\beautytech-v2`, **ramo git `vps`**. **Não fazer push no `main`**: o serviço do Railway está ligado ao repositório e pode voltar a subir. **Não clicar em "Criar PR".**
-- Ordem: A) preparar ✅ → B) migrar ✅ → C) virada ✅ → **1 semana de acompanhamento** → D) ramos configuráveis + Pet Shop.
-- Futuro: domínio por ramo (ex.: zenpet.com.br), domínio próprio do cliente e vertical Oficina.
+## Regras até ~06/10
+- Repo `jcnoga/beautytech-v2`, pasta `C:\projetos\beautytech-v2`. Produção = ramo **`vps`**; Pilates = ramo **`ramo-pilates`**.
+- **Não fazer push no `main`**: o Railway está ligado ao repo e pode subir sozinho. **Não clicar em "Criar PR".**
+- Não desligar Supabase nem Vercel. Usar o sistema e anotar erros.
+- **Plano de volta:** DNS no Registro.br `@` A → `76.76.21.21` e `www` CNAME → `cname.vercel-dns.com`; Railway: Deployments → ⋮ → Redeploy no `3c0cc9d6`.
+
+## Nicho Pilates — ramo `ramo-pilates`
+- Especificação: `docs/prompt_pilates_zensalon.md` (itens numerados + adendo C1–C10). Matriz funcionalidades × nichos: `docs/matriz_nichos.md`.
+- Fases: 0 diagnóstico ✅ · 1 mecanismo de nichos ✅ · 2 base Pilates ✅ · 3a motor das aulas ✅ (`9394358`) · **3b telas ✅ (30/09)** · 4 avaliação/evolução/experimental/mensalidade/comissão · 5 dashboard/relatórios/WhatsApp/página pública/demo · 6 regressão + publicação (só depois de ~06/10).
+- **Nome genérico "Aulas em turma"** (para servir depois a yoga, dança, funcional): tabelas `class_*`, `membership_*`, `student_profiles`; features `group_classes`, `memberships`, `class_students`, `class_settings`, `class_instructors`; rotas `/classes`, `/memberships`, `/class-students`, `/class-instructors`; código em `backend/src/modules/group-classes` e `frontend/src/group-classes`. Só o nicho `pilates` tem essas features hoje.
+- Nichos: `beauty_salon`, `barbershop`, `aesthetics_clinic`, `pilates`. Funções de conta (login, perfil, assinatura, configurações, ajuda, log) são globais; feature sem lista de nichos = negada; o bloqueio real é o 403 do backend.
+- Regras configuráveis: padrão do studio + exceção por plano (vazio = usa o do studio), com log de valor antigo → novo. Padrões: cancelar com 12 h, reposição válida por 30 dias, no máximo 2 por mês, pausa de até 30 dias, instrutor lança presença só nas aulas dele até 24 h depois.
+- Regras de negócio: pacote × frequência consomem aula de formas diferentes; no pacote, falta que não desconta crédito não gera reposição; aula extra = matrícula avulsa; vaga protegida com trava grade → aula (10 cliques em 4 vagas = 4 aceitos).
+
+### Fase 3b — o que foi entregue (30/09)
+| Commit | O quê |
+|---|---|
+| `63f63e8` | Backend da 3b: prévia (`?preview=1`), histórico do aluno com motivo e regra, mensagens em português |
+| `86887cb`, `c70cd71`, `24a974a` | Renomeação Pilates → "Aulas em turma" |
+| `7d69b95` | Tela Grade semanal |
+| `89d9c64`, `3dd55ea` | Regras do studio (aba em Configurações, dono/gerente) |
+| `90b74de` | Exceções de regra por plano |
+| `76676ee` | Horários fixos da matrícula |
+| `da71576`, `02b929a` | Rota de aulas pendentes; tela Agenda de aulas |
+| `023839a` | Tela Aulas de hoje (presença no celular, "Marcar todos presentes" com prévia, bloco Pendentes) — **testada pelo usuário: OK** |
+| `28cd9dc` | Correção: import da Agenda de aulas colidia com a `AgendaPage` do salão (no build, o menu "Agenda de aulas" abria a agenda do salão; no `vite dev` a tela quebrava) |
+| `1fd908a` | `npm run check` no frontend (ver abaixo) |
+| `cdfcb5c` | **Histórico do aluno** na ficha (Alunos → aluno → seção Histórico): créditos do pacote e reposições separadas (disponíveis, geradas, usadas, vencidas), filtro Tudo/Créditos/Reposições; a rota `/classes/bookings/history` ganhou o campo `event` — **falta o teste do usuário** |
+
+### Rotina de todo commit (desde 30/09)
+1. `sh backend/scripts/test-db.sh` — **85 testes** passando.
+2. `npm run check` (em `frontend/`) — analisa todo `src` com o mesmo parser do `vite dev` (Babel: sintaxe e nome repetido) + `tsc --noEmit` contra uma base de erros antigos. **Base hoje: 17 erros** (`frontend/scripts/tsc-baseline.json`); o check falha se aumentar. Se cair: `npm run check -- --update-baseline`.
+3. `npm run build`.
+- Motivo: o `vite build` (esbuild + Rollup) aceitou calado um nome repetido que quebrava o `vite dev`.
+- `frontend/src/App_HEAD.tsx` (cópia antiga do App.tsx em UTF-16, não importada) fica fora do check. Pode ser apagada.
+- Um commit por tela; push só no `ramo-pilates`; parar a cada 2 telas para o usuário testar.
+
+### Próximos passos
+1. Usuário testa o Histórico do aluno (`cdfcb5c`). No banco local, os 2 alunos estão sem ficha de Pilates: completar a ficha e matricular para ver a seção.
+2. **Fase 4:** avaliação inicial, evolução, aula experimental (CRM), mensalidade no financeiro (C9), comissão. Começar mostrando o PLANO e esperar aprovação.
+3. Erros antigos de TypeScript que parecem bugs reais (nomes não definidos): `App.tsx` 1605/1626/2378/2399 (`filtered`, `summary`), 3967 (`setCurrentPage`, `setPage`), `PricingPage.tsx:148` (`activeToken`), propriedade repetida em `App.tsx:455`; e `group-classes/StudentsPage.tsx:100` (`.data` em `unknown`, só tipo).
+
+### Ambiente local
+- Docker Desktop; `sh dev-local/start.sh` (Postgres na porta 55433 + GoTrue na 9998 + migrations). Backend e frontend: configurações `zensalon-api-local` (porta 3301) e `zensalon-web-local` (http://localhost:5273/app) em `.claude/launch.json` (ou `sh dev-local/api.sh` / `sh dev-local/web.sh`).
+- Logins de teste em `dev-local/.env.test-users` (dono do salão e dono do Pilates).
+- Antes de testar no navegador, aplicar as migrations novas no banco local (o `start.sh` aplica).
 
 ## Feito na virada (29/09)
 - Código (ramo vps): Traefik com vários domínios (`ROTEADOR_HOSTS` no `.env`); web com URLs relativas (`/api/v1`, GoTrue no próprio domínio); removidas 5 URLs fixas do Railway/Vercel no frontend (`39642cb`); webhook do Asaas ignora referência sem UUID e log não mostra parte da chave (`63e3293`).
 - Cópia final Supabase → VPS: 56 tabelas iguais, 5 logins (as 5 donas), 45 arquivos.
-- DNS no Registro.br: `@` e `www` → A `187.77.236.36` (TTL 3600). **Valores antigos (para voltar):** `@` A `76.76.21.21`; `www` CNAME `cname.vercel-dns.com`. Certificado Let's Encrypt único para os 3 nomes (vence 28/12/2026, renova sozinho).
-- `.env.api` com os valores reais do Railway (Resend, Asaas, Evolution/WhatsApp, avisos), `JOBS_ENABLED=true`, `WHATSAPP_SEND_ENABLED=true`. `ASAAS_BASE_URL` não existia no Railway (padrão produção). `ASAAS_ENV=sandbox` não tem efeito (só o `asaas.module.ts`, desativado, usava).
-- Asaas (conta websitelogx@gmail.com, compartilhada com o AgroConsult): criado o webhook **"ZenSalon"** → `https://zensalon.com.br/api/v1/billing/webhook` (pagamento confirmado/recebido/vencido, token = `ASAAS_WEBHOOK_TOKEN`). Antes o ZenSalon não tinha webhook nenhum. O webhook do AgroConsult não foi tocado (está "Interrompido").
+- DNS no Registro.br: `@` e `www` → A `187.77.236.36` (TTL 3600). Certificado Let's Encrypt único para os 3 nomes (vence 28/12/2026, renova sozinho).
+- `.env.api` com os valores reais do Railway (Resend, Asaas, Evolution/WhatsApp, avisos), `JOBS_ENABLED=true`, `WHATSAPP_SEND_ENABLED=true`. `ASAAS_BASE_URL` não existia no Railway (padrão produção). `ASAAS_ENV=sandbox` não tem efeito.
+- Asaas (conta websitelogx@gmail.com, compartilhada com o AgroConsult): webhook **"ZenSalon"** → `https://zensalon.com.br/api/v1/billing/webhook` (pagamento confirmado/recebido/vencido, token = `ASAAS_WEBHOOK_TOKEN`).
 - Evolution: instâncias `zensalon` e `salon-d664018e-1783523748765` com webhook → `https://zensalon.com.br/api/v1/webhooks/evolution/<instância>`.
-- n8n (https://n8n-k7u5.srv1769674.hstgr.cloud, SQLite no volume `n8n-k7u5_n8n_data`): senha do owner (websitelogx@gmail.com) redefinida → `/root/n8n-owner.txt`; credencial "Postgres account 3" → `vps-migrator-postgres:5432`, banco `zensalon`, usuário `zensalon_bot` (só `sessoes_salao` e `atendimentos_humanos`; `pg_hba` só deixa esse usuário entrar no banco `zensalon`); n8n ligado à rede `vps-migrator_default` (também no `/docker/n8n-k7u5/docker-compose.yml`).
-- Backup diário (03:10 de Brasília = 06:10 UTC, `/etc/cron.d/backup-bancos`): `deploy/backup-bancos.sh` faz dump de **todos** os 13 bancos do `vps-migrator-postgres` + uploads do ZenSalon, 7 dias em `/opt/backups/diario/`. Restauração testada (`deploy/testar-restauracao.sh`). Log: `/var/log/backup-bancos.log`.
+- n8n (https://n8n-k7u5.srv1769674.hstgr.cloud): senha do owner → `/root/n8n-owner.txt`; credencial "Postgres account 3" → `vps-migrator-postgres:5432`, banco `zensalon`, usuário `zensalon_bot` (só `sessoes_salao` e `atendimentos_humanos`).
+- Backup diário (03:10 de Brasília, `/etc/cron.d/backup-bancos`): `deploy/backup-bancos.sh`, todos os bancos + uploads, 7 dias em `/opt/backups/diario/`. Restauração testada (`deploy/testar-restauracao.sh`). Log: `/var/log/backup-bancos.log`.
+- **Marca e e-mails:** "BeautyTech" → "ZenSalon" em tudo que o usuário vê (`4fc01aa`, `d8f2ba4`, publicados). Remetente único `EMAIL_FROM` = ZenSalon <noreply@99labpro.com.br> (zensalon.com.br **não** está verificado no Resend). **Não mandar e-mail de teste para contas de exemplo** (@beleza.com etc.): testar com jcnvap@gmail.com.
 
 ## Estado da VPS (187.77.236.36)
-- `/opt/apps/zensalon` (ramo vps). Containers `zensalon-web`, `zensalon-api`, `zensalon-gotrue`. Bancos `zensalon` e `gotrue_zensalon` no `vps-migrator-postgres` (superusuário do container: `vps_migrator_user`).
-- Segredos (chmod 600, ler com `ssh root@187.77.236.36 cat <arquivo> | clip`): `/root/zensalon-superadmin.txt`, `/root/zensalon-bot-db.txt`, `/root/n8n-owner.txt`, `/root/zensalon-supabase.env`.
-- Backups pontuais: `.env.bak-*` e `.env.api.bak-*` em `/opt/apps/zensalon`; `/opt/backups/zensalon/` (cópia de 28 e 29/09); `/opt/backups/n8n/20260929T123222Z/`; `pg_hba.conf.bak-*` no PGDATA; `docker-compose.yml.bak-*` do n8n.
-- Railway CLI instalado e logado no PC (projeto `caring-energy`, serviço `beautytech-v2`).
+- `/opt/apps/zensalon` (ramo vps). Containers `zensalon-web`, `zensalon-api`, `zensalon-gotrue`. Bancos `zensalon` e `gotrue_zensalon` no `vps-migrator-postgres`.
+- Um container Postgres com um banco por sistema: `zensalon`, `agroconsult`, `apps_production` (AgroLab). O AgroLab conecta direto no banco do AgroConsult.
+- Segredos (chmod 600): `/root/zensalon-superadmin.txt`, `/root/zensalon-bot-db.txt`, `/root/n8n-owner.txt`, `/root/zensalon-supabase.env`.
+- Backups pontuais: `.env.bak-*` e `.env.api.bak-*` em `/opt/apps/zensalon`; `/opt/backups/zensalon/`; `/opt/backups/n8n/20260929T123222Z/`; `/opt/backups/removidos/2026-09-29/` (OdontoPro e AgroNexo) → apagar em ~29/10/2026.
 
-## PENDÊNCIAS
-1. **WhatsApp desconectado:** as instâncias `zensalon` e `salon-d664018e…` estão `close` (última mensagem recebida em 04/08/2026, antes da virada). Reconectar pelo QR code na tela de WhatsApp do sistema e testar a resposta automática.
-2. **Fluxo n8n "💜 ZenSalon — Atendimento WhatsApp" nunca rodou** (0 execuções): ele espera `POST /webhook/zensalon-atendimento`, mas nenhuma instância aponta para ele. Decidir se ele deve ser usado (e com qual instância) ou se a resposta automática da API basta.
-3. **R2 (backup fora da VPS):** criar bucket + token no Cloudflare e o `/root/backup-r2.env` (passo a passo em `docs/virada.md` e no cabeçalho de `deploy/backup-bancos.sh`).
-4. **1 semana estável (até ~06/10):** acompanhar logs e backup; depois desligar Railway/Vercel, trocar a senha do banco no Supabase e desativá-lo, apagar `/opt/backups/zensalon/` e os `.bak-*`, juntar `vps` → `main` (antes, desligar o deploy automático do Railway).
-5. **Chave do Asaas:** 20 primeiros caracteres ficaram em logs do Railway/VPS (log já removido). Trocar afeta também o AgroConsult.
-6. **Domínios próprios** (`websitelog.com.br`, `www.dominioteste-nogueira.com.br`, ambos de teste, do Salão Beleza Pura) pararam: ainda apontam para a Vercel. Rota de domínio próprio na VPS fica para depois.
-7. **OdontoPro e AgroNexo removidos da VPS (29/09):** containers, imagens, bancos `agronexo`/`gotrue_agronexo`/`gotrue_odontopro`, schema `odontopro` do `apps_production`, usuário `agronexo_app` e pastas em `/root`. AgroLab e AgroConsult conferidos intactos. Backup completo (dumps, pastas, imagens) em `/opt/backups/removidos/2026-09-29/` → apagar em ~29/10/2026. Falta (você): apagar no Registro.br (zona 99labpro.com.br) `agronexo`, `api-agronexo`, `gotrue-agronexo`, `api.odontopro`, `gotrue-odontopro`.
-8. **Isolamento dos bancos:** AgroLab e gotrue-test ainda usam o superusuário `vps_migrator_user` (enxerga todos os bancos, inclusive `zensalon`); bancos do AgroConsult aceitam conexão de qualquer usuário. Plano: usuários próprios + fechar CONNECT, em sessão separada.
-9. Melhorias opcionais: painel mostrar "conta sem salão vinculado" em vez de zeros; exclusão de salão pelo super admin apagar também os logins; evento `SUBSCRIPTION_INACTIVATED` do Asaas nunca funciona (lê a referência do lugar errado).
+## PENDÊNCIAS (VPS)
+1. **WhatsApp desconectado** desde 04/08: reconectar as instâncias pelo QR code na tela de WhatsApp e testar a resposta automática.
+2. **Fluxo n8n "💜 ZenSalon — Atendimento WhatsApp"** nunca rodou. Recomendação: deixar parado (a resposta automática já está na API; os dois juntos respondem em dobro).
+3. **Limpeza de disco da VPS:** aprovados `docker builder prune`, cache do apt e temporários em /tmp. A imagem postgres:17-alpine fica até 06/10.
+4. **Backup fora da VPS (Cloudflare R2):** criar bucket e token (passo a passo em `docs/virada.md` e em `deploy/backup-bancos.sh`). Hoje todos os backups ficam no mesmo disco.
+5. **~06/10:** criar `agrolab_app` e fechar as conexões abertas (AgroLab e gotrue-test usam o superusuário e enxergam o banco do ZenSalon; bancos do AgroConsult aceitam qualquer usuário); desligar Railway e Vercel; trocar a senha do banco no Supabase e desativá-lo; juntar `vps` → `main` (antes, desligar o deploy automático do Railway); apagar `/opt/backups/zensalon/` e os `.bak-*`.
+6. **Chave do Asaas:** um pedaço apareceu em logs. Trocar numa sessão própria, junto com o AgroConsult (mesma conta). O webhook do AgroConsult no Asaas está "Interrompido".
+7. **Domínios próprios de teste** (`websitelog.com.br`, `www.dominioteste-nogueira.com.br`) ainda apontam para a Vercel. Rota de domínio próprio na VPS fica para depois.
+8. Registro.br (zona 99labpro.com.br), falta você apagar: `agronexo`, `api-agronexo`, `gotrue-agronexo`, `api.odontopro`, `gotrue-odontopro`. DNS do 99labpro conferido e OK; única dúvida é o MX (contato@/suporte@).
+9. **Porta do n8n (32768)** publicada: fechar numa próxima rodada.
+10. Melhorias opcionais: painel mostrar "conta sem salão vinculado" em vez de zeros; exclusão de salão pelo super admin apagar os logins; evento `SUBSCRIPTION_INACTIVATED` do Asaas nunca funciona.
 
-## Problemas conhecidos (não urgentes)
-- 32 erros antigos de TypeScript. O teste de isolamento precisa de `TEST_DATABASE_URL` (banco de teste) para rodar.
-- Emojis corrompidos em títulos ("? Aniversariantes") — conferir.
-- n8n publicado na porta 32768 da VPS (`ports: "5678"` no compose dele); de fora não responde, mas vale fechar.
-- Webhook do AgroConsult no Asaas "Interrompido"; `api.odontopro.99labpro.com.br` com limite de certificados do Let's Encrypt estourado (outros sistemas).
-- Avisos de "collation version mismatch" nos bancos `postgres` e `vps_migrator` (inofensivos).
-
-## Projeto PetShop (núcleo novo) — PAUSADO
-- Repo `jcnoga/petshop`, pasta `C:\projetos\PetShop`, último commit `d65e7ba`. No ar em petshop.99labpro.com.br (petshop-web/api/gotrue). Decidir depois se desliga.
+## Depois
+- Pet Shop como nicho, usando o mesmo mecanismo de nichos. PetShop antigo (repo `jcnoga/petshop`, petshop.99labpro.com.br): decidir se desliga.
+- Para vender: fechar "concluir atendimento → financeiro + comissão" no salão e reconectar o WhatsApp.
 
 ## Como trabalhar
-- Claude Code pelo **Claude Desktop**, pasta `C:\projetos\beautytech-v2`, modo **Manual**.
+- Claude Code pelo **Claude Desktop**, pasta `C:\projetos\beautytech-v2`, modo **Manual**. Respostas em português.
 - Rótulos: **win** = Git Bash; **vps** = Git Bash após `ssh root@187.77.236.36`; **claude** = caixa do Claude Desktop.
-- Senhas nunca no chat: valores vão por pipe/arquivo (ex.: Railway CLI → `.env.api`) ou pela área de transferência (`| clip`). Não tirar print entre copiar algo e o Claude ler a área de transferência.
-- "Sempre permitir" só para git commit/push no vps, testes e consultas; "Permitir uma vez" para o que altera a VPS.
+- No Git Bash, `clip` e `nslookup` não são encontrados: usar `> /dev/clipboard` e `/c/Windows/System32/nslookup.exe`.
+- Senha para a área de transferência sem aparecer na tela: `ssh root@187.77.236.36 cat /root/ARQUIVO.txt | tr -d '\n' > /dev/clipboard`. Não tirar print entre copiar algo e colar.
+- No PowerShell 5.1, mensagem de commit com aspas duplas quebra: usar Git Bash + `git commit -F arquivo`.
+- "Permitir uma vez" para tudo que altera a VPS.
