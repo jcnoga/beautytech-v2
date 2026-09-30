@@ -271,7 +271,7 @@ test("horário individual: chave, 1 ou 2 vagas, conflito do instrutor e aviso de
   const dow = await dowIn(2);
   ok(await call("PUT", `/pilates/instructors/${I2}/schedules`, P.owner, [{ dayOfWeek: dow, isWorking: false, startTime: "08:00", endTime: "12:00" }]));
   const r = ok(await call("POST", "/pilates/slots", P.recep, { enrollmentId: ef, individual: { dayOfWeek: dow, startTime: "10:00", instructorId: I2 } }), 201);
-  assert.equal(r.warning, "Horario fora da jornada de trabalho do instrutor");
+  assert.equal(r.warning, "Horário fora da jornada de trabalho do instrutor");
   const [s] = await sql`SELECT capacity, class_type, owner_enrollment_id FROM pilates_class_schedules WHERE id = ${r.scheduleId}`;
   assert.equal(s.capacity, 1); assert.equal(s.class_type, "individual"); assert.equal(s.owner_enrollment_id, ef);
   // Conflito: I2 já tem aula às 10:00 nesse dia.
@@ -309,6 +309,10 @@ test("pacote: presente desconta; falta sem aviso desconta; falta justificada nã
   assert.equal(r3.creditConsumed, false); assert.equal(r3.makeupGenerated, false, "no pacote o crédito devolvido já é a compensação");
   const u = await usage(e, a);
   assert.deepEqual({ total: u.total, consumed: u.consumed, remaining: u.remaining }, { total: 10, consumed: 2, remaining: 8 });
+  const hist = ok(await call("GET", `/pilates/bookings/history?studentId=${a}`, P.owner));
+  assert.ok(hist.some((h: any) => h.text.startsWith("−1 crédito · falta sem aviso") && h.text.includes("regra do studio")), JSON.stringify(hist));
+  assert.ok(hist.some((h: any) => h.text.startsWith("crédito mantido · falta justificada")));
+  assert.ok(hist.some((h: any) => h.text.startsWith("−1 crédito · presença")));
 });
 
 test("frequência: presença não desconta; falta sem aviso não gera reposição; justificada gera", async () => {
@@ -321,6 +325,8 @@ test("frequência: presença não desconta; falta sem aviso não gera reposiçã
   assert.equal(ok(await call("POST", `/pilates/bookings/${b3}/attendance`, P.recep, { status: "excused" })).makeupGenerated, true);
   const ms = await makeups(a);
   assert.equal(ms.length, 1); assert.equal(ms[0].reason, "excused_absence"); assert.equal(ms[0].status, "available");
+  const hist = ok(await call("GET", `/pilates/bookings/history?studentId=${a}`, P.owner));
+  assert.ok(hist.some((h: any) => h.text.startsWith("+1 reposição · falta justificada") && h.text.includes("regra do studio")), JSON.stringify(hist));
   // Mudar a presença desfaz a reposição gerada.
   ok(await call("POST", `/pilates/bookings/${b3}/attendance`, P.owner, { status: "present" }));
   assert.equal((await makeups(a)).length, 0);
@@ -335,7 +341,12 @@ test("reposição usada impede mudar a presença que a gerou; reposição respei
   const origem = await rawBooking(await adhoc(-40, 4, I3), a, e, "fixed");
   ok(await call("POST", `/pilates/bookings/${origem}/attendance`, P.recep, { status: "excused" }));
   const [m] = await makeups(a);
-  const alvo = await adhoc(24 * 60, 4, I3);
+  // As 3 reposições caem amanhã em horários fixos: mesmo mês sempre, mesmo no último dia do mês.
+  const amanhaAs = async (h: number) => {
+    const [r] = await sql`SELECT floor(EXTRACT(EPOCH FROM ((((now() AT TIME ZONE 'America/Sao_Paulo')::date + 1) + make_time(${h}::int, 0, 0)) AT TIME ZONE 'America/Sao_Paulo') - now()) / 60)::int AS m`;
+    return adhoc(r.m, 4, I3);
+  };
+  const alvo = await amanhaAs(10);
   ok(await call("POST", "/pilates/bookings", P.recep, { sessionId: alvo, studentId: a, makeupCreditId: m.id }), 201);
   assert.equal((await makeups(a))[0].status, "used");
   assert.equal(code(await call("POST", `/pilates/bookings/${origem}/attendance`, P.owner, { status: "present" })), "MAKEUP_ALREADY_USED");
@@ -345,20 +356,16 @@ test("reposição usada impede mudar a presença que a gerou; reposição respei
   const longe = await adhoc(5 * 24 * 60, 4, I3);
   assert.equal(code(await call("POST", "/pilates/bookings", P.recep, { sessionId: longe, studentId: a, makeupCreditId: m2.id })), "MAKEUP_EXPIRED");
   // Limite mensal (2): segunda no mesmo mês ok, terceira recusada.
-  const mes = await sql`SELECT count(*)::int AS n FROM pilates_bookings b JOIN pilates_class_sessions ss ON ss.id = b.session_id
-    WHERE b.client_id = ${a} AND b.kind = 'makeup' AND date_trunc('month', ss.session_date) = date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo')`;
   const extra = [];
   for (let i = 0; i < 2; i++) {
     const [x] = await sql`INSERT INTO pilates_makeup_credits (tenant_id, client_id, enrollment_id, reason, expires_on)
       VALUES (${P.id}, ${a}, ${e}, 'excused_absence', ${TODAY}::date + 30) RETURNING id`;
     extra.push(x.id);
   }
-  const hojeMais = async (min: number) => adhoc(min, 4, I3);
-  const r1 = await call("POST", "/pilates/bookings", P.recep, { sessionId: await hojeMais(60), studentId: a, makeupCreditId: extra[0] });
-  const r2 = await call("POST", "/pilates/bookings", P.recep, { sessionId: await hojeMais(120), studentId: a, makeupCreditId: extra[1] });
-  const usadosNoMes = mes[0].n;
-  if (usadosNoMes === 1) { assert.equal(r1.statusCode, 201, r1.body); assert.equal(code(r2), "MAKEUP_MONTHLY_LIMIT"); }
-  else assert.ok([r1, r2].some((r: any) => code(r) === "MAKEUP_MONTHLY_LIMIT"), "virada de mês durante o teste");
+  const r1 = await call("POST", "/pilates/bookings", P.recep, { sessionId: await amanhaAs(12), studentId: a, makeupCreditId: extra[0] });
+  const r2 = await call("POST", "/pilates/bookings", P.recep, { sessionId: await amanhaAs(14), studentId: a, makeupCreditId: extra[1] });
+  assert.equal(r1.statusCode, 201, r1.body);
+  assert.equal(code(r2), "MAKEUP_MONTHLY_LIMIT");
 });
 
 // ─── cancelamento pelo aluno ────────────────────────────────────────────────
@@ -367,8 +374,17 @@ test("cancelamento: no prazo não desconta / gera reposição; fora do prazo des
   const longe = await adhoc(48 * 60, 4, I2), perto = await adhoc(120, 4, I2);
   const b1 = ok(await call("POST", "/pilates/bookings", P.recep, { sessionId: longe, studentId: a, enrollmentId: e }), 201).id;
   const b2 = ok(await call("POST", "/pilates/bookings", P.recep, { sessionId: perto, studentId: a, enrollmentId: e }), 201).id;
-  assert.deepEqual(ok(await call("POST", `/pilates/bookings/${b1}/cancel`, P.recep)), { timely: true, creditConsumed: false, makeupGenerated: false });
-  assert.deepEqual(ok(await call("POST", `/pilates/bookings/${b2}/cancel`, P.recep)), { timely: false, creditConsumed: true, makeupGenerated: false });
+  const pick = (r: any) => ({ timely: r.timely, creditConsumed: r.creditConsumed, makeupGenerated: r.makeupGenerated });
+  // Prévia: mostra o efeito sem gravar.
+  const prev = ok(await call("POST", `/pilates/bookings/${b2}/cancel?preview=1`, P.recep));
+  assert.deepEqual(pick(prev), { timely: false, creditConsumed: true, makeupGenerated: false });
+  const [aindaAtiva] = await sql`SELECT status FROM pilates_bookings WHERE id = ${b2}`;
+  assert.equal(aindaAtiva.status, "booked", "prévia não grava nada");
+  assert.deepEqual(pick(ok(await call("POST", `/pilates/bookings/${b1}/cancel`, P.recep))), { timely: true, creditConsumed: false, makeupGenerated: false });
+  assert.deepEqual(pick(ok(await call("POST", `/pilates/bookings/${b2}/cancel`, P.recep))), { timely: false, creditConsumed: true, makeupGenerated: false });
+  const hist = ok(await call("GET", `/pilates/bookings/history?studentId=${a}`, P.owner));
+  assert.ok(hist.some((h: any) => h.delta === -1 && h.text.startsWith("−1 crédito · cancelou fora do prazo") && h.text.includes("regra do studio")), JSON.stringify(hist));
+  assert.ok(hist.some((h: any) => h.text.startsWith("crédito mantido · cancelou no prazo")));
   const u = await usage(e, a);
   assert.equal(u.consumed, 1); assert.equal(u.remaining, 9);
   // A vaga cancelada fica livre de novo.
@@ -402,8 +418,14 @@ test("studio cancela a aula: pacote devolve crédito, frequência gera reposiç�
   const x = await student("Studio pacote repoe"), ex = await enroll(x, gm);
   ok(await call("POST", "/pilates/bookings", P.recep, { sessionId: sessao, studentId: x, enrollmentId: ex }), 201);
 
+  const previa = ok(await call("POST", `/pilates/sessions/${sessao}/cancel?preview=1`, P.recep, { reason: "Feriado" }));
+  assert.deepEqual([previa.refunded, previa.makeups, previa.effects.length], [1, 2, 4]);
+  const [aindaAgendada] = await sql`SELECT status FROM pilates_class_sessions WHERE id = ${sessao}`;
+  assert.equal(aindaAgendada.status, "scheduled", "prévia não cancela");
   const res = ok(await call("POST", `/pilates/sessions/${sessao}/cancel`, P.recep, { reason: "Feriado" }));
-  assert.deepEqual(res, { refunded: 1, makeups: 2 });
+  assert.deepEqual([res.refunded, res.makeups], [1, 2]);
+  assert.equal(res.effects.find((e: any) => e.studentId === p).effect, "refund");
+  assert.equal(res.effects.find((e: any) => e.studentId === x).effect, "makeup");
   assert.equal((await usage(ep, p)).consumed, 0, "pacote: crédito devolvido");
   assert.equal((await makeups(f)).length, 1, "frequência: reposição");
   assert.equal((await makeups(r))[0].status, "available", "reposição usada volta a ficar disponível");
@@ -506,6 +528,8 @@ test("marcar todos presentes lança só quem ainda está sem presença", async (
   const b1 = await rawBooking(s, e1, await enroll(e1, PKG), "credit");
   await rawBooking(s, e2, await enroll(e2, PKG), "credit");
   ok(await call("POST", `/pilates/bookings/${b1}/attendance`, P.recep, { status: "absent" }));
+  const pv = ok(await call("POST", `/pilates/sessions/${s}/attendance-all?preview=1`, P.recep));
+  assert.deepEqual([pv.marked, pv.creditsConsumed], [1, 1], "prévia: 1 aluno, 1 crédito");
   const r = ok(await call("POST", `/pilates/sessions/${s}/attendance-all`, P.recep));
   assert.equal(r.marked, 1);
   const st = await sql`SELECT status FROM pilates_bookings WHERE session_id = ${s} ORDER BY status`;

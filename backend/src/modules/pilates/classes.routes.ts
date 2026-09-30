@@ -25,18 +25,27 @@ const todaySP = sql.raw(`(now() AT TIME ZONE '${TZ}')::date`);
 /** Dono, gerente e recepção (inscrever, cancelar, pausar, cancelar aula, trocar instrutor da aula). */
 async function requireFrontDesk(req: any, reply: any) {
   if (!["owner", "manager", "receptionist"].includes(req.tenantContext?.role)) {
-    return reply.status(403).send({ success: false, error: "Permissao insuficiente", code: "FORBIDDEN" });
+    return reply.status(403).send({ success: false, error: "Seu perfil não tem permissão para esta ação", code: "FORBIDDEN" });
   }
 }
 
-/** Executa numa transação e traduz ClassError em resposta HTTP. */
-async function run(reply: any, fn: (tx: any) => Promise<any>, status = 200) {
+/** Prévia (?preview=1): roda a MESMA regra dentro da transação e desfaz no fim, para a tela explicar o efeito. */
+class PreviewRollback extends Error { constructor(public data: any) { super("preview"); } }
+const isPreview = (req: any) => (req.query as any)?.preview === "1";
+
+/** Executa numa transação e traduz ClassError em resposta HTTP. Com preview, nada é gravado. */
+async function run(reply: any, fn: (tx: any) => Promise<any>, status = 200, preview = false) {
   try {
-    const data = await db.transaction(fn);
+    const data = await db.transaction(async (tx) => {
+      const r = await fn(tx);
+      if (preview) throw new PreviewRollback(r);
+      return r;
+    });
     return reply.status(status).send({ success: true, data });
   } catch (e: any) {
+    if (e instanceof PreviewRollback) return reply.send({ success: true, data: e.data, preview: true });
     if (e instanceof ClassError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code });
-    if (e?.code === "23505") return reply.status(409).send({ success: false, error: "Registro duplicado", code: "DUPLICATE" });
+    if (e?.code === "23505") return reply.status(409).send({ success: false, error: "Este registro já existe", code: "DUPLICATE" });
     throw e;
   }
 }
@@ -123,14 +132,14 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
     return run(reply, async (tx) => {
       const studio = await getStudioSettings(tx, tenantId);
       const [prof] = rows(await tx.execute(sql`SELECT id FROM professionals WHERE id = ${body.instructorId} AND tenant_id = ${tenantId} AND deleted_at IS NULL`));
-      if (!prof) throw new ClassError(404, "NOT_FOUND", "Instrutor nao encontrado");
+      if (!prof) throw new ClassError(404, "NOT_FOUND", "Instrutor não encontrado");
       if (body.modalityId) {
         const [m] = rows(await tx.execute(sql`SELECT id FROM services WHERE id = ${body.modalityId} AND tenant_id = ${tenantId} AND deleted_at IS NULL`));
-        if (!m) throw new ClassError(404, "NOT_FOUND", "Modalidade nao encontrada");
+        if (!m) throw new ClassError(404, "NOT_FOUND", "Modalidade não encontrada");
       }
       const duration = body.durationMinutes ?? Number(studio.default_class_duration);
       const clash = await scheduleConflict(tx, tenantId, { instructorId: body.instructorId, dayOfWeek: body.dayOfWeek, startTime: body.startTime, durationMinutes: duration });
-      if (clash) throw new ClassError(409, "INSTRUCTOR_CONFLICT", `O instrutor ja tem aula as ${clash.start_time} nesse dia`);
+      if (clash) throw new ClassError(409, "INSTRUCTOR_CONFLICT", `O instrutor já tem aula às ${clash.start_time} nesse dia`);
       const [s] = rows(await tx.execute(sql`INSERT INTO pilates_class_schedules (tenant_id, modality_id, instructor_id, day_of_week, start_time,
         duration_minutes, room, capacity, class_type) VALUES (${tenantId}, ${body.modalityId ?? null}, ${body.instructorId}, ${body.dayOfWeek},
         ${body.startTime}, ${duration}, ${body.room ?? null}, ${body.capacity ?? Number(studio.default_class_capacity)}, ${body.classType ?? "group"}) RETURNING id`));
@@ -142,12 +151,12 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
 
   fastify.patch("/pilates/schedules/:id", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Turma nao encontrada", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Turma não encontrada", code: "NOT_FOUND" });
     const body = parseBody(scheduleUpdateDto, req, reply); if (!body) return;
     return run(reply, async (tx) => {
       if (body.instructorId) {
         const [p] = rows(await tx.execute(sql`SELECT id FROM professionals WHERE id = ${body.instructorId} AND tenant_id = ${tenantId} AND deleted_at IS NULL`));
-        if (!p) throw new ClassError(404, "NOT_FOUND", "Instrutor nao encontrado");
+        if (!p) throw new ClassError(404, "NOT_FOUND", "Instrutor não encontrado");
       }
       await updateSchedule(tx, tenantId, req.params.id, body);
       auditLog({ tenantId, userId, action: "pilates.schedule.updated", tableName: "pilates_class_schedules", recordId: req.params.id, newData: body });
@@ -159,7 +168,7 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
   fastify.get("/pilates/sessions", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
     const { from, to, instructorId } = req.query as any;
-    if (!DAY.test(from ?? "") || !DAY.test(to ?? "")) return reply.status(400).send({ success: false, error: "Informe from e to (AAAA-MM-DD)" });
+    if (!DAY.test(from ?? "") || !DAY.test(to ?? "")) return reply.status(400).send({ success: false, error: "Informe o período (from e to, AAAA-MM-DD)" });
     await ensureSessions(db, tenantId);
     const byInstr = typeof instructorId === "string" && UUID.test(instructorId) ? sql`AND ss.instructor_id = ${instructorId}` : sql``;
     const data = rows(await db.execute(sql`${sessionSelect}
@@ -189,9 +198,9 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
 
   fastify.get("/pilates/sessions/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula nao encontrada", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula não encontrada", code: "NOT_FOUND" });
     const data = await sessionDetail(tenantId, req.params.id);
-    if (!data) return reply.status(404).send({ success: false, error: "Aula nao encontrada", code: "NOT_FOUND" });
+    if (!data) return reply.status(404).send({ success: false, error: "Aula não encontrada", code: "NOT_FOUND" });
     return reply.send({ success: true, data });
   });
 
@@ -202,11 +211,11 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
     return run(reply, async (tx) => {
       const studio = await getStudioSettings(tx, tenantId);
       const [p] = rows(await tx.execute(sql`SELECT id FROM professionals WHERE id = ${body.instructorId} AND tenant_id = ${tenantId} AND deleted_at IS NULL`));
-      if (!p) throw new ClassError(404, "NOT_FOUND", "Instrutor nao encontrado");
+      if (!p) throw new ClassError(404, "NOT_FOUND", "Instrutor não encontrado");
       const duration = body.durationMinutes ?? Number(studio.default_class_duration);
       const [t] = rows(await tx.execute(sql`SELECT (${body.date}::date + ${body.startTime}::time) AT TIME ZONE ${TZ} AS starts_at`));
       const endsAt = new Date(new Date(t.starts_at).getTime() + duration * 60_000);
-      if (await sessionConflict(tx, tenantId, body.instructorId, t.starts_at, endsAt)) throw new ClassError(409, "INSTRUCTOR_CONFLICT", "O instrutor ja tem aula nesse horario");
+      if (await sessionConflict(tx, tenantId, body.instructorId, t.starts_at, endsAt)) throw new ClassError(409, "INSTRUCTOR_CONFLICT", "O instrutor já tem aula nesse horário");
       const type = body.classType ?? "assessment";
       const cap = body.capacity ?? (type === "group" ? Number(studio.default_class_capacity) : type === "duo" ? 2 : 1);
       const [s] = rows(await tx.execute(sql`INSERT INTO pilates_class_sessions (tenant_id, session_date, starts_at, ends_at, instructor_id, modality_id, room, capacity, class_type, notes)
@@ -219,16 +228,16 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
   /** Nesta aula (uma ocorrência): trocar instrutor, sala ou observação. */
   fastify.patch("/pilates/sessions/:id", { preHandler: [authenticate, requireFrontDesk] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula nao encontrada", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula não encontrada", code: "NOT_FOUND" });
     const body = parseBody(sessionUpdateDto, req, reply); if (!body) return;
     return run(reply, async (tx) => {
       const s = await lockSession(tx, tenantId, req.params.id);
-      if (s.status !== "scheduled") throw new ClassError(409, "CLASS_CANCELLED", "Aula cancelada");
+      if (s.status !== "scheduled") throw new ClassError(409, "CLASS_CANCELLED", "Esta aula foi cancelada");
       const old: Record<string, any> = {};
       if (body.instructorId && body.instructorId !== s.instructor_id) {
         const [p] = rows(await tx.execute(sql`SELECT id FROM professionals WHERE id = ${body.instructorId} AND tenant_id = ${tenantId} AND deleted_at IS NULL`));
-        if (!p) throw new ClassError(404, "NOT_FOUND", "Instrutor nao encontrado");
-        if (await sessionConflict(tx, tenantId, body.instructorId, s.starts_at, s.ends_at, s.id)) throw new ClassError(409, "INSTRUCTOR_CONFLICT", "O novo instrutor ja tem aula nesse horario");
+        if (!p) throw new ClassError(404, "NOT_FOUND", "Instrutor não encontrado");
+        if (await sessionConflict(tx, tenantId, body.instructorId, s.starts_at, s.ends_at, s.id)) throw new ClassError(409, "INSTRUCTOR_CONFLICT", "O novo instrutor já tem aula nesse horário");
         old.instructorId = s.instructor_id;
         await tx.execute(sql`UPDATE pilates_class_sessions SET instructor_id = ${body.instructorId}, instructor_overridden = true, updated_at = now() WHERE id = ${s.id}`);
       }
@@ -241,24 +250,27 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
 
   fastify.post("/pilates/sessions/:id/cancel", { preHandler: [authenticate, requireFrontDesk] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula nao encontrada", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula não encontrada", code: "NOT_FOUND" });
     const body = parseBody(sessionCancelDto, req, reply); if (!body) return;
+    const preview = isPreview(req);
     return run(reply, async (tx) => {
       const r = await cancelSessionByStudio(tx, tenantId, req.params.id, userId, body.reason ?? null);
-      auditLog({ tenantId, userId, action: "pilates.session.cancelled_by_studio", tableName: "pilates_class_sessions", recordId: req.params.id, newData: { reason: body.reason, ...r } });
+      if (!preview) auditLog({ tenantId, userId, action: "pilates.session.cancelled_by_studio", tableName: "pilates_class_sessions", recordId: req.params.id, newData: { reason: body.reason, refunded: r.refunded, makeups: r.makeups } });
       return r;
-    });
+    }, 200, preview);
   });
 
   /** "Marcar todos presentes" (C7): só as inscrições ainda sem presença. */
   fastify.post("/pilates/sessions/:id/attendance-all", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId, role } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula nao encontrada", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Aula não encontrada", code: "NOT_FOUND" });
+    const preview = isPreview(req);
     return run(reply, async (tx) => {
       const ids = rows(await tx.execute(sql`SELECT id FROM pilates_bookings WHERE session_id = ${req.params.id} AND tenant_id = ${tenantId} AND status = 'booked'`));
-      for (const b of ids) await markAttendance(tx, { tenantId, userId, role }, b.id, "present");
-      return { marked: ids.length };
-    });
+      let creditsConsumed = 0;
+      for (const b of ids) if ((await markAttendance(tx, { tenantId, userId, role }, b.id, "present")).creditConsumed) creditsConsumed++;
+      return { marked: ids.length, creditsConsumed };
+    }, 200, preview);
   });
 
   // ═══ HORÁRIOS FIXOS ═══════════════════════════════════════════════════════
@@ -286,7 +298,7 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
 
   fastify.delete("/pilates/slots/:id", { preHandler: [authenticate, requireFrontDesk] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Horario fixo nao encontrado", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Horário fixo não encontrado", code: "NOT_FOUND" });
     return run(reply, async (tx) => {
       await deleteSlot(tx, tenantId, req.params.id);
       auditLog({ tenantId, userId, action: "pilates.slot.deleted", tableName: "pilates_enrollment_slots", recordId: req.params.id });
@@ -298,7 +310,7 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
   fastify.post("/pilates/bookings", { preHandler: [authenticate, requireFrontDesk] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(bookingCreateDto, req, reply); if (!body) return;
-    if (!(await studentExists(tenantId, body.studentId))) return reply.status(404).send({ success: false, error: "Aluno nao encontrado", code: "NOT_FOUND" });
+    if (!(await studentExists(tenantId, body.studentId))) return reply.status(404).send({ success: false, error: "Aluno não encontrado", code: "NOT_FOUND" });
     return run(reply, async (tx) => {
       const id = body.makeupCreditId
         ? await bookWithMakeup(tx, tenantId, { sessionId: body.sessionId, studentId: body.studentId, makeupCreditId: body.makeupCreditId })
@@ -312,12 +324,12 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
   fastify.post("/pilates/bookings/extra", { preHandler: [authenticate, requireFrontDesk] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(extraClassDto, req, reply); if (!body) return;
-    if (!(await studentExists(tenantId, body.studentId))) return reply.status(404).send({ success: false, error: "Aluno nao encontrado", code: "NOT_FOUND" });
+    if (!(await studentExists(tenantId, body.studentId))) return reply.status(404).send({ success: false, error: "Aluno não encontrado", code: "NOT_FOUND" });
     return run(reply, async (tx) => {
       const session = await lockSession(tx, tenantId, body.sessionId);
       const [plan] = rows(await tx.execute(sql`SELECT * FROM pilates_plans WHERE id = ${body.planId} AND tenant_id = ${tenantId}`));
-      if (!plan) throw new ClassError(404, "NOT_FOUND", "Plano nao encontrado");
-      if (plan.kind !== "package" || plan.status !== "active") throw new ClassError(400, "NOT_PACKAGE", "Aula extra usa um plano avulso (pacote) ativo");
+      if (!plan) throw new ClassError(404, "NOT_FOUND", "Plano não encontrado");
+      if (plan.kind !== "package" || plan.status !== "active") throw new ClassError(400, "NOT_PACKAGE", "A aula extra usa um plano avulso (pacote) ativo");
       const start = toDay(session.session_date)!;
       const [e] = rows(await tx.execute(sql`INSERT INTO pilates_enrollments (tenant_id, client_id, plan_id, start_date, end_date, price)
         VALUES (${tenantId}, ${body.studentId}, ${plan.id}, ${start}::date, ${start}::date + ${Math.max(Number(plan.validity_days) - 1, 0)}::int, ${plan.price}) RETURNING id`));
@@ -329,26 +341,87 @@ export async function pilatesClassesModule(fastify: FastifyInstance) {
 
   fastify.post("/pilates/bookings/:id/cancel", { preHandler: [authenticate, requireFrontDesk] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Inscricao nao encontrada", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Inscrição não encontrada", code: "NOT_FOUND" });
+    const preview = isPreview(req);
     return run(reply, async (tx) => {
       const r = await cancelBooking(tx, tenantId, req.params.id, userId);
-      auditLog({ tenantId, userId, action: "pilates.booking.cancelled", tableName: "pilates_bookings", recordId: req.params.id, newData: r });
+      if (!preview) auditLog({ tenantId, userId, action: "pilates.booking.cancelled", tableName: "pilates_bookings", recordId: req.params.id, newData: r });
       return r;
-    });
+    }, 200, preview);
   });
 
   fastify.post("/pilates/bookings/:id/attendance", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId, role } = req.tenantContext;
-    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Inscricao nao encontrada", code: "NOT_FOUND" });
+    if (!UUID.test(req.params.id)) return reply.status(404).send({ success: false, error: "Inscrição não encontrada", code: "NOT_FOUND" });
     const body = parseBody(attendanceDto, req, reply); if (!body) return;
+    const preview = isPreview(req);
     return run(reply, async (tx) => {
       const r = await markAttendance(tx, { tenantId, userId, role }, req.params.id, body.status);
-      if (r.previous) {
+      if (r.previous && !preview) {
         auditLog({ tenantId, userId, action: "pilates.attendance.changed", tableName: "pilates_bookings", recordId: req.params.id,
           oldData: { status: r.previous }, newData: { status: r.status } });
       }
       return r;
-    });
+    }, 200, preview);
+  });
+
+  /** Histórico do aluno: cada movimento de crédito e de reposição com o MOTIVO e a regra aplicada. */
+  fastify.get("/pilates/bookings/history", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const { studentId } = req.query as any;
+    if (typeof studentId !== "string" || !UUID.test(studentId)) return reply.send({ success: true, data: [] });
+    await expireMakeups(db, tenantId);
+    const d = (v: string | null) => (v ? v.split("-").reverse().slice(0, 2).join("/") : "");
+    const regra = (src: string | null) => (src === "plan" ? "regra do plano" : src === "studio" ? "regra do studio" : "");
+    const junta = (...p: (string | null | false)[]) => p.filter(Boolean).join(" · ");
+    const out: { at: string; date: string; type: string; delta: number; text: string }[] = [];
+
+    const bookings = rows(await db.execute(sql`
+      SELECT b.kind, b.status, b.credit_consumed, b.effect_reason, b.effect_rule_source, b.effect_at, b.created_at,
+        to_char(ss.session_date, 'YYYY-MM-DD') AS session_date, pl.name AS plan_name
+      FROM pilates_bookings b JOIN pilates_class_sessions ss ON ss.id = b.session_id
+      LEFT JOIN pilates_enrollments e ON e.id = b.enrollment_id LEFT JOIN pilates_plans pl ON pl.id = e.plan_id
+      WHERE b.tenant_id = ${tenantId} AND b.client_id = ${studentId} AND b.kind = 'credit'
+      ORDER BY COALESCE(b.effect_at, b.created_at) DESC`));
+    for (const b of bookings) {
+      const aula = d(b.session_date), src = regra(b.effect_rule_source), plano = b.plan_name;
+      let delta = 0, text = "";
+      switch (b.status) {
+        case "booked": text = junta(`crédito reservado para a aula de ${aula}`, plano); break;
+        case "present": delta = -1; text = junta(`−1 crédito · presença em ${aula}`, plano); break;
+        case "absent": delta = b.credit_consumed ? -1 : 0;
+          text = junta(b.credit_consumed ? `−1 crédito · falta sem aviso em ${aula}` : `crédito mantido · falta sem aviso em ${aula}`, src, plano); break;
+        case "excused": delta = b.credit_consumed ? -1 : 0;
+          text = junta(b.credit_consumed ? `−1 crédito · falta justificada em ${aula}` : `crédito mantido · falta justificada em ${aula}`, src, plano); break;
+        case "cancelled": text = junta(`crédito mantido · cancelou no prazo a aula de ${aula}`, src, plano); break;
+        case "cancelled_late": delta = b.credit_consumed ? -1 : 0;
+          text = junta(b.credit_consumed ? `−1 crédito · cancelou fora do prazo a aula de ${aula}` : `crédito mantido · cancelou fora do prazo a aula de ${aula}`, src, plano); break;
+        case "cancelled_studio": delta = b.credit_consumed ? -1 : 0;
+          text = junta(b.credit_consumed ? `crédito virou reposição · aula de ${aula} cancelada pelo studio` : `crédito devolvido · aula de ${aula} cancelada pelo studio`, src, plano); break;
+        default: continue;
+      }
+      out.push({ at: new Date(b.effect_at ?? b.created_at).toISOString(), date: b.session_date, type: "credit", delta, text });
+    }
+
+    const motivo: Record<string, string> = {
+      timely_cancel: "cancelou no prazo", excused_absence: "falta justificada", unexcused_absence: "falta sem aviso", studio_cancel: "aula cancelada pelo studio",
+    };
+    const makeups = rows(await db.execute(sql`
+      SELECT mc.reason, mc.status, mc.rule_source, mc.created_at, mc.used_at, to_char(mc.expires_on, 'YYYY-MM-DD') AS expires_on,
+        to_char(os.session_date, 'YYYY-MM-DD') AS origin_date, to_char(us.session_date, 'YYYY-MM-DD') AS used_date, pl.name AS plan_name
+      FROM pilates_makeup_credits mc
+      LEFT JOIN pilates_bookings ob ON ob.id = mc.origin_booking_id LEFT JOIN pilates_class_sessions os ON os.id = ob.session_id
+      LEFT JOIN pilates_bookings ub ON ub.id = mc.used_booking_id LEFT JOIN pilates_class_sessions us ON us.id = ub.session_id
+      LEFT JOIN pilates_enrollments e ON e.id = mc.enrollment_id LEFT JOIN pilates_plans pl ON pl.id = e.plan_id
+      WHERE mc.tenant_id = ${tenantId} AND mc.client_id = ${studentId}`));
+    for (const m of makeups) {
+      out.push({ at: new Date(m.created_at).toISOString(), date: m.origin_date, type: "makeup", delta: 1,
+        text: junta(`+1 reposição · ${motivo[m.reason] ?? m.reason}${m.origin_date ? ` em ${d(m.origin_date)}` : ""}`, `válida até ${d(m.expires_on)}`, regra(m.rule_source), m.plan_name) });
+      if (m.status === "used") out.push({ at: new Date(m.used_at).toISOString(), date: m.used_date, type: "makeup", delta: -1, text: junta(`reposição usada na aula de ${d(m.used_date)}`, m.plan_name) });
+      if (m.status === "expired") out.push({ at: new Date(`${m.expires_on}T23:59:59-03:00`).toISOString(), date: m.expires_on, type: "makeup", delta: -1, text: junta(`reposição vencida em ${d(m.expires_on)}`, m.plan_name) });
+    }
+    out.sort((a, b) => b.at.localeCompare(a.at));
+    return reply.send({ success: true, data: out });
   });
 
   // ═══ REPOSIÇÕES E PAUSAS ══════════════════════════════════════════════════

@@ -1276,6 +1276,7 @@ export const pilatesMakeupCredits = pgTable("pilates_makeup_credits", {
   status:          varchar("status", { length: 20 }).notNull().default("available"), // available | used | expired
   usedBookingId:   uuid("used_booking_id"),
   usedAt:          timestamp("used_at", { withTimezone: true }),
+  ruleSource:      varchar("rule_source", { length: 10 }), // studio | plan
   createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -1295,6 +1296,9 @@ export const pilatesBookings = pgTable("pilates_bookings", {
   attendanceUpdatedAt: timestamp("attendance_updated_at", { withTimezone: true }),
   cancelledBy:         uuid("cancelled_by"),
   cancelledAt:         timestamp("cancelled_at", { withTimezone: true }),
+  effectReason:        varchar("effect_reason", { length: 30 }),     // present | unexcused_absence | excused_absence | timely_cancel | late_cancel | studio_cancel
+  effectRuleSource:    varchar("effect_rule_source", { length: 10 }), // studio | plan
+  effectAt:            timestamp("effect_at", { withTimezone: true }),
   notes:               text("notes"),
   createdAt:           timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -151,6 +151,7 @@ CREATE TABLE "pilates_makeup_credits" (
   "status" varchar(20) DEFAULT 'available' NOT NULL,
   "used_booking_id" uuid,
   "used_at" timestamp with time zone,
+  "rule_source" varchar(10), -- regra aplicada ao gerar: 'studio' ou 'plan' (histórico do aluno)
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   CONSTRAINT "pilates_makeup_credits_reason_check" CHECK ("reason" IN ('timely_cancel', 'excused_absence', 'unexcused_absence', 'studio_cancel')),
   CONSTRAINT "pilates_makeup_credits_status_check" CHECK ("status" IN ('available', 'used', 'expired'))
@@ -174,6 +175,10 @@ CREATE TABLE "pilates_bookings" (
   "attendance_updated_at" timestamp with time zone,
   "cancelled_by" uuid,
   "cancelled_at" timestamp with time zone,
+  -- Motivo e regra aplicada no momento do efeito (presença, falta, cancelamento): histórico do aluno.
+  "effect_reason" varchar(30),
+  "effect_rule_source" varchar(10),
+  "effect_at" timestamp with time zone,
   "notes" text,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
