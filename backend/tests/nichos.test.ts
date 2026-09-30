@@ -130,7 +130,7 @@ test("frontend: toda tela do menu tem feature válida; pilates só vê as telas 
   assert.ok(menu, "MENU_GROUPS não encontrado");
   for (const m of menu[1].matchAll(/\{ id:"(\w+)"/g)) assert.ok(m[1] in pages, `item de menu ${m[1]} sem feature (ficaria escondido)`);
   const pilates = Object.keys(pages).filter((p) => F.isFeatureAllowed(pages[p], "pilates")).sort();
-  const telasPilates = ["class_instructors", "class_modalities", "class_rules", "class_schedules", "class_students", "memberships"];
+  const telasPilates = ["class_instructors", "class_modalities", "class_schedules", "class_students", "memberships"];
   assert.deepEqual(pilates, ["ajuda", "auditlogs", "checkout", ...telasPilates, "pricing", "settings"].sort());
   for (const bt of CLASSIC) {
     const escondidas = Object.keys(pages).filter((p) => !F.isFeatureAllowed(pages[p], bt)).sort();

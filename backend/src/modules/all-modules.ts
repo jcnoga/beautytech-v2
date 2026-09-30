@@ -23,7 +23,7 @@ import {
   autoReplySettings, passwordResets,
 } from "@db/schema/index";
 import { gotrueAdmin, findAuthUserByEmail } from "@config/gotrue";
-import { authenticate, requireOwner, requireManager, requireFinancial } from "@middleware/auth";
+import { authenticate, requireOwner, requireManager, requireFinancial, hasRole } from "@middleware/auth";
 import {
   parseBody, clientCreateDto, clientUpdateDto, professionalCreateDto, professionalUpdateDto,
   appointmentCreateDto, appointmentUpdateDto, serviceCreateDto, serviceUpdateDto,
@@ -1215,7 +1215,9 @@ export async function authModule(fastify: FastifyInstance) {
     const trialEnd = tenant?.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
     const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000) : null;
     if (!tenant) return reply.status(404).send({ success: false, error: "Tenant nao encontrado" });
-    return reply.send({ success: true, data: { ...tenant, daysLeft } });
+    // role/canManage: a tela decide o que mostrar pelo que o backend diz (quem altera regras é dono/gerente).
+    const role = req.tenantContext.role;
+    return reply.send({ success: true, data: { ...tenant, daysLeft, role, canManage: hasRole(role, "manager") } });
     } catch(e: any) { console.error("auth/me error:", e.message, e.stack); return reply.status(500).send({ success: false, error: e.message }); }
   });
 

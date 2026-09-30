@@ -137,6 +137,12 @@ test("regras: padrões do studio criados na hora, editáveis e no Log (antigo �
   ok(await call("PATCH", "/classes/settings", P.owner, { cancelMinHours: 12 }));
 });
 
+test("/auth/me informa o perfil e se pode gerenciar (a aba de regras depende disso)", async () => {
+  const me = async (token: string) => ok(await call("GET", "/auth/me", token));
+  assert.deepEqual([(await me(P.owner)).role, (await me(P.owner)).canManage], ["owner", true]);
+  for (const token of [P.recep, P.prof1, P.fin]) assert.equal((await me(token)).canManage, false);
+});
+
 test("regras: exceção por plano (vazio = padrão do studio) e Log da exceção", async () => {
   const { effectiveRules } = await import("../src/modules/group-classes/rules");
   const studio = { cancel_min_hours: 12, cancel_deadline_enabled: true, studio_cancel_action_package: "refund_credit", studio_cancel_action_frequency: "generate_makeup" } as any;

@@ -1,5 +1,6 @@
 // Aulas em turma: Regras do studio (itens 14 e 27, C5, C6). Padrões que valem para todos os planos;
-// cada plano pode ter exceções (tela de Planos). Só dono/gerente altera (o backend confere).
+// cada plano pode ter exceções (tela de Planos). Fica numa aba de Configurações, só para dono/gerente
+// (o backend confere de novo ao salvar).
 // API: GET/PATCH /classes/settings.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -35,7 +36,7 @@ export function RuleInput({ C, FB, field, value, onChange, disabled }: {
   );
 }
 
-export default function RulesPage({ C, FD, FB }: Theme) {
+export default function RulesPage({ C, FD, FB, embedded }: Theme & { embedded?: boolean }) {
   const t = { C, FD, FB };
   const [saved, setSaved] = useState<Record<string, any> | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
@@ -77,8 +78,9 @@ export default function RulesPage({ C, FD, FB }: Theme) {
 
   return (
     <div style={{ fontFamily: FB, maxWidth: 760, paddingBottom: 90 }}>
-      <PageHeader {...t} title="Regras do studio"
-        subtitle="Valem para todos os planos. Um plano pode ter exceções (em Planos → editar o plano)." />
+      {embedded
+        ? <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>Valem para todos os planos. Um plano pode ter exceções (em Planos → editar o plano).</div>
+        : <PageHeader {...t} title="Regras do studio" subtitle="Valem para todos os planos. Um plano pode ter exceções (em Planos → editar o plano)." />}
       {error && <Notice C={C}>{error}</Notice>}
       {ok && <Notice C={C} kind="info">{ok}</Notice>}
       {!saved ? (!error && <Empty C={C}>Carregando...</Empty>) : (<>

@@ -65,6 +65,10 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
 const ROLE_LEVEL: Record<string, number> = {
   owner:100, manager:80, financial:60, receptionist:50, professional:40, marketing:30, viewer:10,
 };
+/** O perfil alcança o nível mínimo? (mesma regra do requireRole; usada também para a tela saber o que mostrar). */
+export function hasRole(role: string | undefined, min: string) {
+  return (ROLE_LEVEL[role ?? ""] ?? 0) >= (ROLE_LEVEL[min] ?? 0);
+}
 function requireRole(min: string) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
     if ((ROLE_LEVEL[req.tenantContext?.role ?? ""] ?? 0) < (ROLE_LEVEL[min] ?? 0)) {

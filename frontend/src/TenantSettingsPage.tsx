@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useRef } from "react";
 import { api } from "./api/client";
-import { businessTypeIs } from "./config/nicho";
+import { businessTypeIs, can } from "./config/nicho";
+import RulesPage from "./group-classes/RulesPage";
 
 const C = {
   bg: "#0f0f0f", card: "#1a1a1a", border: "rgba(255,255,255,0.08)",
@@ -78,12 +79,14 @@ export default function TenantSettingsPage() {
     }
   };
   const [activeTab, setActiveTab] = useState("identity");
+  const [canManage, setCanManage] = useState(false); // vem do backend (/auth/me)
 
   const f = (key: string) => (val: string) => setForm((p: any) => ({ ...p, [key]: val }));
 
   useEffect(() => {
     api.get<any>("/auth/me").then((data: any) => {
       const t = data.data ?? data;
+      setCanManage(!!t.canManage);
       setForm({
         slug: t.slug ?? "",
         name: t.name ?? "",
@@ -140,7 +143,9 @@ export default function TenantSettingsPage() {
     { id:"address",  label:"Endereço" },
     { id:"landing",  label:"Landing Page" },
     { id:"equipe",   label:"Equipe" },
-  ].filter(tab => !(isPilates && tab.id === "landing")); // página pública do studio: fase futura (C12)
+    { id:"rules",    label:"Regras das aulas" },
+  ].filter(tab => !(isPilates && tab.id === "landing")) // página pública do studio: fase futura (C12)
+   .filter(tab => tab.id !== "rules" || (can("class_settings") && canManage)); // Aulas em turma: só dono/gerente
 
   if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400, color:C.textMuted, fontFamily:FB }}>Carregando...</div>;
 
@@ -249,6 +254,10 @@ export default function TenantSettingsPage() {
               💡 A landing page em <strong style={{ color:C.gold }}>{form.slug||"seu-salao"}.zensalon.com.br</strong> será atualizada automaticamente após salvar.
             </div>}
           </div>
+        )}
+
+        {activeTab === "rules" && can("class_settings") && canManage && (
+          <RulesPage C={{ ...C, ruby: "#e07a7a", sapphire: "#7fa7d9" }} FD={FD} FB={FB} embedded />
         )}
 
         {activeTab === "equipe" && (
