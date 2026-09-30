@@ -572,3 +572,43 @@ test("isolamento: outro studio não vê nem inscreve nas aulas; recepção não 
   assert.equal((await call("POST", "/classes/schedules", P.recep, { instructorId: I1, dayOfWeek: 1, startTime: "05:00" })).statusCode, 403);
   assert.equal((await call("PATCH", `/class-instructors/${I1}`, P.owner, { userProfileId: randomUUID() })).statusCode, 404, "login de outra equipe");
 });
+
+// ─── pendentes (C7) ─────────────────────────────────────────────────────────
+test("pendentes: aula passada sem presença; instrutor só vê as dele; janela de 14 dias; isolamento", async () => {
+  ok(await call("PATCH", `/class-instructors/${I1}`, P.owner, { userProfileId: P.prof1ProfileId }));
+  const inicio = new Date(Date.parse(TODAY) - 30 * 86_400_000).toISOString().slice(0, 10);
+  const a = await student("Pendente A"), b = await student("Pendente B");
+  const ea = await enroll(a, PKG, inicio), eb = await enroll(b, PKG, inicio);
+  const ontem = -24 * 60;
+  const minha = await adhoc(ontem, 4, I1);       // 2 alunos sem presença
+  await rawBooking(minha, a, ea, "credit"); await rawBooking(minha, b, eb, "credit");
+  const deOutro = await adhoc(ontem - 90, 4, I2); // de outro instrutor
+  await rawBooking(deOutro, a, ea, "credit");
+  const lancada = await adhoc(ontem - 180, 4, I1); // presença já lançada
+  const bl = await rawBooking(lancada, a, ea, "credit");
+  ok(await call("POST", `/classes/bookings/${bl}/attendance`, P.owner, { status: "present" }));
+  const velha = await adhoc(-20 * 24 * 60, 4, I1); // fora da janela de 14 dias
+  await rawBooking(velha, a, ea, "credit");
+  const cancelada = await adhoc(ontem - 270, 4, I1);
+  await rawBooking(cancelada, b, eb, "credit");
+  await sql`UPDATE class_sessions SET status = 'cancelled' WHERE id = ${cancelada}`;
+
+  const ids = (r: any[]) => r.map((s) => s.id);
+  const dono = ok(await call("GET", "/classes/sessions/pending", P.owner));
+  assert.ok(ids(dono).includes(minha) && ids(dono).includes(deOutro), "dono vê as de todos");
+  for (const x of [lancada, velha, cancelada]) assert.ok(!ids(dono).includes(x), "lançada, antiga e cancelada não são pendentes");
+  assert.equal(dono.find((s: any) => s.id === minha).pending_count, 2);
+  const instrutor = ok(await call("GET", "/classes/sessions/pending", P.prof1));
+  assert.ok(ids(instrutor).includes(minha) && !ids(instrutor).includes(deOutro), "instrutor só vê as dele (escopo own)");
+  ok(await call("PATCH", "/classes/settings", P.owner, { instructorAttendanceScope: "all" }));
+  assert.ok(ids(ok(await call("GET", "/classes/sessions/pending", P.prof1))).includes(deOutro), "escopo all: vê todas");
+  ok(await call("PATCH", "/classes/settings", P.owner, { instructorAttendanceScope: "own" }));
+  assert.ok(!ids(ok(await call("GET", "/classes/sessions/pending", Q.owner))).includes(minha), "outra empresa não vê");
+  // /today usa a mesma regra
+  assert.deepEqual(ids(ok(await call("GET", "/classes/sessions/today", P.prof1)).pending), ids(instrutor));
+  // lançar a presença tira da lista
+  for (const bk of await sql`SELECT id FROM class_bookings WHERE session_id = ${minha}`) {
+    ok(await call("POST", `/classes/bookings/${bk.id}/attendance`, P.owner, { status: "present" }));
+  }
+  assert.ok(!ids(ok(await call("GET", "/classes/sessions/pending", P.owner))).includes(minha));
+});

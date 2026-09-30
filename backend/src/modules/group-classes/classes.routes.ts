@@ -177,23 +177,44 @@ export async function classesModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data });
   });
 
+  /** Instrutor (perfil professional) com escopo "own": só as aulas em que ele é o instrutor. */
+  async function ownScope(tenantId: string, userId: string, role: string) {
+    if (role !== "professional") return sql``;
+    const studio = await getStudioSettings(db, tenantId);
+    if (studio.instructor_attendance_scope !== "own") return sql``;
+    return sql`AND ss.instructor_id IN (SELECT p.id FROM professionals p JOIN user_profiles up ON up.id = p.user_profile_id
+      WHERE up.auth_user_id = ${userId} AND p.tenant_id = ${tenantId})`;
+  }
+
+  /** Pendentes (C7): aula de dia anterior (últimos 14 dias), não cancelada, com aluno ainda sem presença lançada.
+   *  As de hoje ficam na lista do dia (pending_attendance). */
+  async function pendingSessions(tenantId: string, own: any) {
+    return rows(await db.execute(sql`${sessionSelect} WHERE ss.tenant_id = ${tenantId} AND ss.session_date < ${todaySP}
+      AND ss.session_date >= ${todaySP} - 14 AND ss.status = 'scheduled' ${own}
+      AND EXISTS (SELECT 1 FROM class_bookings b WHERE b.session_id = ss.id AND b.status = 'booked') ORDER BY ss.starts_at`));
+  }
+
   /** "Aulas de hoje" (C7): aulas de hoje + aulas passadas com presença pendente. */
   fastify.get("/classes/sessions/today", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId, role } = req.tenantContext;
     await ensureSessions(db, tenantId);
-    let own = sql``;
-    if (role === "professional") {
-      const studio = await getStudioSettings(db, tenantId);
-      if (studio.instructor_attendance_scope === "own") {
-        own = sql`AND ss.instructor_id IN (SELECT p.id FROM professionals p JOIN user_profiles up ON up.id = p.user_profile_id
-          WHERE up.auth_user_id = ${userId} AND p.tenant_id = ${tenantId})`;
-      }
-    }
+    const own = await ownScope(tenantId, userId, role);
     const today = rows(await db.execute(sql`${sessionSelect} WHERE ss.tenant_id = ${tenantId} AND ss.session_date = ${todaySP} ${own} ORDER BY ss.starts_at`));
-    const pending = rows(await db.execute(sql`${sessionSelect} WHERE ss.tenant_id = ${tenantId} AND ss.session_date < ${todaySP}
-      AND ss.session_date >= ${todaySP} - 14 AND ss.status = 'scheduled' ${own}
-      AND EXISTS (SELECT 1 FROM class_bookings b WHERE b.session_id = ss.id AND b.status = 'booked') ORDER BY ss.starts_at`));
-    return reply.send({ success: true, data: { today, pending } });
+    return reply.send({ success: true, data: { today, pending: await pendingSessions(tenantId, own) } });
+  });
+
+  /** Só as pendentes, com quantos alunos faltam lançar (bloco "Pendentes" do topo de Aulas de hoje). */
+  fastify.get("/classes/sessions/pending", { preHandler: [authenticate] }, async (req: any, reply) => {
+    const { tenantId, userId, role } = req.tenantContext;
+    const own = await ownScope(tenantId, userId, role);
+    const data = await pendingSessions(tenantId, own);
+    if (data.length) {
+      const counts = rows(await db.execute(sql`SELECT session_id, count(*)::int AS n FROM class_bookings
+        WHERE status = 'booked' AND session_id IN (${sql.join(data.map((s: any) => sql`${s.id}::uuid`), sql`, `)}) GROUP BY session_id`));
+      const by = new Map(counts.map((c: any) => [c.session_id, c.n]));
+      for (const s of data) s.pending_count = by.get(s.id) ?? 0;
+    }
+    return reply.send({ success: true, data });
   });
 
   fastify.get("/classes/sessions/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
