@@ -12,9 +12,6 @@ import { parse } from "@babel/parser";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const baselineFile = join(root, "scripts", "tsc-baseline.json");
-// Fora da checagem (manter igual ao "exclude" do tsconfig.check.json):
-// App_HEAD.tsx = cópia antiga do App.tsx em UTF-16, não importada por ninguém.
-const IGNORE = ["src/App_HEAD.tsx"];
 let failed = false;
 
 // ── 1. Sintaxe e nomes repetidos ────────────────────────────────────────────
@@ -23,7 +20,7 @@ const walk = (dir) => {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, e.name);
     if (e.isDirectory()) walk(p);
-    else if (/\.(ts|tsx)$/.test(e.name) && !IGNORE.includes(relative(root, p).replaceAll("\\", "/"))) files.push(p);
+    else if (/\.(ts|tsx)$/.test(e.name)) files.push(p);
   }
 };
 walk(join(root, "src"));

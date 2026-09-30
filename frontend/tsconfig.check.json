@@ -13,7 +13,5 @@
     "noEmit": true,
     "strict": false
   },
-  "include": ["src"],
-  // Cópia antiga do App.tsx em UTF-16, não importada (ver IGNORE em scripts/check.mjs).
-  "exclude": ["src/App_HEAD.tsx"]
+  "include": ["src"]
 }
