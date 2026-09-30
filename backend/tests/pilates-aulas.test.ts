@@ -372,6 +372,14 @@ test("reposição usada impede mudar a presença que a gerou; reposição respei
   const r2 = await call("POST", "/classes/bookings", P.recep, { sessionId: await amanhaAs(14), studentId: a, makeupCreditId: extra[1] });
   assert.equal(r1.statusCode, 201, r1.body);
   assert.equal(code(r2), "MAKEUP_MONTHLY_LIMIT");
+  // Histórico separa as reposições: geradas, usadas e vencidas.
+  await sql`INSERT INTO class_makeup_credits (tenant_id, client_id, enrollment_id, reason, expires_on)
+    VALUES (${P.id}, ${a}, ${e}, 'excused_absence', ${TODAY}::date - 1)`;
+  const hist = ok(await call("GET", `/classes/bookings/history?studentId=${a}`, P.owner));
+  const conta = (ev: string) => hist.filter((h: any) => h.event === ev).length;
+  assert.deepEqual({ geradas: conta("makeup_generated"), usadas: conta("makeup_used"), vencidas: conta("makeup_expired") },
+    { geradas: 5, usadas: 2, vencidas: 1 }, JSON.stringify(hist));
+  assert.ok(hist.every((h: any) => h.type === "credit" ? h.event === "credit" : h.event.startsWith("makeup_")));
 });
 
 // ─── cancelamento pelo aluno ────────────────────────────────────────────────

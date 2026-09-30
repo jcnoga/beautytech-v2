@@ -395,7 +395,8 @@ export async function classesModule(fastify: FastifyInstance) {
     const d = (v: string | null) => (v ? v.split("-").reverse().slice(0, 2).join("/") : "");
     const regra = (src: string | null) => (src === "plan" ? "regra do plano" : src === "studio" ? "regra do studio" : "");
     const junta = (...p: (string | null | false)[]) => p.filter(Boolean).join(" · ");
-    const out: { at: string; date: string; type: string; delta: number; text: string }[] = [];
+    // event separa na tela o que é crédito do pacote e cada fase da reposição (gerada / usada / vencida).
+    const out: { at: string; date: string; type: string; event: string; delta: number; text: string }[] = [];
 
     const bookings = rows(await db.execute(sql`
       SELECT b.kind, b.status, b.credit_consumed, b.effect_reason, b.effect_rule_source, b.effect_at, b.created_at,
@@ -421,7 +422,7 @@ export async function classesModule(fastify: FastifyInstance) {
           text = junta(b.credit_consumed ? `crédito virou reposição · aula de ${aula} cancelada pelo studio` : `crédito devolvido · aula de ${aula} cancelada pelo studio`, src, plano); break;
         default: continue;
       }
-      out.push({ at: new Date(b.effect_at ?? b.created_at).toISOString(), date: b.session_date, type: "credit", delta, text });
+      out.push({ at: new Date(b.effect_at ?? b.created_at).toISOString(), date: b.session_date, type: "credit", event: "credit", delta, text });
     }
 
     const motivo: Record<string, string> = {
@@ -436,10 +437,10 @@ export async function classesModule(fastify: FastifyInstance) {
       LEFT JOIN membership_enrollments e ON e.id = mc.enrollment_id LEFT JOIN membership_plans pl ON pl.id = e.plan_id
       WHERE mc.tenant_id = ${tenantId} AND mc.client_id = ${studentId}`));
     for (const m of makeups) {
-      out.push({ at: new Date(m.created_at).toISOString(), date: m.origin_date, type: "makeup", delta: 1,
+      out.push({ at: new Date(m.created_at).toISOString(), date: m.origin_date, type: "makeup", event: "makeup_generated", delta: 1,
         text: junta(`+1 reposição · ${motivo[m.reason] ?? m.reason}${m.origin_date ? ` em ${d(m.origin_date)}` : ""}`, `válida até ${d(m.expires_on)}`, regra(m.rule_source), m.plan_name) });
-      if (m.status === "used") out.push({ at: new Date(m.used_at).toISOString(), date: m.used_date, type: "makeup", delta: -1, text: junta(`reposição usada na aula de ${d(m.used_date)}`, m.plan_name) });
-      if (m.status === "expired") out.push({ at: new Date(`${m.expires_on}T23:59:59-03:00`).toISOString(), date: m.expires_on, type: "makeup", delta: -1, text: junta(`reposição vencida em ${d(m.expires_on)}`, m.plan_name) });
+      if (m.status === "used") out.push({ at: new Date(m.used_at).toISOString(), date: m.used_date, type: "makeup", event: "makeup_used", delta: -1, text: junta(`reposição usada na aula de ${d(m.used_date)}`, m.plan_name) });
+      if (m.status === "expired") out.push({ at: new Date(`${m.expires_on}T23:59:59-03:00`).toISOString(), date: m.expires_on, type: "makeup", event: "makeup_expired", delta: -1, text: junta(`reposição vencida em ${d(m.expires_on)}`, m.plan_name) });
     }
     out.sort((a, b) => b.at.localeCompare(a.at));
     return reply.send({ success: true, data: out });

@@ -1,5 +1,6 @@
 // Aulas em turma: Alunos (reaproveita o cadastro de clientes + ficha do aluno) e suas matrículas.
 // Matrícula por frequência ativa mostra os horários fixos (EnrollmentSlots).
+// Seção Histórico: créditos e reposições do aluno (StudentHistory).
 // API: /class-students, /memberships/enrollments, /memberships/plans, /class-instructors, /consent-forms (C8), /classes/slots.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -8,6 +9,7 @@ import {
   PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Section, Grid, Notice, Empty,
 } from "./ui";
 import EnrollmentSlots from "./EnrollmentSlots";
+import StudentHistory from "./StudentHistory";
 
 const EMPTY = {
   fullName: "", phone: "", whatsapp: "", email: "", birthDate: "",
@@ -260,6 +262,9 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
                 {plans.length === 0 && <Notice C={C} kind="info">Cadastre um plano em “Planos” para matricular.</Notice>}
                 <Button {...t} variant="secondary" onClick={addEnrollment} disabled={!enroll.planId}>Matricular</Button>
               </div>
+            </Section>
+            <Section C={C} title="Histórico">
+              <StudentHistory {...t} studentId={editing.id} />
             </Section>
             <Section C={C} title="Termo LGPD">
               {consent?.is_signed
