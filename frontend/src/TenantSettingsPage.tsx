@@ -113,7 +113,7 @@ export default function TenantSettingsPage() {
       const updated = await api.get<any>("/auth/me");
       const t = updated.data ?? updated;
       setForm((p: any) => ({ ...p, primaryColor: t.primaryColor ?? p.primaryColor, name: t.name ?? p.name }));
-    } catch(e) { console.error(e); }
+    } catch(e: any) { console.error(e); alert("Erro ao salvar: " + (e?.message ?? "tente novamente.")); }
     finally { setSaving(false); }
   };
 
@@ -127,8 +127,8 @@ export default function TenantSettingsPage() {
     try {
       const url = await uploadImage(file, field);
       setForm((p: any) => ({ ...p, [field === "logo" ? "logoUrl" : "coverUrl"]: url }));
-    } catch(err) { console.error(err); }
-    finally { setUploading(false); }
+    } catch(err: any) { console.error(err); alert("Erro ao enviar a imagem: " + (err?.message ?? "tente novamente.")); }
+    finally { setUploading(false); e.target.value = ""; } // value = "": permite escolher o mesmo arquivo de novo
   };
 
   const TABS = [
