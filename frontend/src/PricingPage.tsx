@@ -145,7 +145,7 @@ export default function PricingPage({ currentPlan, setPage }: { token?: string; 
       const data = await res.json();
       if (data.success) {
         setMsg({ type: "ok", text: "Assinatura cancelada. Acesso mantido ate o fim do periodo." });
-        const s = await fetch(`${API}/billing/status`, { headers: { Authorization: `Bearer ${activeToken}` } }).then(r => r.json());
+        const s = await fetch(`${API}/billing/status`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
         if (s.success) setStatus(s.data);
       } else {
         setMsg({ type: "err", text: data.error ?? "Erro ao cancelar." });
