@@ -1587,7 +1587,7 @@ function ProfessionalsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598" });
+  const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" });
  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
 
   const exportXLSX = () => {
@@ -1657,7 +1657,7 @@ function ProfessionalsPage() {
       }
       setShowForm(false);
       setEditingId(null);
-      setForm({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598" });
+      setForm({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" });
     } catch(e: any) {
       alert("Erro: " + e.message);
     } finally { setSaving(false); }
@@ -1672,7 +1672,7 @@ function ProfessionalsPage() {
       monthlyGoal: p.monthlyGoal ?? "",
       color: p.color ?? "#E8A598",
       avatarUrl: p.avatarUrl ?? "",
-    } as any);
+    });
     setShowForm(true);
   };
   if (loading) return (
@@ -3881,7 +3881,7 @@ function UpgradeButton({ color, onPaymentSuccess, setPage }: any) {
 }
 
 // --- TRIAL BANNER --------------------------------------------
-function TrialBanner() {
+function TrialBanner({ setPage }: any) {
   const [info, setInfo] = useState<any>(null);
   useEffect(() => {
     const loadPlan = () => api.get<any>("/plan-info").then((r: any) => setInfo(r.data)).catch(() => setTimeout(loadPlan, 3000));
@@ -3912,7 +3912,7 @@ function TrialBanner() {
         <div style={{ width:100, height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(days/15)*100))}%`, background:color, borderRadius:3 }} />
         </div>
-        <UpgradeButton color={color} onPaymentSuccess={() => setCurrentPage('payment_success')} setPage={setPage} />
+        <UpgradeButton color={color} setPage={setPage} />
       </div>
     </div>
   );
@@ -4151,7 +4151,7 @@ const logout = async () => {
       `}</style>
       <Sidebar page={page} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft: isMobile ? 0 : 220, padding: isMobile ? "70px 16px 16px" : 36, minHeight:"100vh", background: C.bg }}>
-        <TrialBanner />
+        <TrialBanner setPage={setPage} />
         <PageComponent />
       </main>
     </>
