@@ -4,7 +4,17 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { type Theme, WEEKDAYS, PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Section, Grid, Notice, Empty } from "./ui";
 
-const EMPTY = { fullName: "", phone: "", whatsapp: "", email: "", specialties: "", professionalRegistration: "", commissionPct: "0", isActive: true, bio: "" };
+const EMPTY = { fullName: "", phone: "", whatsapp: "", email: "", specialties: "", professionalRegistration: "", commissionPct: "0", isActive: true, bio: "", avatarUrl: "" };
+
+/** Foto redonda do instrutor; sem foto, a inicial do nome. */
+function Avatar({ C, url, name, size }: { C: any; url?: string; name?: string; size: number }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, overflow: "hidden", background: `${C.gold}20`, border: `1px solid ${C.gold}40`,
+      display: "flex", alignItems: "center", justifyContent: "center", color: C.gold, fontWeight: 700, fontSize: size * 0.4 }}>
+      {url ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (name?.trim()?.[0] ?? "?").toUpperCase()}
+    </div>
+  );
+}
 const DEFAULT_DAYS = WEEKDAYS.map((_, d) => ({ dayOfWeek: d, isWorking: d >= 1 && d <= 5, startTime: "07:00", endTime: "12:00" }));
 
 export default function ClassInstructorsPage({ C, FD, FB }: Theme) {
@@ -18,6 +28,7 @@ export default function ClassInstructorsPage({ C, FD, FB }: Theme) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [savedDays, setSavedDays] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const load = async () => {
     setLoading(true); setError("");
@@ -41,6 +52,18 @@ export default function ClassInstructorsPage({ C, FD, FB }: Theme) {
     }
   };
   const set = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
+
+  // A foto vai para a VPS na hora (POST /uploads); a URL só é gravada no instrutor ao salvar.
+  const uploadPhoto = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setFormError("");
+    try {
+      const url = await api.upload(file, "professional");
+      setForm((f: any) => ({ ...f, avatarUrl: url }));
+    } catch (err: any) { setFormError("Erro ao enviar a foto: " + (err?.message ?? "tente novamente.")); }
+    finally { setUploading(false); e.target.value = ""; } // value = "": permite escolher o mesmo arquivo de novo
+  };
 
   const save = async () => {
     if (!form.fullName.trim()) { setFormError("Informe o nome do instrutor."); return; }
@@ -72,8 +95,9 @@ export default function ClassInstructorsPage({ C, FD, FB }: Theme) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
           {list.map((i) => (
             <Card key={i.id} C={C} onClick={() => open(i)} style={{ opacity: i.isActive ? 1 : 0.6 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <div style={{ fontWeight: 700, color: C.text, fontSize: 15 }}>{i.fullName}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Avatar C={C} url={i.avatarUrl} name={i.fullName} size={40} />
+                <div style={{ flex: 1, minWidth: 0, fontWeight: 700, color: C.text, fontSize: 15 }}>{i.fullName}</div>
                 <Badge label={i.isActive ? "Ativo" : "Inativo"} color={i.isActive ? C.sage : C.textMuted} />
               </div>
               {i.professionalRegistration && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>{i.professionalRegistration}</div>}
@@ -86,6 +110,19 @@ export default function ClassInstructorsPage({ C, FD, FB }: Theme) {
 
       <Modal {...t} open={editing !== null} onClose={() => setEditing(null)} title={editing?.id ? `Instrutor: ${editing.fullName}` : "Novo instrutor"}>
         {formError && <Notice C={C}>{formError}</Notice>}
+        {/* div, não <Field>: Field é um <label> e não pode conter outro label nem o botão Remover */}
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: C.textSec, marginBottom: 6 }}>Foto</span>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14 }}>
+            <Avatar C={C} url={form.avatarUrl} name={form.fullName} size={64} />
+            <label style={{ display: "inline-block", padding: "8px 14px", background: `${C.gold}20`, border: `1px solid ${C.gold}40`, borderRadius: 8, color: C.gold, fontSize: 13, fontWeight: 600, cursor: uploading ? "wait" : "pointer", fontFamily: FB }}>
+              {uploading ? "Enviando..." : form.avatarUrl ? "📁 Trocar foto" : "📁 Escolher foto"}
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={uploadPhoto} disabled={uploading} style={{ display: "none" }} />
+            </label>
+            {form.avatarUrl && !uploading && <Button {...t} variant="secondary" small onClick={() => setForm((f: any) => ({ ...f, avatarUrl: "" }))}>Remover</Button>}
+          </div>
+          <span style={{ display: "block", fontSize: 12, fontWeight: 400, color: C.textSec, marginTop: 4 }}>JPG, PNG ou WEBP, até 5 MB</span>
+        </div>
         <Field C={C} label="Nome completo"><input value={form.fullName} onChange={set("fullName")} style={inp} autoFocus /></Field>
         <Grid>
           <Field C={C} label="WhatsApp"><input value={form.whatsapp} onChange={set("whatsapp")} style={inp} inputMode="tel" /></Field>

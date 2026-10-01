@@ -52,6 +52,7 @@ export const instructorCreateDto = z.object({
   whatsapp:                 nul(str(20)),
   email:                    nul(z.string().trim().email().max(255)),
   bio:                      nul(str(2000)),
+  avatarUrl:                nul(str(1000)), // URL devolvida por POST /uploads?kind=professional
   specialties:              opt(z.array(str(100)).max(20)),
   professionalRegistration: nul(str(40)),
   commissionPct:            opt(z.coerce.number().finite().min(0).max(100).transform((n) => n.toFixed(2))),

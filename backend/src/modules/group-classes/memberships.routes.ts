@@ -194,6 +194,7 @@ export async function membershipsModule(fastify: FastifyInstance) {
     whatsapp: professionals.whatsapp,
     email: professionals.email,
     bio: professionals.bio,
+    avatarUrl: professionals.avatarUrl,
     specialties: professionals.specialties,
     professionalRegistration: professionals.professionalRegistration,
     commissionPct: professionals.commissionPct,

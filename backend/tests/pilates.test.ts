@@ -83,9 +83,12 @@ test("instrutores: cadastro com registro profissional, edição e horários", as
   assert.equal(row.tenant_id, A.id, "tenantId do corpo é ignorado");
   instB = data(await call("POST", "/class-instructors", B.token, { fullName: "Rafael" })).id;
 
-  const upd = await call("PATCH", `/class-instructors/${instA}`, A.token, { phone: "34999990000", isActive: true });
+  const upd = await call("PATCH", `/class-instructors/${instA}`, A.token, { phone: "34999990000", isActive: true, avatarUrl: "/uploads/x/professional-1.jpg" });
   assert.equal(upd.statusCode, 200);
   assert.equal(data(upd).phone, "34999990000");
+  assert.equal(data(upd).avatarUrl, "/uploads/x/professional-1.jpg");
+  const semFoto = await call("PATCH", `/class-instructors/${instA}`, A.token, { avatarUrl: "" });
+  assert.equal(data(semFoto).avatarUrl, null, "foto removida vira null");
 
   const put = await call("PUT", `/class-instructors/${instA}/schedules`, A.token, [
     { dayOfWeek: 1, isWorking: true, startTime: "07:00", endTime: "12:00" },
