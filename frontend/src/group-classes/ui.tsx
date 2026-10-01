@@ -82,16 +82,16 @@ export function Button({ C, FB, children, onClick, variant = "primary", small, d
 export function Field({ C, label, children, hint }: { C: any; label: string; children: ReactNode; hint?: string }) {
   return (
     <label style={{ display: "block", marginBottom: 12 }}>
-      <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: C.textSec, marginBottom: 6 }}>{label}</span>
+      <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: C.textSec, marginBottom: 6 }}>{label}</span>
       {children}
-      {hint && <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginTop: 4 }}>{hint}</span>}
+      {hint && <span style={{ display: "block", fontSize: 12, fontWeight: 400, color: C.textSec, marginTop: 4 }}>{hint}</span>}
     </label>
   );
 }
 
 export const inputStyle = (C: any, FB: string): CSSProperties => ({
   width: "100%", padding: "10px 12px", minHeight: 42, borderRadius: 10, border: `1px solid ${C.border}`,
-  background: C.surface, color: C.text, fontSize: 14, fontFamily: FB, boxSizing: "border-box",
+  background: C.surface, color: C.text, fontSize: 14, fontWeight: 400, fontFamily: FB, boxSizing: "border-box",
 });
 
 export function Badge({ label, color }: { label: string; color: string }) {
