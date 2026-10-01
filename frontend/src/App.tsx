@@ -158,7 +158,7 @@ function Inp({ label, value, onChange, type="text", placeholder, required, grid 
   const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
   return (
     <div style={{ marginBottom:14, gridColumn: grid }}>
-      {label && <label style={{ fontSize:11, fontWeight:700, color: C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" }}>{label}{required&&" *"}</label>}
+      {label && <label style={{ fontSize:13, fontWeight:800, color: C.textSec, display:"block", marginBottom:6 }}>{label}{required&&" *"}</label>}
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} style={s} />
     </div>
   );
@@ -168,7 +168,7 @@ function Sel({ label, value, onChange, options, grid }: any) {
   const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
   return (
     <div style={{ marginBottom:14, gridColumn: grid }}>
-      {label && <label style={{ fontSize:11, fontWeight:700, color: C.textSec, display:"block", marginBottom:6, letterSpacing:"0.05em", textTransform:"uppercase" }}>{label}</label>}
+      {label && <label style={{ fontSize:13, fontWeight:800, color: C.textSec, display:"block", marginBottom:6 }}>{label}</label>}
       <select value={value} onChange={e => onChange(e.target.value)} style={s}>
         {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -1738,7 +1738,7 @@ function ProfessionalsPage() {
           </label>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
-          <Inp label="Nome completo *" value={form.fullName} onChange={f("fullName")} placeholder="Marina Santos" required grid="1/-1" />
+          <Inp label="Nome completo" value={form.fullName} onChange={f("fullName")} placeholder="Marina Santos" required grid="1/-1" />
           <Inp label="WhatsApp" value={form.whatsapp} onChange={f("whatsapp")} placeholder="(34) 99999-0000" />
           <Inp label="E-mail" value={form.email} onChange={f("email")} type="email" placeholder="marina@salao.com" />
           <Inp label="Comissao %" value={form.commissionPct} onChange={f("commissionPct")} type="number" placeholder="50" />
