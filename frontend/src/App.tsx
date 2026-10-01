@@ -164,20 +164,20 @@ function Modal({ open, onClose, title, children, width = 540 }: any) {
 }
 
 function Inp({ label, value, onChange, type="text", placeholder, required, grid }: any) {
-  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
+  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, fontWeight:400, outline:"none", boxSizing:"border-box", fontFamily: FB };
   return (
     <div style={{ marginBottom:14, gridColumn: grid }}>
-      {label && <label style={{ fontSize:13, fontWeight:800, color: C.textSec, display:"block", marginBottom:6 }}>{label}{required&&" *"}</label>}
+      {label && <label style={{ fontSize:14, fontWeight:700, color: C.textSec, display:"block", marginBottom:6 }}>{label}{required&&" *"}</label>}
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} style={s} />
     </div>
   );
 }
 
 function Sel({ label, value, onChange, options, grid }: any) {
-  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, outline:"none", boxSizing:"border-box", fontFamily: FB };
+  const s: any = { width:"100%", padding:"10px 14px", background: C.surface, border:`1px solid ${C.border}`, borderRadius:10, color: C.text, fontSize:13, fontWeight:400, outline:"none", boxSizing:"border-box", fontFamily: FB };
   return (
     <div style={{ marginBottom:14, gridColumn: grid }}>
-      {label && <label style={{ fontSize:13, fontWeight:800, color: C.textSec, display:"block", marginBottom:6 }}>{label}</label>}
+      {label && <label style={{ fontSize:14, fontWeight:700, color: C.textSec, display:"block", marginBottom:6 }}>{label}</label>}
       <select value={value} onChange={e => onChange(e.target.value)} style={s}>
         {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
