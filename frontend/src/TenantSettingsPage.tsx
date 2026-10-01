@@ -119,7 +119,7 @@ export default function TenantSettingsPage() {
       const updated = await api.get<any>("/auth/me");
       const t = updated.data ?? updated;
       setForm((p: any) => ({ ...p, primaryColor: t.primaryColor ?? p.primaryColor, name: t.name ?? p.name }));
-    } catch(e) { console.error(e); }
+    } catch(e: any) { console.error(e); alert("Erro ao salvar: " + (e?.message ?? "tente novamente.")); }
     finally { setSaving(false); }
   };
 
@@ -133,8 +133,8 @@ export default function TenantSettingsPage() {
     try {
       const url = await uploadImage(file, field);
       setForm((p: any) => ({ ...p, [field === "logo" ? "logoUrl" : "coverUrl"]: url }));
-    } catch(err) { console.error(err); }
-    finally { setUploading(false); }
+    } catch(err: any) { console.error(err); alert("Erro ao enviar a imagem: " + (err?.message ?? "tente novamente.")); }
+    finally { setUploading(false); e.target.value = ""; } // value = "": permite escolher o mesmo arquivo de novo
   };
 
   const TABS = [
@@ -146,6 +146,27 @@ export default function TenantSettingsPage() {
     { id:"rules",    label:"Regras das aulas" },
   ].filter(tab => !(isPilates && tab.id === "landing")) // página pública do studio: fase futura (C12)
    .filter(tab => tab.id !== "rules" || (can("class_settings") && canManage)); // Aulas em turma: só dono/gerente
+
+  // Logo: na aba Landing Page; no Pilates (sem Landing Page até a C12) fica na aba Identidade.
+  const logoBlock = (
+    <div style={{ marginBottom:24 }}>
+      <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Logo do estabelecimento</label>
+      <div style={{ display:"flex", alignItems:"center", gap:20, marginBottom:12 }}>
+        {form.logoUrl
+          ? <img src={form.logoUrl} alt="Logo" style={{ width:80, height:80, borderRadius:"50%", objectFit:"cover", border:`2px solid ${C.gold}` }} />
+          : <div style={{ width:80, height:80, borderRadius:"50%", background:`${C.gold}20`, border:`2px dashed ${C.gold}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28 }}>{isPilates ? "🧘" : "✂"}</div>
+        }
+        <div>
+          <label style={{ display:"inline-block", padding:"10px 20px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:10, color:C.gold, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB }}>
+            {uploading ? "Enviando..." : "📁 Escolher Logo"}
+            <input type="file" accept="image/*" onChange={e => handleUpload(e, "logo")} style={{ display:"none" }} />
+          </label>
+          <div style={{ fontSize:11, color:C.textMuted, marginTop:6 }}>PNG, JPG ou SVG · Recomendado: 200x200px</div>
+        </div>
+      </div>
+      <Inp label="Ou cole a URL da logo" value={form.logoUrl} onChange={f("logoUrl")} placeholder="https://..." />
+    </div>
+  );
 
   if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:400, color:C.textMuted, fontFamily:FB }}>Carregando...</div>;
 
@@ -170,6 +191,7 @@ export default function TenantSettingsPage() {
         {activeTab === "identity" && (
           <div>
             <Inp label="Nome do estabelecimento" value={form.name} onChange={f("name")} placeholder={isPilates ? "Ex: Studio Equilíbrio Pilates" : "Ex: Salão Beleza Total"} />
+            {isPilates && logoBlock}
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Cor principal</label>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -222,23 +244,7 @@ export default function TenantSettingsPage() {
 
         {activeTab === "landing" && (
           <div>
-            <div style={{ marginBottom:24 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Logo do estabelecimento</label>
-              <div style={{ display:"flex", alignItems:"center", gap:20, marginBottom:12 }}>
-                {form.logoUrl
-                  ? <img src={form.logoUrl} alt="Logo" style={{ width:80, height:80, borderRadius:"50%", objectFit:"cover", border:`2px solid ${C.gold}` }} />
-                  : <div style={{ width:80, height:80, borderRadius:"50%", background:`${C.gold}20`, border:`2px dashed ${C.gold}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28 }}>✂</div>
-                }
-                <div>
-                  <label style={{ display:"inline-block", padding:"10px 20px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:10, color:C.gold, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB }}>
-                    {uploading ? "Enviando..." : "📁 Escolher Logo"}
-                    <input type="file" accept="image/*" onChange={e => handleUpload(e, "logo")} style={{ display:"none" }} />
-                  </label>
-                  <div style={{ fontSize:11, color:C.textMuted, marginTop:6 }}>PNG, JPG ou SVG · Recomendado: 200x200px</div>
-                </div>
-              </div>
-              <Inp label="Ou cole a URL da logo" value={form.logoUrl} onChange={f("logoUrl")} placeholder="https://..." />
-            </div>
+            {logoBlock}
 
             <div style={{ marginBottom:24 }}>
               <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Foto de capa</label>
