@@ -129,6 +129,19 @@ test("POST /packages: cliente de outro tenant", async () => {
   const base = { name: "P", totalSessions: 5, totalValue: 100 };
   await isolated("POST", "/packages", { ...base, clientId: B.client }, { ...base, clientId: A.client });
 });
+test("POST /packages/:id/use-session: desconta, conclui no fim e não passa do total nem de tenant", async () => {
+  const pkg = await one(sql`INSERT INTO packages (tenant_id, client_id, name, total_sessions, used_sessions, remaining_sessions, total_value)
+    VALUES (${A.id}, ${A.client}, 'Pacote 2x', 2, 0, 2, 100) RETURNING id`);
+  const outro = await call("POST", `/packages/${pkg.id}/use-session`, undefined, B.token);
+  assert.equal(outro.statusCode, 400, `pacote de outro tenant: ${outro.statusCode} ${outro.body}`);
+  const r1 = await call("POST", `/packages/${pkg.id}/use-session`);
+  assert.equal(r1.statusCode, 200, r1.body);
+  assert.deepEqual([r1.json().data.usedSessions, r1.json().data.remainingSessions, r1.json().data.status], [1, 1, "active"]);
+  const r2 = await call("POST", `/packages/${pkg.id}/use-session`);
+  assert.deepEqual([r2.json().data.usedSessions, r2.json().data.remainingSessions, r2.json().data.status], [2, 0, "completed"]);
+  const r3 = await call("POST", `/packages/${pkg.id}/use-session`);
+  assert.equal(r3.statusCode, 400, r3.body);
+});
 test("POST /financial: cliente, profissional e agendamento de outro tenant", async () => {
   const base = { accountId: A.account, type: "revenue", description: "V", amount: "10", dueDate: "2026-10-01" };
   await isolated("POST", "/financial", { ...base, clientId: B.client }, { ...base, clientId: A.client });

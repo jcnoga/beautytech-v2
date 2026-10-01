@@ -568,6 +568,19 @@ export async function packagesModule(fastify: FastifyInstance) {
     if (!pkg || pkg.remainingSessions <= 0) {
       return reply.status(400).send({ success: false, error: "Pacote sem sessoes disponiveis" });
     }
+    // Desconta no próprio UPDATE (com a trava remaining > 0): dois cliques seguidos não passam do total.
+    const [updated] = await db.update(packages)
+      .set({
+        usedSessions:      sql`${packages.usedSessions} + 1`,
+        remainingSessions: sql`${packages.remainingSessions} - 1`,
+        status:            sql`CASE WHEN ${packages.remainingSessions} - 1 <= 0 THEN 'completed'::package_status ELSE ${packages.status} END`,
+        updatedBy:         userId,
+        updatedAt:         new Date(),
+      })
+      .where(and(eq(packages.id, pkg.id), eq(packages.tenantId, tenantId), sql`${packages.remainingSessions} > 0`))
+      .returning();
+    if (!updated) return reply.status(400).send({ success: false, error: "Pacote sem sessoes disponiveis" });
+    return reply.send({ success: true, data: updated });
   });
 }
 
