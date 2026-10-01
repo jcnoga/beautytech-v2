@@ -73,7 +73,7 @@ Atualizado em 01/10/2026 (3 bugs de produção corrigidos). Colar no início da 
    - Busca pública (`/buscar`, `DiscoveryPage.tsx`): não há filtro nem rótulo/ícone para Pilates (o studio aparece como "pilates" com ícone de casa). Encaixa na Fase 5 (página pública).
 5. **Observações:**
    - `PricingPage` lê o token uma vez só, ao abrir; se a sessão expirar com a página aberta, o cancelamento falha.
-   - Ambiente local: ninguém serve `/uploads` (na VPS é o nginx do `zensalon-web`); a foto/logo enviada é gravada, mas aparece quebrada (404) no localhost. No teste de 01/10 foi contornado com um config temporário do Vite.
+   - Ambiente local: desde 01/10 o Vite (`dev-local/web.sh`) serve `dev-local/uploads` em `/uploads` (na VPS é o nginx do `zensalon-web`). Senhas dos logins de teste: `sh dev-local/trocar-senhas.sh`.
    - Pagar no ambiente local dá "Internal Server Error": o Asaas local aponta para `http://127.0.0.1:9` de propósito.
 
 ### Ambiente local
