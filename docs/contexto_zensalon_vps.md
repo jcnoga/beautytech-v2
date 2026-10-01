@@ -1,6 +1,11 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 30/09/2026 (fim da sessão, Fase 3b aprovada). Colar no início da próxima conversa.
+Atualizado em 01/10/2026 (3 bugs de produção corrigidos). Colar no início da próxima conversa.
+
+## 01/10 — 3 bugs de produção corrigidos
+- Commit `0b0735f` no `vps` (upgrade da faixa do teste grátis, cancelamento de assinatura, foto do profissional), trazido para o `ramo-pilates` por cherry-pick (`c8bc19a`). Testado pelo usuário no ambiente local: OK.
+- Base do tsc no `ramo-pilates`: **17 → 12**. No `vps` (sem `npm run check`), o tsc caiu de 16 para 11.
+- Deploy na VPS: ver "Atualizar" em `deploy/README.md` (só o `zensalon-web` mudou).
 
 ## ONDE PARAMOS (30/09, fim do dia)
 - **Fase 3b aprovada pelo usuário** (Agenda de aulas, Aulas de hoje e Histórico testados no navegador: OK).
@@ -45,7 +50,7 @@ Atualizado em 30/09/2026 (fim da sessão, Fase 3b aprovada). Colar no início da
 
 ### Rotina de todo commit (desde 30/09)
 1. `sh backend/scripts/test-db.sh` — **85 testes** passando.
-2. `npm run check` (em `frontend/`) — analisa todo `src` com o mesmo parser do `vite dev` (Babel: sintaxe e nome repetido) + `tsc --noEmit` contra uma base de erros antigos. **Base hoje: 17 erros** (`frontend/scripts/tsc-baseline.json`); o check falha se aumentar. Se cair: `npm run check -- --update-baseline`.
+2. `npm run check` (em `frontend/`) — analisa todo `src` com o mesmo parser do `vite dev` (Babel: sintaxe e nome repetido) + `tsc --noEmit` contra uma base de erros antigos. **Base hoje: 12 erros** (era 17 até 01/10) (`frontend/scripts/tsc-baseline.json`); o check falha se aumentar. Se cair: `npm run check -- --update-baseline`.
 3. `npm run build`.
 - Motivo: o `vite build` (esbuild + Rollup) aceitou calado um nome repetido que quebrava o `vite dev`.
 - Um commit por tela; push só no `ramo-pilates`; parar a cada 2 telas para o usuário testar.
@@ -58,11 +63,18 @@ Atualizado em 30/09/2026 (fim da sessão, Fase 3b aprovada). Colar no início da
    |---|---|---|---|
    | `App.tsx` 1602–1640 | Profissionais (`ProfessionalsPage`) | `exportXLSX`/`exportPDF` usam `filtered` e `summary`, que não existem ali (cópia do Financeiro) | Nenhum botão chama essas funções: código morto |
    | `App.tsx` 2375–2410 | CRM (`CRMPage`) | Mesma cópia com `filtered`/`summary` | Também sem botão: código morto |
-   | `App.tsx:1733` | Profissionais, formulário | `form.avatarUrl` não está no estado do formulário | Foto do profissional nunca aparece no formulário (sempre o emoji) |
-   | `App.tsx:3967` | Faixa do teste grátis (`TrialBanner`) | `setCurrentPage` e `setPage` não existem nesse componente | Ao concluir o pagamento pelo botão de upgrade da faixa: **erro na tela** (ReferenceError) |
-   | `PricingPage.tsx:148` | Planos, "Cancelar assinatura" (`handleCancel`) | `activeToken` não existe | Ao cancelar: **erro**, não recarrega o status |
+   | ~~`App.tsx:1733`~~ | Profissionais, formulário | `form.avatarUrl` não está no estado do formulário | **Corrigido em 01/10** (`0b0735f` / `c8bc19a`) |
+   | ~~`App.tsx:3967`~~ | Faixa do teste grátis (`TrialBanner`) | `setCurrentPage` e `setPage` não existem nesse componente | **Corrigido em 01/10**: Upgrade abre Planos |
+   | ~~`PricingPage.tsx:148`~~ | Planos, "Cancelar assinatura" (`handleCancel`) | `activeToken` não existe | **Corrigido em 01/10** |
    | `App.tsx:455` | Login, botão "Cadastre seu salão" | `background` repetido no mesmo estilo | Só visual: vale o último |
    | `group-classes/StudentsPage.tsx:102` | Alunos, termo LGPD | `.data` em `unknown` | Só tipo; funciona |
+4. **Corrigir antes do primeiro cliente:**
+   - "+ Nova Profissional" depois de Editar → Cancelar abre com os dados (e agora a foto) do profissional anterior (o Cancelar do modal não limpa o formulário).
+   - Busca pública (`/buscar`, `DiscoveryPage.tsx`): não há filtro nem rótulo/ícone para Pilates (o studio aparece como "pilates" com ícone de casa). Encaixa na Fase 5 (página pública).
+5. **Observações:**
+   - `PricingPage` lê o token uma vez só, ao abrir; se a sessão expirar com a página aberta, o cancelamento falha.
+   - Ambiente local: ninguém serve `/uploads` (na VPS é o nginx do `zensalon-web`); a foto/logo enviada é gravada, mas aparece quebrada (404) no localhost. No teste de 01/10 foi contornado com um config temporário do Vite.
+   - Pagar no ambiente local dá "Internal Server Error": o Asaas local aponta para `http://127.0.0.1:9` de propósito.
 
 ### Ambiente local
 - Docker Desktop; `sh dev-local/start.sh` (Postgres na porta 55433 + GoTrue na 9998 + migrations). Backend e frontend: configurações `zensalon-api-local` (porta 3301) e `zensalon-web-local` (http://localhost:5273/app) em `.claude/launch.json` (ou `sh dev-local/api.sh` / `sh dev-local/web.sh`).
