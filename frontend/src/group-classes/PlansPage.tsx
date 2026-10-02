@@ -4,13 +4,29 @@
 // API: /memberships/plans, /classes/modalities e /classes/settings (padrões exibidos).
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import { type Theme, brl, PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Grid, Notice, Empty } from "./ui";
+import { type Theme, brl, PageHeader, Button, Field, CheckField, inputStyle, Badge, Card, Modal, Grid, Notice, Empty } from "./ui";
 import PlanRulesSection, { PLAN_RULE_KEYS } from "./PlanRulesSection";
 import { humanizeRuleError } from "./ruleFields";
 
 const EMPTY = { name: "", description: "", kind: "frequency", price: "", classesPerWeek: "2", durationMonths: "1",
   totalClasses: "10", validityDays: "60", modalityId: "", isTrial: false, status: "active" };
 const DURATIONS: Record<string, string> = { "1": "Mensal", "3": "Trimestral", "6": "Semestral", "12": "Anual" };
+
+// Textos do "?" de cada campo (só explicação; as regras continuam no backend).
+const HELP = {
+  kind: <>Escolha como o aluno paga e usa as aulas.<br /><b>Por frequência (mensalidade):</b> o aluno tem dias e horários fixos toda semana (ex.: segunda e quarta às 8h) e paga por mês. É o plano mais comum.<br /><b>Pacote de aulas:</b> o aluno compra uma quantidade de aulas (ex.: 10) e marca cada uma quando quiser, até a validade acabar. Bom para quem não tem horário fixo, aula avulsa ou experimental.</>,
+  name: <>Como o plano aparece para você e na ficha do aluno. Use um nome que já diga o que é, ex.: "Pilates 2x por semana" ou "Pacote de 10 aulas".</>,
+  priceFrequency: <>Valor cobrado por <b>mês</b> neste plano, ex.: 250,00. Pode ser ajustado na hora de matricular um aluno (desconto, por exemplo). Deixe 0 se não houver cobrança.</>,
+  pricePackage: <>Valor do pacote <b>inteiro</b>, ex.: 10 aulas por 500,00. Pode ser ajustado na hora de matricular. Para aula experimental gratuita, deixe 0.</>,
+  modality: <>Para qual tipo de aula o plano é vendido (ex.: Pilates Solo, Aparelhos). Serve para organizar e identificar o plano. Hoje é informativo: o sistema não impede o aluno de usar o plano em aula de outra modalidade. "Qualquer" = vale para todas.</>,
+  classesPerWeek: <>Quantas aulas por semana o aluno tem direito. É o número de horários fixos que ele pode ter na matrícula, ex.: 2x por semana = segunda e quarta. O sistema não deixa cadastrar mais horários fixos do que isso.</>,
+  duration: <>Por quanto tempo a matrícula vale, contando da data de início. Mensal = 1 mês, trimestral = 3, semestral = 6, anual = 12. A data final aparece na matrícula do aluno; para continuar depois dela, faça uma nova matrícula.</>,
+  totalClasses: <>Quantas aulas o aluno recebe no pacote, ex.: 10. Quando você inscreve o aluno numa aula, 1 aula fica reservada; com a presença lançada, ela é descontada. Faltas e cancelamentos seguem as Regras do studio (podem ou não descontar).</>,
+  validityDays: <>Quantos dias o aluno tem para usar as aulas, contando da data de início da matrícula. Ex.: 60 dias. Depois disso, o sistema não deixa inscrever o aluno em aulas com esse pacote: as aulas que sobraram vencem.</>,
+  description: <>Texto livre para você ou a recepção lembrarem detalhes do plano, ex.: "inclui avaliação postural" ou "válido só de manhã". Não muda nenhuma regra do sistema.</>,
+  isTrial: <>Marque se este pacote é a <b>aula experimental</b>, aquela primeira aula para conhecer o studio (normalmente 1 aula, grátis ou com valor simbólico). Assim ela aparece identificada como "Experimental" nos planos e nas matrículas.</>,
+  status: <>Desmarque para parar de vender este plano. Ele some da lista de novas matrículas, mas os alunos que já estão nele continuam normalmente até o fim.</>,
+};
 
 export function describePlan(p: any) {
   if (p.kind === "frequency") return `${p.classesPerWeek}x por semana · ${DURATIONS[String(p.durationMonths)] ?? `${p.durationMonths} meses`}`;
@@ -115,49 +131,45 @@ export default function MembershipsPage({ C, FD, FB }: Theme) {
 
       <Modal {...t} open={editing !== null} onClose={() => setEditing(null)} title={editing?.id ? `Plano: ${editing.name}` : "Novo plano"}>
         {formError && <Notice C={C}>{formError}</Notice>}
-        <Field C={C} label="Tipo de plano">
+        <Field C={C} label="Tipo de plano" help={HELP.kind}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {[["frequency", "Por frequência (mensalidade)"], ["package", "Pacote de aulas"]].map(([v, l]) => (
               <Button key={v} {...t} small variant={form.kind === v ? "primary" : "secondary"} onClick={() => setForm((f: any) => ({ ...f, kind: v }))}>{l}</Button>
             ))}
           </div>
         </Field>
-        <Field C={C} label="Nome"><input value={form.name} onChange={set("name")} style={inp} placeholder={form.kind === "frequency" ? "Ex.: Pilates 2x por semana" : "Ex.: Pacote de 10 aulas"} /></Field>
+        <Field C={C} label="Nome" help={HELP.name}><input value={form.name} onChange={set("name")} style={inp} placeholder={form.kind === "frequency" ? "Ex.: Pilates 2x por semana" : "Ex.: Pacote de 10 aulas"} /></Field>
         <Grid>
-          <Field C={C} label="Preço (R$)"><input type="number" min={0} step="0.01" value={form.price} onChange={set("price")} style={inp} /></Field>
-          <Field C={C} label="Modalidade">
+          <Field C={C} label="Preço (R$)" help={form.kind === "frequency" ? HELP.priceFrequency : HELP.pricePackage}><input type="number" min={0} step="0.01" value={form.price} onChange={set("price")} style={inp} /></Field>
+          <Field C={C} label="Modalidade" help={HELP.modality}>
             <select value={form.modalityId} onChange={set("modalityId")} style={inp}>
               <option value="">— qualquer —</option>
               {modalities.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </Field>
           {form.kind === "frequency" ? (<>
-            <Field C={C} label="Aulas por semana">
+            <Field C={C} label="Aulas por semana" help={HELP.classesPerWeek}>
               <select value={form.classesPerWeek} onChange={set("classesPerWeek")} style={inp}>
                 {[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>{n}x por semana</option>)}
               </select>
             </Field>
-            <Field C={C} label="Vigência">
+            <Field C={C} label="Vigência" help={HELP.duration}>
               <select value={form.durationMonths} onChange={set("durationMonths")} style={inp}>
                 {Object.entries(DURATIONS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </Field>
           </>) : (<>
-            <Field C={C} label="Quantidade de aulas"><input type="number" min={1} value={form.totalClasses} onChange={set("totalClasses")} style={inp} /></Field>
-            <Field C={C} label="Validade (dias)"><input type="number" min={1} value={form.validityDays} onChange={set("validityDays")} style={inp} /></Field>
+            <Field C={C} label="Quantidade de aulas" help={HELP.totalClasses}><input type="number" min={1} value={form.totalClasses} onChange={set("totalClasses")} style={inp} /></Field>
+            <Field C={C} label="Validade (dias)" help={HELP.validityDays}><input type="number" min={1} value={form.validityDays} onChange={set("validityDays")} style={inp} /></Field>
           </>)}
         </Grid>
-        <Field C={C} label="Descrição"><textarea value={form.description} onChange={set("description")} style={{ ...inp, minHeight: 60 }} /></Field>
+        <Field C={C} label="Descrição" help={HELP.description}><textarea value={form.description} onChange={set("description")} style={{ ...inp, minHeight: 60 }} /></Field>
         {form.kind === "package" && (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text, marginBottom: 10 }}>
-            <input type="checkbox" checked={!!form.isTrial} onChange={set("isTrial")} style={{ width: 18, height: 18 }} /> É aula experimental
-          </label>
+          <CheckField C={C} label="É aula experimental" checked={!!form.isTrial} onChange={set("isTrial")} help={HELP.isTrial} />
         )}
         {editing !== null && <PlanRulesSection key={editing?.id ?? "new"} C={C} FB={FB} studio={studio} kind={form.kind} rules={rules} setRules={setRules} />}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text, marginBottom: 14 }}>
-          <input type="checkbox" checked={form.status === "active"} onChange={(e) => setForm((f: any) => ({ ...f, status: e.target.checked ? "active" : "inactive" }))} style={{ width: 18, height: 18 }} />
-          Plano ativo (disponível para novas matrículas)
-        </label>
+        <CheckField C={C} label="Plano ativo (disponível para novas matrículas)" checked={form.status === "active"} style={{ marginBottom: 14 }}
+          onChange={(e) => setForm((f: any) => ({ ...f, status: e.target.checked ? "active" : "inactive" }))} help={HELP.status} />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button {...t} variant="secondary" onClick={() => setEditing(null)}>Cancelar</Button>
           <Button {...t} onClick={save} disabled={saving}>{saving ? "Salvando..." : editing?.id ? "Salvar alterações" : "Criar plano"}</Button>

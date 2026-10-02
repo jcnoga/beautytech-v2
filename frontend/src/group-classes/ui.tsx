@@ -79,13 +79,56 @@ export function Button({ C, FB, children, onClick, variant = "primary", small, d
   );
 }
 
-export function Field({ C, label, children, hint }: { C: any; label: string; children: ReactNode; hint?: string }) {
+/** Ícone "?" ao lado do nome do campo: abre/fecha a explicação. É um span (não um button) para não
+ *  virar o controle do <label>; o preventDefault impede que o clique foque o campo ou marque o checkbox. */
+export function HelpIcon({ C, label, open, onToggle }: { C: any; label: string; open: boolean; onToggle: () => void }) {
+  const toggle = (e: any) => { e.preventDefault(); e.stopPropagation(); onToggle(); };
+  return (
+    <span role="button" tabIndex={0} aria-expanded={open} aria-label={`O que é "${label}"?`} title="O que é este campo?"
+      onClick={toggle} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggle(e); }}
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%",
+        border: `1px solid ${open ? C.rose : C.border}`, background: open ? C.rose : "transparent", color: open ? "#fff" : C.textMuted,
+        fontSize: 11, fontWeight: 700, lineHeight: 1, cursor: "pointer", flexShrink: 0, verticalAlign: "middle" }}>?</span>
+  );
+}
+
+/** Caixa com o texto didático do campo (aberta pelo HelpIcon). */
+export function HelpBox({ C, children }: { C: any; children: ReactNode }) {
+  return (
+    <span style={{ display: "block", fontSize: 13, fontWeight: 400, lineHeight: 1.5, color: C.text, background: `${C.rose}12`,
+      border: `1px solid ${C.rose}40`, borderRadius: 10, padding: "8px 10px", margin: "0 0 8px" }}>{children}</span>
+  );
+}
+
+export function Field({ C, label, children, hint, help }: { C: any; label: string; children: ReactNode; hint?: string; help?: ReactNode }) {
+  const [open, setOpen] = useState(false);
   return (
     <label style={{ display: "block", marginBottom: 12 }}>
-      <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: C.textSec, marginBottom: 6 }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 700, color: C.textSec, marginBottom: 6 }}>
+        {label}
+        {help && <HelpIcon C={C} label={label} open={open} onToggle={() => setOpen((o) => !o)} />}
+      </span>
+      {help && open && <HelpBox C={C}>{help}</HelpBox>}
       {children}
       {hint && <span style={{ display: "block", fontSize: 12, fontWeight: 400, color: C.textSec, marginTop: 4 }}>{hint}</span>}
     </label>
+  );
+}
+
+/** Checkbox com texto ao lado e, opcionalmente, o "?" de ajuda. */
+export function CheckField({ C, label, checked, onChange, help, style }: {
+  C: any; label: ReactNode; checked: boolean; onChange: (e: any) => void; help?: ReactNode; style?: CSSProperties;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginBottom: 10, ...style }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text }}>
+        <input type="checkbox" checked={checked} onChange={onChange} style={{ width: 18, height: 18 }} />
+        {label}
+        {help && <HelpIcon C={C} label={typeof label === "string" ? label : "este campo"} open={open} onToggle={() => setOpen((o) => !o)} />}
+      </label>
+      {help && open && <div style={{ marginTop: 6 }}><HelpBox C={C}>{help}</HelpBox></div>}
+    </div>
   );
 }
 
