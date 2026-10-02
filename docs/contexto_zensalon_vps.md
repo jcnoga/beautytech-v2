@@ -1,6 +1,19 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 01/10/2026 (3 bugs de produção corrigidos). Colar no início da próxima conversa.
+Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da próxima conversa.
+
+## ONDE PARAMOS (01/10, fim do dia)
+- Último commit no `ramo-pilates`: **`64d96f3`** (foto do instrutor). Base do tsc: **12**. Push feito em 02/10.
+- **Próxima sessão: plano da Fase 4 no sábado 04/10** (quando o limite semanal renova). Começar mostrando o PLANO e esperar aprovação.
+
+## 01/10 — o que entrou depois dos 3 bugs (ramo-pilates)
+| Commit | O quê |
+|---|---|
+| `7642a00` | **"Usar Sessão" voltou a descontar a sessão do pacote**: a rota `POST /packages/:id/use-session` tinha perdido o UPDATE e a resposta (só validava; a tela mostrava "Unexpected end of JSON input"). Agora desconta com trava `remaining > 0`, marca `completed` na última sessão e devolve o pacote. Teste novo em `tests/isolamento.test.ts` |
+| `329dcae` | **Logo do studio** na aba Identidade de Configurações quando o nicho é Pilates (antes só na aba Landing Page, escondida no Pilates). Envio de imagem e salvar mostram aviso ao falhar |
+| `64d96f3` | **Foto do instrutor** no cadastro e na listagem (`/class-instructors` aceita e devolve `avatarUrl`; envio pelo mesmo `/uploads?kind=professional`). Teste: PATCH grava e remove a foto |
+| `65829e6`, `60258fd`, `88bacd4`, `cc2488c` | Formulários: título do campo em negrito (700), conteúdo e dica em peso normal (400), sem maiúsculas |
+| `881e877` | Ambiente local: Vite serve `/uploads`; `dev-local/trocar-senhas.sh` |
 
 ## 01/10 — 3 bugs de produção corrigidos
 - Commit `0b0735f` no `vps` (upgrade da faixa do teste grátis, cancelamento de assinatura, foto do profissional), trazido para o `ramo-pilates` por cherry-pick (`c8bc19a`). Testado pelo usuário no ambiente local: OK.
@@ -17,7 +30,7 @@ Atualizado em 01/10/2026 (3 bugs de produção corrigidos). Colar no início da 
 ## Onde paramos (resumo)
 - **Virada feita em 29/09/2026.** O ZenSalon oficial roda na VPS: **https://zensalon.com.br**, **https://www.zensalon.com.br** e **https://vps.zensalon.com.br** (mesmo sistema nos três). Roteiro e plano de volta: `docs/virada.md`.
 - Railway **pausado** (deployment `3c0cc9d6` removido; serviço e variáveis mantidos). Vercel e Supabase de reserva até ~06/10.
-- **Nicho Pilates, ramo `ramo-pilates`: Fase 3b (telas) concluída e aprovada em 30/09, último commit `03ea0e3`. NADA publicado na VPS.** Próximo passo: Fase 4.
+- **Nicho Pilates, ramo `ramo-pilates`: Fase 3b (telas) concluída e aprovada em 30/09; ajustes de 01/10 até `64d96f3`. NADA publicado na VPS.** Próximo passo: Fase 4 (plano em 04/10).
 
 ## Regras até ~06/10
 - Repo `jcnoga/beautytech-v2`, pasta `C:\projetos\beautytech-v2`. Produção = ramo **`vps`**; Pilates = ramo **`ramo-pilates`**.
@@ -71,6 +84,7 @@ Atualizado em 01/10/2026 (3 bugs de produção corrigidos). Colar no início da 
 4. **Corrigir antes do primeiro cliente:**
    - "+ Nova Profissional" depois de Editar → Cancelar abre com os dados (e agora a foto) do profissional anterior (o Cancelar do modal não limpa o formulário).
    - Busca pública (`/buscar`, `DiscoveryPage.tsx`): não há filtro nem rótulo/ícone para Pilates (o studio aparece como "pilates" com ícone de casa). Encaixa na Fase 5 (página pública).
+   - Login do Super Admin: a mensagem "Credenciais inválidas" aparece com o acento corrompido (anotado em 02/10).
 5. **Observações:**
    - `PricingPage` lê o token uma vez só, ao abrir; se a sessão expirar com a página aberta, o cancelamento falha.
    - Ambiente local: desde 01/10 o Vite (`dev-local/web.sh`) serve `dev-local/uploads` em `/uploads` (na VPS é o nginx do `zensalon-web`). Senhas dos logins de teste: `sh dev-local/trocar-senhas.sh`.
