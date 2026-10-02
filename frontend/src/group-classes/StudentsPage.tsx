@@ -16,6 +16,30 @@ const EMPTY = {
   goal: "", level: "beginner", startDate: "", weeklyFrequency: "", status: "active", instructorId: "",
   notes: "", emergencyContactName: "", emergencyContactPhone: "", initialAssessmentDate: "", declaredRestrictions: "",
 };
+// Textos do "?" de cada campo (só explicação; as regras continuam no backend).
+const HELP = {
+  fullName: <>Nome do aluno como você quer ver na lista, na chamada e nas matrículas. Use o nome completo para não confundir alunos com o mesmo primeiro nome.</>,
+  whatsapp: <>Número principal para falar com o aluno, com DDD, ex.: (34) 99999-0000. É o número usado para contato pelo WhatsApp.</>,
+  phone: <>Outro telefone do aluno (fixo ou recado), se houver. Pode ficar vazio.</>,
+  email: <>E-mail do aluno, se houver. Útil para enviar comprovantes e avisos. Pode ficar vazio.</>,
+  birthDate: <>Data de nascimento. Ajuda a lembrar aniversários e a adaptar os exercícios à idade.</>,
+  status: <>Em que situação o aluno está com o studio. <b>Ativo:</b> fazendo aulas. <b>Pausado:</b> parou por um tempo (férias, lesão). <b>Inativo:</b> parou sem previsão de volta. <b>Cancelado:</b> encerrou o vínculo.<br />Serve para organizar a lista (use os filtros no topo da tela). Não bloqueia as aulas sozinho: para parar as aulas, encerre ou cancele a matrícula abaixo.</>,
+  level: <>Nível de experiência do aluno no Pilates: iniciante, intermediário ou avançado. Ajuda o instrutor a escolher os exercícios e a montar turmas parecidas.</>,
+  instructor: <>O instrutor que acompanha este aluno de perto (avaliação, evolução). É uma referência: o aluno pode fazer aula com qualquer instrutor.</>,
+  weeklyFrequency: <>Quantas vezes por semana o aluno pretende vir. É só uma anotação. Quem garante a vaga e coloca o aluno na chamada são os <b>horários fixos</b> da matrícula por frequência (seção Matrículas, abaixo).</>,
+  startDate: <>Quando o aluno começou no studio. É uma anotação da ficha; as datas que valem para as aulas são as das matrículas.</>,
+  assessment: <>Quando foi feita a avaliação inicial do aluno (postura, limitações, objetivos). Deixe vazio se ainda não foi feita.</>,
+  goal: <>O que o aluno quer conquistar com o Pilates, ex.: melhorar a postura, fortalecer, aliviar dor nas costas. Ajuda o instrutor a planejar as aulas.</>,
+  restrictions: <>Tudo o que o próprio aluno contou sobre a saúde e que pede cuidado nas aulas, ex.: gestante, hérnia de disco, cirurgia no joelho em 2024. Anote com as palavras dele: não é diagnóstico.</>,
+  notes: <>Qualquer outra informação útil sobre o aluno, ex.: "prefere aulas de manhã", "vem de carona". Só para consulta do studio.</>,
+  emergencyName: <>Quem chamar se o aluno passar mal durante a aula, ex.: um familiar. Recomendado preencher.</>,
+  emergencyPhone: <>Telefone dessa pessoa de contato, com DDD.</>,
+  plan: <>Qual plano o aluno está contratando. Os planos são cadastrados no menu <b>Planos</b>. O aluno pode ter mais de uma matrícula ativa, ex.: mensalidade + pacote extra.</>,
+  enrollStart: <>A partir de quando a matrícula vale. A data final é calculada pelo plano: a vigência (mensalidade) ou a validade em dias (pacote).</>,
+  dueDay: <>Dia do mês em que a mensalidade vence, de 1 a 28, ex.: 10. Se ficar vazio, vale o dia da data de início. Por enquanto é um registro para o studio se organizar.</>,
+  price: <>Quanto este aluno vai pagar nesta matrícula. Vazio = o preço do plano. Use para dar desconto ou preço especial só para este aluno, sem mudar o plano.</>,
+};
+
 const FILTERS = [["", "Todos"], ["active", "Ativos"], ["paused", "Pausados"], ["inactive", "Inativos"], ["cancelled", "Cancelados"], ["incomplete", "Ficha incompleta"]];
 
 export default function ClassStudentsPage({ C, FD, FB }: Theme) {
@@ -161,51 +185,51 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
           <Notice C={C} kind="info">Ficha de Pilates incompleta: confira os dados abaixo e salve para completar. O cadastro do cliente é o mesmo (nada é duplicado).</Notice>
         )}
         <Section C={C} title="Dados do aluno">
-          <Field C={C} label="Nome completo"><input value={form.fullName} onChange={set("fullName")} style={inp} autoFocus /></Field>
+          <Field C={C} label="Nome completo" help={HELP.fullName}><input value={form.fullName} onChange={set("fullName")} style={inp} autoFocus /></Field>
           <Grid>
-            <Field C={C} label="WhatsApp"><input value={form.whatsapp} onChange={set("whatsapp")} style={inp} inputMode="tel" /></Field>
-            <Field C={C} label="Telefone"><input value={form.phone} onChange={set("phone")} style={inp} inputMode="tel" /></Field>
-            <Field C={C} label="E-mail"><input value={form.email} onChange={set("email")} style={inp} type="email" /></Field>
-            <Field C={C} label="Nascimento"><input value={form.birthDate} onChange={set("birthDate")} style={inp} type="date" /></Field>
+            <Field C={C} label="WhatsApp" help={HELP.whatsapp}><input value={form.whatsapp} onChange={set("whatsapp")} style={inp} inputMode="tel" /></Field>
+            <Field C={C} label="Telefone" help={HELP.phone}><input value={form.phone} onChange={set("phone")} style={inp} inputMode="tel" /></Field>
+            <Field C={C} label="E-mail" help={HELP.email}><input value={form.email} onChange={set("email")} style={inp} type="email" /></Field>
+            <Field C={C} label="Nascimento" help={HELP.birthDate}><input value={form.birthDate} onChange={set("birthDate")} style={inp} type="date" /></Field>
           </Grid>
         </Section>
         <Section C={C} title="Pilates">
           <Grid>
-            <Field C={C} label="Situação">
+            <Field C={C} label="Situação" help={HELP.status}>
               <select value={form.status} onChange={set("status")} style={inp}>
                 {Object.entries(STUDENT_STATUS).map(([v, s]) => <option key={v} value={v}>{s.label}</option>)}
               </select>
             </Field>
-            <Field C={C} label="Nível">
+            <Field C={C} label="Nível" help={HELP.level}>
               <select value={form.level} onChange={set("level")} style={inp}>
                 {Object.entries(LEVEL_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </Field>
-            <Field C={C} label="Instrutor responsável">
+            <Field C={C} label="Instrutor responsável" help={HELP.instructor}>
               <select value={form.instructorId} onChange={set("instructorId")} style={inp}>
                 <option value="">— sem instrutor —</option>
                 {instructors.map((i) => <option key={i.id} value={i.id}>{i.fullName}</option>)}
               </select>
             </Field>
-            <Field C={C} label="Frequência (aulas por semana)">
+            <Field C={C} label="Frequência (aulas por semana)" help={HELP.weeklyFrequency}>
               <select value={String(form.weeklyFrequency)} onChange={set("weeklyFrequency")} style={inp}>
                 <option value="">—</option>
                 {[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>{n}x por semana</option>)}
               </select>
             </Field>
-            <Field C={C} label="Data de início"><input value={form.startDate} onChange={set("startDate")} style={inp} type="date" /></Field>
-            <Field C={C} label="Data da avaliação inicial"><input value={form.initialAssessmentDate} onChange={set("initialAssessmentDate")} style={inp} type="date" /></Field>
+            <Field C={C} label="Data de início" help={HELP.startDate}><input value={form.startDate} onChange={set("startDate")} style={inp} type="date" /></Field>
+            <Field C={C} label="Data da avaliação inicial" help={HELP.assessment}><input value={form.initialAssessmentDate} onChange={set("initialAssessmentDate")} style={inp} type="date" /></Field>
           </Grid>
-          <Field C={C} label="Objetivo"><input value={form.goal} onChange={set("goal")} style={inp} placeholder="Ex.: postura, fortalecimento, alívio de dor nas costas" /></Field>
-          <Field C={C} label="Restrições e cuidados informados pelo aluno" hint="O que o próprio aluno declarou (ex.: gestante, cirurgia no joelho em 2024). Não é diagnóstico.">
+          <Field C={C} label="Objetivo" help={HELP.goal}><input value={form.goal} onChange={set("goal")} style={inp} placeholder="Ex.: postura, fortalecimento, alívio de dor nas costas" /></Field>
+          <Field C={C} label="Restrições e cuidados informados pelo aluno" help={HELP.restrictions} hint="O que o próprio aluno declarou (ex.: gestante, cirurgia no joelho em 2024). Não é diagnóstico.">
             <textarea value={form.declaredRestrictions} onChange={set("declaredRestrictions")} style={{ ...inp, minHeight: 64 }} />
           </Field>
-          <Field C={C} label="Observações"><textarea value={form.notes} onChange={set("notes")} style={{ ...inp, minHeight: 64 }} /></Field>
+          <Field C={C} label="Observações" help={HELP.notes}><textarea value={form.notes} onChange={set("notes")} style={{ ...inp, minHeight: 64 }} /></Field>
         </Section>
         <Section C={C} title="Contato de emergência">
           <Grid>
-            <Field C={C} label="Nome"><input value={form.emergencyContactName} onChange={set("emergencyContactName")} style={inp} /></Field>
-            <Field C={C} label="Telefone"><input value={form.emergencyContactPhone} onChange={set("emergencyContactPhone")} style={inp} inputMode="tel" /></Field>
+            <Field C={C} label="Nome" help={HELP.emergencyName}><input value={form.emergencyContactName} onChange={set("emergencyContactName")} style={inp} /></Field>
+            <Field C={C} label="Telefone" help={HELP.emergencyPhone}><input value={form.emergencyContactPhone} onChange={set("emergencyContactPhone")} style={inp} inputMode="tel" /></Field>
           </Grid>
         </Section>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", margin: "8px 0 4px" }}>
@@ -243,19 +267,19 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>Nova matrícula (o aluno pode ter mais de uma ativa, ex.: mensal + pacote):</div>
                 <Grid>
-                  <Field C={C} label="Plano">
+                  <Field C={C} label="Plano" help={HELP.plan}>
                     <select value={enroll.planId} onChange={(e) => setEnroll((x: any) => ({ ...x, planId: e.target.value }))} style={inp}>
                       <option value="">— escolha —</option>
                       {plans.map((p) => <option key={p.id} value={p.id}>{p.name} · {brl(p.price)}</option>)}
                     </select>
                   </Field>
-                  <Field C={C} label="Início"><input type="date" value={enroll.startDate} onChange={(e) => setEnroll((x: any) => ({ ...x, startDate: e.target.value }))} style={inp} /></Field>
+                  <Field C={C} label="Início" help={HELP.enrollStart}><input type="date" value={enroll.startDate} onChange={(e) => setEnroll((x: any) => ({ ...x, startDate: e.target.value }))} style={inp} /></Field>
                   {selectedPlan?.kind === "frequency" && (
-                    <Field C={C} label="Dia de vencimento" hint="Padrão: o dia do início (até 28)">
+                    <Field C={C} label="Dia de vencimento" help={HELP.dueDay} hint="Padrão: o dia do início (até 28)">
                       <input type="number" min={1} max={28} value={enroll.dueDay} onChange={(e) => setEnroll((x: any) => ({ ...x, dueDay: e.target.value }))} style={inp} />
                     </Field>
                   )}
-                  <Field C={C} label="Valor" hint={selectedPlan ? `Padrão: ${brl(selectedPlan.price)}` : undefined}>
+                  <Field C={C} label="Valor" help={HELP.price} hint={selectedPlan ? `Padrão: ${brl(selectedPlan.price)}` : undefined}>
                     <input type="number" min={0} step="0.01" value={enroll.price} onChange={(e) => setEnroll((x: any) => ({ ...x, price: e.target.value }))} style={inp} />
                   </Field>
                 </Grid>
