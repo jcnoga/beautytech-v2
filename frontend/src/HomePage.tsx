@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { InstallAppButton } from "./InstallAppButton";
+import TelasDoSistema from "./components/landing/TelasDoSistema";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "https://beautytech-v2-production.up.railway.app/api/v1";
 
@@ -227,6 +228,7 @@ export default function HomePage() {
           </div>
 
           <nav className="zs-desktop-nav" style={{ display: "flex", alignItems: "center", gap: 28 }}>
+            <span className="zs-nav-link" onClick={() => scrollTo("telas")}>Telas do sistema</span>
             <span className="zs-nav-link" onClick={() => scrollTo("sobre")}>Sobre</span>
             <span className="zs-nav-link" onClick={() => scrollTo("funcionalidades")}>Funcionalidades</span>
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
@@ -248,6 +250,7 @@ export default function HomePage() {
 
         {menuOpen && (
           <div style={{ padding: "12px 24px 20px", display: "flex", flexDirection: "column", gap: 16, borderTop: `1px solid ${COLORS.border}` }}>
+            <span className="zs-nav-link" onClick={() => scrollTo("telas")}>Telas do sistema</span>
             <span className="zs-nav-link" onClick={() => scrollTo("sobre")}>Sobre</span>
             <span className="zs-nav-link" onClick={() => scrollTo("funcionalidades")}>Funcionalidades</span>
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
@@ -296,6 +299,9 @@ export default function HomePage() {
           <InstallAppButton />
         </div>
       </section>
+
+      {/* ============ TELAS DO SISTEMA ============ */}
+      <TelasDoSistema />
 
       {/* ============ SOBRE ============ */}
       <section id="sobre" style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 24px 80px" }}>

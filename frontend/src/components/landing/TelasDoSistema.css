@@ -1,0 +1,101 @@
+.telas {
+  padding: 64px 16px;
+  max-width: 1280px;
+  margin: 0 auto;
+  scroll-margin-top: 72px;
+}
+.telas-titulo { text-align: center; margin: 0 0 8px; }
+.telas-subtitulo { text-align: center; margin: 0 0 32px; opacity: 0.7; }
+
+.telas-carrossel { display: flex; align-items: center; gap: 8px; }
+.telas-trilho {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  flex: 1;
+  padding: 4px 0;
+}
+.telas-trilho::-webkit-scrollbar { display: none; }
+
+.telas-item {
+  flex: 0 0 calc((100% - 48px) / 4);
+  scroll-snap-align: start;
+  margin: 0;
+}
+.telas-botao {
+  display: block;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 0;
+  background: #0d0b0a;
+  cursor: zoom-in;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.telas-botao:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); }
+.telas-botao img {
+  width: 100%;
+  display: block;
+  aspect-ratio: 1360 / 745;
+  object-fit: cover;
+  object-position: top left;
+}
+.telas-item figcaption { text-align: center; font-size: 14px; margin-top: 8px; opacity: 0.85; }
+
+.telas-seta {
+  flex: 0 0 auto;
+  border: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.telas-seta:hover { background: rgba(0, 0, 0, 0.7); }
+
+.telas-ampliada {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 64px;
+  cursor: zoom-out;
+}
+.telas-ampliada figure { margin: 0; max-width: 100%; max-height: 100%; text-align: center; cursor: default; }
+.telas-ampliada img { max-width: 100%; max-height: calc(100vh - 80px); border-radius: 8px; }
+.telas-ampliada figcaption { color: #fff; margin-top: 10px; font-size: 15px; }
+.telas-ampliada-seta,
+.telas-fechar {
+  position: absolute;
+  border: 0;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+.telas-ampliada-seta.esquerda { left: 12px; top: 50%; transform: translateY(-50%); }
+.telas-ampliada-seta.direita { right: 12px; top: 50%; transform: translateY(-50%); }
+.telas-fechar { top: 12px; right: 12px; }
+
+@media (max-width: 1024px) {
+  .telas-item { flex-basis: calc((100% - 16px) / 2); }
+}
+@media (max-width: 640px) {
+  .telas-item { flex-basis: 100%; }
+  .telas-seta { display: none; }
+  .telas-ampliada { padding: 16px; }
+  .telas-ampliada-seta { display: none; }
+}
