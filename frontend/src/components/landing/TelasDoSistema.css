@@ -67,15 +67,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 64px;
+  padding: 8px 64px;
   cursor: zoom-out;
 }
-.telas-ampliada figure { margin: 0; max-width: 100%; max-height: 100%; text-align: center; cursor: default; }
-.telas-ampliada img { max-width: 100%; max-height: calc(100vh - 80px); border-radius: 8px; }
-.telas-ampliada figcaption { color: #fff; margin-top: 10px; font-size: 15px; }
+.telas-ampliada figure { margin: 0; width: 100%; text-align: center; cursor: default; }
+/* Ocupa o maior tamanho que couber na tela (largura ou altura), mesmo acima dos 1360px da imagem. */
+.telas-ampliada img {
+  display: block;
+  margin: 0 auto;
+  width: min(100%, calc((100vh - 64px) * 1360 / 738));
+  height: auto;
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+.telas-ampliada figcaption { color: #fff; margin-top: 10px; font-size: 16px; }
+.telas-dica { display: block; font-size: 13px; opacity: 0.6; margin-top: 2px; }
+
+/* Zoom: imagem bem maior que a tela, com rolagem nos dois sentidos para ver os detalhes. */
+.telas-ampliada.zoom { display: block; overflow: auto; padding: 0; cursor: default; }
+.telas-ampliada.zoom figure { width: max-content; }
+.telas-ampliada.zoom img { width: max(1360px, 160vw); max-width: none; border-radius: 0; cursor: zoom-out; }
+.telas-ampliada.zoom figcaption {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+.telas-ampliada.zoom .telas-ampliada-seta { display: none; }
 .telas-ampliada-seta,
 .telas-fechar {
-  position: absolute;
+  position: fixed;
+  z-index: 1;
   border: 0;
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
@@ -96,6 +123,6 @@
 @media (max-width: 640px) {
   .telas-item { flex-basis: 100%; }
   .telas-seta { display: none; }
-  .telas-ampliada { padding: 16px; }
+  .telas-ampliada { padding: 8px; }
   .telas-ampliada-seta { display: none; }
 }

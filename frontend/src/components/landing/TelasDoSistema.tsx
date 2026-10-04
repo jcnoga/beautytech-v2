@@ -27,6 +27,11 @@ const caminho = (arquivo: string) => `/telas/${arquivo}`;
 export default function TelasDoSistema() {
   const trilhoRef = useRef<HTMLDivElement>(null);
   const [aberta, setAberta] = useState<number | null>(null);
+  // Zoom da tela ampliada: clique na imagem aproxima (com rolagem para ver os detalhes) e clique de novo volta.
+  const [zoom, setZoom] = useState(false);
+
+  const abrir = (i: number) => { setZoom(false); setAberta(i); };
+  const fechar = () => { setZoom(false); setAberta(null); };
 
   const rolar = (direcao: 1 | -1) => {
     const trilho = trilhoRef.current;
@@ -34,23 +39,31 @@ export default function TelasDoSistema() {
   };
 
   const navegar = useCallback((direcao: 1 | -1) => {
+    setZoom(false);
     setAberta((atual) => (atual === null ? null : (atual + direcao + TELAS.length) % TELAS.length));
   }, []);
 
+  const aberto = aberta !== null;
   useEffect(() => {
-    if (aberta === null) return;
+    if (!aberto) return;
     const teclado = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAberta(null);
-      if (e.key === "ArrowRight") navegar(1);
-      if (e.key === "ArrowLeft") navegar(-1);
+      // Esc primeiro sai do zoom; com a tela já no tamanho normal, fecha.
+      if (e.key === "Escape") {
+        if (zoom) setZoom(false);
+        else setAberta(null);
+      }
+      if (!zoom && e.key === "ArrowRight") navegar(1);
+      if (!zoom && e.key === "ArrowLeft") navegar(-1);
     };
     window.addEventListener("keydown", teclado);
+    return () => window.removeEventListener("keydown", teclado);
+  }, [aberto, zoom, navegar]);
+
+  useEffect(() => {
+    if (!aberto) return;
     document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", teclado);
-      document.body.style.overflow = "";
-    };
-  }, [aberta, navegar]);
+    return () => { document.body.style.overflow = ""; };
+  }, [aberto]);
 
   return (
     <section id="telas" className="telas">
@@ -64,7 +77,7 @@ export default function TelasDoSistema() {
         <div className="telas-trilho" ref={trilhoRef}>
           {TELAS.map((tela, i) => (
             <figure key={tela.arquivo} className="telas-item">
-              <button type="button" className="telas-botao" onClick={() => setAberta(i)}>
+              <button type="button" className="telas-botao" onClick={() => abrir(i)}>
                 <img src={caminho(tela.arquivo)} alt={`Tela ${tela.titulo} do ZenSalon`} loading="lazy" />
               </button>
               <figcaption>{tela.titulo}</figcaption>
@@ -77,7 +90,12 @@ export default function TelasDoSistema() {
       </div>
 
       {aberta !== null && (
-        <div className="telas-ampliada" role="dialog" aria-modal="true" onClick={() => setAberta(null)}>
+        <div
+          className={`telas-ampliada${zoom ? " zoom" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => (zoom ? setZoom(false) : fechar())}
+        >
           <button
             type="button"
             className="telas-ampliada-seta esquerda"
@@ -87,9 +105,15 @@ export default function TelasDoSistema() {
             ‹
           </button>
           <figure onClick={(e) => e.stopPropagation()}>
-            <img src={caminho(TELAS[aberta].arquivo)} alt={`Tela ${TELAS[aberta].titulo} do ZenSalon`} />
+            <img
+              src={caminho(TELAS[aberta].arquivo)}
+              alt={`Tela ${TELAS[aberta].titulo} do ZenSalon`}
+              onClick={() => setZoom((z) => !z)}
+              title={zoom ? "Clique para voltar ao tamanho normal" : "Clique para aproximar"}
+            />
             <figcaption>
               {TELAS[aberta].titulo} · {aberta + 1}/{TELAS.length}
+              <span className="telas-dica">{zoom ? "Toque na imagem para voltar" : "Toque na imagem para aproximar"}</span>
             </figcaption>
           </figure>
           <button
@@ -100,7 +124,7 @@ export default function TelasDoSistema() {
           >
             ›
           </button>
-          <button type="button" className="telas-fechar" onClick={() => setAberta(null)} aria-label="Fechar">
+          <button type="button" className="telas-fechar" onClick={(e) => { e.stopPropagation(); fechar(); }} aria-label="Fechar">
             ×
           </button>
         </div>
