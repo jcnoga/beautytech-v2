@@ -14,6 +14,7 @@ const TIPOS = [
   { id: "beauty_salon", label: "Salão de Beleza", icon: "\u2702\uFE0F" },
   { id: "barbershop", label: "Barbearia", icon: "\uD83D\uDC88" },
   { id: "aesthetics_clinic", label: "Clínica de Estética", icon: "\uD83D\uDC86" },
+  { id: "pilates", label: "Studio de Pilates", icon: "\uD83E\uDDD8" },
 ];
 
 const STATUS_INFO: Record<string, { label: string; color: string }> = {
@@ -165,12 +166,12 @@ export default function DiscoveryPage() {
   }, [myWhatsapp]);
 
   const labelTipo = (t: string) => {
-    const m: any = { beauty_salon: "Salão de Beleza", barbershop: "Barbearia", aesthetics_clinic: "Clínica de Estética" };
+    const m: any = { beauty_salon: "Salão de Beleza", barbershop: "Barbearia", aesthetics_clinic: "Clínica de Estética", pilates: "Studio de Pilates" };
     return m[t] || t;
   };
 
   const iconTipo = (t: string) => {
-    const m: any = { beauty_salon: "\u2702\uFE0F", barbershop: "\uD83D\uDC88", aesthetics_clinic: "\uD83D\uDC86" };
+    const m: any = { beauty_salon: "\u2702\uFE0F", barbershop: "\uD83D\uDC88", aesthetics_clinic: "\uD83D\uDC86", pilates: "\uD83E\uDDD8" };
     return m[t] || "\uD83C\uDFE0";
   };
 
@@ -317,7 +318,7 @@ export default function DiscoveryPage() {
                 Agende com os melhores da sua cidade
               </h1>
               <p style={{ color: C.textMuted, fontSize: ".95rem", marginBottom: 28 }}>
-                Salões de Beleza, Barbearias e Clínicas de Estética perto de você
+                Salões de Beleza, Barbearias, Clínicas de Estética e Studios de Pilates perto de você
               </p>
 
               <div style={{ display: "flex", gap: 8, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8 }}>
@@ -381,6 +382,11 @@ export default function DiscoveryPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18 }}>
                 {tenants.map(t => {
                   const cor = t.primaryColor || C.primary;
+                  // Pilates ainda não tem reserva de aula online: o botão abre o WhatsApp do studio para a aula experimental.
+                  const zap = (t.whatsapp || t.phone || "").replace(/\D/g, "");
+                  const pilatesZap = t.businessType === "pilates" && zap
+                    ? `https://wa.me/${zap.length <= 11 ? "55" + zap : zap}?text=${encodeURIComponent(`Olá! Vi o ${t.name} no ZenSalon e gostaria de agendar uma aula experimental de Pilates.`)}`
+                    : null;
                   return (
                     <div key={t.id} style={{
                       background: C.card, border: `1px solid ${C.border}`,
@@ -416,13 +422,13 @@ export default function DiscoveryPage() {
                             {t.distKm < 1 ? `${Math.round(t.distKm*1000)}m de você` : `${t.distKm.toFixed(1)}km de você`}
                           </div>
                         )}
-                        <a href={`/agendar/${t.slug}`} style={{
+                        <a href={pilatesZap ?? `/agendar/${t.slug}`} {...(pilatesZap ? { target: "_blank", rel: "noopener noreferrer" } : {})} style={{
                           display: "block", textAlign: "center", padding: "10px 0",
                           background: `linear-gradient(135deg, ${cor}, ${cor}CC)`,
                           color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: ".88rem",
                           textDecoration: "none",
                         }}>
-                          Agendar agora
+                          {pilatesZap ? "Agendar aula experimental" : "Agendar agora"}
                         </a>
                       </div>
                     </div>
