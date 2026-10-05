@@ -20,6 +20,7 @@ import PaymentSuccessPage from './PaymentSuccessPage';
 import { can, setCurrentBusinessType } from './config/nicho';
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type Feature } from './config/features';
 import ClassStudentsPage from './group-classes/StudentsPage';
+import ClassLeadsPage from './group-classes/LeadsPage';
 import MembershipsPage from './group-classes/PlansPage';
 import ClassInstructorsPage from './group-classes/InstructorsPage';
 import ClassModalitiesPage from './group-classes/ModalitiesPage';
@@ -3983,6 +3984,7 @@ function ClassModalitiesScreen()  { useTheme(); return <ClassModalitiesPage C={C
 function ClassSchedulesScreen()   { useTheme(); return <SchedulesPage C={C} FD={FD} FB={FB} />; }
 function ClassAgendaScreen()      { useTheme(); return <ClassAgendaPage C={C} FD={FD} FB={FB} />; }
 function ClassTodayScreen()       { useTheme(); return <TodayPage C={C} FD={FD} FB={FB} />; }
+function ClassLeadsScreen()       { useTheme(); return <ClassLeadsPage C={C} FD={FD} FB={FB} />; }
 
 // Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
 const PAGE_FEATURES: Record<string, Feature> = {
@@ -3994,6 +3996,7 @@ const PAGE_FEATURES: Record<string, Feature> = {
   class_students: "class_students", memberships: "memberships",
   class_instructors: "class_instructors", class_modalities: "class_settings",
   class_schedules: "group_classes", class_agenda: "group_classes", class_today: "group_classes",
+  class_leads: "class_leads",
 };
 
 const MENU_GROUPS = [
@@ -4009,6 +4012,7 @@ const MENU_GROUPS = [
     items: [
       { id:"class_today",       label:"Aulas de hoje", icon:"*", premium:false },
       { id:"class_agenda",      label:"Agenda de aulas", icon:"o", premium:false },
+      { id:"class_leads",       label:"Interessados", icon:"+", premium:false },
       { id:"class_students",    label:"Alunos",      icon:"o", premium:false },
       { id:"memberships",       label:"Planos",      icon:"$", premium:false },
       { id:"class_instructors", label:"Instrutores", icon:"*", premium:false },
@@ -4246,6 +4250,7 @@ const logout = async () => {
     class_schedules:   ClassSchedulesScreen,
     class_agenda:      ClassAgendaScreen,
     class_today:       ClassTodayScreen,
+    class_leads:       ClassLeadsScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
