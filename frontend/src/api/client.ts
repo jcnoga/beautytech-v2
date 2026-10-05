@@ -29,7 +29,7 @@ class ApiClient {
     const { data } = await supabase.auth.getSession();
     const token = data?.session?.access_token;
     if (token) return token;
-    throw new Error("Sessao expirada");
+    throw Object.assign(new Error("Sessao expirada"), { status: 401 });
   }
 
   private async request<T>(method: string, endpoint: string, body?: unknown, params?: Record<string, any>): Promise<T> {
@@ -50,8 +50,12 @@ class ApiClient {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     if (res.status === 204) return undefined as T;
-    const json = await res.json();
-    if (!res.ok || json.success === false) throw new Error(json.error ?? json.message ?? "Erro desconhecido");
+    // Corpo vazio ou não-JSON (ex.: proxy com a API fora do ar) vira erro legível, com o status HTTP.
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json || json.success === false) {
+      const msg = json?.error ?? json?.message ?? (res.ok ? "Resposta inválida do servidor" : `Servidor indisponível (erro ${res.status})`);
+      throw Object.assign(new Error(msg), { status: res.status });
+    }
     return json as T;
   }
 

@@ -34,7 +34,7 @@ import TodayPage from './group-classes/TodayPage';
 //             Servicos, Pacotes, Financeiro, Comissoes, CRM, Fidelidade
 // ============================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
 
 // --- DESIGN TOKENS -------------------------------------------
@@ -1758,7 +1758,7 @@ function ProfessionalsPage() {
           <Inp label="Cor" value={form.color} onChange={f("color")} type="color" />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
-          <Btn variant="secondary" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Btn>
+          <Btn variant="secondary" onClick={closeForm}>Cancelar</Btn>
           <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : (editingId ? "Salvar Alteracoes" : "Cadastrar")}</Btn>
         </div>
       </Modal>
@@ -4161,20 +4161,51 @@ export default function App() {
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   // Só mostra as telas depois de saber o nicho (/auth/me), para não montar tela de outro nicho por um instante.
   const [tenantLoaded, setTenantLoaded] = useState(false);
+  // /auth/me falhou (rede, demora, 5xx, 403): sem nicho conhecido não monta menu nem tela.
+  const [tenantError, setTenantError] = useState("");
   const [page, setPage] = useState('dashboard');
   const [currentPage, setCurrentPage] = useState<string>('app');
   const [loading, setLoading] = useState(true);
   const appMatch = window.location.pathname === '/app';
+  // Nicho já recebido do backend nesta sessão; a última chamada é a que vale (getSession e
+  // onAuthStateChange chamam juntas no início).
+  const tenantKnown = useRef(false);
+  const tenantReq = useRef(0);
+  const loadTenant = () => {
+    const req = ++tenantReq.current;
+    setTenantError("");
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("A API demorou para responder")), 15000));
+    Promise.race([api.get('/auth/me'), timeout])
+      .then((r: any) => { if (req !== tenantReq.current) return; tenantKnown.current = true; setTenantInfo(r.data); setTenantLoaded(true); })
+      .catch(async (e: any) => {
+        if (req !== tenantReq.current) return;
+        if (e?.status === 401) {
+          tenantKnown.current = false;
+          setTenantInfo(null);
+          // Sessão expirada ou token inválido: volta para o login.
+          sessionStorage.removeItem("impersonation_token");
+          sessionStorage.removeItem("impersonation_tenant_name");
+          sessionStorage.removeItem("impersonation_sa_token");
+          await supabase.auth.signOut().catch(() => {});
+          setUser(null);
+          return;
+        }
+        // Renovação do token (a cada hora) com a API oscilando: mantém o nicho que o backend já informou.
+        if (tenantKnown.current) return;
+        setTenantInfo(null);
+        setTenantError(e?.message || "Erro desconhecido");
+      });
+  };
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user || sessionStorage.getItem("impersonation_token")) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}).finally(() => setTenantLoaded(true)); }
+      if (session?.user || sessionStorage.getItem("impersonation_token")) loadTenant();
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}).finally(() => setTenantLoaded(true)); }
-      else { setTenantInfo(null); setTenantLoaded(false); }
+      if (session?.user) loadTenant();
+      else { tenantKnown.current = false; setTenantInfo(null); setTenantLoaded(false); setTenantError(""); }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -4239,6 +4270,19 @@ const logout = async () => {
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
   const isImpersonating = !!sessionStorage.getItem("impersonation_token");
   if (!user && !isImpersonating) return <LoginPage onLogin={(data: any) => { setUser(data.user); }} />;
+  if (tenantError) return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ maxWidth:420, textAlign:"center", fontFamily: FB }}>
+        <div style={{ fontSize:32, color: C.rose, fontFamily: FD, marginBottom:20 }}>ZenSalon</div>
+        <div style={{ fontSize:18, fontWeight:700, color: C.text, marginBottom:8 }}>Não foi possível carregar sua conta</div>
+        <div style={{ fontSize:14, color: C.textMuted, marginBottom:24 }}>Verifique sua conexão e tente de novo. Detalhe: {tenantError}</div>
+        <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+          <Btn variant="secondary" onClick={logout}>Sair</Btn>
+          <Btn onClick={loadTenant}>Tentar de novo</Btn>
+        </div>
+      </div>
+    </div>
+  );
   if (!tenantLoaded) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>ZenSalon</div>
