@@ -306,3 +306,25 @@ test("checkout: cobra o preço do nicho da conta (Asaas simulado, sem rede)", as
   assert.match(pay?.body.description, /Plano Pro/);
   await sql`DELETE FROM plan_settings`;
 });
+
+test("Básico pago não é tratado como gratuito (limites, recursos e menu)", async () => {
+  const t = await seed("basico-pago", "beauty_salon", "basic");
+  await sql`UPDATE tenants SET trial_ends_at = now() - interval '30 days' WHERE id = ${t.id}`;
+  await sql`INSERT INTO clients (tenant_id, full_name) SELECT ${t.id}, 'C' || g FROM generate_series(1, 40) g`;
+  assert.ok((await call("POST", "/clients", t.token, { fullName: "41" })).statusCode < 300, "sem o limite de 30 do gratuito");
+  const info = data(await call("GET", "/plan-info", t.token));
+  assert.equal(info.isFree, false);
+  assert.equal(info.limitPlan, "basic");
+  assert.equal(info.features.whatsapp, true);
+  assert.equal(info.maxAppointmentsMonth, -1);
+  const vencido = await seed("trial-vencido", "beauty_salon", "trial");
+  await sql`UPDATE tenants SET trial_ends_at = now() - interval '1 day' WHERE id = ${vencido.id}`;
+  assert.equal(data(await call("GET", "/plan-info", vencido.token)).isFree, true, "trial vencido continua gratuito");
+});
+
+test("migration 0008: conta com o padrão antigo de 1 profissional passa a seguir o plano", async () => {
+  // A conversão dos dados é conferida no teste de ida e volta; aqui, que o limite vazio segue o Trial (2).
+  const t = await seed("ex-padrao", "beauty_salon", "trial", { max_professionals: null });
+  await sql`INSERT INTO professionals (tenant_id, full_name) VALUES (${t.id}, 'P1')`;
+  assert.ok((await call("POST", "/professionals", t.token, { fullName: "P2" })).statusCode < 300);
+});

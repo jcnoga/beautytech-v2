@@ -4194,7 +4194,8 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   useEffect(() => {
     api.get<any>("/plan-info").then((r: any) => setPlanInfo(r.data)).catch(() => {});
   }, []);
-  const isFree = planInfo?.effectivePlan === "basic";
+  // Gratuito vem do backend (trial vencido sem assinatura); o Básico pago não trava o menu.
+  const isFree = planInfo?.isFree === true;
   const menuGroups = MENU_GROUPS
     .map((g: any) => ({ ...g, items: g.items.filter((m: any) => can(PAGE_FEATURES[m.id], tenantInfo?.businessType)) }))
     .filter((g: any) => g.items.length > 0);
