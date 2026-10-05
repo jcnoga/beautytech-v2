@@ -1,20 +1,17 @@
 // Alunos do Pilates (service): criação do aluno = clients + student_profiles, numa transação.
 // Usado pelo cadastro de aluno (POST /class-students) e pela conversão de interessado (leads.service.ts).
 import { clients, studentProfiles } from "@db/schema/index";
-import { checkClientLimit, getPlanInfo } from "../all-modules";
+import { checkClientLimit } from "../all-modules";
 import { ClassError } from "./classes.service";
+import { limitMessage } from "../billing/plan-limits.service";
 import { STUDENT_CLIENT_FIELDS } from "./group-classes.dto";
 
 const defined = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 
-/** Mesmos limites da assinatura do cadastro de clientes (item 36). Falha com 403 PLAN_LIMIT. */
+/** Mesmos limites da assinatura do cadastro de clientes (por nicho; billing/plan-limits.service.ts). Falha com 403 PLAN_LIMIT. */
 export async function assertStudentLimit(tenantId: string) {
   const lim = await checkClientLimit(tenantId);
-  if (!lim.allowed) throw new ClassError(403, "PLAN_LIMIT", `Limite do plano: ${lim.current}/${lim.limit} alunos. Faca upgrade.`);
-  const plan = await getPlanInfo(tenantId);
-  if (plan.isFree && lim.current >= plan.maxClients) {
-    throw new ClassError(403, "PLAN_LIMIT", `Limite de ${plan.maxClients} alunos atingido no plano gratuito. Faca upgrade.`);
-  }
+  if (!lim.allowed) throw new ClassError(403, "PLAN_LIMIT", limitMessage("alunos", lim));
 }
 
 /** Grava o aluno (dados do cadastro em clients, ficha em student_profiles) e devolve o id. Use dentro de uma transação. */

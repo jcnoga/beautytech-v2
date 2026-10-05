@@ -72,6 +72,7 @@ function paginate(page = 1, limit = 20) {
 // CLIENTS MODULE
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 // PLAN ENFORCEMENT HELPER
+import { checkProfessionalLimit, checkClientLimit, getTenantLimits, newTenantPlan, limitMessage, getNicheSettings, saveNicheSettings, PlanSettingsError } from "./billing/plan-limits.service.js";
 export async function getPlanInfo(tenantId: string) {
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
   const settings = await db.execute(sql`SELECT key, value FROM plan_settings`);
@@ -82,15 +83,19 @@ export async function getPlanInfo(tenantId: string) {
   const trialEndsAt = tenant.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
   const isTrialActive = tenant.planTier === "trial" && trialEndsAt && trialEndsAt > now;
   const effectivePlan = isTrialActive ? "trial" : (tenant.planTier === "trial" ? "basic" : tenant.planTier);
+  // Limites pelo plano do nicho (trial = tudo incluso; gratuito = trial/free vencido).
+  const lim = await getTenantLimits(tenantId);
+  const isFree = lim.plan === "free";
   return {
     effectivePlan,
-    isFree: effectivePlan === "basic",
-    maxClients: effectivePlan === "basic" ? Number(cfg.free_max_clients ?? 30) : 99999,
-    maxAppointmentsMonth: effectivePlan === "basic" ? Number(cfg.free_max_appointments_month ?? 50) : 99999,
+    limitPlan: lim.plan,
+    isFree,
+    maxClients: lim.maxClients ?? 99999,
+    maxAppointmentsMonth: isFree ? (lim.maxAppointmentsMonth ?? 99999) : 99999,
     features: {
-      whatsapp: effectivePlan !== "basic",
-      automations: effectivePlan !== "basic",
-      campaigns: effectivePlan !== "basic",
+      whatsapp: !isFree,
+      automations: !isFree,
+      campaigns: !isFree,
     }
   };
 }
@@ -141,14 +146,7 @@ export async function clientsModule(fastify: FastifyInstance) {
   fastify.post("/clients", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const chkC = await checkClientLimit(tenantId);
-    if (!chkC.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${chkC.current}/${chkC.limit} clientes. Fa�a upgrade.`, code: "PLAN_LIMIT_CLIENTS" });
-    const plan = await getPlanInfo(tenantId);
-    if (plan.isFree) {
-      const countData = await db.execute(sql`SELECT COUNT(*) as total FROM clients WHERE tenant_id=${tenantId} AND deleted_at IS NULL`);
-      const countRows = (countData as any).rows ?? (Array.isArray(countData) ? countData : []);
-      const total = Number(countRows[0]?.total ?? countRows[0]?.count ?? 0);
-      if (total >= plan.maxClients) return reply.status(403).send({ success: false, error: `Limite de ${plan.maxClients} clientes atingido no plano gratuito. Faca upgrade para continuar.` });
-    }
+    if (!chkC.allowed) return reply.status(403).send({ success: false, error: limitMessage("clientes", chkC), code: "PLAN_LIMIT_CLIENTS" });
     const body = parseBody(clientCreateDto, req, reply); if (!body) return;
     if (await rejectForeignRefs(reply, tenantId, { clients: [body.referredById], professionals: [body.preferredProfessionalId] })) return;
     const [client] = await db.insert(clients).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
@@ -201,7 +199,7 @@ export async function professionalsModule(fastify: FastifyInstance) {
   fastify.post("/professionals", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const chkP = await checkProfessionalLimit(tenantId);
-    if (!chkP.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${chkP.current}/${chkP.limit} profissionais. Faca upgrade.`, code: "PLAN_LIMIT_PROFESSIONALS" });
+    if (!chkP.allowed) return reply.status(403).send({ success: false, error: limitMessage("profissionais", chkP), code: "PLAN_LIMIT_PROFESSIONALS" });
     const body = parseBody(professionalCreateDto, req, reply); if (!body) return;
     const [prof] = await db.insert(professionals).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
 
@@ -518,20 +516,8 @@ export async function servicesModule(fastify: FastifyInstance) {
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 // PACKAGES MODULE
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
-import { PLAN_LIMITS } from "../config/plan-limits.js";
-export async function checkProfessionalLimit(tenantId: string) {
-  const [t] = await db.select({ plan: tenants.planTier, max: tenants.maxProfessionals }).from(tenants).where(eq(tenants.id, tenantId));
-  const limit = t?.max ?? PLAN_LIMITS[t?.plan ?? "free"]?.professionals ?? 1;
-  const [{ count }] = await db.select({ count: sql`count(*)` }).from(professionals).where(and(eq(professionals.tenantId, tenantId), eq(professionals.isActive, true)));
-  return { allowed: Number(count) < limit, limit, current: Number(count) };
-}
-
-export async function checkClientLimit(tenantId: string) {
-  const [t] = await db.select({ plan: tenants.planTier, max: tenants.maxClients }).from(tenants).where(eq(tenants.id, tenantId));
-  const limit = t?.max ?? PLAN_LIMITS[t?.plan ?? "free"]?.clients ?? 100;
-  const [{ count }] = await db.select({ count: sql`count(*)` }).from(clients).where(and(eq(clients.tenantId, tenantId), isNull(clients.deletedAt)));
-  return { allowed: Number(count) < limit, limit, current: Number(count) };
-}
+// Limites do plano (por nicho, configuráveis no Super Admin): ver billing/plan-limits.service.ts.
+export { checkProfessionalLimit, checkClientLimit };
 
 export async function packagesModule(fastify: FastifyInstance) {
   fastify.get("/packages", { preHandler: [authenticate] }, async (req: any, reply) => {
@@ -1403,11 +1389,8 @@ export async function authModule(fastify: FastifyInstance) {
     const authUserId = authData.id;
 
     try {
-      const trialSettingsRows = await db.execute(sql`SELECT value FROM plan_settings WHERE key = 'trial_days'`);
-      const trialSettingsData = (trialSettingsRows as any).rows ?? (Array.isArray(trialSettingsRows) ? trialSettingsRows : []);
-      const configuredTrialDays = Number(trialSettingsData[0]?.value ?? 15);
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + configuredTrialDays);
+      // Conta nova nasce em Trial com os dias e limites do nicho (Super Admin → Planos).
+      const { planTier: newPlanTier, trialEndsAt } = await newTenantPlan(businessTypeOk);
 
       const categoriesByType = {
         beauty_salon: ["Cabelo", "Unhas", "Estetica", "Maquiagem", "Massagem"],
@@ -1421,7 +1404,7 @@ export async function authModule(fastify: FastifyInstance) {
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2,7),
         email,
         whatsapp: whatsapp ?? null,
-        planTier: "free",
+        planTier: newPlanTier,
         isActive: true,
         trialEndsAt,
         businessType: resolvedBusinessType,
@@ -1992,6 +1975,17 @@ fastify.get(
     return reply.send({ success: true });
   });
 
+  // PLAN SETTINGS POR NICHO (Trial, Gratuito, Básico, Pro, Super): valor + origem (niche | general | code)
+  fastify.get("/super-admin/plan-settings/niche/:businessType", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
+    try { return reply.send({ success: true, data: await getNicheSettings(req.params.businessType) }); }
+    catch (e: any) { if (e instanceof PlanSettingsError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code }); throw e; }
+  });
+  // Corpo: { values: { "trial.days": 60, "pro.max_clients": null } } — null/"" apaga o valor do nicho.
+  fastify.put("/super-admin/plan-settings/niche/:businessType", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
+    try { return reply.send({ success: true, data: await saveNicheSettings(req.params.businessType, (req.body as any)?.values ?? {}) }); }
+    catch (e: any) { if (e instanceof PlanSettingsError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code }); throw e; }
+  });
+
   // TENANT PLAN - UPDATE WITH MAX CLIENTS
   fastify.patch("/super-admin/tenants/:id/plan", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
     const { planTier, maxClients, maxUsers, trialDays } = req.body as any;
@@ -2023,14 +2017,18 @@ fastify.get(
     const isTrialActive = tenant.planTier === "trial" && trialEndsAt && trialEndsAt > now;
     const trialDaysLeft = isTrialActive ? Math.ceil((trialEndsAt!.getTime() - now.getTime()) / 86400000) : 0;
     const effectivePlan = isTrialActive ? "trial" : (tenant.planTier === "trial" ? "basic" : tenant.planTier);
-    
+    const lim = await getTenantLimits(tenantId);
+
     return reply.send({ success: true, data: {
       planTier: tenant.planTier,
       effectivePlan,
       isTrialActive,
       trialDaysLeft,
       trialEndsAt: tenant.trialEndsAt,
-      maxClients: effectivePlan === "basic" ? Number(cfg.free_max_clients ?? 30) : tenant.maxClients,
+      // null = ilimitado (limites do plano do nicho; ver billing/plan-limits.service.ts)
+      maxClients: lim.maxClients,
+      maxProfessionals: lim.maxProfessionals,
+      limitPlan: lim.plan,
       maxUsers: effectivePlan === "basic" ? 1 : tenant.maxUsers,
       maxAppointmentsMonth: effectivePlan === "basic" ? Number(cfg.free_max_appointments_month ?? 50) : -1,
       features: {

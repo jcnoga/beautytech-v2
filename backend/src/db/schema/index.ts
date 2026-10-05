@@ -14,7 +14,8 @@ import { relations, sql } from "drizzle-orm";
 // ENUMS
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export const planTierEnum          = pgEnum("plan_tier",           ["free","basic","pro","super"]);
+// O tipo no banco tem também trial e enterprise (migrations 0000/0001); conta nova nasce em "trial".
+export const planTierEnum          = pgEnum("plan_tier",           ["trial","free","basic","pro","super","enterprise"]);
 export const userRoleEnum          = pgEnum("user_role",           ["owner","manager","receptionist","professional","financial","marketing","viewer"]);
 export const appointmentStatusEnum = pgEnum("appointment_status",  ["pending","confirmed","in_progress","completed","cancelled","no_show","rescheduled"]);
 export const serviceTypeEnum       = pgEnum("service_type",        ["hair","nail","esthetic","beauty","massage","other"]);

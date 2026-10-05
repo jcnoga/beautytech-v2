@@ -16,6 +16,7 @@ import { rejectForeignRefs } from "../tenant-guard";
 import { auditLog, checkProfessionalLimit } from "../all-modules";
 import { ClassError, creditUsage, materializeFixed, pruneFixed, TZ } from "./classes.service";
 import { assertStudentLimit, insertStudent } from "./students.service";
+import { limitMessage } from "../billing/plan-limits.service";
 import { rows } from "./rules";
 import {
   studentCreateDto, studentUpdateDto, STUDENT_CLIENT_FIELDS,
@@ -208,7 +209,7 @@ export async function membershipsModule(fastify: FastifyInstance) {
   fastify.post("/class-instructors", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const lim = await checkProfessionalLimit(tenantId);
-    if (!lim.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${lim.current}/${lim.limit} instrutores. Faca upgrade.`, code: "PLAN_LIMIT" });
+    if (!lim.allowed) return reply.status(403).send({ success: false, error: limitMessage("instrutores", lim), code: "PLAN_LIMIT" });
     const body = parseBody(instructorCreateDto, req, reply); if (!body) return;
     const [row] = await db.insert(professionals)
       .values({ ...(defined(body) as any), tenantId, commissionType: "percentage", createdBy: userId, updatedBy: userId })
