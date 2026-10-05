@@ -28,8 +28,9 @@ async function token(authUserId: string) {
     .setSubject(authUserId).setAudience("authenticated").setExpirationTime("1h").sign(new TextEncoder().encode(SECRET));
 }
 async function seed(label: string, planTier: string, trialEndsAt: Date) {
-  const [t] = await sql`INSERT INTO tenants (name, slug, plan_tier, trial_ends_at, max_clients)
-    VALUES (${"Conta " + label}, ${label + "-" + Date.now()}, ${planTier}, ${trialEndsAt}, 1000) RETURNING id`;
+  // Sem limite próprio da conta (vazio = segue o plano; migration 0007), para valer o limite do plano.
+  const [t] = await sql`INSERT INTO tenants (name, slug, plan_tier, trial_ends_at)
+    VALUES (${"Conta " + label}, ${label + "-" + Date.now()}, ${planTier}, ${trialEndsAt}) RETURNING id`;
   const owner = randomUUID();
   await sql`INSERT INTO user_profiles (tenant_id, auth_user_id, full_name, role) VALUES (${t.id}, ${owner}, 'Dono', 'owner')`;
   return { id: t.id as string, token: await token(owner) };

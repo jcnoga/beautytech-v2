@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check": "node scripts/check.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.9",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.0",

@@ -10,6 +10,7 @@ import { eq, and, ilike, isNull, desc, gte, lte, sql, count } from "drizzle-orm"
 import { db } from "@db/connection";
 import postgres from "postgres";
 import { env, EMAIL_FROM } from "@config/env";
+import { normalizeBusinessType, isFeatureAllowed, BUSINESS_TYPES } from "@config/features";
 const _rawClient = postgres(env.POSTGRES_URL, { prepare: false, ssl: env.POSTGRES_SSL ? { rejectUnauthorized: false } : false });
 import {
   clients, professionals, appointments, appointmentServices,
@@ -22,7 +23,7 @@ import {
   autoReplySettings, passwordResets,
 } from "@db/schema/index";
 import { gotrueAdmin, findAuthUserByEmail } from "@config/gotrue";
-import { authenticate, requireOwner, requireManager, requireFinancial } from "@middleware/auth";
+import { authenticate, requireOwner, requireManager, requireFinancial, hasRole } from "@middleware/auth";
 import {
   parseBody, clientCreateDto, clientUpdateDto, professionalCreateDto, professionalUpdateDto,
   appointmentCreateDto, appointmentUpdateDto, serviceCreateDto, serviceUpdateDto,
@@ -37,7 +38,7 @@ import { rejectForeignRefs } from "./tenant-guard";
 // ============================================================
 // AUDIT LOG HELPER
 // ============================================================
-async function auditLog(params: {
+export async function auditLog(params: {
   tenantId: string;
   userId?: string;
   action: string;
@@ -71,7 +72,8 @@ function paginate(page = 1, limit = 20) {
 // CLIENTS MODULE
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 // PLAN ENFORCEMENT HELPER
-async function getPlanInfo(tenantId: string) {
+import { checkProfessionalLimit, checkClientLimit, getTenantLimits, newTenantPlan, limitMessage, getNicheSettings, saveNicheSettings, PlanSettingsError, plansForNiche } from "./billing/plan-limits.service.js";
+export async function getPlanInfo(tenantId: string) {
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
   const settings = await db.execute(sql`SELECT key, value FROM plan_settings`);
   const rows = (settings as any).rows ?? (Array.isArray(settings) ? settings : []);
@@ -81,13 +83,15 @@ async function getPlanInfo(tenantId: string) {
   const trialEndsAt = tenant.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
   const isTrialActive = tenant.planTier === "trial" && trialEndsAt && trialEndsAt > now;
   const effectivePlan = isTrialActive ? "trial" : (tenant.planTier === "trial" ? "basic" : tenant.planTier);
-  // Gratuito = trial vencido sem assinatura. effectivePlan "basic" também é o plano Básico PAGO, que não é gratuito.
-  const isFree = effectivePlan === "basic" && tenant.planTier !== "basic"; // "basic" aqui = trial vencido
+  // Limites pelo plano do nicho (trial = tudo incluso; gratuito = trial/free vencido).
+  const lim = await getTenantLimits(tenantId);
+  const isFree = lim.plan === "free";
   return {
     effectivePlan,
+    limitPlan: lim.plan,
     isFree,
-    maxClients: isFree ? Number(cfg.free_max_clients ?? 30) : 99999,
-    maxAppointmentsMonth: isFree ? Number(cfg.free_max_appointments_month ?? 50) : 99999,
+    maxClients: lim.maxClients ?? 99999,
+    maxAppointmentsMonth: isFree ? (lim.maxAppointmentsMonth ?? 99999) : 99999,
     features: {
       whatsapp: !isFree,
       automations: !isFree,
@@ -142,14 +146,7 @@ export async function clientsModule(fastify: FastifyInstance) {
   fastify.post("/clients", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const chkC = await checkClientLimit(tenantId);
-    if (!chkC.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${chkC.current}/${chkC.limit} clientes. Fa�a upgrade.`, code: "PLAN_LIMIT_CLIENTS" });
-    const plan = await getPlanInfo(tenantId);
-    if (plan.isFree) {
-      const countData = await db.execute(sql`SELECT COUNT(*) as total FROM clients WHERE tenant_id=${tenantId} AND deleted_at IS NULL`);
-      const countRows = (countData as any).rows ?? (Array.isArray(countData) ? countData : []);
-      const total = Number(countRows[0]?.total ?? countRows[0]?.count ?? 0);
-      if (total >= plan.maxClients) return reply.status(403).send({ success: false, error: `Limite de ${plan.maxClients} clientes atingido no plano gratuito. Faca upgrade para continuar.` });
-    }
+    if (!chkC.allowed) return reply.status(403).send({ success: false, error: limitMessage("clientes", chkC), code: "PLAN_LIMIT_CLIENTS" });
     const body = parseBody(clientCreateDto, req, reply); if (!body) return;
     if (await rejectForeignRefs(reply, tenantId, { clients: [body.referredById], professionals: [body.preferredProfessionalId] })) return;
     const [client] = await db.insert(clients).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
@@ -202,7 +199,7 @@ export async function professionalsModule(fastify: FastifyInstance) {
   fastify.post("/professionals", { preHandler: [authenticate, requireManager] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
     const chkP = await checkProfessionalLimit(tenantId);
-    if (!chkP.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${chkP.current}/${chkP.limit} profissionais. Faca upgrade.`, code: "PLAN_LIMIT_PROFESSIONALS" });
+    if (!chkP.allowed) return reply.status(403).send({ success: false, error: limitMessage("profissionais", chkP), code: "PLAN_LIMIT_PROFESSIONALS" });
     const body = parseBody(professionalCreateDto, req, reply); if (!body) return;
     const [prof] = await db.insert(professionals).values({ ...body, tenantId, createdBy: userId, updatedBy: userId }).returning();
 
@@ -519,20 +516,8 @@ export async function servicesModule(fastify: FastifyInstance) {
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
 // PACKAGES MODULE
 // ├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼├âãÆ├é┬ó├â┬ó├óÔÇÜ┬¼├é┬Ø├â┬ó├óÔé¼┼í├é┬¼
-import { PLAN_LIMITS } from "../config/plan-limits.js";
-async function checkProfessionalLimit(tenantId: string) {
-  const [t] = await db.select({ plan: tenants.planTier, max: tenants.maxProfessionals }).from(tenants).where(eq(tenants.id, tenantId));
-  const limit = t?.max ?? PLAN_LIMITS[t?.plan ?? "free"]?.professionals ?? 1;
-  const [{ count }] = await db.select({ count: sql`count(*)` }).from(professionals).where(and(eq(professionals.tenantId, tenantId), eq(professionals.isActive, true)));
-  return { allowed: Number(count) < limit, limit, current: Number(count) };
-}
-
-async function checkClientLimit(tenantId: string) {
-  const [t] = await db.select({ plan: tenants.planTier, max: tenants.maxClients }).from(tenants).where(eq(tenants.id, tenantId));
-  const limit = t?.max ?? PLAN_LIMITS[t?.plan ?? "free"]?.clients ?? 100;
-  const [{ count }] = await db.select({ count: sql`count(*)` }).from(clients).where(and(eq(clients.tenantId, tenantId), isNull(clients.deletedAt)));
-  return { allowed: Number(count) < limit, limit, current: Number(count) };
-}
+// Limites do plano (por nicho, configuráveis no Super Admin): ver billing/plan-limits.service.ts.
+export { checkProfessionalLimit, checkClientLimit };
 
 export async function packagesModule(fastify: FastifyInstance) {
   fastify.get("/packages", { preHandler: [authenticate] }, async (req: any, reply) => {
@@ -1229,7 +1214,9 @@ export async function authModule(fastify: FastifyInstance) {
     const trialEnd = tenant?.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
     const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000) : null;
     if (!tenant) return reply.status(404).send({ success: false, error: "Tenant nao encontrado" });
-    return reply.send({ success: true, data: { ...tenant, daysLeft } });
+    // role/canManage: a tela decide o que mostrar pelo que o backend diz (quem altera regras é dono/gerente).
+    const role = req.tenantContext.role;
+    return reply.send({ success: true, data: { ...tenant, daysLeft, role, canManage: hasRole(role, "manager") } });
     } catch(e: any) { console.error("auth/me error:", e.message, e.stack); return reply.status(500).send({ success: false, error: e.message }); }
   });
 
@@ -1381,6 +1368,12 @@ export async function authModule(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: "Senha deve ter no m├âãÆ├åÔÇÖ├âÔÇÜ├é┬¡nimo 6 caracteres" });
     }
 
+    // Nicho: vazio = salão (padrão); valor fora da lista = recusado antes de criar qualquer coisa.
+    const businessTypeOk = normalizeBusinessType(businessType);
+    if (!businessTypeOk) {
+      return reply.status(400).send({ success: false, error: "Tipo de negócio inválido", code: "INVALID_BUSINESS_TYPE" });
+    }
+
     // Criar usu├âãÆ├åÔÇÖ├âÔÇÜ├é┬írio via API REST do Supabase (sem SDK)
     const authRes = await gotrueAdmin("/admin/users", {
       method: "POST",
@@ -1396,25 +1389,22 @@ export async function authModule(fastify: FastifyInstance) {
     const authUserId = authData.id;
 
     try {
-      const trialSettingsRows = await db.execute(sql`SELECT value FROM plan_settings WHERE key = 'trial_days'`);
-      const trialSettingsData = (trialSettingsRows as any).rows ?? (Array.isArray(trialSettingsRows) ? trialSettingsRows : []);
-      const configuredTrialDays = Number(trialSettingsData[0]?.value ?? 15);
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + configuredTrialDays);
+      // Conta nova nasce em Trial com os dias e limites do nicho (Super Admin → Planos).
+      const { planTier: newPlanTier, trialEndsAt } = await newTenantPlan(businessTypeOk);
 
       const categoriesByType = {
         beauty_salon: ["Cabelo", "Unhas", "Estetica", "Maquiagem", "Massagem"],
         aesthetics_clinic: ["Limpeza de Pele", "Peeling", "Microagulhamento", "Depilacao", "Massagem Estetica"],
         barbershop: ["Corte Masculino", "Barba", "Pigmentacao", "Sobrancelha Masculina", "Tratamento Capilar"],
       }
-      const resolvedBusinessType = (businessType && categoriesByType[businessType as keyof typeof categoriesByType]) ? businessType : "beauty_salon"
-      const defaultCategories = categoriesByType[resolvedBusinessType as keyof typeof categoriesByType]
+      const resolvedBusinessType = businessTypeOk
+      const defaultCategories: string[] = categoriesByType[resolvedBusinessType as keyof typeof categoriesByType] ?? []
       const [tenant] = await db.insert(tenants).values({
         name: salonName,
         slug: salonName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2,7),
         email,
         whatsapp: whatsapp ?? null,
-        planTier: "free",
+        planTier: newPlanTier,
         isActive: true,
         trialEndsAt,
         businessType: resolvedBusinessType,
@@ -1444,7 +1434,9 @@ export async function authModule(fastify: FastifyInstance) {
         isActive: true,
       });
 
-      await db.insert(serviceCategories).values(
+      // Pilates: padrões das regras do studio (Configurações do Studio) criados no cadastro.
+      if (resolvedBusinessType === "pilates") await db.execute(sql`INSERT INTO class_settings (tenant_id) VALUES (${tenant.id}) ON CONFLICT (tenant_id) DO NOTHING`);
+      if (defaultCategories.length) await db.insert(serviceCategories).values(
         defaultCategories.map((name, i) => ({
           tenantId: tenant.id,
           name,
@@ -1456,7 +1448,8 @@ export async function authModule(fastify: FastifyInstance) {
       // Popula o tenant com dados demo automaticamente (profissionais, servicos,
       // horarios, clientes e agendamentos de exemplo), chamando a rota /demo/seed
       // internamente via fastify.inject (sem requisicao de rede real).
-      try {
+      // So para nichos com a funcionalidade "demo" (ver config/features.ts).
+      if (isFeatureAllowed("demo", resolvedBusinessType)) try {
         const jwt = await import("jsonwebtoken");
         const demoToken = jwt.default.sign(
           {
@@ -1701,10 +1694,11 @@ export async function superAdminModule(fastify: FastifyInstance) {
   });
 
       fastify.get("/super-admin/tenants", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
-    const { search, status } = req.query as any;
+    const { search, status, businessType } = req.query as any;
     const cond: any[] = [isNull(tenants.deletedAt)];
     if (search) cond.push(ilike(tenants.name, `%${search}%`));
-    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers, whatsapp_status: tenants.whatsappStatus, whatsapp_phone: tenants.whatsappPhone, whatsapp_connected_at: tenants.whatsappConnectedAt, whatsapp_mode: tenants.whatsappMode }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
+    if ((BUSINESS_TYPES as readonly string[]).includes(businessType)) cond.push(eq(tenants.businessType, businessType));
+    const data = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, email: tenants.email, phone: tenants.phone, planTier: tenants.planTier, businessType: tenants.businessType, clientsCount: sql<number>`(SELECT count(*)::int FROM clients c WHERE c.tenant_id = "tenants"."id" AND c.deleted_at IS NULL)`, isActive: tenants.isActive, trialEndsAt: tenants.trialEndsAt, createdAt: tenants.createdAt, maxUsers: tenants.maxUsers, whatsapp_status: tenants.whatsappStatus, whatsapp_phone: tenants.whatsappPhone, whatsapp_connected_at: tenants.whatsappConnectedAt, whatsapp_mode: tenants.whatsappMode }).from(tenants).where(and(...cond)).orderBy(desc(tenants.createdAt));
     const now = new Date();
     const enriched = data.map(t => {
       const trialEnd = t.trialEndsAt ? new Date(t.trialEndsAt) : null;
@@ -1728,8 +1722,14 @@ export async function superAdminModule(fastify: FastifyInstance) {
   });
 
   fastify.patch("/super-admin/tenants/:id", { preHandler: [requireSuperAdmin] }, async (req: any, reply) => {
-    const { trialDays, planTier, isActive, maxUsers } = req.body as any;
+    const { trialDays, planTier, isActive, maxUsers, businessType } = req.body as any;
     const updates: any = { updatedAt: new Date() };
+    // Nicho: só o Super Admin troca, e só para um valor da lista.
+    if (businessType !== undefined) {
+      const bt = businessType ? normalizeBusinessType(businessType) : null;
+      if (!bt) return reply.status(400).send({ success: false, error: "Tipo de negócio inválido", code: "INVALID_BUSINESS_TYPE" });
+      updates.businessType = bt;
+    }
     if (planTier  !== undefined) updates.planTier  = planTier;
     if (isActive  !== undefined) updates.isActive  = isActive;
     if (maxUsers         !== undefined) updates.maxUsers         = maxUsers;
@@ -1965,6 +1965,20 @@ fastify.get(
     for (const row of rows as any[]) {
       if (allowedKeys.has(row.key)) settings[row.key] = row.value;
     }
+    // Página inicial pública: valores que valem para o salão (nicho → geral → padrão), nas mesmas chaves de antes.
+    const salon = plansForNiche(new Map((rows as any[]).map((r: any) => [r.key, r.value])), "beauty_salon");
+    for (const tier of ["basic", "pro", "super"] as const) {
+      const pl = salon[tier];
+      if (pl.monthlyPrice) settings[`plan_${tier}_monthly`] = String(pl.monthlyPrice);
+      if (pl.semiannualPrice !== null) settings[`plan_${tier}_semiannual`] = String(pl.semiannualPrice);
+      if (pl.annualPrice !== null) settings[`plan_${tier}_annual`] = String(pl.annualPrice);
+      if (pl.professionals !== null) settings[`plan_${tier}_max_users`] = String(pl.professionals);
+    }
+    const resolved = await getNicheSettings("beauty_salon");
+    for (const [key, [plan, f]] of [["free_max_clients", ["free", "max_clients"]], ["free_max_appointments_month", ["free", "max_appointments_month"]], ["trial_days", ["trial", "days"]]] as const) {
+      const v = (resolved as any)[plan]?.[f]?.value;
+      if (v !== null && v !== undefined) settings[key] = String(v);
+    }
     return reply.send({ success: true, data: settings });
   });
 
@@ -1973,6 +1987,17 @@ fastify.get(
     const valueStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
     await db.execute(sql`UPDATE plan_settings SET value=${valueStr}, updated_at=NOW() WHERE key=${req.params.key}`);
     return reply.send({ success: true });
+  });
+
+  // PLAN SETTINGS POR NICHO (Trial, Gratuito, Básico, Pro, Super): valor + origem (niche | general | code)
+  fastify.get("/super-admin/plan-settings/niche/:businessType", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
+    try { return reply.send({ success: true, data: await getNicheSettings(req.params.businessType) }); }
+    catch (e: any) { if (e instanceof PlanSettingsError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code }); throw e; }
+  });
+  // Corpo: { values: { "trial.days": 60, "pro.max_clients": null } } — null/"" apaga o valor do nicho.
+  fastify.put("/super-admin/plan-settings/niche/:businessType", { preHandler: [requireSuperAdmin] }, async (req: any, reply: any) => {
+    try { return reply.send({ success: true, data: await saveNicheSettings(req.params.businessType, (req.body as any)?.values ?? {}) }); }
+    catch (e: any) { if (e instanceof PlanSettingsError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code }); throw e; }
   });
 
   // TENANT PLAN - UPDATE WITH MAX CLIENTS
@@ -2006,26 +2031,29 @@ fastify.get(
     const isTrialActive = tenant.planTier === "trial" && trialEndsAt && trialEndsAt > now;
     const trialDaysLeft = isTrialActive ? Math.ceil((trialEndsAt!.getTime() - now.getTime()) / 86400000) : 0;
     const effectivePlan = isTrialActive ? "trial" : (tenant.planTier === "trial" ? "basic" : tenant.planTier);
-    // Gratuito = trial vencido sem assinatura (o Básico pago também aparece como effectivePlan "basic").
-    const isFree = effectivePlan === "basic" && tenant.planTier !== "basic"; // "basic" aqui = trial vencido
-    
+    const lim = await getTenantLimits(tenantId);
+
     return reply.send({ success: true, data: {
       planTier: tenant.planTier,
       effectivePlan,
       isTrialActive,
       trialDaysLeft,
       trialEndsAt: tenant.trialEndsAt,
-      isFree,
-      maxClients: isFree ? Number(cfg.free_max_clients ?? 30) : tenant.maxClients,
-      maxUsers: isFree ? 1 : tenant.maxUsers,
-      maxAppointmentsMonth: isFree ? Number(cfg.free_max_appointments_month ?? 50) : -1,
+      // null = ilimitado (limites do plano do nicho; ver billing/plan-limits.service.ts)
+      maxClients: lim.maxClients,
+      maxProfessionals: lim.maxProfessionals,
+      limitPlan: lim.plan,
+      // Gratuito = trial vencido sem assinatura (o "basic" pago NÃO é gratuito; effectivePlan "basic" é legado).
+      isFree: lim.plan === "free",
+      maxUsers: lim.plan === "free" ? 1 : tenant.maxUsers,
+      maxAppointmentsMonth: lim.plan === "free" ? (lim.maxAppointmentsMonth ?? -1) : -1,
       features: {
-        whatsapp: !isFree,
-        automations: !isFree,
-        campaigns: !isFree,
-        reports: !isFree,
-        commissions: !isFree,
-        inventory: !isFree,
+        whatsapp: lim.plan !== "free",
+        automations: lim.plan !== "free",
+        campaigns: lim.plan !== "free",
+        reports: lim.plan !== "free",
+        commissions: lim.plan !== "free",
+        inventory: lim.plan !== "free",
       },
       whatsappLimits: {
         minIntervalSeconds: Number(cfg.whatsapp_min_interval_seconds ?? 20),
@@ -2140,6 +2168,13 @@ fastify.get(
         db.execute(sql.raw("SELECT COUNT(*)::int as count FROM clients")),
         db.execute(sql.raw("SELECT COUNT(*)::int as count FROM appointments")),
       ]);
+      // Empresas por nicho (item 37): total e ativas.
+      const byType = await db.execute(sql.raw("SELECT business_type, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE is_active)::int AS active FROM tenants WHERE deleted_at IS NULL GROUP BY business_type"));
+      const byTypeRows: any[] = (byType as any).rows ?? (Array.isArray(byType) ? byType : []);
+      const byBusinessType = Object.fromEntries(BUSINESS_TYPES.map((bt) => {
+        const r = byTypeRows.find((x) => x.business_type === bt);
+        return [bt, { total: Number(r?.total ?? 0), active: Number(r?.active ?? 0) }];
+      }));
       const n = (r: any) => Number(Array.isArray(r) ? r[0]?.count : (r?.rows?.[0]?.count ?? 0));
       return reply.send({ success: true, data: {
         totalTenants:   n(t1),
@@ -2148,6 +2183,7 @@ fastify.get(
         blockedTenants: n(t4),
         totalClients:   n(t5),
         totalAppts:     n(t6),
+        byBusinessType,
       }});
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
@@ -2494,7 +2530,7 @@ export async function consentFormsModule(fastify: any) {
   fastify.get("/consent-forms/:clientId", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const data = await db.execute(sql`SELECT * FROM consent_forms WHERE tenant_id = ${tenantId} AND client_id = ${req.params.clientId} ORDER BY is_signed DESC, created_at DESC`);
-    return reply.send({ success: true, data: (data as any).rows ?? [] });
+    return reply.send({ success: true, data: (data as any).rows ?? (Array.isArray(data) ? data : []) });
   });
   fastify.post("/consent-forms", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId, userId } = req.tenantContext;

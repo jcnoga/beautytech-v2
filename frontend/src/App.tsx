@@ -17,6 +17,16 @@ import AuditLogsPage from './AuditLogsPage';
 import OnboardingWizard from './OnboardingWizard';
 import LandingPageSobre from './LandingPageSobre';
 import PaymentSuccessPage from './PaymentSuccessPage';
+import { can, setCurrentBusinessType } from './config/nicho';
+import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type Feature } from './config/features';
+import ClassStudentsPage from './group-classes/StudentsPage';
+import ClassLeadsPage from './group-classes/LeadsPage';
+import MembershipsPage from './group-classes/PlansPage';
+import ClassInstructorsPage from './group-classes/InstructorsPage';
+import ClassModalitiesPage from './group-classes/ModalitiesPage';
+import SchedulesPage from './group-classes/SchedulesPage';
+import ClassAgendaPage from './group-classes/AgendaPage';
+import TodayPage from './group-classes/TodayPage';
 // ============================================================
 // BEAUTYTECH v2 - Frontend Completo
 // Design: luxury refinado - rose gold + noir + cream
@@ -25,7 +35,7 @@ import PaymentSuccessPage from './PaymentSuccessPage';
 //             Servicos, Pacotes, Financeiro, Comissoes, CRM, Fidelidade
 // ============================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase, api, dashboardApi, clientsApi, professionalsApi, servicesApi, financialApi, commissionsApi, crmApi, packagesApi, appointmentsApi } from "./api/client";
 
 // --- DESIGN TOKENS -------------------------------------------
@@ -279,7 +289,7 @@ function RegisterPage({ onBack }: any) {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setSuccess("Salao cadastrado com sucesso! Faca login para continuar.");
+      setSuccess(businessType === "pilates" ? "Studio cadastrado com sucesso! Faca login para continuar." : "Salao cadastrado com sucesso! Faca login para continuar.");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -292,7 +302,7 @@ function RegisterPage({ onBack }: any) {
       <div style={{ width:"100%", maxWidth:420 }}>
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
-            {[{v:"beauty_salon",l:"Salao de Beleza",i:"💇"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"💆"},{v:"barbershop",l:"Barbearia",i:"🪒"}].map(opt => (
+            {[{v:"beauty_salon",l:"Salao de Beleza",i:"💇"},{v:"aesthetics_clinic",l:"Clinica de Estetica",i:"💆"},{v:"barbershop",l:"Barbearia",i:"🪒"},{v:"pilates",l:"Studio de Pilates",i:"🧘"}].map(opt => (
               <label key={opt.v} onClick={() => setBusinessType(opt.v)} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", borderRadius:10, border:`1px solid ${businessType === opt.v ? "#c9a96e" : "#2a2a2a"}`, background: businessType === opt.v ? "#c9a96e15" : "transparent", cursor:"pointer", transition:"all 0.2s" }}>
                 <span style={{ fontSize:20 }}>{opt.i}</span>
                 <span style={{ flex:1, fontSize:14, color: businessType === opt.v ? "#c9a96e" : "#a0998f", fontWeight: businessType === opt.v ? 600 : 400 }}>{opt.l}</span>
@@ -300,9 +310,9 @@ function RegisterPage({ onBack }: any) {
               </label>
             ))}
           </div>
-          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
+          <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12 }}>{businessType === "pilates" ? "Novo Studio" : businessType === "aesthetics_clinic" ? "Nova Clinica" : businessType === "barbershop" ? "Nova Barbearia" : "Novo Salao"}</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>ZenSalon</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica, Barbearia ou Studio de Pilates</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           {success ? (
@@ -312,7 +322,7 @@ function RegisterPage({ onBack }: any) {
             </div>
           ) : (
             <>
-              <Inp label="Nome do Salao" value={salonName} onChange={setSalonName} placeholder="Salao Bella Arte" required />
+              <Inp label={businessType === "pilates" ? "Nome do Studio" : "Nome do Salao"} value={salonName} onChange={setSalonName} placeholder={businessType === "pilates" ? "Studio Equilibrio Pilates" : "Salao Bella Arte"} required />
               <Inp label="Seu Nome" value={ownerName} onChange={setOwnerName} placeholder="Maria da Silva" required />
               <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="maria@salao.com.br" required />
               <Inp label="Senha" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="minimo 6 caracteres" required />
@@ -428,7 +438,7 @@ function LoginPage({ onLogin }: any) {
         <div style={{ textAlign:"center", marginBottom:48 }}>
           <div style={{ fontSize:14, letterSpacing:"0.3em", color: C.rose, textTransform:"uppercase", marginBottom:12, fontFamily: FB }}>Sistema de Gestao</div>
           <div style={{ fontSize:44, fontWeight:700, color: C.text, fontFamily: FD, letterSpacing:"-0.03em", lineHeight:1 }}>ZenSalon</div>
-          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica ou Barbearia</div>
+          <div style={{ fontSize:13, color: C.textMuted, marginTop:8 }}>Salao de Beleza, Clinica de Estetica, Barbearia ou Studio de Pilates</div>
         </div>
         <div style={{ background: C.card, border:`1px solid ${C.borderHi}`, borderRadius:24, padding:36 }}>
           <Inp label="E-mail" value={email} onChange={setEmail} type="email" placeholder="seu@email.com" autoComplete="off" />
@@ -925,10 +935,10 @@ function ClientsPage() {
     { key:"lastVisitAt", label:"Ultima Visita", render: (c: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{fmtDate(c.lastVisitAt)}</span> },
     { key:"action", label:"", render: (c: any) => (
       <div style={{ display:"flex", gap:6 }}>
-        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setClinicClient(c); }} style={{ background:"#7c3aed22", color:"#7c3aed", border:"1px solid #7c3aed44" }}>Clinica</Btn>
+        {can("clinical_records") && <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setClinicClient(c); }} style={{ background:"#7c3aed22", color:"#7c3aed", border:"1px solid #7c3aed44" }}>Clinica</Btn>}
         <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); openEdit(c); }}>Editar</Btn>
-        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setAnamneseClient(c); }}>Anamnese</Btn>
-        <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setLgpdClient(c); }}>LGPD</Btn>
+        {can("clinical_records") && <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setAnamneseClient(c); }}>Anamnese</Btn>}
+        {can("consent_forms") && <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); setLgpdClient(c); }}>LGPD</Btn>}
       </div>
     )},
   ];
@@ -1108,6 +1118,133 @@ function ClientsPage() {
   );
 }
 
+// Planos da assinatura POR NICHO (Trial, Gratuito, Básico, Pro, Super). O backend resolve cada valor na ordem
+// nicho → geral → padrão do sistema e informa a origem; aqui só se edita o valor do nicho (vazio = herda).
+const NICHE_PLAN_FIELDS: { plan: string; title: string; fields: [string, string][] }[] = [
+  { plan: "trial", title: "Trial (teste grátis, tudo incluso)", fields: [["days", "Dias de teste"], ["max_professionals", "Máx. profissionais"], ["max_clients", "Máx. clientes"]] },
+  { plan: "free", title: "Gratuito (depois do teste, sem assinatura)", fields: [["max_professionals", "Máx. profissionais"], ["max_clients", "Máx. clientes"], ["max_appointments_month", "Agendamentos por mês"]] },
+  ...(["basic", "pro", "super"] as const).map((p) => ({
+    plan: p, title: `Plano ${({ basic: "Básico", pro: "Pro", super: "Super" } as Record<string, string>)[p]}`,
+    fields: [["monthly", "Preço mensal (R$)"], ["semiannual", "Preço semestral (R$/mês)"], ["annual", "Preço anual (R$/mês)"],
+      ["max_professionals", "Máx. profissionais"], ["max_clients", "Máx. clientes (vazio = ilimitado)"]] as [string, string][],
+  })),
+];
+const PLAN_SOURCE_LABEL: Record<string, string> = { general: "geral", code: "padrão" };
+const nicheLabel = (bt: string) => BUSINESS_TYPE_LABELS[bt as keyof typeof BUSINESS_TYPE_LABELS] ?? bt;
+
+function NichePlansPanel({ saFetch }: any) {
+  const niches = BUSINESS_TYPES as readonly string[];
+  const [niche, setNiche] = useState<string>(niches[0]);
+  const [data, setData] = useState<any>(null);
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  /** Valor próprio do nicho (o que aparece no campo); herdado fica vazio, com o valor em cinza. */
+  const own = (d: any, plan: string, f: string) => {
+    const cell = d?.[plan]?.[f];
+    return cell?.source === "niche" && cell.value !== null ? String(cell.value) : "";
+  };
+  const fill = (d: any) => {
+    setData(d);
+    const v: Record<string, string> = {};
+    for (const g of NICHE_PLAN_FIELDS) for (const [f] of g.fields) v[`${g.plan}.${f}`] = own(d, g.plan, f);
+    setVals(v);
+  };
+  useEffect(() => {
+    setMsg(null); setData(null);
+    saFetch("GET", `/super-admin/plan-settings/niche/${niche}`)
+      .then((r: any) => { if (r?.success === false) throw new Error(r.error); fill(r?.data); })
+      .catch((e: any) => setMsg({ kind: "error", text: e?.message ?? "Erro ao carregar" }));
+  }, [niche]);
+
+  const save = async () => {
+    const values: Record<string, string | null> = {};
+    for (const [k, v] of Object.entries(vals)) {
+      const [plan, f] = k.split(".");
+      if (v.trim() !== own(data, plan, f)) values[k] = v.trim() === "" ? null : v.trim();
+    }
+    if (!Object.keys(values).length) { setMsg({ kind: "ok", text: "Nada para salvar." }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      const r: any = await saFetch("PUT", `/super-admin/plan-settings/niche/${niche}`, { values });
+      if (r?.success === false) throw new Error(r.error ?? "Erro ao salvar");
+      fill(r.data);
+      setMsg({ kind: "ok", text: `Planos de ${nicheLabel(niche)} salvos.` });
+    } catch (e: any) { setMsg({ kind: "error", text: e?.message ?? "Erro ao salvar" }); }
+    finally { setSaving(false); }
+  };
+  /** Copia para o formulário os valores que valem hoje em outro nicho (só grava ao clicar em Salvar). */
+  const copyFrom = async (bt: string) => {
+    if (!bt) return;
+    setMsg(null);
+    try {
+      const r: any = await saFetch("GET", `/super-admin/plan-settings/niche/${bt}`);
+      if (r?.success === false) throw new Error(r.error);
+      const v: Record<string, string> = {};
+      for (const g of NICHE_PLAN_FIELDS) for (const [f] of g.fields) {
+        const cell = r?.data?.[g.plan]?.[f];
+        v[`${g.plan}.${f}`] = cell && cell.value !== null ? String(cell.value) : "";
+      }
+      setVals(v);
+      setMsg({ kind: "ok", text: `Valores de ${nicheLabel(bt)} copiados. Confira e clique em "Salvar".` });
+    } catch (e: any) { setMsg({ kind: "error", text: e?.message ?? "Erro ao copiar" }); }
+  };
+  const placeholder = (plan: string, f: string) => {
+    const cell = data?.[plan]?.[f];
+    if (!cell || cell.source === "niche") return "";
+    if (cell.value === null) {
+      if (f === "max_clients") return "ilimitado";
+      if (f === "semiannual") return "10% off do mensal";
+      if (f === "annual") return "20% off do mensal";
+      return "-";
+    }
+    const shown = ["monthly", "semiannual", "annual"].includes(f)
+      ? Number(cell.value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : String(cell.value);
+    return `${shown} (${PLAN_SOURCE_LABEL[cell.source] ?? cell.source})`;
+  };
+  const inputSt = { width:150, padding:"8px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontFamily:FB, fontSize:14, textAlign:"center" as const };
+
+  return (
+    <div style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, fontFamily:FB }}>
+      <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:6 }}>Planos por nicho</div>
+      <div style={{ fontSize:14, color:C.textMuted, marginBottom:16 }}>Campo vazio usa o valor geral (mais abaixo) ou o padrão do sistema, mostrado em cinza.</div>
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+        {niches.map(bt => <Btn key={bt} small variant={bt === niche ? "primary" : "secondary"} onClick={() => setNiche(bt)}>{nicheLabel(bt)}</Btn>)}
+      </div>
+      <label style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", marginBottom:16 }}>
+        <span style={{ fontSize:14, color:C.text }}>Copiar valores de outro nicho:</span>
+        <select value="" onChange={e => copyFrom(e.target.value)} style={{ ...inputSt, width:"auto", textAlign:"left" }}>
+          <option value="">Escolher...</option>
+          {niches.filter(bt => bt !== niche).map(bt => <option key={bt} value={bt}>{nicheLabel(bt)}</option>)}
+        </select>
+      </label>
+      {msg && <div style={{ fontSize:14, marginBottom:14, padding:"10px 12px", borderRadius:10, color: msg.kind === "ok" ? C.sage : C.ruby, background: `${msg.kind === "ok" ? C.sage : C.ruby}14` }}>{msg.text}</div>}
+      {!data ? <div style={{ fontSize:14, color:C.textMuted }}>Carregando...</div> : NICHE_PLAN_FIELDS.map(g => (
+        <div key={g.plan} style={{ borderTop:`1px solid ${C.border}`, paddingTop:14, marginTop:14 }}>
+          <div style={{ fontSize:16, fontWeight:700, color:C.rose, marginBottom:12 }}>{g.title}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {g.fields.map(([f, label]) => {
+              const k = `${g.plan}.${f}`;
+              return (
+                <label key={k} style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+                  <span style={{ flex:"1 1 200px", fontSize:14, color:C.text }}>{label}</span>
+                  <input type="number" min={0} step={["monthly", "semiannual", "annual"].includes(f) ? "0.01" : "1"} value={vals[k] ?? ""}
+                    placeholder={placeholder(g.plan, f)} onChange={e => setVals(v => ({ ...v, [k]: e.target.value }))} style={inputSt} />
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <div style={{ display:"flex", justifyContent:"flex-end", marginTop:18 }}>
+        <Btn onClick={save} disabled={saving || !data}>{saving ? "Salvando..." : "Salvar"}</Btn>
+      </div>
+    </div>
+  );
+}
+
 function PlanSettingsPanel({ saFetch }: any) {
   const [settings, setSettings] = useState<any[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
@@ -1155,17 +1292,17 @@ function PlanSettingsPanel({ saFetch }: any) {
   };
   const groups = [
     { title: "Inteligencia Artificial (em breve)", keys: ["ai_monthly_budget_brl"], disabled: true },
-    { title: "Plano Gratuito & Trial", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
-    { title: "Plano Basico", keys: ["plan_basic_monthly","plan_basic_semiannual","plan_basic_annual","plan_basic_max_users"] },
-    { title: "Plano Pro", keys: ["plan_pro_monthly","plan_pro_semiannual","plan_pro_annual","plan_pro_max_users"] },
-    { title: "Plano Super", keys: ["plan_super_monthly","plan_super_semiannual","plan_super_annual","plan_super_max_users"] },
+    { title: "Gratuito & Trial (geral: vale quando o nicho não tem valor)", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
+    { title: "Plano Basico (geral)", keys: ["plan_basic_monthly","plan_basic_semiannual","plan_basic_annual","plan_basic_max_users"] },
+    { title: "Plano Pro (geral)", keys: ["plan_pro_monthly","plan_pro_semiannual","plan_pro_annual","plan_pro_max_users"] },
+    { title: "Plano Super (geral)", keys: ["plan_super_monthly","plan_super_semiannual","plan_super_annual","plan_super_max_users"] },
     { title: "Anti-ban WhatsApp", keys: ["whatsapp_min_interval_seconds","whatsapp_max_interval_seconds","whatsapp_daily_limit_new","whatsapp_daily_limit_warm","whatsapp_daily_limit_mature","whatsapp_send_start_hour","whatsapp_send_end_hour"] },
   ];
-  if (settings.length === 0) return null;
   return (
     <div style={{ marginTop:32 }}>
+      <NichePlansPanel saFetch={saFetch} />
       <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:20, fontFamily:FB }}>Configuracoes Globais</div>
-      {groups.map(g => (
+      {settings.length > 0 && groups.map(g => (
         <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, opacity: g.disabled ? 0.75 : 1 }}>
           <div style={{ fontSize:16, fontWeight:700, color: g.disabled ? "#888" : C.rose, marginBottom:20, fontFamily:FB }}>{g.title}{g.disabled ? " ??" : ""}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
@@ -1587,8 +1724,13 @@ function ProfessionalsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" });
+  const emptyForm = { fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" };
+  const [form, setForm] = useState(emptyForm);
  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+  // Fechar (Cancelar, X ou fora do modal) e abrir um novo cadastro sempre zeram o formulário,
+  // para o "+ Nova Profissional" não herdar dados nem foto de quem foi editado antes.
+  const closeForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm); };
+  const openNew = () => { setEditingId(null); setForm(emptyForm); setShowForm(true); };
 
   const exportXLSX = () => {
     const XLSX = (window as any).XLSX;
@@ -1655,9 +1797,7 @@ function ProfessionalsPage() {
         const r: any = await professionalsApi.create(payload);
         setData(d => [...d, r.data]);
       }
-      setShowForm(false);
-      setEditingId(null);
-      setForm({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" });
+      closeForm();
     } catch(e: any) {
       alert("Erro: " + e.message);
     } finally { setSaving(false); }
@@ -1683,7 +1823,7 @@ function ProfessionalsPage() {
 
   return (
     <div>
-      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Nova Profissional</Btn>} />
+      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={openNew}>+ Nova Profissional</Btn>} />
         {scheduleProf && <ProfessionalScheduleModal professional={scheduleProf} token={(() => { const k = Object.keys(localStorage).find(k=>k.includes('auth-token')); return k ? JSON.parse(localStorage.getItem(k)||'{}')?.access_token : ''; })()} onClose={() => setScheduleProf(null)} />}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
         {data.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB }}>Nenhum profissional cadastrado.</div>}
@@ -1718,7 +1858,7 @@ function ProfessionalsPage() {
           </div>
         ))}
 </div>
-      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingId(null); }} title={editingId ? "Editar Profissional" : "Nova Profissional"}>
+      <Modal open={showForm} onClose={closeForm} title={editingId ? "Editar Profissional" : "Nova Profissional"}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
           <div style={{ width:64, height:64, borderRadius:"50%", overflow:"hidden", background:"#2a2a2a", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:"1px solid rgba(201,169,110,0.3)" }}>
             {form.avatarUrl ? <img src={form.avatarUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:24 }}>👩</span>}
@@ -1746,7 +1886,7 @@ function ProfessionalsPage() {
           <Inp label="Cor" value={form.color} onChange={f("color")} type="color" />
         </div>
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
-          <Btn variant="secondary" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Btn>
+          <Btn variant="secondary" onClick={closeForm}>Cancelar</Btn>
           <Btn onClick={save} disabled={saving}>{saving ? "Salvando..." : (editingId ? "Salvar Alteracoes" : "Cadastrar")}</Btn>
         </div>
       </Modal>
@@ -2628,6 +2768,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [tenants, setTenants] = useState<any[]>([]);
   const [search, setSearch]   = useState("");
   const [filter, setFilter]   = useState("all");
+  const [nicheFilter, setNicheFilter] = useState("all");
   const [selected, setSelected] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
@@ -2687,6 +2828,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (filter !== "all") params.set("status", filter);
+      if (nicheFilter !== "all") params.set("businessType", nicheFilter);
       const qs = params.toString();
       const [s, t] = await Promise.all([
         saFetch("GET", "/super-admin/stats"),
@@ -2698,11 +2840,24 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, [search, filter]);
+  useEffect(() => { load(); }, [search, filter, nicheFilter]);
 
   const block = async (id: string) => {
     await saFetch("POST", `/super-admin/tenants/${id}/block`);
     load();
+  };
+
+  // Nicho da empresa: define quais telas e funções ela vê (config/features.ts). Só o Super Admin troca.
+  const changeBusinessType = async (id: string, businessType: string) => {
+    const label = BUSINESS_TYPE_LABELS[businessType as keyof typeof BUSINESS_TYPE_LABELS] ?? businessType;
+    if (!confirm(`Trocar o nicho desta empresa para "${label}"? As telas e funções disponíveis mudam na hora.`)) return;
+    try {
+      await saFetch("PATCH", `/super-admin/tenants/${id}`, { businessType });
+      setSelected((s: any) => (s && s.id === id ? { ...s, businessType } : s));
+      load();
+    } catch (e: any) {
+      alert("Erro ao trocar o nicho: " + (e?.message ?? "erro desconhecido"));
+    }
   };
 
   const unblock = async (id: string) => {
@@ -2839,6 +2994,8 @@ function SuperAdminDashboard({ token, onLogout }: any) {
         {t.phone && <div style={{ fontSize:11, color:C.textMuted }}>{t.phone}</div>}
       </div>
     )},
+    { key:"businessType", label:"Nicho", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{BUSINESS_TYPE_LABELS[(t.businessType || "beauty_salon") as keyof typeof BUSINESS_TYPE_LABELS] ?? t.businessType}</span> },
+    { key:"clientsCount", label:"Uso", render: (t: any) => <span style={{ fontSize:12, color:C.textMuted }}>{t.clientsCount ?? 0} {t.businessType === "pilates" ? "alunos" : "clientes"}</span> },
     { key:"trialStatus", label:"Status", render: (t: any) => {
       const s = TRIAL_STATUS[t.trialStatus];
       return <Badge label={s?.label ?? t.trialStatus} color={s?.color ?? C.textMuted} />;
@@ -2914,6 +3071,17 @@ function SuperAdminDashboard({ token, onLogout }: any) {
             <KpiCard icon="Agt" label="Agendamentos"   value={stats.totalAppts}     color={C.rose} />
           </div>
         )}
+        {stats?.byBusinessType && (
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:20 }}>
+            {BUSINESS_TYPES.map((bt) => (
+              <button key={bt} onClick={() => setNicheFilter(nicheFilter === bt ? "all" : bt)}
+                style={{ padding:"10px 14px", borderRadius:12, border:`1px solid ${nicheFilter===bt?C.gold:C.border}`, background:nicheFilter===bt?`${C.gold}15`:C.card, color:C.text, fontSize:12, cursor:"pointer", textAlign:"left" }}>
+                <div style={{ fontSize:10, color:C.textMuted, textTransform:"uppercase", letterSpacing:".08em" }}>{BUSINESS_TYPE_LABELS[bt]}</div>
+                <div style={{ fontSize:18, fontWeight:700 }}>{stats.byBusinessType[bt]?.total ?? 0} <span style={{ fontSize:11, color:C.sage, fontWeight:600 }}>{stats.byBusinessType[bt]?.active ?? 0} ativas</span></div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Filtros e busca */}
         <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
@@ -2924,6 +3092,11 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 style={{ padding:"7px 14px", borderRadius:8, border:`1px solid ${filter===f.v?C.gold:C.border}`, background:filter===f.v?`${C.gold}15`:C.card, color:filter===f.v?C.gold:C.textMuted, fontSize:12, cursor:"pointer", fontFamily:FB, fontWeight:600 }}>{f.l}</button>
             ))}
           </div>
+          <select value={nicheFilter} onChange={(e) => setNicheFilter(e.target.value)} aria-label="Filtrar por nicho"
+            style={{ padding:"7px 10px", borderRadius:8, border:`1px solid ${nicheFilter!=="all"?C.gold:C.border}`, background:C.card, color:C.text, fontSize:12 }}>
+            <option value="all">Todos os nichos</option>
+            {BUSINESS_TYPES.map((bt) => <option key={bt} value={bt}>{BUSINESS_TYPE_LABELS[bt]}</option>)}
+          </select>
           <Btn small variant="secondary" onClick={load}>? Atualizar</Btn>
         </div>
 
@@ -2987,6 +3160,16 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                   <div style={{ fontSize:13, color:C.text }}>{fmtDate(selected.trialEndsAt)}</div>
                 </div>
               </div>
+            </div>
+
+            {/* Nicho */}
+            <div style={{ background:C.surface, borderRadius:12, padding:16, marginBottom:20 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:12 }}>Nicho</div>
+              <select value={selected.businessType || "beauty_salon"} onChange={(e) => changeBusinessType(selected.id, e.target.value)}
+                style={{ width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:13 }}>
+                {BUSINESS_TYPES.map((bt) => <option key={bt} value={bt}>{BUSINESS_TYPE_LABELS[bt]}</option>)}
+              </select>
+              <div style={{ fontSize:11, color:C.textMuted, marginTop:8 }}>Define quais telas e funções a empresa vê.</div>
             </div>
 
             {/* Status WhatsApp */}
@@ -3919,12 +4102,49 @@ function TrialBanner({ setPage }: any) {
 }
 
 // --- SIDEBAR -------------------------------------------------
+// Telas de Aulas em turma com identidade estável (definidas fora do App): assim o React não desmonta a tela
+// a cada renderização do App (o que refaria as buscas e fecharia um formulário aberto).
+function ClassStudentsScreen()    { useTheme(); return <ClassStudentsPage C={C} FD={FD} FB={FB} />; }
+function MembershipsScreen()       { useTheme(); return <MembershipsPage C={C} FD={FD} FB={FB} />; }
+function ClassInstructorsScreen() { useTheme(); return <ClassInstructorsPage C={C} FD={FD} FB={FB} />; }
+function ClassModalitiesScreen()  { useTheme(); return <ClassModalitiesPage C={C} FD={FD} FB={FB} />; }
+function ClassSchedulesScreen()   { useTheme(); return <SchedulesPage C={C} FD={FD} FB={FB} />; }
+function ClassAgendaScreen()      { useTheme(); return <ClassAgendaPage C={C} FD={FD} FB={FB} />; }
+function ClassTodayScreen()       { useTheme(); return <TodayPage C={C} FD={FD} FB={FB} />; }
+function ClassLeadsScreen()       { useTheme(); return <ClassLeadsPage C={C} FD={FD} FB={FB} />; }
+
+// Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
+const PAGE_FEATURES: Record<string, Feature> = {
+  dashboard: "dashboard", performance: "performance", agenda: "agenda", clients: "clients",
+  professionals: "professionals", services: "services", packages: "packages", financial: "financial",
+  commissions: "commissions", crm: "crm", fidelity: "loyalty", whatsapp: "whatsapp",
+  automations: "automations", notifications: "notifications", pricing: "subscription",
+  checkout: "subscription", settings: "settings", auditlogs: "audit_logs", ajuda: "help",
+  class_students: "class_students", memberships: "memberships",
+  class_instructors: "class_instructors", class_modalities: "class_settings",
+  class_schedules: "group_classes", class_agenda: "group_classes", class_today: "group_classes",
+  class_leads: "class_leads",
+};
+
 const MENU_GROUPS = [
   {
     group: "VISAO GERAL",
     items: [
       { id:"dashboard",   label:"Dashboard",   icon:"*", premium:false },
       { id:"performance", label:"Desempenho",  icon:"*", premium:false },
+    ]
+  },
+  {
+    group: "STUDIO",
+    items: [
+      { id:"class_today",       label:"Aulas de hoje", icon:"*", premium:false },
+      { id:"class_agenda",      label:"Agenda de aulas", icon:"o", premium:false },
+      { id:"class_leads",       label:"Interessados", icon:"+", premium:false },
+      { id:"class_students",    label:"Alunos",      icon:"o", premium:false },
+      { id:"memberships",       label:"Planos",      icon:"$", premium:false },
+      { id:"class_instructors", label:"Instrutores", icon:"*", premium:false },
+      { id:"class_schedules",   label:"Grade",       icon:"o", premium:false },
+      { id:"class_modalities",  label:"Modalidades", icon:"*", premium:false },
     ]
   },
   {
@@ -3962,7 +4182,7 @@ const MENU_GROUPS = [
   {
     group: "SISTEMA",
     items: [
-      { id:"pricing",  label:"Planos",        icon:"$", premium:false },
+      { id:"pricing",  label:"Planos",        icon:"$", premium:false, pilatesLabel:"Assinatura ZenSalon" },
       { id:"settings", label:"Configuracoes", icon:"?", premium:false },
       { id:"auditlogs", label:"Log de Acoes",  icon:"L", premium:false },
       { id:"ajuda",     label:"Ajuda",          icon:"?", premium:false },
@@ -3984,6 +4204,9 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
   }, []);
   // Gratuito vem do backend (trial vencido sem assinatura); o Básico pago não trava o menu.
   const isFree = planInfo?.isFree === true;
+  const menuGroups = MENU_GROUPS
+    .map((g: any) => ({ ...g, items: g.items.filter((m: any) => can(PAGE_FEATURES[m.id], tenantInfo?.businessType)) }))
+    .filter((g: any) => g.items.length > 0);
   return (
     <>
       {isMobile && (
@@ -4002,10 +4225,10 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
           <div style={{ width:72, height:72, borderRadius:"50%", background:`${C.rose}20`, border:`2px solid ${C.rose}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 10px" }}>?</div>
         )}
         <div style={{ fontSize:20, fontWeight:700, color:C.text, fontFamily:FD, marginBottom:4 }}>{tenantInfo?.name ?? "ZenSalon"}</div>
-        <div style={{ fontSize:13, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
+        <div style={{ fontSize:13, color:C.rose, textTransform:"uppercase", letterSpacing:"0.15em", opacity:0.8 }}>{tenantInfo?.businessType === "pilates" ? "Studio de Pilates" : tenantInfo?.businessType === "aesthetics_clinic" ? "Clinica de Estetica" : tenantInfo?.businessType === "barbershop" ? "Barbearia" : "Salao de Beleza"}</div>
       </div>
       <nav style={{ padding:"14px 10px", flex:1, overflowY:"auto" }}>
-        {MENU_GROUPS.map((group: any, gi: number) => (
+        {menuGroups.map((group: any, gi: number) => (
           <div key={gi}>
             <div style={{ fontSize:9, fontWeight:700, color: C.textMuted, letterSpacing:"0.15em", padding:"12px 10px 4px", opacity:0.6 }}>
               {group.group}
@@ -4016,13 +4239,13 @@ function Sidebar({ page, setPage, user, tenantInfo, onLogout }: any) {
               return (
                 <button key={m.id} onClick={() => { if (locked) { alert("Este recurso requer plano pago. Acesse Planos para fazer upgrade."); return; } if (m.id === "ajuda") { window.open("/manual/Manual_ZenSalon.pdf", "_blank", "noopener,noreferrer"); return; } setPage(m.id); if (isMobile) setDrawerOpen(false); }}
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 12px", marginBottom:2, borderRadius:10, border:"none", background: active ? `${C.rose}18` : "transparent", color: locked ? C.textMuted : active ? C.rose : C.text, cursor: locked ? "not-allowed" : "pointer", fontSize:14, fontWeight: active ? 600 : 400, textAlign:"left", opacity: locked ? 0.5 : 1, transition:"all 0.15s" }}>
-                  {m.label}
+                  {(tenantInfo?.businessType === "pilates" && m.pilatesLabel) || m.label}
                   {locked && <span style={{ marginLeft:"auto", fontSize:10 }}>🔒</span>}
                   {active && !locked && <div style={{ marginLeft:"auto", width:6, height:6, borderRadius:"50%", background: C.rose }} />}
                 </button>
               );
             })}
-            {gi < MENU_GROUPS.length - 1 && (
+            {gi < menuGroups.length - 1 && (
               <div style={{ height:1, background: C.border, margin:"6px 10px" }} />
             )}
           </div>
@@ -4068,20 +4291,59 @@ export default function App() {
   const discoveryMatch = window.location.pathname === '/buscar';
   const [user, setUser] = useState<any>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
+  // Só mostra as telas depois de saber o nicho (/auth/me), para não montar tela de outro nicho por um instante.
+  const [tenantLoaded, setTenantLoaded] = useState(false);
+  // /auth/me falhou (rede, demora, 5xx, 403): sem nicho conhecido não monta menu nem tela.
+  const [tenantError, setTenantError] = useState("");
   const [page, setPage] = useState('dashboard');
+  // Uma tela pede para abrir outra (ex.: Interessados → ficha do aluno): window.dispatchEvent(new CustomEvent("zs:open-page", { detail: "class_students" })).
+  useEffect(() => {
+    const on = (e: any) => { if (typeof e.detail === "string") setPage(e.detail); };
+    window.addEventListener("zs:open-page", on);
+    return () => window.removeEventListener("zs:open-page", on);
+  }, []);
   const [currentPage, setCurrentPage] = useState<string>('app');
   const [loading, setLoading] = useState(true);
   const appMatch = window.location.pathname === '/app';
+  // Nicho já recebido do backend nesta sessão; a última chamada é a que vale (getSession e
+  // onAuthStateChange chamam juntas no início).
+  const tenantKnown = useRef(false);
+  const tenantReq = useRef(0);
+  const loadTenant = () => {
+    const req = ++tenantReq.current;
+    setTenantError("");
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("A API demorou para responder")), 15000));
+    Promise.race([api.get('/auth/me'), timeout])
+      .then((r: any) => { if (req !== tenantReq.current) return; tenantKnown.current = true; setTenantInfo(r.data); setTenantLoaded(true); })
+      .catch(async (e: any) => {
+        if (req !== tenantReq.current) return;
+        if (e?.status === 401) {
+          tenantKnown.current = false;
+          setTenantInfo(null);
+          // Sessão expirada ou token inválido: volta para o login.
+          sessionStorage.removeItem("impersonation_token");
+          sessionStorage.removeItem("impersonation_tenant_name");
+          sessionStorage.removeItem("impersonation_sa_token");
+          await supabase.auth.signOut().catch(() => {});
+          setUser(null);
+          return;
+        }
+        // Renovação do token (a cada hora) com a API oscilando: mantém o nicho que o backend já informou.
+        if (tenantKnown.current) return;
+        setTenantInfo(null);
+        setTenantError(e?.message || "Erro desconhecido");
+      });
+  };
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
+      if (session?.user || sessionStorage.getItem("impersonation_token")) loadTenant();
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) { api.get('/auth/me').then((r: any) => setTenantInfo(r.data)).catch(() => {}); }
-      else { setTenantInfo(null); }
+      if (session?.user) loadTenant();
+      else { tenantKnown.current = false; setTenantInfo(null); setTenantLoaded(false); setTenantError(""); }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -4110,11 +4372,19 @@ const logout = async () => {
     automations:   AutomationsPage,
     notifications: NotificationsPage,
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
-    pricing: () => <PricingPage setPage={setPage} />,
+    pricing: () => <PricingPage setPage={setPage} businessType={tenantInfo?.businessType} />,
     settings: TenantSettingsPage,
     auditlogs: AuditLogsPage,
     checkout: () => <CheckoutPage setPage={setPage} />,
     ajuda:    () => <HelpPage />,
+    class_students:    ClassStudentsScreen,
+    memberships:       MembershipsScreen,
+    class_instructors: ClassInstructorsScreen,
+    class_modalities:  ClassModalitiesScreen,
+    class_schedules:   ClassSchedulesScreen,
+    class_agenda:      ClassAgendaScreen,
+    class_today:       ClassTodayScreen,
+    class_leads:       ClassLeadsScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
@@ -4126,7 +4396,11 @@ const logout = async () => {
   if (discoveryMatch) return <DiscoveryPage />;
   if (isRootDomain && !appMatch) return <HomePage />;
   if (isRootDomain && !appMatch) return <HomePage />;
-  const PageComponent = PAGES[page] ?? PAGES["dashboard"];
+  // Nicho: tela não permitida cai na primeira liberada (o bloqueio real é o 403 do backend).
+  setCurrentBusinessType(tenantInfo?.businessType ?? null);
+  const canPage = (id: string) => can(PAGE_FEATURES[id], tenantInfo?.businessType);
+  const pageId = canPage(page) ? page : (["dashboard", "class_today", "settings"].find(canPage) ?? "settings");
+  const PageComponent = PAGES[pageId] ?? PAGES["settings"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>ZenSalon</div>
@@ -4135,6 +4409,24 @@ const logout = async () => {
   if (currentPage === 'payment_success') return <PaymentSuccessPage onGoHome={() => setCurrentPage('app')} />;
   const isImpersonating = !!sessionStorage.getItem("impersonation_token");
   if (!user && !isImpersonating) return <LoginPage onLogin={(data: any) => { setUser(data.user); }} />;
+  if (tenantError) return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ maxWidth:420, textAlign:"center", fontFamily: FB }}>
+        <div style={{ fontSize:32, color: C.rose, fontFamily: FD, marginBottom:20 }}>ZenSalon</div>
+        <div style={{ fontSize:18, fontWeight:700, color: C.text, marginBottom:8 }}>Não foi possível carregar sua conta</div>
+        <div style={{ fontSize:14, color: C.textMuted, marginBottom:24 }}>Verifique sua conexão e tente de novo. Detalhe: {tenantError}</div>
+        <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+          <Btn variant="secondary" onClick={logout}>Sair</Btn>
+          <Btn onClick={loadTenant}>Tentar de novo</Btn>
+        </div>
+      </div>
+    </div>
+  );
+  if (!tenantLoaded) return (
+    <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ fontSize:32, color: C.rose, fontFamily: FD }}>ZenSalon</div>
+    </div>
+  );
 
   return (
     <>
@@ -4150,7 +4442,7 @@ const logout = async () => {
         select option { background:${C.surface}; color:${C.text}; }
         a { transition: opacity .15s; } a:hover { opacity:.8; }
       `}</style>
-      <Sidebar page={page} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
+      <Sidebar page={pageId} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft: isMobile ? 0 : 220, padding: isMobile ? "70px 16px 16px" : 36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner setPage={setPage} />
         <PageComponent />

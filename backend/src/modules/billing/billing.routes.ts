@@ -10,6 +10,7 @@ import {
   calcPlanAmount, calcPlanExpiry, calcProrate,
   PlanTier, PlanPeriod,
 } from "./billing.service.js";
+import { loadNichePlans } from "./plan-limits.service.js";
 
 export async function billingRoutes(fastify: any) {
   const ASAAS_KEY = (process.env.ASAAS_API_KEY ?? "").startsWith("$") ? process.env.ASAAS_API_KEY! : `$${process.env.ASAAS_API_KEY ?? ""}`;
@@ -63,28 +64,9 @@ export async function billingRoutes(fastify: any) {
       };
 
   // GET /billing/plans
-  fastify.get("/billing/plans", async (_req: any, reply: any) => {
-    try {
-      const { db } = await import("@db/connection.js");
-      const { sql } = await import("drizzle-orm");
-      const result = await db.execute(sql`SELECT key, value FROM plan_settings WHERE key LIKE 'plan_%'`);
-      const rows = (result as any).rows ?? (Array.isArray(result) ? result : []);
-      const s: Record<string, number> = {};
-      rows.forEach((r: any) => {
-        let raw = r.value;
-        try { while (typeof raw === 'string' && raw.startsWith('"')){ raw = JSON.parse(raw); } } catch {}
-        s[r.key] = parseFloat(raw) || 0;
-      });
-      const plans = {
-        free:  { tier:"free",  name:"Free",   monthlyPrice:0, semiannualPrice:0, annualPrice:0, professionals:1, clients:30 },
-        basic: { tier:"basic", name:"Basico", monthlyPrice:s["plan_basic_monthly"]??39.90, semiannualPrice:s["plan_basic_semiannual"]??null, annualPrice:s["plan_basic_annual"]??null, professionals:s["plan_basic_max_users"]??1,  clients:999999 },
-        pro:   { tier:"pro",   name:"Pro",    monthlyPrice:s["plan_pro_monthly"]??59.90,   semiannualPrice:s["plan_pro_semiannual"]??null,   annualPrice:s["plan_pro_annual"]??null,   professionals:s["plan_pro_max_users"]??3,   clients:999999 },
-        super: { tier:"super", name:"Super",  monthlyPrice:s["plan_super_monthly"]??99.90, semiannualPrice:s["plan_super_semiannual"]??null, annualPrice:s["plan_super_annual"]??null, professionals:s["plan_super_max_users"]??10, clients:999999 },
-      };
-      return reply.send({ success: true, data: plans });
-    } catch(e) {
-      return reply.send({ success: true, data: PLANS });
-    }
+  fastify.get("/billing/plans", async (req: any, reply: any) => {
+    // ?businessType=: preços do nicho (a página de preços envia o nicho da conta); sem ele, os do salão.
+    return reply.send({ success: true, data: await loadNichePlans((req.query as any)?.businessType) });
   });
 
   // GET /billing/status
@@ -113,6 +95,7 @@ export async function billingRoutes(fastify: any) {
     if (!["monthly","semiannual","annual"].includes(period)) return reply.status(400).send({ success: false, error: "Periodo invalido." });
 
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    const plans = await loadNichePlans(tenant.businessType); // preços do nicho da conta
     if (!tenant.email) return reply.status(400).send({ success: false, error: "E-mail do salao nao configurado." });
 
     // Calcula prorate se upgrade de plano ativo
@@ -122,18 +105,19 @@ export async function billingRoutes(fastify: any) {
     const planStatus    = tenant.planStatus ?? "trial";
 
     if (planStatus === "active" && tenant.planStartedAt && tenant.planExpiresAt) {
-      const currentPrice = PLANS[currentTier]?.monthlyPrice ?? 0;
-      const newPrice     = PLANS[tier]?.monthlyPrice ?? 0;
+      const currentPrice = plans[currentTier]?.monthlyPrice ?? 0;
+      const newPrice     = plans[tier]?.monthlyPrice ?? 0;
       if (newPrice > currentPrice) {
         creditBrl = calcProrate(
           currentTier, currentPeriod,
           new Date(tenant.planStartedAt),
-          new Date(tenant.planExpiresAt)
+          new Date(tenant.planExpiresAt),
+          plans,
         );
       }
     }
 
-    const totalAmount = calcPlanAmount(tier, period);
+    const totalAmount = calcPlanAmount(tier, period, plans);
     const finalAmount = Math.max(0, parseFloat((totalAmount - creditBrl).toFixed(2)));
     const expiresAt   = calcPlanExpiry(period);
     const dueDate     = new Date().toISOString().split("T")[0];
@@ -150,10 +134,10 @@ export async function billingRoutes(fastify: any) {
     const subscription = await asaasFetch("POST", "/subscriptions", {
       customer:          customerId,
       billingType:       "UNDEFINED",
-      value:             calcPlanAmount(tier, period),
+      value:             calcPlanAmount(tier, period, plans),
       nextDueDate:       dueDate,
       cycle:             ASAAS_CYCLE[period],
-      description:       `ZenSalon - Plano ${PLANS[tier].name} (${period})`,
+      description:       `ZenSalon - Plano ${plans[tier].name} (${period})`,
       externalReference: `${tenantId}|${tier}|${period}`,
     });
 
@@ -169,7 +153,7 @@ export async function billingRoutes(fastify: any) {
         billingType:       "UNDEFINED",
         value:             finalAmount,
         dueDate,
-        description:       `ZenSalon - Upgrade para ${PLANS[tier].name} (credito R$${creditBrl.toFixed(2)} aplicado)`,
+        description:       `ZenSalon - Upgrade para ${plans[tier].name} (credito R$${creditBrl.toFixed(2)} aplicado)`,
         externalReference: `${tenantId}|${tier}|${period}|upgrade`,
       });
     }
@@ -190,7 +174,7 @@ export async function billingRoutes(fastify: any) {
     // E-mail confirmacao
     try {
       const { sendPlanActivatedEmail } = await import("../resend.module.js");
-      await sendPlanActivatedEmail(tenant.email, tenant.name ?? "", PLANS[tier].name, period, expiresAt);
+      await sendPlanActivatedEmail(tenant.email, tenant.name ?? "", plans[tier].name, period, expiresAt);
     } catch (e: any) {
       console.error("[BILLING] Erro e-mail confirmacao:", e.message);
     }
@@ -314,10 +298,11 @@ export async function billingRoutes(fastify: any) {
       return reply.status(400).send({ success: false, error: "Plano inválido." });
 
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    const plans = await loadNichePlans(tenant.businessType); // preços do nicho da conta
     if (!tenant.email)
       return reply.status(400).send({ success: false, error: "E-mail do salão não configurado." });
 
-    const totalAmount = calcPlanAmount(tier, period);
+    const totalAmount = calcPlanAmount(tier, period, plans);
     const dueDate = new Date().toISOString().split("T")[0];
     const customerId = await getOrCreateCustomer(tenant);
 
@@ -326,7 +311,7 @@ export async function billingRoutes(fastify: any) {
       billingType: "PIX",
       value: totalAmount,
       dueDate,
-      description: `ZenSalon - Plano ${PLANS[tier].name} (${period})`,
+      description: `ZenSalon - Plano ${plans[tier].name} (${period})`,
       externalReference: `${tenantId}|${tier}|${period}|pix_checkout`,
     });
 
@@ -340,7 +325,7 @@ export async function billingRoutes(fastify: any) {
       data: {
         paymentId: payment.id,
         value: totalAmount,
-        planName: PLANS[tier].name,
+        planName: plans[tier].name,
         pix: {
           encodedImage: pixQr.encodedImage ?? null,
           payload: pixQr.payload ?? null,
@@ -362,7 +347,8 @@ export async function billingRoutes(fastify: any) {
       return reply.status(400).send({ success: false, error: "Plano inválido." });
 
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-    const totalAmount = calcPlanAmount(tier, period);
+    const plans = await loadNichePlans(tenant.businessType); // preços do nicho da conta
+    const totalAmount = calcPlanAmount(tier, period, plans);
     const dueDate = new Date().toISOString().split("T")[0];
     const customerId = await getOrCreateCustomer(tenant);
 
@@ -371,7 +357,7 @@ export async function billingRoutes(fastify: any) {
       billingType: "CREDIT_CARD",
       value: totalAmount,
       dueDate,
-      description: `ZenSalon - Plano ${PLANS[tier].name} (${period})`,
+      description: `ZenSalon - Plano ${plans[tier].name} (${period})`,
       externalReference: `${tenantId}|${tier}|${period}|card_checkout`,
     });
 
@@ -383,7 +369,7 @@ export async function billingRoutes(fastify: any) {
       data: {
         paymentId: payment.id,
         value: totalAmount,
-        planName: PLANS[tier].name,
+        planName: plans[tier].name,
         invoiceUrl: payment.invoiceUrl,
       },
     });

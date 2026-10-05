@@ -14,7 +14,8 @@ import { relations, sql } from "drizzle-orm";
 // ENUMS
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export const planTierEnum          = pgEnum("plan_tier",           ["free","basic","pro","super"]);
+// O tipo no banco tem também trial e enterprise (migrations 0000/0001); conta nova nasce em "trial".
+export const planTierEnum          = pgEnum("plan_tier",           ["trial","free","basic","pro","super","enterprise"]);
 export const userRoleEnum          = pgEnum("user_role",           ["owner","manager","receptionist","professional","financial","marketing","viewer"]);
 export const appointmentStatusEnum = pgEnum("appointment_status",  ["pending","confirmed","in_progress","completed","cancelled","no_show","rescheduled"]);
 export const serviceTypeEnum       = pgEnum("service_type",        ["hair","nail","esthetic","beauty","massage","other"]);
@@ -99,8 +100,9 @@ export const tenants = pgTable("tenants", {
   asaasCustomerId: varchar("asaas_customer_id", { length: 100 }),
   asaasSubscriptionId: varchar("asaas_subscription_id", { length: 100 }),
   maxUsers:     integer("max_users").notNull().default(3),
-  maxClients:       integer("max_clients").notNull().default(100),
-  maxProfessionals: integer("max_professionals").notNull().default(1),
+  // Limite individual da conta; vazio = segue o plano do nicho (migration 0007; billing/plan-limits.service.ts).
+  maxClients:       integer("max_clients"),
+  maxProfessionals: integer("max_professionals"),
   businessType: varchar("business_type", { length: 50 }).notNull().default("beauty_salon"),
   primaryColor: varchar("primary_color", { length: 20 }).default("#c9a96e"),
   coverUrl:     text("cover_url"),
@@ -158,6 +160,7 @@ export const professionals = pgTable("professionals", {
   breakTimes:           jsonb("break_times").notNull().default([]),
   sortOrder:            integer("sort_order").notNull().default(0),
   monthlyGoal:          numeric("monthly_goal", { precision: 10, scale: 2 }).notNull().default("0"),
+  professionalRegistration: varchar("professional_registration", { length: 40 }), // Pilates: CREF/CREFITO (opcional)
   ...audit,
 }, (t) => ({
   tenantIdx: index("professionals_tenant_idx").on(t.tenantId),
@@ -560,7 +563,9 @@ export const leads = pgTable("leads", {
   phone:       varchar("phone", { length: 20 }),
   whatsapp:    varchar("whatsapp", { length: 20 }),
   source:      varchar("source", { length: 50 }),
-  status:      leadStatusEnum("status").notNull().default("new"),
+  // Texto desde a migration 0006 (antes: enum lead_status). Etapas válidas conferidas no backend:
+  // salão em dtos.ts (valores de leadStatusEnum); Pilates em modules/group-classes/lead-stages.ts.
+  status:      varchar("status", { length: 30 }).notNull().default("new"),
   serviceInterest: varchar("service_interest", { length: 255 }),
   estimatedValue: numeric("estimated_value", { precision: 10, scale: 2 }),
   notes:       text("notes"),
@@ -1102,3 +1107,215 @@ export const prospectTemplates = pgTable("prospect_templates", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ─── PILATES (Fase 2): alunos, planos e matrículas ─────────────────────────
+// Alunos, instrutores e modalidades reaproveitam clients, professionals e services.
+// Migration: 0004_memberships_base.sql (CHECKs de nível, status, tipo de plano etc. ficam no banco).
+
+export const studentProfiles = pgTable("student_profiles", {
+  id:                    uuid("id").primaryKey().defaultRandom(),
+  tenantId:              uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  clientId:              uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  goal:                  text("goal"),
+  level:                 varchar("level", { length: 20 }).notNull().default("beginner"), // beginner | intermediate | advanced
+  startDate:             date("start_date"),
+  weeklyFrequency:       integer("weekly_frequency"),
+  status:                varchar("status", { length: 20 }).notNull().default("active"), // active | paused | inactive | cancelled
+  instructorId:          uuid("instructor_id").references(() => professionals.id, { onDelete: "set null" }),
+  notes:                 text("notes"),
+  emergencyContactName:  varchar("emergency_contact_name", { length: 255 }),
+  emergencyContactPhone: varchar("emergency_contact_phone", { length: 20 }),
+  initialAssessmentDate: date("initial_assessment_date"),
+  declaredRestrictions:  text("declared_restrictions"), // "Restrições e cuidados informados pelo aluno" (C8)
+  createdAt:             timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:             timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  clientUnique:    unique("student_profiles_client_unique").on(t.clientId),
+  tenantStatusIdx: index("student_profiles_tenant_status_idx").on(t.tenantId, t.status),
+}));
+
+export const membershipPlans = pgTable("membership_plans", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  tenantId:       uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  name:           varchar("name", { length: 255 }).notNull(),
+  description:    text("description"),
+  kind:           varchar("kind", { length: 20 }).notNull(), // frequency | package
+  price:          numeric("price", { precision: 10, scale: 2 }).notNull().default("0"),
+  classesPerWeek: integer("classes_per_week"), // frequency
+  durationMonths: integer("duration_months"),  // frequency: vigência (1, 3, 6...)
+  totalClasses:   integer("total_classes"),    // package
+  validityDays:   integer("validity_days"),    // package
+  modalityId:     uuid("modality_id").references(() => services.id, { onDelete: "set null" }),
+  isTrial:        boolean("is_trial").notNull().default(false),
+  status:         varchar("status", { length: 20 }).notNull().default("active"), // active | inactive
+  // Exceções de regra deste plano (NULL = padrão do studio em class_settings). Migration 0005.
+  allowIndividualSlot:             boolean("allow_individual_slot"),
+  individualSlotCapacity:          integer("individual_slot_capacity"),
+  cancelDeadlineEnabled:           boolean("cancel_deadline_enabled"),
+  cancelMinHours:                  integer("cancel_min_hours"),
+  makeupEnabled:                   boolean("makeup_enabled"),
+  makeupValidityDays:              integer("makeup_validity_days"),
+  makeupMonthlyLimitEnabled:       boolean("makeup_monthly_limit_enabled"),
+  makeupMaxPerMonth:               integer("makeup_max_per_month"),
+  unexcusedAbsenceConsumesCredit:  boolean("unexcused_absence_consumes_credit"),
+  unexcusedAbsenceGeneratesMakeup: boolean("unexcused_absence_generates_makeup"),
+  excusedAbsenceGeneratesMakeup:   boolean("excused_absence_generates_makeup"),
+  excusedAbsenceConsumesCredit:    boolean("excused_absence_consumes_credit"),
+  timelyCancelGeneratesMakeup:     boolean("timely_cancel_generates_makeup"),
+  lateCancelConsumesCredit:        boolean("late_cancel_consumes_credit"),
+  studioCancelAction:              varchar("studio_cancel_action", { length: 20 }),
+  pauseEnabled:                    boolean("pause_enabled"),
+  pauseMaxDays:                    integer("pause_max_days"),
+  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tenantStatusIdx: index("membership_plans_tenant_status_idx").on(t.tenantId, t.status),
+}));
+
+export const membershipEnrollments = pgTable("membership_enrollments", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  tenantId:  uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  clientId:  uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  planId:    uuid("plan_id").notNull().references(() => membershipPlans.id, { onDelete: "restrict" }),
+  startDate: date("start_date").notNull(),
+  endDate:   date("end_date"),
+  dueDay:    integer("due_day"),
+  price:     numeric("price", { precision: 10, scale: 2 }).notNull(),
+  status:    varchar("status", { length: 20 }).notNull().default("active"), // active | paused | ended | cancelled
+  notes:     text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tenantStatusIdx: index("membership_enrollments_tenant_status_idx").on(t.tenantId, t.status),
+  clientIdx:       index("membership_enrollments_client_idx").on(t.clientId),
+  planIdx:         index("membership_enrollments_plan_idx").on(t.planId),
+}));
+
+// ─── PILATES (Fase 3): regras, grade, aulas, horários fixos, inscrições, reposições, pausas ──
+// Migration: 0005_group_classes.sql (CHECKs e índices únicos ficam no banco).
+
+export const classSettings = pgTable("class_settings", {
+  id:                              uuid("id").primaryKey().defaultRandom(),
+  tenantId:                        uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  allowIndividualSlot:             boolean("allow_individual_slot").notNull().default(true),
+  individualSlotCapacity:          integer("individual_slot_capacity").notNull().default(1),
+  cancelDeadlineEnabled:           boolean("cancel_deadline_enabled").notNull().default(true),
+  cancelMinHours:                  integer("cancel_min_hours").notNull().default(12),
+  makeupEnabled:                   boolean("makeup_enabled").notNull().default(true),
+  makeupValidityDays:              integer("makeup_validity_days").notNull().default(30),
+  makeupMonthlyLimitEnabled:       boolean("makeup_monthly_limit_enabled").notNull().default(true),
+  makeupMaxPerMonth:               integer("makeup_max_per_month").notNull().default(2),
+  unexcusedAbsenceConsumesCredit:  boolean("unexcused_absence_consumes_credit").notNull().default(true),
+  unexcusedAbsenceGeneratesMakeup: boolean("unexcused_absence_generates_makeup").notNull().default(false),
+  excusedAbsenceGeneratesMakeup:   boolean("excused_absence_generates_makeup").notNull().default(true),
+  excusedAbsenceConsumesCredit:    boolean("excused_absence_consumes_credit").notNull().default(false),
+  timelyCancelGeneratesMakeup:     boolean("timely_cancel_generates_makeup").notNull().default(true),
+  lateCancelConsumesCredit:        boolean("late_cancel_consumes_credit").notNull().default(true),
+  studioCancelActionPackage:       varchar("studio_cancel_action_package", { length: 20 }).notNull().default("refund_credit"),
+  studioCancelActionFrequency:     varchar("studio_cancel_action_frequency", { length: 20 }).notNull().default("generate_makeup"),
+  pauseEnabled:                    boolean("pause_enabled").notNull().default(true),
+  pauseMaxDays:                    integer("pause_max_days").notNull().default(30),
+  instructorAttendanceScope:       varchar("instructor_attendance_scope", { length: 10 }).notNull().default("own"),
+  instructorEditWindowHours:       integer("instructor_edit_window_hours").notNull().default(24),
+  defaultClassDuration:            integer("default_class_duration").notNull().default(50),
+  defaultClassCapacity:            integer("default_class_capacity").notNull().default(4),
+  createdAt:                       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:                       timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ tenantUnique: unique("class_settings_tenant_unique").on(t.tenantId) }));
+
+export const classSchedules = pgTable("class_schedules", {
+  id:                uuid("id").primaryKey().defaultRandom(),
+  tenantId:          uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  modalityId:        uuid("modality_id").references(() => services.id, { onDelete: "set null" }),
+  instructorId:      uuid("instructor_id").notNull().references(() => professionals.id),
+  dayOfWeek:         integer("day_of_week").notNull(),                 // 0 = domingo
+  startTime:         varchar("start_time", { length: 5 }).notNull(),   // HH:MM (horário de Brasília)
+  durationMinutes:   integer("duration_minutes").notNull(),
+  room:              varchar("room", { length: 100 }),
+  capacity:          integer("capacity").notNull(),
+  classType:         varchar("class_type", { length: 20 }).notNull().default("group"), // individual | duo | group
+  isActive:          boolean("is_active").notNull().default(true),
+  ownerEnrollmentId: uuid("owner_enrollment_id").references(() => membershipEnrollments.id, { onDelete: "set null" }),
+  createdAt:         timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:         timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const classSessions = pgTable("class_sessions", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  scheduleId:   uuid("schedule_id").references(() => classSchedules.id, { onDelete: "set null" }),
+  sessionDate:  date("session_date").notNull(),
+  startsAt:     timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt:       timestamp("ends_at", { withTimezone: true }).notNull(),
+  instructorId: uuid("instructor_id").notNull().references(() => professionals.id),
+  modalityId:   uuid("modality_id").references(() => services.id, { onDelete: "set null" }),
+  room:         varchar("room", { length: 100 }),
+  capacity:     integer("capacity").notNull(),
+  classType:    varchar("class_type", { length: 20 }).notNull().default("group"), // + assessment
+  status:       varchar("status", { length: 20 }).notNull().default("scheduled"), // scheduled | cancelled
+  instructorOverridden: boolean("instructor_overridden").notNull().default(false),
+  notes:        text("notes"),
+  cancelReason: varchar("cancel_reason", { length: 255 }),
+  cancelledAt:  timestamp("cancelled_at", { withTimezone: true }),
+  cancelledBy:  uuid("cancelled_by"),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const classEnrollmentSlots = pgTable("class_enrollment_slots", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  enrollmentId: uuid("enrollment_id").notNull().references(() => membershipEnrollments.id, { onDelete: "cascade" }),
+  scheduleId:   uuid("schedule_id").notNull().references(() => classSchedules.id, { onDelete: "cascade" }),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const classMakeupCredits = pgTable("class_makeup_credits", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  tenantId:        uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  clientId:        uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  enrollmentId:    uuid("enrollment_id").references(() => membershipEnrollments.id, { onDelete: "set null" }),
+  originBookingId: uuid("origin_booking_id"),
+  reason:          varchar("reason", { length: 30 }).notNull(), // timely_cancel | excused_absence | unexcused_absence | studio_cancel
+  expiresOn:       date("expires_on").notNull(),
+  status:          varchar("status", { length: 20 }).notNull().default("available"), // available | used | expired
+  usedBookingId:   uuid("used_booking_id"),
+  usedAt:          timestamp("used_at", { withTimezone: true }),
+  ruleSource:      varchar("rule_source", { length: 10 }), // studio | plan
+  createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const classBookings = pgTable("class_bookings", {
+  id:                  uuid("id").primaryKey().defaultRandom(),
+  tenantId:            uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  sessionId:           uuid("session_id").notNull().references(() => classSessions.id, { onDelete: "cascade" }),
+  clientId:            uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  enrollmentId:        uuid("enrollment_id").references(() => membershipEnrollments.id, { onDelete: "set null" }),
+  kind:                varchar("kind", { length: 20 }).notNull(), // fixed | credit | makeup
+  status:              varchar("status", { length: 20 }).notNull().default("booked"),
+  creditConsumed:      boolean("credit_consumed").notNull().default(false),
+  makeupCreditId:      uuid("makeup_credit_id").references(() => classMakeupCredits.id, { onDelete: "set null" }),
+  attendanceMarkedBy:  uuid("attendance_marked_by"),
+  attendanceMarkedAt:  timestamp("attendance_marked_at", { withTimezone: true }),
+  attendanceUpdatedBy: uuid("attendance_updated_by"),
+  attendanceUpdatedAt: timestamp("attendance_updated_at", { withTimezone: true }),
+  cancelledBy:         uuid("cancelled_by"),
+  cancelledAt:         timestamp("cancelled_at", { withTimezone: true }),
+  effectReason:        varchar("effect_reason", { length: 30 }),     // present | unexcused_absence | excused_absence | timely_cancel | late_cancel | studio_cancel
+  effectRuleSource:    varchar("effect_rule_source", { length: 10 }), // studio | plan
+  effectAt:            timestamp("effect_at", { withTimezone: true }),
+  notes:               text("notes"),
+  createdAt:           timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const membershipPauses = pgTable("membership_pauses", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  enrollmentId: uuid("enrollment_id").notNull().references(() => membershipEnrollments.id, { onDelete: "cascade" }),
+  startDate:    date("start_date").notNull(),
+  endDate:      date("end_date").notNull(),
+  days:         integer("days").notNull(),
+  reason:       varchar("reason", { length: 200 }),
+  createdBy:    uuid("created_by"),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

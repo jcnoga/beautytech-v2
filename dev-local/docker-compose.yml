@@ -1,0 +1,45 @@
+# Ambiente LOCAL para desenvolvimento e teste visual do ZenSalon. Nunca aponta para produção:
+# Postgres e GoTrue próprios, só em 127.0.0.1. Segredos de teste em dev-local/.env.local-stack (fora do git).
+# Uso: sh dev-local/start.sh   (sobe, migra e mostra como iniciar backend e frontend)
+name: zensalon-local
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: local
+      POSTGRES_DB: zensalon_local
+    ports: ["127.0.0.1:55433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "zensalon_local"]
+      interval: 2s
+      retries: 30
+
+  gotrue:
+    image: supabase/gotrue:v2.197.0
+    depends_on:
+      db: { condition: service_healthy }
+    restart: on-failure
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:5273/auth/v1
+      GOTRUE_SITE_URL: http://localhost:5273
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://gotrue_local:local@db:5432/gotrue_local?sslmode=disable
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:?rode sh dev-local/start.sh}
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_PASSWORD_MIN_LENGTH: 6
+    ports: ["127.0.0.1:9998:9999"]
+
+volumes:
+  pgdata: {}
