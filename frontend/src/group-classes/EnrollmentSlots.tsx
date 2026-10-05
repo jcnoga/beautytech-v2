@@ -50,11 +50,11 @@ export default function EnrollmentSlots({ C, FD, FB, enrollment, onChange }: The
 
   return (
     <div style={{ marginTop: 8, padding: "10px 12px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: C.textMuted, marginBottom: 6 }}>
         Horários fixos {perWeek ? `(${slots.length} de ${perWeek} por semana)` : ""}
       </div>
       {error && <Notice C={C}>{error}</Notice>}
-      {slots.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 6 }}>Nenhum horário fixo ainda.</div>}
+      {slots.length === 0 && <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 6 }}>Nenhum horário fixo ainda.</div>}
       {slots.map((s) => (
         <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "6px 0", flexWrap: "wrap" }}>
           <div style={{ fontSize: 14, color: C.text }}>

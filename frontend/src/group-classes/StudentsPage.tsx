@@ -72,6 +72,10 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
   const [loadError, setLoadError] = useState(""); // matrículas ou termo LGPD não carregaram
   const [showPast, setShowPast] = useState(false);
   const [moreOpen, setMoreOpen] = useState<string | null>(null); // matrícula com o menu "Mais" aberto
+  const [slotsFor, setSlotsFor] = useState<any | null>(null);     // matrícula com a janela de horários aberta
+  const [slotCount, setSlotCount] = useState<Record<string, number>>({});
+  const [newOpen, setNewOpen] = useState(false);                   // janela "Nova matrícula"
+  const [enrollError, setEnrollError] = useState("");
 
   const load = async () => {
     setLoading(true); setError("");
@@ -88,6 +92,14 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
     try { id = sessionStorage.getItem(OPEN_STUDENT_KEY); sessionStorage.removeItem(OPEN_STUDENT_KEY); } catch { /* sem sessionStorage */ }
     if (id) api.get<any>(`/class-students/${id}`).then((r) => open(r.data)).catch((e: any) => setError(e.message));
   }, []);
+  const loadSlotCounts = (list: any[]) => {
+    for (const e of list.filter((x) => x.status === "active" && x.planKind === "frequency")) {
+      api.get<any>("/classes/slots", { enrollmentId: e.id })
+        .then((r) => setSlotCount((c) => ({ ...c, [e.id]: (r.data ?? []).length })))
+        .catch(() => setSlotCount((c) => { const n = { ...c }; delete n[e.id]; return n; }));
+    }
+  };
+  useEffect(() => { loadSlotCounts(enrollments); }, [enrollments]);
   useEffect(() => {
     api.get<any>("/class-instructors").then((r) => setInstructors((r.data ?? []).filter((i: any) => i.isActive))).catch(() => {});
     api.get<any>("/memberships/plans", { status: "active" }).then((r) => setPlans(r.data ?? [])).catch(() => {});
@@ -98,6 +110,7 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
     setEditing(s ?? {});
     setForm(s ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, s[k] ?? (EMPTY as any)[k]])) : { ...EMPTY, startDate: todaySP() });
     setEnrollments([]); setConsent(null); setLoadError(""); setShowPast(false); setMoreOpen(null);
+    setSlotsFor(null); setNewOpen(false); setSlotCount({});
     setEnroll({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
     setTab(s?.id && s.hasProfile && Number(s.activeEnrollments) > 0 ? "enrollments" : "data");
     if (s?.id && s.hasProfile) {
@@ -122,9 +135,10 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
     finally { setSaving(false); }
   };
 
+  const openNewEnrollment = () => { setEnroll({ planId: "", startDate: todaySP(), dueDay: "", price: "" }); setEnrollError(""); setNewOpen(true); };
   const addEnrollment = async () => {
-    if (!enroll.planId) { setFormError("Escolha o plano."); return; }
-    setFormError("");
+    if (!enroll.planId) { setEnrollError("Escolha o plano."); return; }
+    setEnrollError("");
     try {
       await api.post("/memberships/enrollments", {
         studentId: editing.id, planId: enroll.planId, startDate: enroll.startDate,
@@ -133,8 +147,9 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
       const r: any = await api.get("/memberships/enrollments", { studentId: editing.id });
       setEnrollments(r.data ?? []);
       setEnroll({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
+      setNewOpen(false);
       load();
-    } catch (e: any) { setFormError(e.message); }
+    } catch (e: any) { setEnrollError(e.message); }
   };
   const setEnrollmentStatus = async (id: string, st: string) => {
     setMoreOpen(null);
@@ -182,8 +197,17 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
           {fmtDay(e.startDate)} a {fmtDay(e.endDate)} · {brl(e.price)}{e.dueDay ? ` · vence dia ${e.dueDay}` : ""}
         </div>
         {isActive && usageLine(e) && <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginTop: 8 }}>{usageLine(e)}</div>}
+        {isActive && e.planKind === "frequency" && e.usage?.perWeek > 0 && slotCount[e.id] !== undefined && (
+          <div style={{ fontSize: 15, marginTop: 6, fontWeight: slotCount[e.id] < e.usage.perWeek ? 700 : 400,
+            color: slotCount[e.id] < e.usage.perWeek ? C.gold : C.textSec }}>
+            Horários fixos: {slotCount[e.id]} de {e.usage.perWeek} escolhidos{slotCount[e.id] < e.usage.perWeek ? " — falta escolher" : ""}
+          </div>
+        )}
         {isActive && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            {e.planKind === "frequency" && (
+              <Button {...t} small variant={e.usage?.perWeek > 0 && (slotCount[e.id] ?? 0) < e.usage.perWeek ? "primary" : "secondary"} onClick={() => setSlotsFor(e)}>Horários</Button>
+            )}
             <Button {...t} small variant="secondary" onClick={() => setMoreOpen(moreOpen === e.id ? null : e.id)}>{moreOpen === e.id ? "Menos ▴" : "Mais ▾"}</Button>
             {moreOpen === e.id && (<>
               <Button {...t} small variant="secondary" onClick={() => setEnrollmentStatus(e.id, "ended")}>Encerrar</Button>
@@ -191,7 +215,6 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
             </>)}
           </div>
         )}
-        {isActive && e.planKind === "frequency" && <div style={{ marginTop: 10 }}><EnrollmentSlots {...t} enrollment={e} /></div>}
       </div>
     );
   };
@@ -323,9 +346,29 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
                 {showPast && <div style={{ display: "grid", gap: 10, marginTop: 10 }}>{past.map(enrollmentCard)}</div>}
               </div>
             )}
-            <Section C={C} title="Nova matrícula">
-              <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 8 }}>O aluno pode ter mais de uma ativa, ex.: mensal + pacote.</div>
-              <Grid>
+            <div><Button {...t} onClick={openNewEnrollment}>+ Nova matrícula</Button></div>
+          </div>
+        )}
+
+        {hasTabs && tab === "history" && <StudentHistory {...t} studentId={editing.id} />}
+
+        {hasTabs && tab === "lgpd" && (
+          consent?.is_signed
+            ? <div style={{ fontSize: 15, color: C.sage }}>✓ Aceite registrado em {new Date(consent.signed_at).toLocaleDateString("pt-BR")}{consent.signed_by_name ? ` por ${consent.signed_by_name}` : ""}</div>
+            : <Button {...t} variant="secondary" onClick={registerConsent}>Registrar aceite do termo LGPD</Button>
+        )}
+
+        <Modal {...t} open={!!slotsFor} onClose={() => setSlotsFor(null)} title={`Horários fixos · ${slotsFor?.planName ?? ""}`} width={620}>
+          {slotsFor && <EnrollmentSlots {...t} enrollment={slotsFor} onChange={() => loadSlotCounts(enrollments)} />}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+            <Button {...t} variant="secondary" onClick={() => setSlotsFor(null)}>Fechar</Button>
+          </div>
+        </Modal>
+
+        <Modal {...t} open={newOpen} onClose={() => setNewOpen(false)} title="Nova matrícula" width={560}>
+          {enrollError && <Notice C={C}>{enrollError}</Notice>}
+          <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 10 }}>O aluno pode ter mais de uma ativa, ex.: mensal + pacote.</div>
+          <Grid>
                 <Field C={C} label="Plano" help={HELP.plan}>
                   <select value={enroll.planId} onChange={(e) => setEnroll((x: any) => ({ ...x, planId: e.target.value }))} style={inp}>
                     <option value="">— escolha —</option>
@@ -343,18 +386,12 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
                 </Field>
               </Grid>
               {plans.length === 0 && <Notice C={C} kind="info">Cadastre um plano em “Planos” para matricular.</Notice>}
-              <Button {...t} variant="secondary" onClick={addEnrollment} disabled={!enroll.planId}>Matricular</Button>
-            </Section>
+          {plans.length === 0 && <Notice C={C} kind="info">Cadastre um plano em “Planos” para matricular.</Notice>}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 6 }}>
+            <Button {...t} variant="secondary" onClick={() => setNewOpen(false)}>Cancelar</Button>
+            <Button {...t} onClick={addEnrollment} disabled={!enroll.planId}>Matricular</Button>
           </div>
-        )}
-
-        {hasTabs && tab === "history" && <StudentHistory {...t} studentId={editing.id} />}
-
-        {hasTabs && tab === "lgpd" && (
-          consent?.is_signed
-            ? <div style={{ fontSize: 15, color: C.sage }}>✓ Aceite registrado em {new Date(consent.signed_at).toLocaleDateString("pt-BR")}{consent.signed_by_name ? ` por ${consent.signed_by_name}` : ""}</div>
-            : <Button {...t} variant="secondary" onClick={registerConsent}>Registrar aceite do termo LGPD</Button>
-        )}
+        </Modal>
       </Modal>
     </div>
   );
