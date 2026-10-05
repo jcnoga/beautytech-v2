@@ -200,3 +200,80 @@ test("instrutor só consulta; outra empresa não vê nem altera", async () => {
   const [row] = await sql`SELECT name FROM leads WHERE id = ${leadB}`;
   assert.equal(row.name, "Lead da B");
 });
+
+// ─── conversão em aluno ─────────────────────────────────────────────────────
+test("conversão: cria cliente + ficha de aluno com os dados do interessado e marca Matriculado", async () => {
+  const lead = data(await call("POST", "/class-leads", A.token, { name: "Carla Souza", whatsapp: "(34) 98888-0001", followUpAt: daySP(-3) }));
+  const res = await call("POST", `/class-leads/${lead.id}/convert`, A.reception, {});
+  assert.equal(res.statusCode, 200, res.body);
+  const { studentId, lead: after } = data(res);
+  assert.equal(after.status, "converted");
+  assert.equal(after.convertedTo, studentId);
+  assert.ok(after.convertedAt);
+  assert.equal(after.followUpOverdue, false, "matriculado não gera alerta");
+  const [c] = await sql`SELECT tenant_id, full_name, whatsapp, source FROM clients WHERE id = ${studentId}`;
+  assert.deepEqual({ ...c }, { tenant_id: A.id, full_name: "Carla Souza", whatsapp: "(34) 98888-0001", source: "lead" });
+  const [p] = await sql`SELECT count(*)::int n FROM student_profiles WHERE client_id = ${studentId} AND tenant_id = ${A.id}`;
+  assert.equal(p.n, 1, "ficha de aluno criada (não fica 'ficha incompleta')");
+  const aluno = await call("GET", `/class-students/${studentId}`, A.token);
+  assert.equal(aluno.statusCode, 200);
+  assert.equal(data(aluno).hasProfile, true);
+
+  const de_novo = await call("POST", `/class-leads/${lead.id}/convert`, A.token, {});
+  assert.equal(de_novo.statusCode, 409);
+  assert.equal(de_novo.json().code, "LEAD_CONVERTED");
+});
+
+test("conversão: WhatsApp já usado (só dígitos) → 409 com o cliente, sem criar nada; com confirmação cria", async () => {
+  const [existente] = await sql`INSERT INTO clients (tenant_id, full_name, whatsapp) VALUES (${A.id}, 'Paula Antiga', '34 9 7777-0002') RETURNING id`;
+  await sql`INSERT INTO clients (tenant_id, full_name, whatsapp) VALUES (${B.id}, 'Da outra empresa', '34977770003')`;
+  const lead = data(await call("POST", "/class-leads", A.token, { name: "Paula Nova", whatsapp: "(34) 97777-0002" }));
+  const antes = await sql`SELECT count(*)::int n FROM clients WHERE tenant_id = ${A.id}`;
+
+  const dup = await call("POST", `/class-leads/${lead.id}/convert`, A.token, {});
+  assert.equal(dup.statusCode, 409, dup.body);
+  assert.equal(dup.json().code, "DUPLICATE_WHATSAPP");
+  assert.deepEqual(dup.json().data, { clientId: existente.id, clientName: "Paula Antiga" });
+  const depois = await sql`SELECT count(*)::int n FROM clients WHERE tenant_id = ${A.id}`;
+  assert.equal(depois[0].n, antes[0].n, "nada criado");
+  assert.equal(data(await call("GET", `/class-leads/${lead.id}`, A.token)).status, "interested", "etapa não muda");
+
+  const ok = await call("POST", `/class-leads/${lead.id}/convert`, A.token, { confirmDuplicate: true });
+  assert.equal(ok.statusCode, 200, ok.body);
+  assert.notEqual(data(ok).studentId, existente.id, "cria um aluno novo");
+  assert.equal(data(ok).lead.status, "converted");
+
+  const outra = data(await call("POST", "/class-leads", A.token, { name: "Só na B", whatsapp: "34977770003" }));
+  assert.equal((await call("POST", `/class-leads/${outra.id}/convert`, A.token, {})).statusCode, 200, "cliente de outra empresa não conta");
+  const semZap = data(await call("POST", "/class-leads", A.token, { name: "Sem WhatsApp" }));
+  assert.equal((await call("POST", `/class-leads/${semZap.id}/convert`, A.token, {})).statusCode, 200);
+});
+
+test("conversão: limite do plano dá 403 e nada é gravado; permissões e isolamento", async () => {
+  const lead = data(await call("POST", "/class-leads", A.token, { name: "Limite", whatsapp: "34911110000" }));
+  const [{ n }] = await sql`SELECT count(*)::int n FROM clients WHERE tenant_id = ${A.id} AND deleted_at IS NULL`;
+  const [{ max_clients: original }] = await sql`SELECT max_clients FROM tenants WHERE id = ${A.id}`;
+  await sql`UPDATE tenants SET max_clients = ${n} WHERE id = ${A.id}`;
+  try {
+    const res = await call("POST", `/class-leads/${lead.id}/convert`, A.token, {});
+    assert.equal(res.statusCode, 403, res.body);
+    assert.equal(res.json().code, "PLAN_LIMIT");
+    const [{ m }] = await sql`SELECT count(*)::int m FROM clients WHERE tenant_id = ${A.id} AND deleted_at IS NULL`;
+    assert.equal(m, n);
+    assert.equal(data(await call("GET", `/class-leads/${lead.id}`, A.token)).status, "interested");
+  } finally {
+    await sql`UPDATE tenants SET max_clients = ${original} WHERE id = ${A.id}`;
+  }
+  assert.equal((await call("POST", `/class-leads/${lead.id}/convert`, A.instructor, {})).statusCode, 403);
+  assert.equal((await call("POST", `/class-leads/${leadB}/convert`, A.token, {})).statusCode, 404);
+  assert.equal((await call("POST", `/class-leads/${lead.id}/convert`, S.token, {})).statusCode, 403);
+  assert.equal((await call("POST", `/class-leads/${lead.id}/convert`, A.token, { confirmDuplicate: "sim" })).statusCode, 400);
+});
+
+test("cadastro de aluno (POST /class-students) segue igual depois da mudança para o service", async () => {
+  const res = await call("POST", "/class-students", A.token, { fullName: "Aluna Direta", whatsapp: "34922220000", level: "beginner" });
+  assert.equal(res.statusCode, 201, res.body);
+  assert.equal(data(res).fullName, "Aluna Direta");
+  assert.equal(data(res).level, "beginner");
+  assert.equal(data(res).hasProfile, true);
+});

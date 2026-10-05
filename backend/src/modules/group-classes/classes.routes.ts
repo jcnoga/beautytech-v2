@@ -44,7 +44,7 @@ export async function run(reply: any, fn: (tx: any) => Promise<any>, status = 20
     return reply.status(status).send({ success: true, data });
   } catch (e: any) {
     if (e instanceof PreviewRollback) return reply.send({ success: true, data: e.data, preview: true });
-    if (e instanceof ClassError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code });
+    if (e instanceof ClassError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code, ...(e.details !== undefined && { data: e.details }) });
     if (e?.code === "23505") return reply.status(409).send({ success: false, error: "Este registro já existe", code: "DUPLICATE" });
     throw e;
   }

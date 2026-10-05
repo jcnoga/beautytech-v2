@@ -13,8 +13,9 @@ import {
 import { authenticate, requireManager } from "@middleware/auth";
 import { parseBody } from "../dtos";
 import { rejectForeignRefs } from "../tenant-guard";
-import { auditLog, checkClientLimit, checkProfessionalLimit, getPlanInfo } from "../all-modules";
-import { creditUsage, materializeFixed, pruneFixed, TZ } from "./classes.service";
+import { auditLog, checkProfessionalLimit } from "../all-modules";
+import { ClassError, creditUsage, materializeFixed, pruneFixed, TZ } from "./classes.service";
+import { assertStudentLimit, insertStudent } from "./students.service";
 import { rows } from "./rules";
 import {
   studentCreateDto, studentUpdateDto, STUDENT_CLIENT_FIELDS,
@@ -135,25 +136,16 @@ export async function membershipsModule(fastify: FastifyInstance) {
 
   fastify.post("/class-students", { preHandler: [authenticate] }, async (req: any, reply) => {
     const { tenantId, userId } = req.tenantContext;
-    // Mesmos limites da assinatura do cadastro de clientes (item 36).
-    const lim = await checkClientLimit(tenantId);
-    if (!lim.allowed) return reply.status(403).send({ success: false, error: `Limite do plano: ${lim.current}/${lim.limit} alunos. Faca upgrade.`, code: "PLAN_LIMIT" });
-    const plan = await getPlanInfo(tenantId);
-    if (plan.isFree && lim.current >= plan.maxClients) {
-      return reply.status(403).send({ success: false, error: `Limite de ${plan.maxClients} alunos atingido no plano gratuito. Faca upgrade.`, code: "PLAN_LIMIT" });
+    try {
+      await assertStudentLimit(tenantId);
+    } catch (e: any) {
+      if (e instanceof ClassError) return reply.status(e.status).send({ success: false, error: e.message, code: e.code });
+      throw e;
     }
     const body = parseBody(studentCreateDto, req, reply); if (!body) return;
     if (await rejectForeignRefs(reply, tenantId, { professionals: [body.instructorId] })) return;
 
-    const clientData: Record<string, unknown> = {};
-    const profileData: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(body)) ((STUDENT_CLIENT_FIELDS as readonly string[]).includes(k) ? clientData : profileData)[k] = v;
-
-    const clientId = await db.transaction(async (tx) => {
-      const [c] = await tx.insert(clients).values({ ...(defined(clientData) as any), tenantId, createdBy: userId, updatedBy: userId }).returning({ id: clients.id });
-      await tx.insert(studentProfiles).values({ ...(defined(profileData) as any), tenantId, clientId: c.id });
-      return c.id;
-    });
+    const clientId = await db.transaction((tx) => insertStudent(tx, tenantId, userId, body));
     auditLog({ tenantId, userId, action: "classes.student.created", tableName: "clients", recordId: clientId, newData: { fullName: body.fullName } });
     return reply.status(201).send({ success: true, data: await findStudent(tenantId, clientId) });
   });

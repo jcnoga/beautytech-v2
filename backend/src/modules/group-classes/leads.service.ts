@@ -2,11 +2,13 @@
 // - Etapas: só as de lead-stages.ts. "Matriculado" só pela conversão em aluno; interessado convertido não muda de etapa.
 // - Lista padrão sem as etapas escondidas (Perdido); com ?status= mostra só aquela etapa.
 // - Próximo contato vencido (alerta) só nas etapas que não são finais.
+// - Conversão: cria o aluno com os dados do interessado; WhatsApp já usado por cliente do tenant exige confirmação.
 import { ClassError } from "./classes.service";
 import {
   type LeadStage, PILATES_LEAD_STAGES, LEAD_STAGE_KEYS, INITIAL_LEAD_STAGE, CONVERTED_LEAD_STAGE, findLeadStage,
 } from "./lead-stages";
 import * as repo from "./leads.repository";
+import { assertStudentLimit, insertStudent } from "./students.service";
 
 const fail = (status: number, code: string, message: string): never => { throw new ClassError(status, code, message); };
 type Db = any;
@@ -65,4 +67,26 @@ export async function updateLead(exec: Db, tenantId: string, userId: string, id:
   }).filter(([, v]) => v !== undefined));
   await repo.updateLead(exec, tenantId, id, { ...values, updatedBy: userId });
   return getLead(exec, tenantId, id);
+}
+
+/**
+ * Converte o interessado em aluno (clients + student_profiles) e o marca como Matriculado, na mesma transação.
+ * WhatsApp igual ao de um cliente do tenant (só dígitos): 409 DUPLICATE_WHATSAPP com o cliente, sem gravar nada,
+ * a menos que confirmDuplicate venha true.
+ */
+export async function convertLead(tx: Db, tenantId: string, userId: string, id: string, opts: { confirmDuplicate?: boolean }) {
+  const lead = await repo.findLead(tx, tenantId, id, true);
+  if (!lead) fail(404, "NOT_FOUND", "Interessado não encontrado");
+  if (lead!.status === CONVERTED_LEAD_STAGE) fail(409, "LEAD_CONVERTED", "Este interessado já virou aluno");
+  const digits = (lead!.whatsapp ?? "").replace(/\D/g, "");
+  if (digits && !opts.confirmDuplicate) {
+    const dup = await repo.findClientByWhatsappDigits(tx, tenantId, digits);
+    if (dup) throw new ClassError(409, "DUPLICATE_WHATSAPP", `Já existe ${dup.fullName} com este WhatsApp`, { clientId: dup.id, clientName: dup.fullName });
+  }
+  await assertStudentLimit(tenantId);
+  const studentId = await insertStudent(tx, tenantId, userId,
+    { fullName: lead!.name, whatsapp: lead!.whatsapp ?? undefined, phone: lead!.phone ?? undefined, email: lead!.email ?? undefined },
+    { source: "lead" });
+  await repo.updateLead(tx, tenantId, id, { status: CONVERTED_LEAD_STAGE, convertedTo: studentId, convertedAt: new Date(), updatedBy: userId });
+  return { studentId, lead: await getLead(tx, tenantId, id) };
 }

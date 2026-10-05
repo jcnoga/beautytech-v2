@@ -9,7 +9,7 @@ import { parseBody } from "../dtos";
 import { auditLog } from "../all-modules";
 import { ClassError } from "./classes.service";
 import { run, requireFrontDesk } from "./classes.routes";
-import { classLeadCreateDto, classLeadUpdateDto } from "./group-classes.dto";
+import { classLeadCreateDto, classLeadUpdateDto, classLeadConvertDto } from "./group-classes.dto";
 import * as svc from "./leads.service";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,6 +55,18 @@ export async function classLeadsModule(fastify: FastifyInstance) {
       const lead = await svc.updateLead(tx, tenantId, userId, req.params.id, body);
       auditLog({ tenantId, userId, action: "classes.lead.updated", tableName: "leads", recordId: lead.id, newData: body });
       return lead;
+    });
+  });
+
+  fastify.post("/class-leads/:id/convert", { preHandler: [authenticate, requireFrontDesk] }, async (req: any, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    if (!UUID.test(req.params.id)) return notFound(reply);
+    const body = parseBody(classLeadConvertDto, req, reply); if (!body) return;
+    return run(reply, async (tx) => {
+      const r = await svc.convertLead(tx, tenantId, userId, req.params.id, body);
+      auditLog({ tenantId, userId, action: "classes.lead.converted", tableName: "leads", recordId: req.params.id,
+        newData: { studentId: r.studentId, confirmDuplicate: !!body.confirmDuplicate } });
+      return r;
     });
   });
 }

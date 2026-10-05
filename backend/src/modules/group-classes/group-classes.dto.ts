@@ -250,3 +250,6 @@ export const classLeadCreateDto = z.object({
   notes:      nul(str(5000)),
 });
 export const classLeadUpdateDto = classLeadCreateDto.partial();
+export const classLeadConvertDto = z.object({
+  confirmDuplicate: opt(z.boolean()), // true = criar o aluno mesmo com o WhatsApp já usado por outro cliente
+});

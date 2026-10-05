@@ -1,7 +1,7 @@
 // Interessados do Pilates (repository): acesso à tabela leads, sempre filtrado por tenant_id e sem os apagados.
 // Sem regra de negócio — etapas, permissões e conversão ficam em leads.service.ts.
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
-import { leads } from "@db/schema/index";
+import { clients, leads } from "@db/schema/index";
 import { TZ } from "./classes.service";
 
 type Db = any; // db ou tx do drizzle
@@ -10,6 +10,8 @@ const leadFields = {
   id: leads.id,
   name: leads.name,
   whatsapp: leads.whatsapp,
+  phone: leads.phone,
+  email: leads.email,
   source: leads.source,
   status: leads.status,
   notes: leads.notes,
@@ -50,4 +52,12 @@ export async function insertLead(exec: Db, values: Record<string, unknown>): Pro
 
 export async function updateLead(exec: Db, tenantId: string, id: string, values: Record<string, unknown>) {
   await exec.update(leads).set({ ...values, updatedAt: new Date() }).where(and(scope(tenantId), eq(leads.id, id)));
+}
+
+/** Cliente ativo do tenant com o mesmo WhatsApp, comparando só os dígitos. */
+export async function findClientByWhatsappDigits(exec: Db, tenantId: string, digits: string): Promise<{ id: string; fullName: string } | undefined> {
+  const [row] = await exec.select({ id: clients.id, fullName: clients.fullName }).from(clients)
+    .where(and(eq(clients.tenantId, tenantId), isNull(clients.deletedAt), sql`regexp_replace(coalesce(${clients.whatsapp}, ''), '[^0-9]', '', 'g') = ${digits}`))
+    .orderBy(clients.createdAt).limit(1);
+  return row;
 }

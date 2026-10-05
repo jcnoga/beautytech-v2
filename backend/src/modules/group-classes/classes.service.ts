@@ -19,7 +19,8 @@ export const WINDOW_DAYS = 28; // gera aulas para as próximas 4 semanas
 export const OCCUPYING = ["booked", "present", "absent", "excused"] as const;
 
 export class ClassError extends Error {
-  constructor(public status: number, public code: string, message: string) { super(message); }
+  /** details: dados extras devolvidos em "data" na resposta de erro (ex.: o cliente duplicado). */
+  constructor(public status: number, public code: string, message: string, public details?: unknown) { super(message); }
 }
 const fail = (status: number, code: string, message: string): never => { throw new ClassError(status, code, message); };
 
