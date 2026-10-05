@@ -100,8 +100,9 @@ export const tenants = pgTable("tenants", {
   asaasCustomerId: varchar("asaas_customer_id", { length: 100 }),
   asaasSubscriptionId: varchar("asaas_subscription_id", { length: 100 }),
   maxUsers:     integer("max_users").notNull().default(3),
-  maxClients:       integer("max_clients").notNull().default(100),
-  maxProfessionals: integer("max_professionals").notNull().default(1),
+  // Limite individual da conta; vazio = segue o plano do nicho (migration 0007; billing/plan-limits.service.ts).
+  maxClients:       integer("max_clients"),
+  maxProfessionals: integer("max_professionals"),
   businessType: varchar("business_type", { length: 50 }).notNull().default("beauty_salon"),
   primaryColor: varchar("primary_color", { length: 20 }).default("#c9a96e"),
   coverUrl:     text("cover_url"),

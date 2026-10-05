@@ -9,6 +9,8 @@ Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da pró
   - **NÃO aplicar na VPS agora.** Só entra no merge do `ramo-pilates` com o `vps`, e **com backup do banco antes** (`deploy/backup-bancos.sh`).
   - Journal do Drizzle: o `vps` tem só 0000–0002; o `ramo-pilates` tem 0003–0006 (timestamps 1790700000000…1791000000000, em ordem). Sem conflito no merge enquanto o `vps` não criar migration própria; se criar, renumerar a dele para depois da 0006.
   - A VPS registrou 0000–0002 como aplicadas (`deploy/copiar-banco.sh`); no merge, o migrator aplica 0003–0006 (Pilates inteiro) de uma vez.
+- **Migration `0007_tenant_limits_nullable`** (limites por nicho, 05/10): `tenants.max_clients` e `max_professionals` podem ficar vazios (= segue o plano do nicho); contas com `max_clients = 100` (padrão antigo) passam a vazio; `max_professionals` atuais não mudam (só o padrão da conta nova vira vazio). Reversão em `backend/src/db/migrations-down/0007_tenant_limits_nullable.down.sql`, testada ida e volta. **Mesma regra da 0006: NÃO aplicar na VPS antes do merge com o `vps`, e só com backup.** Timestamp 1791100000000.
+- Planos por nicho: chaves `niche.<nicho>.<plano>.<campo>` em `plan_settings`; leitura nicho → geral antigo → padrão do código em `billing/plan-limits.service.ts` (`resolvePlanSetting`). Conta nova nasce em `trial`.
 - Conversão em aluno: WhatsApp já usado por cliente do tenant (só dígitos) → 409 `DUPLICATE_WHATSAPP` com id e nome; `confirmDuplicate: true` cria mesmo assim.
 - Depois do funil (só leitura): ver se n8n ou outro serviço usa `IP:8080` da Evolution em vez de `https://evolution.zensalon.com.br`, e propor fechar a porta 8080 (hoje aberta em `0.0.0.0`; container `evolution-api` em `/root/evolution-v2`).
 

@@ -200,3 +200,59 @@ test("Super Admin: valida campo, valor e nicho; exige login de Super Admin", asy
   const [{ n }] = await sql`SELECT count(*)::int n FROM plan_settings WHERE key LIKE 'niche.%'`;
   assert.equal(n, 0, "nada gravado nos casos inválidos");
 });
+
+// ─── limite da conta vazio = segue o plano (migration 0007) ─────────────────
+test("migration 0007: limites da conta podem ficar vazios e a conta nova nasce sem limite próprio", async () => {
+  const cols = await sql`SELECT column_name, is_nullable, column_default FROM information_schema.columns
+    WHERE table_name = 'tenants' AND column_name IN ('max_clients', 'max_professionals') ORDER BY column_name`;
+  assert.deepEqual(cols.map((c: any) => [c.column_name, c.is_nullable, c.column_default]),
+    [["max_clients", "YES", null], ["max_professionals", "YES", null]]);
+  const t = await seed("nova", "pilates", "trial");
+  const [row] = await sql`SELECT max_clients, max_professionals FROM tenants WHERE id = ${t.id}`;
+  assert.deepEqual({ ...row }, { max_clients: null, max_professionals: null });
+});
+
+test("sem limite próprio: vale o plano do nicho (Trial do Pilates configurado no Super Admin)", async () => {
+  await sql`DELETE FROM plan_settings`;
+  await call("PUT", "/super-admin/plan-settings/niche/pilates", sa, { values: { "trial.max_clients": 2, "trial.max_professionals": 1 } });
+  const p = await seed("trial-pilates", "pilates", "trial");
+  assert.equal((await call("POST", "/class-students", p.token, { fullName: "A1" })).statusCode, 201);
+  assert.equal((await call("POST", "/class-students", p.token, { fullName: "A2" })).statusCode, 201);
+  const a3 = await call("POST", "/class-students", p.token, { fullName: "A3" });
+  assert.equal(a3.statusCode, 403);
+  assert.equal(a3.json().code, "PLAN_LIMIT");
+  assert.equal((await call("POST", "/class-instructors", p.token, { fullName: "I1" })).statusCode, 201);
+  assert.equal((await call("POST", "/class-instructors", p.token, { fullName: "I2" })).statusCode, 403);
+
+  const s = await seed("trial-salao", "beauty_salon", "trial");
+  await sql`INSERT INTO professionals (tenant_id, full_name) VALUES (${s.id}, 'P1')`;
+  assert.ok((await call("POST", "/professionals", s.token, { fullName: "P2" })).statusCode < 300, "salão: trial padrão = 2");
+  assert.equal((await call("POST", "/professionals", s.token, { fullName: "P3" })).statusCode, 403);
+
+  const plan = data(await call("GET", "/plan-info", p.token));
+  assert.equal(plan.limitPlan, "trial");
+  assert.equal(plan.maxClients, 2);
+  assert.equal(plan.features.whatsapp, true, "trial tudo incluso");
+  await sql`DELETE FROM plan_settings`;
+});
+
+test("plano pago com máximo de clientes vazio = ilimitado; limite próprio da conta vence o plano", async () => {
+  const t = await seed("pro-livre", "beauty_salon", "pro");
+  await sql`INSERT INTO clients (tenant_id, full_name) SELECT ${t.id}, 'C' || g FROM generate_series(1, 120) g`;
+  assert.equal((await call("POST", "/clients", t.token, { fullName: "Mais um" })).statusCode < 300, true);
+  assert.equal(data(await call("GET", "/plan-info", t.token)).maxClients, null);
+  await sql`UPDATE tenants SET max_clients = 121 WHERE id = ${t.id}`;
+  assert.equal((await call("POST", "/clients", t.token, { fullName: "Passou" })).statusCode, 403);
+});
+
+test("trial vencido vira gratuito, com os limites do gratuito", async () => {
+  const t = await seed("vencida", "barbershop", "trial");
+  await sql`UPDATE tenants SET trial_ends_at = now() - interval '1 day' WHERE id = ${t.id}`;
+  await sql`INSERT INTO clients (tenant_id, full_name) SELECT ${t.id}, 'C' || g FROM generate_series(1, 30) g`;
+  const r = await call("POST", "/clients", t.token, { fullName: "31" });
+  assert.equal(r.statusCode, 403, "gratuito padrão = 30 clientes");
+  const info = data(await call("GET", "/plan-info", t.token));
+  assert.equal(info.limitPlan, "free");
+  assert.equal(info.features.whatsapp, false);
+  assert.equal(data(await call("GET", "/clients", t.token)).length > 0, true, "clientes continuam visíveis");
+});
