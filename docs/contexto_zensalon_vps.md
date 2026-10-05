@@ -2,6 +2,16 @@
 
 Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da próxima conversa.
 
+## 05/10 — Funil de interessados do Pilates (em andamento no `ramo-pilates`)
+- Plano aprovado: 4 commits (backend etapas, conversão em aluno, tela, botão converter); parar depois do 4 para teste no navegador.
+- Reaproveita a tabela `leads` do salão com rotas próprias `/class-leads` (feature `class_leads`, só Pilates). Etapas numa lista única: `backend/src/modules/group-classes/lead-stages.ts` (interested, trial, converted, lost).
+- **Migration `0006_leads_status_text`** (`leads.status` enum → `varchar(30)`, valores preservados; reversão em `backend/src/db/migrations-down/0006_leads_status_text.down.sql`, testada):
+  - **NÃO aplicar na VPS agora.** Só entra no merge do `ramo-pilates` com o `vps`, e **com backup do banco antes** (`deploy/backup-bancos.sh`).
+  - Journal do Drizzle: o `vps` tem só 0000–0002; o `ramo-pilates` tem 0003–0006 (timestamps 1790700000000…1791000000000, em ordem). Sem conflito no merge enquanto o `vps` não criar migration própria; se criar, renumerar a dele para depois da 0006.
+  - A VPS registrou 0000–0002 como aplicadas (`deploy/copiar-banco.sh`); no merge, o migrator aplica 0003–0006 (Pilates inteiro) de uma vez.
+- Conversão em aluno: WhatsApp já usado por cliente do tenant (só dígitos) → 409 `DUPLICATE_WHATSAPP` com id e nome; `confirmDuplicate: true` cria mesmo assim.
+- Depois do funil (só leitura): ver se n8n ou outro serviço usa `IP:8080` da Evolution em vez de `https://evolution.zensalon.com.br`, e propor fechar a porta 8080 (hoje aberta em `0.0.0.0`; container `evolution-api` em `/root/evolution-v2`).
+
 ## ONDE PARAMOS (02/10, ~17h Brasília — parado com o uso semanal em 92%)
 - **Duas correções prontas no `ramo-pilates`, SEM COMMIT** (aguardam o teste do usuário; não commitar antes do OK):
   1. Profissionais (`App.tsx`, `ProfessionalsPage`): `emptyForm` + `closeForm`/`openNew`; Cancelar, X, clique fora e salvar zeram o formulário; "+ Nova Profissional" abre vazio.

@@ -63,6 +63,7 @@ export const FEATURES = {
   memberships:       ["pilates"], // planos de Pilates e matrículas
   class_settings:    ["pilates"], // configurações do studio (modalidades e regras)
   group_classes:     ["pilates"], // grade, aulas, horários fixos, inscrições, presença, reposições, pausas
+  class_leads:       ["pilates"], // interessados (funil; tabela leads do CRM do salão)
 } as const satisfies Record<string, readonly BusinessType[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -115,6 +116,7 @@ export const ROUTE_FEATURES: Record<string, Feature> = {
   "/package-sessions": "treatment_packages",
 
   "/class-students": "class_students",
+  "/class-leads": "class_leads",
   "/class-instructors": "class_instructors",
   "/memberships/plans": "memberships",
   "/memberships/enrollments": "memberships",

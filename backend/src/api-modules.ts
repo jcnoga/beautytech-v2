@@ -11,6 +11,7 @@ import { salonProfilePublicModule } from "./modules/salon-profile/salon-profile.
 import { tenantPublicModule } from "./modules/tenant/tenant-public.routes.js";
 import { membershipsModule } from "./modules/group-classes/memberships.routes.js";
 import { classesModule } from "./modules/group-classes/classes.routes.js";
+import { classLeadsModule } from "./modules/group-classes/leads.routes.js";
 import {
   clientsModule, demoModule, professionalsModule, appointmentsModule, servicesModule, packagesModule,
   financialModule, commissionsModule, dashboardModule, crmModule, loyaltyModule, campaignsModule,
@@ -56,4 +57,5 @@ export const API_MODULES = [
   tenantPublicModule,
   membershipsModule,
   classesModule,
+  classLeadsModule,
 ] as const;

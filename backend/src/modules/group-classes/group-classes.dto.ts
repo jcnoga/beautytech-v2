@@ -237,3 +237,16 @@ export const pauseCreateDto = z.object({
   endDate:      day,
   reason:       nul(str(200)),
 });
+
+// ─── interessados (leads do Pilates) ────────────────────────────────────────
+// A etapa (status) é conferida no service contra lead-stages.ts; aqui só o formato.
+// Fora: convertedTo e convertedAt (definidos pela conversão em aluno).
+export const classLeadCreateDto = z.object({
+  name:       name(255),
+  whatsapp:   nul(str(20)),
+  source:     nul(str(50)),
+  status:     opt(str(30)),
+  followUpAt: nul(day), // próximo contato (dia de calendário em Brasília)
+  notes:      nul(str(5000)),
+});
+export const classLeadUpdateDto = classLeadCreateDto.partial();

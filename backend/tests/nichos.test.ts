@@ -200,6 +200,7 @@ const soPilates: Record<string, (t: Tenant) => string> = {
   memberships: () => "/memberships/plans",
   class_settings: () => "/classes/modalities",
   group_classes: () => "/classes/schedules",
+  class_leads: () => "/class-leads",
 };
 
 test("sondas cobrem todas as features que têm rota na API", () => {

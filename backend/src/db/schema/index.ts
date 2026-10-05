@@ -561,7 +561,9 @@ export const leads = pgTable("leads", {
   phone:       varchar("phone", { length: 20 }),
   whatsapp:    varchar("whatsapp", { length: 20 }),
   source:      varchar("source", { length: 50 }),
-  status:      leadStatusEnum("status").notNull().default("new"),
+  // Texto desde a migration 0006 (antes: enum lead_status). Etapas válidas conferidas no backend:
+  // salão em dtos.ts (valores de leadStatusEnum); Pilates em modules/group-classes/lead-stages.ts.
+  status:      varchar("status", { length: 30 }).notNull().default("new"),
   serviceInterest: varchar("service_interest", { length: 255 }),
   estimatedValue: numeric("estimated_value", { precision: 10, scale: 2 }),
   notes:       text("notes"),

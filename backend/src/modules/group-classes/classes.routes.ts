@@ -23,7 +23,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const todaySP = sql.raw(`(now() AT TIME ZONE '${TZ}')::date`);
 
 /** Dono, gerente e recepção (inscrever, cancelar, pausar, cancelar aula, trocar instrutor da aula). */
-async function requireFrontDesk(req: any, reply: any) {
+export async function requireFrontDesk(req: any, reply: any) {
   if (!["owner", "manager", "receptionist"].includes(req.tenantContext?.role)) {
     return reply.status(403).send({ success: false, error: "Seu perfil não tem permissão para esta ação", code: "FORBIDDEN" });
   }
@@ -34,7 +34,7 @@ class PreviewRollback extends Error { constructor(public data: any) { super("pre
 const isPreview = (req: any) => (req.query as any)?.preview === "1";
 
 /** Executa numa transação e traduz ClassError em resposta HTTP. Com preview, nada é gravado. */
-async function run(reply: any, fn: (tx: any) => Promise<any>, status = 200, preview = false) {
+export async function run(reply: any, fn: (tx: any) => Promise<any>, status = 200, preview = false) {
   try {
     const data = await db.transaction(async (tx) => {
       const r = await fn(tx);
