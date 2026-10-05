@@ -149,13 +149,13 @@ export default function TenantSettingsPage() {
   // Foto de capa: fundo da landing page e do cartão na busca pública (/buscar).
   const coverBlock = (
     <div style={{ marginBottom:24 }}>
-      <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Foto de capa</label>
+      <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Foto da landing page (capa)</label>
       {form.coverUrl && <img src={form.coverUrl} alt="Capa" style={{ width:"100%", height:140, objectFit:"cover", borderRadius:12, marginBottom:10 }} />}
       <label style={{ display:"inline-block", padding:"10px 20px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:10, color:C.gold, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB, marginBottom:12 }}>
         {uploading ? "Enviando..." : "📁 Escolher Capa"}
         <input type="file" accept="image/*" onChange={e => handleUpload(e, "cover")} style={{ display:"none" }} />
       </label>
-      {isPilates && <div style={{ fontSize:13, color:C.textMuted, marginBottom:10 }}>Aparece no cartão do studio na busca do ZenSalon. Recomendado: foto horizontal, 1200x400px.</div>}
+      <div style={{ fontSize:13, color:C.textMuted, marginBottom:10 }}>Aparece no topo da página pública {isPilates ? "do studio" : "do salão"} e no cartão da busca do ZenSalon. Recomendado: foto horizontal, 1200x400px.</div>
       <Inp label="Ou cole a URL da capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
     </div>
   );
@@ -371,7 +371,8 @@ export default function TenantSettingsPage() {
         </div>}
       </div>
 
-      {(<>
+      {/* Link público e prévia: só na aba Landing Page */}
+      {activeTab === "landing" && (<>
       <div style={{ marginTop:24, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
         <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16 }}>{isPilates ? "🔗 Página pública do studio" : "🔗 Sua URL Pública de Agendamento"}</div>
         <div style={{ background:C.surface, borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
