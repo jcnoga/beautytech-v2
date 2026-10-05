@@ -1193,8 +1193,16 @@ function NichePlansPanel({ saFetch }: any) {
   const placeholder = (plan: string, f: string) => {
     const cell = data?.[plan]?.[f];
     if (!cell || cell.source === "niche") return "";
-    if (cell.value === null) return f === "max_clients" ? "ilimitado" : "-";
-    return `${cell.value} (${PLAN_SOURCE_LABEL[cell.source] ?? cell.source})`;
+    if (cell.value === null) {
+      if (f === "max_clients") return "ilimitado";
+      if (f === "semiannual") return "10% off do mensal";
+      if (f === "annual") return "20% off do mensal";
+      return "-";
+    }
+    const shown = ["monthly", "semiannual", "annual"].includes(f)
+      ? Number(cell.value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : String(cell.value);
+    return `${shown} (${PLAN_SOURCE_LABEL[cell.source] ?? cell.source})`;
   };
   const inputSt = { width:150, padding:"8px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontFamily:FB, fontSize:14, textAlign:"center" as const };
 

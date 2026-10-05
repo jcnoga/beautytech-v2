@@ -105,8 +105,11 @@ export async function checkClientLimit(tenantId: string) {
 }
 
 /** Mensagem do 403 PLAN_LIMIT: deixa claro que só o cadastro de novos foi bloqueado. */
-export const limitMessage = (what: string, lim: { current: number; limit: number | null }) =>
-  `Seu plano permite até ${lim.limit} ${what} e você já tem ${lim.current}. Os cadastrados continuam normais; para cadastrar mais, faça upgrade do plano.`;
+const SINGULAR: Record<string, string> = { clientes: "cliente", profissionais: "profissional", alunos: "aluno", instrutores: "instrutor" };
+export const limitMessage = (what: string, lim: { current: number; limit: number | null }) => {
+  const word = (n: number | null) => (n === 1 ? SINGULAR[what] ?? what : what);
+  return `Seu plano permite até ${lim.limit} ${word(lim.limit)} e você já tem ${lim.current}. Os cadastrados continuam normais; para cadastrar mais, faça upgrade do plano.`;
+};
 
 // ─── Super Admin: valores por nicho ─────────────────────────────────────────
 export class PlanSettingsError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } }

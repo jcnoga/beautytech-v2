@@ -145,7 +145,7 @@ test("Pilates: limite de alunos e instrutores com 403 PLAN_LIMIT e mensagem clar
   const a2 = await call("POST", "/class-students", t.token, { fullName: "A2" });
   assert.equal(a2.statusCode, 403);
   assert.equal(a2.json().code, "PLAN_LIMIT");
-  assert.match(a2.json().error, /até 1 alunos/);
+  assert.match(a2.json().error, /até 1 aluno e você já tem 1\./, "singular quando o limite é 1");
   assert.equal((await call("POST", "/class-instructors", t.token, { fullName: "I1" })).statusCode, 201);
   const i2 = await call("POST", "/class-instructors", t.token, { fullName: "I2" });
   assert.equal(i2.statusCode, 403);
