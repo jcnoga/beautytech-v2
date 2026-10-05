@@ -2,6 +2,18 @@
 
 Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da próxima conversa.
 
+## ONDE PARAMOS (02/10, ~17h Brasília — parado com o uso semanal em 92%)
+- **Duas correções prontas no `ramo-pilates`, SEM COMMIT** (aguardam o teste do usuário; não commitar antes do OK):
+  1. Profissionais (`App.tsx`, `ProfessionalsPage`): `emptyForm` + `closeForm`/`openNew`; Cancelar, X, clique fora e salvar zeram o formulário; "+ Nova Profissional" abre vazio.
+  2. `/auth/me` (`App.tsx`, `loadTenant`; `api/client.ts`): falha de rede, demora acima de 15 s, 5xx ou 403 mostram "Não foi possível carregar sua conta" com "Tentar de novo" e "Sair", sem menu nem telas (não assume salão); 401 volta para o login; na renovação do token, a falha mantém o nicho já conhecido. `client.ts`: corpo vazio vira "Servidor indisponível (erro N)" e o erro leva `status`.
+  - Rotina já rodada: 86 testes ok, `npm run check` (base 12) ok, build ok. Este arquivo (contexto) também está sem commit.
+  - **Roteiro de teste**: A) salão: Profissionais → Editar → Cancelar → "+ Nova Profissional" vazio (também pelo X e clicando fora). B) Pilates com a API parada: tela de erro, nunca o sistema de salão; "Tentar de novo" com a API parada repete a tela. C) API de volta + "Tentar de novo": abre o menu do Pilates.
+  - Com A, B e C ok: commit das duas correções + contexto no `ramo-pilates` e push para `origin/ramo-pilates` (nunca `main`). Depois, levar as duas correções para o `vps` (o `vps` tem o mesmo `.catch(() => {})` no `/auth/me`) — só com aprovação.
+- **Ícone de ajuda ("?") em cada campo** (o usuário autorizou continuar acima de 90%): `Field` com `help`, `HelpIcon`, `HelpBox` e `CheckField` em `group-classes/ui.tsx`. Feito, commitado e **sem push** (aguarda o teste do usuário): **Planos `fc4cfd5`**, **Alunos `c959bf8`**. Faltam: Instrutores, Grade, Agenda, Aula (`SessionPanel`), Modalidades, Regras do studio/exceções do plano (`ruleFields.ts` já tem `hint`; ajuda iria ali) e, se o usuário quiser, o salão (`Inp` do `App.tsx`, 76 campos). Achado: a **modalidade do plano é só informativa** (o backend não restringe o uso por modalidade).
+- **Pedidos novos, ainda não começados** (decidir no sábado junto com o plano da Fase 4):
+  - **Caixas de dia nos Horários fixos da matrícula** (`EnrollmentSlots.tsx`): trocar a lista "um horário por vez" por caixas com os horários da grade e um "Adicionar N horários"; o backend grava tudo ou nada e confere vaga e limite do plano. Decidido: os dias ficam na matrícula, não no plano.
+- Produção: `origin/vps` = `73a58d9`, implantado e conferido em 02/10 (ver abaixo).
+
 ## ONDE PARAMOS (01/10, fim do dia)
 - Último commit no `ramo-pilates`: **`64d96f3`** (foto do instrutor). Base do tsc: **12**. Push feito em 02/10.
 - **Próxima sessão: plano da Fase 4 no sábado 04/10** (quando o limite semanal renova). Começar mostrando o PLANO e esperar aprovação.
@@ -18,7 +30,8 @@ Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da pró
 ## 01/10 — 3 bugs de produção corrigidos
 - Commit `0b0735f` no `vps` (upgrade da faixa do teste grátis, cancelamento de assinatura, foto do profissional), trazido para o `ramo-pilates` por cherry-pick (`c8bc19a`). Testado pelo usuário no ambiente local: OK.
 - Base do tsc no `ramo-pilates`: **17 → 12**. No `vps` (sem `npm run check`), o tsc caiu de 16 para 11.
-- Deploy na VPS: ver "Atualizar" em `deploy/README.md` (só o `zensalon-web` mudou).
+- Deploy na VPS: ver "Atualizar" em `deploy/README.md`.
+- **Em produção desde 02/10, 14h15 (Brasília):** `origin/vps` = `73a58d9` (os 3 bugs + "Usar Sessão" + rótulos + aviso de erro no envio de imagem). Conferido dentro do container da API; containers recriados com `--no-cache`. Ainda não está no `vps`: a correção do `/auth/me` (mesmo `.catch(() => {})`; lá o efeito é só visual, porque o `vps` não tem o bloqueio por nicho) e a de Profissionais (Cancelar não limpava o formulário).
 
 ## ONDE PARAMOS (30/09, fim do dia)
 - **Fase 3b aprovada pelo usuário** (Agenda de aulas, Aulas de hoje e Histórico testados no navegador: OK).
@@ -85,6 +98,14 @@ Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da pró
    - "+ Nova Profissional" depois de Editar → Cancelar abre com os dados (e agora a foto) do profissional anterior (o Cancelar do modal não limpa o formulário).
    - Busca pública (`/buscar`, `DiscoveryPage.tsx`): não há filtro nem rótulo/ícone para Pilates (o studio aparece como "pilates" com ícone de casa). Encaixa na Fase 5 (página pública).
    - Login do Super Admin: a mensagem "Credenciais inválidas" aparece com o acento corrompido (anotado em 02/10).
+   - **Carga que falha calada (`.catch(() => {})`)**: quando a carga falhar, estas telas devem mostrar erro com "Tentar de novo", e não dados vazios nem valores fixos do código (anotado em 02/10):
+     - `PricingPage.tsx:90`: preços dos planos (cai nos preços fixos do código);
+     - `PricingPage.tsx:108`: `/billing/status` (assinante vê "Assinar" e não vê "Cancelar");
+     - `group-classes/StudentsPage.tsx:48-49`: instrutores e planos ativos (listas vazias na matrícula);
+     - `group-classes/StudentsPage.tsx:59`: matrículas do aluno (ficha mostra "sem matrícula");
+     - `group-classes/StudentsPage.tsx:60`: termo LGPD (mostra "sem termo assinado");
+     - `group-classes/PlansPage.tsx:42`: regras padrão do studio (exceções sem o padrão de referência).
+6. **Baixa prioridade — demais `.catch(() => {})` do frontend** (levantados em 02/10): `App.tsx` `/plan-info` do menu lateral, Super Admin (configurações dos planos e dias de trial padrão, que cai em "15" fixo), listas de instrutores/modalidades em `PlansPage:41`, `AgendaPage:36-37`, `SchedulesPage:42-44`, `EnrollmentSlots:43`, `SessionPanel:93`, e o slug do `OnboardingWizard:60`.
 5. **Observações:**
    - `PricingPage` lê o token uma vez só, ao abrir; se a sessão expirar com a página aberta, o cancelamento falha.
    - Ambiente local: desde 01/10 o Vite (`dev-local/web.sh`) serve `dev-local/uploads` em `/uploads` (na VPS é o nginx do `zensalon-web`). Senhas dos logins de teste: `sh dev-local/trocar-senhas.sh`.
