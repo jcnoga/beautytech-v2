@@ -105,15 +105,30 @@ export default function VitrinePage({ slug }: { slug: string }) {
   }
 
   const accent = tenant.primaryColor || C.primary;
-  const cover = profile?.coverImageUrl || tenant.coverUrl || COVER_DEFAULTS[tenant.businessType ?? "beauty_salon"] || COVER_DEFAULTS.beauty_salon;
+  // Pilates: ainda sem reserva de aula online; o botão principal abre o WhatsApp do studio (aula experimental).
+  const isPilates = tenant.businessType === "pilates";
+  const cover = profile?.coverImageUrl || tenant.coverUrl || (isPilates ? null : COVER_DEFAULTS[tenant.businessType ?? "beauty_salon"] || COVER_DEFAULTS.beauty_salon);
   const city = [tenant.addressCity, tenant.addressState].filter(Boolean).join(", ");
   const whatsapp = profile?.whatsappNumber || tenant.whatsapp || tenant.phone;
+  const zap = (whatsapp || "").replace(/\D/g, "");
+  const trialUrl = isPilates && zap
+    ? `https://wa.me/${zap.length <= 11 ? "55" + zap : zap}?text=${encodeURIComponent(`Olá! Vi a página do ${tenant.name} e gostaria de agendar uma aula experimental de Pilates.`)}`
+    : null;
+  const ctaStyle = (pad: string, size: string) => ({
+    display: "block", width: "100%", boxSizing: "border-box" as const, padding: pad, borderRadius: 12, border: "none",
+    background: accent, color: "#0B0F1A", fontWeight: 800, fontSize: size, cursor: "pointer",
+    fontFamily: "'Outfit', sans-serif", letterSpacing: ".02em", textAlign: "center" as const, textDecoration: "none",
+  });
+  /** Botão principal: salão agenda horário; studio abre o WhatsApp (sem WhatsApp cadastrado, não mostra). */
+  const cta = (pad: string, size: string) => isPilates
+    ? (trialUrl && <a href={trialUrl} target="_blank" rel="noopener noreferrer" style={ctaStyle(pad, size)}>Agendar aula experimental</a>)
+    : <button onClick={() => goToBooking()} style={ctaStyle(pad, size)}>Agendar horário</button>;
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FB, color: C.text, paddingBottom: 90 }}>
 
       {/* HERO */}
-      <div style={{ position: "relative", height: 340, overflow: "hidden", background: `url(${cover}) center/cover no-repeat` }}>
+      <div style={{ position: "relative", height: 340, overflow: "hidden", background: cover ? `url(${cover}) center/cover no-repeat` : `linear-gradient(135deg, ${accent}55, ${accent}11)` }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(11,15,26,0.95) 100%)" }} />
         <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "flex-end", padding: "0 24px 28px", textAlign: "center" as const }}>
           {tenant.logoUrl && (
@@ -132,13 +147,7 @@ export default function VitrinePage({ slug }: { slug: string }) {
 
       {/* CTA principal */}
       <div style={{ padding: "20px 20px 0" }}>
-        <button onClick={() => goToBooking()} style={{
-          width: "100%", padding: "16px", borderRadius: 12, border: "none",
-          background: accent, color: "#0B0F1A", fontWeight: 800, fontSize: "1rem",
-          cursor: "pointer", fontFamily: "'Outfit', sans-serif", letterSpacing: ".02em",
-        }}>
-          Agendar horário
-        </button>
+        {cta("16px", "1rem")}
       </div>
 
       {/* SOBRE */}
@@ -170,10 +179,31 @@ export default function VitrinePage({ slug }: { slug: string }) {
         </Section>
       )}
 
-      {/* LISTA DE SERVIÇOS — clique escolhe o serviço e vai direto pro agendamento */}
-      <Section title="Serviços" accent={accent}>
+      {/* LISTA DE SERVIÇOS — clique escolhe o serviço e vai direto pro agendamento. Pilates: modalidades, só informativas. */}
+      <Section title={isPilates ? "Modalidades" : "Serviços"} accent={accent}>
         {services.length === 0 ? (
-          <div style={{ fontSize: ".85rem", color: C.textMuted }}>Nenhum serviço disponível no momento.</div>
+          <div style={{ fontSize: ".85rem", color: C.textMuted }}>{isPilates ? "Nenhuma modalidade cadastrada no momento." : "Nenhum serviço disponível no momento."}</div>
+        ) : isPilates ? (
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+            {services.map(s => (
+              <div key={s.id} style={{
+                background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, color: C.text,
+                display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+              }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: ".95rem" }}>{s.name}</div>
+                  {s.description && <div style={{ fontSize: ".82rem", color: C.textMuted, marginTop: 2 }}>{s.description}</div>}
+                  <div style={{ fontSize: ".78rem", color: C.textMuted, marginTop: 4 }}>Aula de {s.durationMinutes} min</div>
+                </div>
+                {Number(s.price) > 0 && (
+                  <div style={{ textAlign: "right" as const }}>
+                    <div style={{ fontWeight: 800, color: accent, fontSize: ".95rem", whiteSpace: "nowrap" as const }}>{formatPrice(Number(s.price))}</div>
+                    <div style={{ fontSize: ".72rem", color: C.textMuted }}>aula avulsa</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
             {services.map(s => (
@@ -198,7 +228,7 @@ export default function VitrinePage({ slug }: { slug: string }) {
 
       {/* PROFISSIONAIS */}
       {professionals.length > 0 && (
-        <Section title="Nossa equipe" accent={accent}>
+        <Section title={isPilates ? "Instrutores" : "Nossa equipe"} accent={accent}>
           <div style={{ display: "flex", gap: 12, overflowX: "auto" as const, paddingBottom: 4 }}>
             {professionals.map(p => (
               <div key={p.id} style={{ flex: "0 0 auto", width: 92, textAlign: "center" as const }}>
@@ -229,7 +259,7 @@ export default function VitrinePage({ slug }: { slug: string }) {
 
       {/* DEPOIMENTOS */}
       {testimonials.length > 0 && (
-        <Section title="O que dizem nossos clientes" accent={accent}>
+        <Section title={isPilates ? "O que dizem nossos alunos" : "O que dizem nossos clientes"} accent={accent}>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
             {testimonials.map(t => (
               <div key={t.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
@@ -256,19 +286,13 @@ export default function VitrinePage({ slug }: { slug: string }) {
       </Section>
 
       {/* CTA fixo no rodapé (mobile) */}
-      <div style={{
+      {(!isPilates || trialUrl) && <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0, padding: 12,
         background: "rgba(11,15,26,0.92)", backdropFilter: "blur(8px)",
         borderTop: `1px solid ${C.border}`, zIndex: 10,
       }}>
-        <button onClick={() => goToBooking()} style={{
-          width: "100%", padding: "14px", borderRadius: 12, border: "none",
-          background: accent, color: "#0B0F1A", fontWeight: 800, fontSize: ".95rem",
-          cursor: "pointer", fontFamily: "'Outfit', sans-serif",
-        }}>
-          Agendar horário
-        </button>
-      </div>
+        {cta("14px", ".95rem")}
+      </div>}
     </div>
   );
 }
