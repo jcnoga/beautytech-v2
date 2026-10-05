@@ -147,6 +147,20 @@ export default function TenantSettingsPage() {
   ].filter(tab => !(isPilates && tab.id === "landing")) // página pública do studio: fase futura (C12)
    .filter(tab => tab.id !== "rules" || (can("class_settings") && canManage)); // Aulas em turma: só dono/gerente
 
+  // Foto de capa: fundo da landing page e do cartão na busca pública (/buscar). Pilates: na aba Identidade.
+  const coverBlock = (
+    <div style={{ marginBottom:24 }}>
+      <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Foto de capa</label>
+      {form.coverUrl && <img src={form.coverUrl} alt="Capa" style={{ width:"100%", height:140, objectFit:"cover", borderRadius:12, marginBottom:10 }} />}
+      <label style={{ display:"inline-block", padding:"10px 20px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:10, color:C.gold, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB, marginBottom:12 }}>
+        {uploading ? "Enviando..." : "📁 Escolher Capa"}
+        <input type="file" accept="image/*" onChange={e => handleUpload(e, "cover")} style={{ display:"none" }} />
+      </label>
+      {isPilates && <div style={{ fontSize:13, color:C.textMuted, marginBottom:10 }}>Aparece no cartão do studio na busca do ZenSalon. Recomendado: foto horizontal, 1200x400px.</div>}
+      <Inp label="Ou cole a URL da capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
+    </div>
+  );
+
   // Logo: na aba Landing Page; no Pilates (sem Landing Page até a C12) fica na aba Identidade.
   const logoBlock = (
     <div style={{ marginBottom:24 }}>
@@ -192,6 +206,7 @@ export default function TenantSettingsPage() {
           <div>
             <Inp label="Nome do estabelecimento" value={form.name} onChange={f("name")} placeholder={isPilates ? "Ex: Studio Equilíbrio Pilates" : "Ex: Salão Beleza Total"} />
             {isPilates && logoBlock}
+            {isPilates && coverBlock}
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Cor principal</label>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -246,15 +261,7 @@ export default function TenantSettingsPage() {
           <div>
             {logoBlock}
 
-            <div style={{ marginBottom:24 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Foto de capa</label>
-              {form.coverUrl && <img src={form.coverUrl} alt="Capa" style={{ width:"100%", height:140, objectFit:"cover", borderRadius:12, marginBottom:10 }} />}
-              <label style={{ display:"inline-block", padding:"10px 20px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:10, color:C.gold, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB, marginBottom:12 }}>
-                {uploading ? "Enviando..." : "📁 Escolher Capa"}
-                <input type="file" accept="image/*" onChange={e => handleUpload(e, "cover")} style={{ display:"none" }} />
-              </label>
-              <Inp label="Ou cole a URL da capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
-            </div>
+            {coverBlock}
 
             {!isPilates && <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 16px", fontSize:12, color:C.textMuted }}>
               💡 A landing page em <strong style={{ color:C.gold }}>{form.slug||"seu-salao"}.zensalon.com.br</strong> será atualizada automaticamente após salvar.
