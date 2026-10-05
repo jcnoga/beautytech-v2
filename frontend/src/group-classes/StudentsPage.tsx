@@ -1,6 +1,8 @@
 // Aulas em turma: Alunos (reaproveita o cadastro de clientes + ficha do aluno) e suas matrículas.
 // Matrícula por frequência ativa mostra os horários fixos (EnrollmentSlots).
 // Seção Histórico: créditos e reposições do aluno (StudentHistory).
+// Ficha em abas (Matrículas · Dados · Histórico · LGPD): abre em Matrículas quando o aluno tem matrícula ativa;
+// só as ativas aparecem em cartões; as encerradas/canceladas ficam em "Ver anteriores".
 // API: /class-students, /memberships/enrollments, /memberships/plans, /class-instructors, /consent-forms (C8), /classes/slots.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -66,6 +68,10 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [enroll, setEnroll] = useState<any>({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
   const [consent, setConsent] = useState<any | null>(null);
+  const [tab, setTab] = useState<"enrollments" | "data" | "history" | "lgpd">("data");
+  const [loadError, setLoadError] = useState(""); // matrículas ou termo LGPD não carregaram
+  const [showPast, setShowPast] = useState(false);
+  const [moreOpen, setMoreOpen] = useState<string | null>(null); // matrícula com o menu "Mais" aberto
 
   const load = async () => {
     setLoading(true); setError("");
@@ -91,11 +97,14 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
     setFormError("");
     setEditing(s ?? {});
     setForm(s ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, s[k] ?? (EMPTY as any)[k]])) : { ...EMPTY, startDate: todaySP() });
-    setEnrollments([]); setConsent(null);
+    setEnrollments([]); setConsent(null); setLoadError(""); setShowPast(false); setMoreOpen(null);
     setEnroll({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
+    setTab(s?.id && s.hasProfile && Number(s.activeEnrollments) > 0 ? "enrollments" : "data");
     if (s?.id && s.hasProfile) {
-      api.get<any>("/memberships/enrollments", { studentId: s.id }).then((r) => setEnrollments(r.data ?? [])).catch(() => {});
-      api.get<any>(`/consent-forms/${s.id}`).then((r) => setConsent((r.data ?? []).find((c: any) => c.type === "lgpd") ?? null)).catch(() => {});
+      api.get<any>("/memberships/enrollments", { studentId: s.id }).then((r) => setEnrollments(r.data ?? []))
+        .catch((e: any) => setLoadError(`Não foi possível carregar as matrículas (${e.message}).`));
+      api.get<any>(`/consent-forms/${s.id}`).then((r) => setConsent((r.data ?? []).find((c: any) => c.type === "lgpd") ?? null))
+        .catch((e: any) => setLoadError(`Não foi possível carregar o termo LGPD (${e.message}).`));
     }
   };
   const set = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
@@ -107,7 +116,8 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
     try {
       const r: any = editing?.id ? await api.patch(`/class-students/${editing.id}`, body) : await api.post("/class-students", body);
       await load();
-      if (!editing?.id || !editing.hasProfile) await open(r.data); else setEditing(r.data);
+      if (!editing?.id || !editing.hasProfile) { await open(r.data); setTab("enrollments"); } // próximo passo: matricular
+      else setEditing(r.data);
     } catch (e: any) { setFormError(e.message); }
     finally { setSaving(false); }
   };
@@ -127,6 +137,7 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
     } catch (e: any) { setFormError(e.message); }
   };
   const setEnrollmentStatus = async (id: string, st: string) => {
+    setMoreOpen(null);
     try {
       await api.patch(`/memberships/enrollments/${id}`, { status: st });
       const r: any = await api.get("/memberships/enrollments", { studentId: editing.id });
@@ -147,6 +158,43 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
 
   const inp = inputStyle(C, FB);
   const selectedPlan = plans.find((p) => p.id === enroll.planId);
+  const active = enrollments.filter((e) => e.status === "active" || e.status === "paused");
+  const past = enrollments.filter((e) => e.status !== "active" && e.status !== "paused");
+  const hasTabs = !!(editing?.id && editing.hasProfile);
+  const TABS: [typeof tab, string][] = [["enrollments", `Matrículas (${active.length})`], ["data", "Dados"], ["history", "Histórico"], ["lgpd", "LGPD"]];
+
+  /** O principal da matrícula em letra grande: aulas restantes (pacote) ou aulas da semana (frequência). */
+  const usageLine = (e: any) => {
+    if (!e.usage) return null;
+    if (e.planKind === "package") return `Restam ${e.usage.remaining} de ${e.usage.total} aulas`;
+    return `Esta semana: ${e.usage.thisWeek} de ${e.usage.perWeek} aulas`;
+  };
+  const enrollmentCard = (e: any) => {
+    const st = ENROLLMENT_STATUS[e.status] ?? ENROLLMENT_STATUS.active;
+    const isActive = e.status === "active";
+    return (
+      <div key={e.id} style={{ border: `1px solid ${isActive ? C.sage + "66" : C.border}`, borderRadius: 14, padding: "14px 16px", background: C.card }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{e.planName}</span>
+          <Badge label={st.label} color={st.color(C)} />
+        </div>
+        <div style={{ fontSize: 14, color: C.textSec, marginTop: 6 }}>
+          {fmtDay(e.startDate)} a {fmtDay(e.endDate)} · {brl(e.price)}{e.dueDay ? ` · vence dia ${e.dueDay}` : ""}
+        </div>
+        {isActive && usageLine(e) && <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginTop: 8 }}>{usageLine(e)}</div>}
+        {isActive && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <Button {...t} small variant="secondary" onClick={() => setMoreOpen(moreOpen === e.id ? null : e.id)}>{moreOpen === e.id ? "Menos ▴" : "Mais ▾"}</Button>
+            {moreOpen === e.id && (<>
+              <Button {...t} small variant="secondary" onClick={() => setEnrollmentStatus(e.id, "ended")}>Encerrar</Button>
+              <Button {...t} small variant="danger" onClick={() => { if (confirm("Cancelar esta matrícula?")) setEnrollmentStatus(e.id, "cancelled"); }}>Cancelar</Button>
+            </>)}
+          </div>
+        )}
+        {isActive && e.planKind === "frequency" && <div style={{ marginTop: 10 }}><EnrollmentSlots {...t} enrollment={e} /></div>}
+      </div>
+    );
+  };
 
   return (
     <div style={{ fontFamily: FB }}>
@@ -198,6 +246,18 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
         {editing?.id && !editing.hasProfile && (
           <Notice C={C} kind="info">Ficha de Pilates incompleta: confira os dados abaixo e salve para completar. O cadastro do cliente é o mesmo (nada é duplicado).</Notice>
         )}
+        {hasTabs && (
+          <div role="tablist" style={{ display: "flex", gap: 4, flexWrap: "wrap", borderBottom: `1px solid ${C.border}`, marginBottom: 16 }}>
+            {TABS.map(([k, l]) => (
+              <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+                style={{ background: "transparent", border: "none", borderBottom: `2px solid ${tab === k ? C.rose : "transparent"}`, color: tab === k ? C.text : C.textSec,
+                  fontWeight: tab === k ? 700 : 500, fontSize: 15, fontFamily: FB, padding: "10px 12px", minHeight: 44, cursor: "pointer" }}>{l}</button>
+            ))}
+          </div>
+        )}
+        {loadError && <Notice C={C}>{loadError}</Notice>}
+
+        {(!hasTabs || tab === "data") && (<>
         <Section C={C} title="Dados do aluno">
           <Field C={C} label="Nome completo" help={HELP.fullName}><input value={form.fullName} onChange={set("fullName")} style={inp} autoFocus /></Field>
           <Grid>
@@ -251,65 +311,49 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
           <Button {...t} onClick={save} disabled={saving}>{saving ? "Salvando..." : !editing?.id ? "Cadastrar aluno" : editing.hasProfile ? "Salvar alterações" : "Completar ficha"}</Button>
         </div>
 
-        {editing?.id && editing.hasProfile && (
-          <>
-            <Section C={C} title="Matrículas">
-              {enrollments.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 10 }}>Nenhuma matrícula ainda.</div>}
-              {enrollments.map((e) => {
-                const st = ENROLLMENT_STATUS[e.status] ?? ENROLLMENT_STATUS.active;
-                return (
-                  <div key={e.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, justifyContent: "space-between",
-                    padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
-                    <div>
-                      <div style={{ fontWeight: 600, color: C.text, fontSize: 14 }}>{e.planName} <Badge label={st.label} color={st.color(C)} /></div>
-                      <div style={{ fontSize: 12, color: C.textMuted }}>
-                        {fmtDay(e.startDate)} a {fmtDay(e.endDate)} · {brl(e.price)}{e.dueDay ? ` · vence dia ${e.dueDay}` : ""}
-                      </div>
-                    </div>
-                    {e.status === "active" && (
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <Button {...t} small variant="secondary" onClick={() => setEnrollmentStatus(e.id, "ended")}>Encerrar</Button>
-                        <Button {...t} small variant="danger" onClick={() => { if (confirm("Cancelar esta matrícula?")) setEnrollmentStatus(e.id, "cancelled"); }}>Cancelar</Button>
-                      </div>
-                    )}
-                    {e.status === "active" && e.planKind === "frequency" && (
-                      <div style={{ flexBasis: "100%" }}><EnrollmentSlots {...t} enrollment={e} /></div>
-                    )}
-                  </div>
-                );
-              })}
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>Nova matrícula (o aluno pode ter mais de uma ativa, ex.: mensal + pacote):</div>
-                <Grid>
-                  <Field C={C} label="Plano" help={HELP.plan}>
-                    <select value={enroll.planId} onChange={(e) => setEnroll((x: any) => ({ ...x, planId: e.target.value }))} style={inp}>
-                      <option value="">— escolha —</option>
-                      {plans.map((p) => <option key={p.id} value={p.id}>{p.name} · {brl(p.price)}</option>)}
-                    </select>
-                  </Field>
-                  <Field C={C} label="Início" help={HELP.enrollStart}><input type="date" value={enroll.startDate} onChange={(e) => setEnroll((x: any) => ({ ...x, startDate: e.target.value }))} style={inp} /></Field>
-                  {selectedPlan?.kind === "frequency" && (
-                    <Field C={C} label="Dia de vencimento" help={HELP.dueDay} hint="Padrão: o dia do início (até 28)">
-                      <input type="number" min={1} max={28} value={enroll.dueDay} onChange={(e) => setEnroll((x: any) => ({ ...x, dueDay: e.target.value }))} style={inp} />
-                    </Field>
-                  )}
-                  <Field C={C} label="Valor" help={HELP.price} hint={selectedPlan ? `Padrão: ${brl(selectedPlan.price)}` : undefined}>
-                    <input type="number" min={0} step="0.01" value={enroll.price} onChange={(e) => setEnroll((x: any) => ({ ...x, price: e.target.value }))} style={inp} />
-                  </Field>
-                </Grid>
-                {plans.length === 0 && <Notice C={C} kind="info">Cadastre um plano em “Planos” para matricular.</Notice>}
-                <Button {...t} variant="secondary" onClick={addEnrollment} disabled={!enroll.planId}>Matricular</Button>
+        </>)}
+
+        {hasTabs && tab === "enrollments" && (
+          <div style={{ display: "grid", gap: 10 }}>
+            {active.length === 0 && <div style={{ fontSize: 14, color: C.textMuted }}>Nenhuma matrícula ativa.</div>}
+            {active.map(enrollmentCard)}
+            {past.length > 0 && (
+              <div>
+                <Button {...t} small variant="secondary" onClick={() => setShowPast((v) => !v)}>{showPast ? "Esconder anteriores" : `Ver anteriores (${past.length})`}</Button>
+                {showPast && <div style={{ display: "grid", gap: 10, marginTop: 10 }}>{past.map(enrollmentCard)}</div>}
               </div>
+            )}
+            <Section C={C} title="Nova matrícula">
+              <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 8 }}>O aluno pode ter mais de uma ativa, ex.: mensal + pacote.</div>
+              <Grid>
+                <Field C={C} label="Plano" help={HELP.plan}>
+                  <select value={enroll.planId} onChange={(e) => setEnroll((x: any) => ({ ...x, planId: e.target.value }))} style={inp}>
+                    <option value="">— escolha —</option>
+                    {plans.map((p) => <option key={p.id} value={p.id}>{p.name} · {brl(p.price)}</option>)}
+                  </select>
+                </Field>
+                <Field C={C} label="Início" help={HELP.enrollStart}><input type="date" value={enroll.startDate} onChange={(e) => setEnroll((x: any) => ({ ...x, startDate: e.target.value }))} style={inp} /></Field>
+                {selectedPlan?.kind === "frequency" && (
+                  <Field C={C} label="Dia de vencimento" help={HELP.dueDay} hint="Padrão: o dia do início (até 28)">
+                    <input type="number" min={1} max={28} value={enroll.dueDay} onChange={(e) => setEnroll((x: any) => ({ ...x, dueDay: e.target.value }))} style={inp} />
+                  </Field>
+                )}
+                <Field C={C} label="Valor" help={HELP.price} hint={selectedPlan ? `Padrão: ${brl(selectedPlan.price)}` : undefined}>
+                  <input type="number" min={0} step="0.01" value={enroll.price} onChange={(e) => setEnroll((x: any) => ({ ...x, price: e.target.value }))} style={inp} />
+                </Field>
+              </Grid>
+              {plans.length === 0 && <Notice C={C} kind="info">Cadastre um plano em “Planos” para matricular.</Notice>}
+              <Button {...t} variant="secondary" onClick={addEnrollment} disabled={!enroll.planId}>Matricular</Button>
             </Section>
-            <Section C={C} title="Histórico">
-              <StudentHistory {...t} studentId={editing.id} />
-            </Section>
-            <Section C={C} title="Termo LGPD">
-              {consent?.is_signed
-                ? <div style={{ fontSize: 13, color: C.sage }}>✓ Aceite registrado em {new Date(consent.signed_at).toLocaleDateString("pt-BR")}{consent.signed_by_name ? ` por ${consent.signed_by_name}` : ""}</div>
-                : <Button {...t} small variant="secondary" onClick={registerConsent}>Registrar aceite do termo LGPD</Button>}
-            </Section>
-          </>
+          </div>
+        )}
+
+        {hasTabs && tab === "history" && <StudentHistory {...t} studentId={editing.id} />}
+
+        {hasTabs && tab === "lgpd" && (
+          consent?.is_signed
+            ? <div style={{ fontSize: 15, color: C.sage }}>✓ Aceite registrado em {new Date(consent.signed_at).toLocaleDateString("pt-BR")}{consent.signed_by_name ? ` por ${consent.signed_by_name}` : ""}</div>
+            : <Button {...t} variant="secondary" onClick={registerConsent}>Registrar aceite do termo LGPD</Button>
         )}
       </Modal>
     </div>
