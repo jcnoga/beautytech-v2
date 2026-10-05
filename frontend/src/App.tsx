@@ -4168,6 +4168,12 @@ export default function App() {
   // /auth/me falhou (rede, demora, 5xx, 403): sem nicho conhecido não monta menu nem tela.
   const [tenantError, setTenantError] = useState("");
   const [page, setPage] = useState('dashboard');
+  // Uma tela pede para abrir outra (ex.: Interessados → ficha do aluno): window.dispatchEvent(new CustomEvent("zs:open-page", { detail: "class_students" })).
+  useEffect(() => {
+    const on = (e: any) => { if (typeof e.detail === "string") setPage(e.detail); };
+    window.addEventListener("zs:open-page", on);
+    return () => window.removeEventListener("zs:open-page", on);
+  }, []);
   const [currentPage, setCurrentPage] = useState<string>('app');
   const [loading, setLoading] = useState(true);
   const appMatch = window.location.pathname === '/app';

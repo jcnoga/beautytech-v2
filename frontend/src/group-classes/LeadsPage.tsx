@@ -1,9 +1,11 @@
 // Aulas em turma: Interessados (funil interessado → experimental → matriculado, + perdido).
 // As etapas vêm do backend (GET /class-leads/stages): a tela não fixa nenhuma, então etapa nova aparece sozinha.
 // Regras (etapa válida, "Matriculado" só pela conversão, alerta de próximo contato) ficam no backend.
+// "Converter em aluno" cria o aluno com os dados do interessado e abre a ficha; WhatsApp já usado pede confirmação.
 // API: /class-leads.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { openStudentPage } from "./StudentsPage";
 import { type Theme, fmtDay, useIsMobile, PageHeader, Button, Field, inputStyle, Badge, Card, Modal, Grid, Notice, Empty } from "./ui";
 
 type Stage = { key: string; label: string; final?: boolean; onlyByConversion?: boolean; hidden?: boolean };
@@ -33,6 +35,10 @@ export default function ClassLeadsPage({ C, FD, FB }: Theme) {
   const [form, setForm] = useState<any>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [converting, setConverting] = useState<any | null>(null); // interessado na janela de conversão
+  const [duplicate, setDuplicate] = useState<{ clientId: string; clientName: string } | null>(null);
+  const [convertBusy, setConvertBusy] = useState(false);
+  const [convertError, setConvertError] = useState("");
 
   const visible = stages.filter((s) => !s.hidden);
   const hidden = stages.filter((s) => s.hidden);
@@ -80,6 +86,19 @@ export default function ClassLeadsPage({ C, FD, FB }: Theme) {
     catch (e: any) { setError(e.message); }
   };
 
+  const startConvert = (l: any) => { setConverting(l); setDuplicate(null); setConvertError(""); };
+  const convert = async (confirmDuplicate = false) => {
+    setConvertBusy(true); setConvertError("");
+    try {
+      const r: any = await api.post(`/class-leads/${converting.id}/convert`, confirmDuplicate ? { confirmDuplicate: true } : {});
+      setConverting(null);
+      openStudentPage(r.data.studentId);
+    } catch (e: any) {
+      if (e?.code === "DUPLICATE_WHATSAPP" && e.data?.clientId) setDuplicate(e.data);
+      else setConvertError(e.message);
+    } finally { setConvertBusy(false); }
+  };
+
   const inp = inputStyle(C, FB);
 
   const leadCard = (l: any) => (
@@ -95,13 +114,19 @@ export default function ClassLeadsPage({ C, FD, FB }: Theme) {
         {l.source && <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Origem: {l.source}</div>}
       </div>
       {stages.find((s) => s.key === l.status)?.onlyByConversion ? (
-        <div style={{ marginTop: 10 }}><Badge label={label(l.status)} color={C.sage} /></div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <Badge label={label(l.status)} color={C.sage} />
+          {l.convertedTo && <Button {...t} small variant="secondary" onClick={() => openStudentPage(l.convertedTo)}>Abrir ficha do aluno</Button>}
+        </div>
       ) : (
-        <select aria-label="Mudar etapa" value="" onChange={(e) => e.target.value && moveTo(l, e.target.value)}
-          style={{ ...inp, marginTop: 10, minHeight: 40, fontSize: 14 }}>
-          <option value="">Mudar etapa…</option>
-          {movable.filter((s) => s.key !== l.status).map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-        </select>
+        <>
+          <select aria-label="Mudar etapa" value="" onChange={(e) => e.target.value && moveTo(l, e.target.value)}
+            style={{ ...inp, marginTop: 10, minHeight: 40, fontSize: 14 }}>
+            <option value="">Mudar etapa…</option>
+            {movable.filter((s) => s.key !== l.status).map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+          <Button {...t} onClick={() => startConvert(l)} style={{ width: "100%", marginTop: 8 }}>Converter em aluno</Button>
+        </>
       )}
     </Card>
   );
@@ -176,6 +201,33 @@ export default function ClassLeadsPage({ C, FD, FB }: Theme) {
           <Button {...t} variant="secondary" onClick={() => setEditing(null)}>Cancelar</Button>
           <Button {...t} onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
         </div>
+      </Modal>
+
+      <Modal {...t} open={converting !== null} onClose={() => setConverting(null)} title="Converter em aluno" width={520}>
+        {convertError && <Notice C={C}>{convertError}</Notice>}
+        {duplicate ? (
+          <>
+            <div style={{ fontSize: 16, color: C.text, lineHeight: 1.5, marginBottom: 18 }}>
+              Já existe <b>{duplicate.clientName}</b> com este WhatsApp. Abrir a ficha ou criar mesmo assim?
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <Button {...t} variant="secondary" onClick={() => setConverting(null)}>Cancelar</Button>
+              <Button {...t} variant="secondary" onClick={() => { setConverting(null); openStudentPage(duplicate.clientId); }}>Abrir a ficha</Button>
+              <Button {...t} onClick={() => convert(true)} disabled={convertBusy}>{convertBusy ? "Criando..." : "Criar mesmo assim"}</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 16, color: C.text, lineHeight: 1.5, marginBottom: 18 }}>
+              <b>{converting?.name}</b> vai virar aluno: nome e WhatsApp vão para a ficha, e o interessado passa para "{stages.find((s) => s.onlyByConversion)?.label ?? "Matriculado"}".
+              Depois é só fazer a matrícula na ficha que vai abrir.
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <Button {...t} variant="secondary" onClick={() => setConverting(null)}>Cancelar</Button>
+              <Button {...t} onClick={() => convert(false)} disabled={convertBusy}>{convertBusy ? "Convertendo..." : "Converter"}</Button>
+            </div>
+          </>
+        )}
       </Modal>
     </div>
   );

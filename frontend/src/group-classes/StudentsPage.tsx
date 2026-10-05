@@ -40,6 +40,14 @@ const HELP = {
   price: <>Quanto este aluno vai pagar nesta matrícula. Vazio = o preço do plano. Use para dar desconto ou preço especial só para este aluno, sem mudar o plano.</>,
 };
 
+/** sessionStorage: id do aluno que a tela deve abrir ao montar (ver openStudentPage). */
+export const OPEN_STUDENT_KEY = "zs_open_student";
+/** Vai para a tela Alunos já com a ficha do aluno aberta. */
+export function openStudentPage(id: string) {
+  try { sessionStorage.setItem(OPEN_STUDENT_KEY, id); } catch { /* sem sessionStorage */ }
+  window.dispatchEvent(new CustomEvent("zs:open-page", { detail: "class_students" }));
+}
+
 const FILTERS = [["", "Todos"], ["active", "Ativos"], ["paused", "Pausados"], ["inactive", "Inativos"], ["cancelled", "Cancelados"], ["incomplete", "Ficha incompleta"]];
 
 export default function ClassStudentsPage({ C, FD, FB }: Theme) {
@@ -68,6 +76,12 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [status]);
+  // Aberta por outra tela (ex.: Interessados → "Converter em aluno"): abre a ficha pedida.
+  useEffect(() => {
+    let id: string | null = null;
+    try { id = sessionStorage.getItem(OPEN_STUDENT_KEY); sessionStorage.removeItem(OPEN_STUDENT_KEY); } catch { /* sem sessionStorage */ }
+    if (id) api.get<any>(`/class-students/${id}`).then((r) => open(r.data)).catch((e: any) => setError(e.message));
+  }, []);
   useEffect(() => {
     api.get<any>("/class-instructors").then((r) => setInstructors((r.data ?? []).filter((i: any) => i.isActive))).catch(() => {});
     api.get<any>("/memberships/plans", { status: "active" }).then((r) => setPlans(r.data ?? [])).catch(() => {});

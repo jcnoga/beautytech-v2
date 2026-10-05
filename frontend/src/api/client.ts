@@ -54,7 +54,8 @@ class ApiClient {
     const json = await res.json().catch(() => null);
     if (!res.ok || !json || json.success === false) {
       const msg = json?.error ?? json?.message ?? (res.ok ? "Resposta inválida do servidor" : `Servidor indisponível (erro ${res.status})`);
-      throw Object.assign(new Error(msg), { status: res.status });
+      // code e data do backend seguem no erro (ex.: DUPLICATE_WHATSAPP traz o cliente já existente).
+      throw Object.assign(new Error(msg), { status: res.status, code: json?.code, data: json?.data });
     }
     return json as T;
   }
