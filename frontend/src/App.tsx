@@ -4363,7 +4363,7 @@ const logout = async () => {
     automations:   AutomationsPage,
     notifications: NotificationsPage,
     whatsapp: () => <WhatsAppPageComponent C={C} FD={FD} FB={FB} />,
-    pricing: () => <PricingPage setPage={setPage} />,
+    pricing: () => <PricingPage setPage={setPage} businessType={tenantInfo?.businessType} />,
     settings: TenantSettingsPage,
     auditlogs: AuditLogsPage,
     checkout: () => <CheckoutPage setPage={setPage} />,

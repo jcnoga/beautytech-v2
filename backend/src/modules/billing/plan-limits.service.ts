@@ -149,3 +149,27 @@ export async function saveNicheSettings(businessType: string, values: Record<str
   });
   return getNicheSettings(niche);
 }
+
+// ─── preços por nicho (página de preços e checkout) ─────────────────────────
+const PLAN_NAMES: Record<string, string> = { free: "Free", basic: "Basico", pro: "Pro", super: "Super" };
+
+/** Planos do nicho no formato da cobrança. semiannualPrice/annualPrice = preço POR MÊS no período (null = desconto padrão). */
+export function plansForNiche(settings: Settings, businessType: string | null | undefined) {
+  const niche = nicheOf(businessType);
+  const get = (plan: LimitPlan, f: string) => resolvePlanSetting(settings, niche, plan, f).value;
+  const paid = (tier: "basic" | "pro" | "super") => ({
+    tier, name: PLAN_NAMES[tier],
+    monthlyPrice: get(tier, "monthly") ?? 0,
+    semiannualPrice: get(tier, "semiannual"),
+    annualPrice: get(tier, "annual"),
+    professionals: get(tier, "max_professionals"),
+    clients: get(tier, "max_clients"),
+  });
+  return {
+    free: { tier: "free", name: PLAN_NAMES.free, monthlyPrice: 0, semiannualPrice: 0, annualPrice: 0,
+      professionals: get("free", "max_professionals"), clients: get("free", "max_clients") },
+    basic: paid("basic"), pro: paid("pro"), super: paid("super"),
+  };
+}
+export type NichePlans = ReturnType<typeof plansForNiche>;
+export const loadNichePlans = async (businessType: string | null | undefined) => plansForNiche(await loadSettings(), businessType);

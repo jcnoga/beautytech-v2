@@ -85,14 +85,16 @@ export const ASAAS_CYCLE: Record<PlanPeriod, string> = {
   annual:     "YEARLY",
 };
 
-export function calcPlanAmount(tier: PlanTier, period: PlanPeriod): number {
-  const plan = PLANS[tier];
-  const plan2 = plan as any;
-  if (period === 'semiannual' && plan2.semiannualPrice) return parseFloat(Number(plan2.semiannualPrice).toFixed(2));
-  if (period === 'annual' && plan2.annualPrice) return parseFloat(Number(plan2.annualPrice).toFixed(2));
-  const discount = PERIOD_DISCOUNT[period];
+/**
+ * Valor total do período. Os preços semestral/anual do Super Admin são POR MÊS (como a página de preços mostra):
+ * total = preço por mês do período × meses. Sem preço do período, usa o mensal com o desconto padrão.
+ * plans: planos do nicho da conta (billing/plan-limits.service.ts → loadNichePlans).
+ */
+export function calcPlanAmount(tier: PlanTier, period: PlanPeriod, plans: Record<string, any> = PLANS): number {
+  const plan = plans[tier];
   const months = PERIOD_MONTHS[period];
-  const monthly = plan.monthlyPrice * (1 - discount);
+  const perPeriod = period === "semiannual" ? plan.semiannualPrice : period === "annual" ? plan.annualPrice : null;
+  const monthly = perPeriod ? Number(perPeriod) : plan.monthlyPrice * (1 - PERIOD_DISCOUNT[period]);
   return parseFloat((monthly * months).toFixed(2));
 }
 
@@ -108,12 +110,13 @@ export function calcProrate(
   currentPlanPeriod: PlanPeriod,
   currentStartedAt: Date,
   currentExpiresAt: Date,
+  plans: Record<string, any> = PLANS,
 ): number {
   const now = new Date();
   const totalMs = currentExpiresAt.getTime() - currentStartedAt.getTime();
   const usedMs  = now.getTime() - currentStartedAt.getTime();
   const remainingRatio = Math.max(0, 1 - usedMs / totalMs);
-  const totalPaid = calcPlanAmount(currentPlanTier, currentPlanPeriod);
+  const totalPaid = calcPlanAmount(currentPlanTier, currentPlanPeriod, plans);
   const credit = totalPaid * remainingRatio;
   return parseFloat(credit.toFixed(2));
 }

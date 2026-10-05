@@ -256,3 +256,53 @@ test("trial vencido vira gratuito, com os limites do gratuito", async () => {
   assert.equal(info.features.whatsapp, false);
   assert.equal(data(await call("GET", "/clients", t.token)).length > 0, true, "clientes continuam visíveis");
 });
+
+// ─── preços por nicho: página de preços e checkout ──────────────────────────
+test("cobrança: preço semestral/anual do Super Admin é POR MÊS (total = preço × meses)", async () => {
+  const { calcPlanAmount } = await import("../src/modules/billing/billing.service");
+  const plans = { pro: { monthlyPrice: 100, semiannualPrice: 90, annualPrice: 80 }, basic: { monthlyPrice: 50, semiannualPrice: null, annualPrice: null } };
+  assert.equal(calcPlanAmount("pro", "monthly", plans), 100);
+  assert.equal(calcPlanAmount("pro", "semiannual", plans), 540);
+  assert.equal(calcPlanAmount("pro", "annual", plans), 960);
+  assert.equal(calcPlanAmount("basic", "semiannual", plans), 270, "sem preço do período: mensal com 10% de desconto");
+  assert.equal(calcPlanAmount("basic", "annual", plans), 480, "sem preço do período: mensal com 20% de desconto");
+});
+
+test("página de preços: /billing/plans devolve os preços do nicho pedido", async () => {
+  await sql`DELETE FROM plan_settings`;
+  await setSetting("plan_pro_monthly", "59.9");
+  await call("PUT", "/super-admin/plan-settings/niche/pilates", sa, { values: { "pro.monthly": 109.9, "pro.max_professionals": 3 } });
+  const pil = (await app.inject({ method: "GET", url: PREFIX + "/billing/plans?businessType=pilates" })).json().data;
+  assert.equal(pil.pro.monthlyPrice, 109.9);
+  assert.equal(pil.pro.professionals, 3);
+  assert.equal(pil.pro.clients, null, "clientes ilimitados");
+  const salao = (await app.inject({ method: "GET", url: PREFIX + "/billing/plans" })).json().data;
+  assert.equal(salao.pro.monthlyPrice, 59.9, "sem nicho: salão (geral)");
+  const pub = (await app.inject({ method: "GET", url: PREFIX + "/public/plan-settings" })).json().data;
+  assert.equal(pub.plan_pro_monthly, "59.9", "página inicial pública: salão");
+  assert.equal(pub.trial_days, "60");
+});
+
+test("checkout: cobra o preço do nicho da conta (Asaas simulado, sem rede)", async () => {
+  await sql`DELETE FROM plan_settings`;
+  await setSetting("plan_pro_semiannual", "53.9");
+  await call("PUT", "/super-admin/plan-settings/niche/pilates", sa, { values: { "pro.monthly": 109.9, "pro.semiannual": 99.9 } });
+  const t = await seed("checkout", "pilates", "trial");
+  await sql`UPDATE tenants SET email = 'studio@teste.local', cpf_cnpj = '12345678909', asaas_customer_id = 'cus_teste' WHERE id = ${t.id}`;
+  const calls: { method: string; url: string; body: any }[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: any, init: any) => {
+    calls.push({ method: init?.method, url: String(url), body: init?.body ? JSON.parse(init.body) : null });
+    const body = String(url).endsWith("/payments") ? { id: "pay_teste", invoiceUrl: "https://exemplo.invalid/fatura" } : {};
+    return new Response(JSON.stringify(body), { status: 200 });
+  }) as any;
+  let card: any;
+  try { card = await call("POST", "/billing/checkout-card", t.token, { tier: "pro", period: "semiannual" }); }
+  finally { globalThis.fetch = realFetch; }
+  assert.equal(card.statusCode, 200, card.body);
+  assert.equal(data(card).value, 599.4, "99,90 por mês × 6 (preço semestral do Pilates)");
+  const pay = calls.find((c) => c.method === "POST" && c.url.endsWith("/payments"));
+  assert.equal(pay?.body.value, 599.4, "valor enviado ao Asaas");
+  assert.match(pay?.body.description, /Plano Pro/);
+  await sql`DELETE FROM plan_settings`;
+});

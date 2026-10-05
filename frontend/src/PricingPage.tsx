@@ -53,7 +53,7 @@ const PERIODS = [
 
 const API = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 
-export default function PricingPage({ currentPlan, setPage }: { token?: string; currentPlan?: string; setPage?: (p: string) => void }) {
+export default function PricingPage({ currentPlan, setPage, businessType }: { token?: string; currentPlan?: string; setPage?: (p: string) => void; businessType?: string | null }) {
   const [period, setPeriod] = useState("monthly");
   const [loading, setLoading] = useState<string | null>(null);
   const [status, setStatus] = useState<any>(null);
@@ -71,7 +71,8 @@ export default function PricingPage({ currentPlan, setPage }: { token?: string; 
   const [dynamicPlans, setDynamicPlans] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`${API}/billing/plans`)
+    // Preços do nicho da conta (Super Admin → Planos por nicho); o checkout cobra os mesmos valores.
+    fetch(`${API}/billing/plans${businessType ? `?businessType=${encodeURIComponent(businessType)}` : ""}`)
       .then(r => r.json())
       .then(d => {
         if (d.success && d.data) {
@@ -88,7 +89,7 @@ export default function PricingPage({ currentPlan, setPage }: { token?: string; 
           if (Object.keys(p).length > 0) { setPlanPrices(p); setDynamicPlans(d.data); }
         }
       }).catch(() => {});
-  }, []);
+  }, [businessType]);
 
   useEffect(() => {
     const key = Object.keys(localStorage).find(k => k.includes('auth-token'));
