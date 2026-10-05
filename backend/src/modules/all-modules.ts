@@ -81,15 +81,17 @@ async function getPlanInfo(tenantId: string) {
   const trialEndsAt = tenant.trialEndsAt ? new Date(tenant.trialEndsAt) : null;
   const isTrialActive = tenant.planTier === "trial" && trialEndsAt && trialEndsAt > now;
   const effectivePlan = isTrialActive ? "trial" : (tenant.planTier === "trial" ? "basic" : tenant.planTier);
+  // Gratuito = trial vencido sem assinatura. effectivePlan "basic" também é o plano Básico PAGO, que não é gratuito.
+  const isFree = effectivePlan === "basic" && tenant.planTier !== "basic"; // "basic" aqui = trial vencido
   return {
     effectivePlan,
-    isFree: effectivePlan === "basic",
-    maxClients: effectivePlan === "basic" ? Number(cfg.free_max_clients ?? 30) : 99999,
-    maxAppointmentsMonth: effectivePlan === "basic" ? Number(cfg.free_max_appointments_month ?? 50) : 99999,
+    isFree,
+    maxClients: isFree ? Number(cfg.free_max_clients ?? 30) : 99999,
+    maxAppointmentsMonth: isFree ? Number(cfg.free_max_appointments_month ?? 50) : 99999,
     features: {
-      whatsapp: effectivePlan !== "basic",
-      automations: effectivePlan !== "basic",
-      campaigns: effectivePlan !== "basic",
+      whatsapp: !isFree,
+      automations: !isFree,
+      campaigns: !isFree,
     }
   };
 }
@@ -2004,6 +2006,8 @@ fastify.get(
     const isTrialActive = tenant.planTier === "trial" && trialEndsAt && trialEndsAt > now;
     const trialDaysLeft = isTrialActive ? Math.ceil((trialEndsAt!.getTime() - now.getTime()) / 86400000) : 0;
     const effectivePlan = isTrialActive ? "trial" : (tenant.planTier === "trial" ? "basic" : tenant.planTier);
+    // Gratuito = trial vencido sem assinatura (o Básico pago também aparece como effectivePlan "basic").
+    const isFree = effectivePlan === "basic" && tenant.planTier !== "basic"; // "basic" aqui = trial vencido
     
     return reply.send({ success: true, data: {
       planTier: tenant.planTier,
@@ -2011,16 +2015,17 @@ fastify.get(
       isTrialActive,
       trialDaysLeft,
       trialEndsAt: tenant.trialEndsAt,
-      maxClients: effectivePlan === "basic" ? Number(cfg.free_max_clients ?? 30) : tenant.maxClients,
-      maxUsers: effectivePlan === "basic" ? 1 : tenant.maxUsers,
-      maxAppointmentsMonth: effectivePlan === "basic" ? Number(cfg.free_max_appointments_month ?? 50) : -1,
+      isFree,
+      maxClients: isFree ? Number(cfg.free_max_clients ?? 30) : tenant.maxClients,
+      maxUsers: isFree ? 1 : tenant.maxUsers,
+      maxAppointmentsMonth: isFree ? Number(cfg.free_max_appointments_month ?? 50) : -1,
       features: {
-        whatsapp: effectivePlan !== "basic",
-        automations: effectivePlan !== "basic",
-        campaigns: effectivePlan !== "basic",
-        reports: effectivePlan !== "basic",
-        commissions: effectivePlan !== "basic",
-        inventory: effectivePlan !== "basic",
+        whatsapp: !isFree,
+        automations: !isFree,
+        campaigns: !isFree,
+        reports: !isFree,
+        commissions: !isFree,
+        inventory: !isFree,
       },
       whatsappLimits: {
         minIntervalSeconds: Number(cfg.whatsapp_min_interval_seconds ?? 20),
