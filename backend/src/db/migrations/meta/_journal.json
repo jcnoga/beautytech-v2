@@ -64,6 +64,13 @@
       "when": 1791200000000,
       "tag": "0008_tenant_max_professionals_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1791300000000,
+      "tag": "0009_plan_tier_trial",
+      "breakpoints": true
     }
   ]
 }

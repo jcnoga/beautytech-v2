@@ -2,6 +2,17 @@
 
 Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da próxima conversa.
 
+## 05/10 — Preparação do merge do Pilates na produção (parte A)
+- **Diferenças da produção (vinda do Railway) em relação às migrations**, achadas comparando a estrutura (só leitura):
+  - `tenants.business_type` é o enum `business_type_enum` (beauty_salon, aesthetics_clinic, barbershop), sem `pilates`; nas migrations é `varchar(50)`.
+  - `plan_tier` tem só free, basic, pro, super (sem `trial` e `enterprise`); conta nova nasce em `trial` → o cadastro quebraria.
+  - Outras (tabelas do n8n, colunas do auto-reply) não afetam o Pilates.
+- **A migration `0003_business_type_check` foi ALTERADA antes de ir para a produção (05/10)**: no início, um bloco `DO` converte `business_type` para `varchar(50)` só se ainda for enum; sem isso a comparação com `'pilates'` falharia e o deploy pararia. Nos bancos onde já é texto (local, testes) nada muda; quem já aplicou a 0003 não a roda de novo (o Drizzle compara só a data). Reversão em `migrations-down/0003...down.sql`.
+- **Nova `0009_plan_tier_trial`**: `ALTER TYPE plan_tier ADD VALUE IF NOT EXISTS 'trial'` e `'enterprise'`. O Drizzle aplica todas as pendentes numa única transação; no Postgres 15 o ADD VALUE roda dentro dela, mas o valor só pode ser usado depois do COMMIT. Nenhuma migration de 0003 a 0009 usa `'trial'`/`'enterprise'` (nem em DEFAULT) e a 0009 é a última.
+- **`backend/scripts/migrar.ts`**: lista as pendentes; só aplica com `ZS_CONFIRMAR_MIGRACAO=sim`.
+- Simulação local da produção (enum + plan_tier sem trial): 0003 a 0009 aplicadas, contas preservadas, conta Pilates em Trial gravada.
+- VPS: 30 arquivos soltos (saída de um build colado) removidos com `git clean -f` em `/opt/apps/zensalon` (05/10); `.env` intactos.
+
 ## 05/10 — Funil de interessados do Pilates (em andamento no `ramo-pilates`)
 - Plano aprovado: 4 commits (backend etapas, conversão em aluno, tela, botão converter); parar depois do 4 para teste no navegador.
 - Reaproveita a tabela `leads` do salão com rotas próprias `/class-leads` (feature `class_leads`, só Pilates). Etapas numa lista única: `backend/src/modules/group-classes/lead-stages.ts` (interested, trial, converted, lost).
