@@ -1118,6 +1118,125 @@ function ClientsPage() {
   );
 }
 
+// Planos da assinatura POR NICHO (Trial, Gratuito, Básico, Pro, Super). O backend resolve cada valor na ordem
+// nicho → geral → padrão do sistema e informa a origem; aqui só se edita o valor do nicho (vazio = herda).
+const NICHE_PLAN_FIELDS: { plan: string; title: string; fields: [string, string][] }[] = [
+  { plan: "trial", title: "Trial (teste grátis, tudo incluso)", fields: [["days", "Dias de teste"], ["max_professionals", "Máx. profissionais"], ["max_clients", "Máx. clientes"]] },
+  { plan: "free", title: "Gratuito (depois do teste, sem assinatura)", fields: [["max_professionals", "Máx. profissionais"], ["max_clients", "Máx. clientes"], ["max_appointments_month", "Agendamentos por mês"]] },
+  ...(["basic", "pro", "super"] as const).map((p) => ({
+    plan: p, title: `Plano ${({ basic: "Básico", pro: "Pro", super: "Super" } as Record<string, string>)[p]}`,
+    fields: [["monthly", "Preço mensal (R$)"], ["semiannual", "Preço semestral (R$/mês)"], ["annual", "Preço anual (R$/mês)"],
+      ["max_professionals", "Máx. profissionais"], ["max_clients", "Máx. clientes (vazio = ilimitado)"]] as [string, string][],
+  })),
+];
+const PLAN_SOURCE_LABEL: Record<string, string> = { general: "geral", code: "padrão" };
+const nicheLabel = (bt: string) => BUSINESS_TYPE_LABELS[bt as keyof typeof BUSINESS_TYPE_LABELS] ?? bt;
+
+function NichePlansPanel({ saFetch }: any) {
+  const niches = BUSINESS_TYPES as readonly string[];
+  const [niche, setNiche] = useState<string>(niches[0]);
+  const [data, setData] = useState<any>(null);
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  /** Valor próprio do nicho (o que aparece no campo); herdado fica vazio, com o valor em cinza. */
+  const own = (d: any, plan: string, f: string) => {
+    const cell = d?.[plan]?.[f];
+    return cell?.source === "niche" && cell.value !== null ? String(cell.value) : "";
+  };
+  const fill = (d: any) => {
+    setData(d);
+    const v: Record<string, string> = {};
+    for (const g of NICHE_PLAN_FIELDS) for (const [f] of g.fields) v[`${g.plan}.${f}`] = own(d, g.plan, f);
+    setVals(v);
+  };
+  useEffect(() => {
+    setMsg(null); setData(null);
+    saFetch("GET", `/super-admin/plan-settings/niche/${niche}`)
+      .then((r: any) => { if (r?.success === false) throw new Error(r.error); fill(r?.data); })
+      .catch((e: any) => setMsg({ kind: "error", text: e?.message ?? "Erro ao carregar" }));
+  }, [niche]);
+
+  const save = async () => {
+    const values: Record<string, string | null> = {};
+    for (const [k, v] of Object.entries(vals)) {
+      const [plan, f] = k.split(".");
+      if (v.trim() !== own(data, plan, f)) values[k] = v.trim() === "" ? null : v.trim();
+    }
+    if (!Object.keys(values).length) { setMsg({ kind: "ok", text: "Nada para salvar." }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      const r: any = await saFetch("PUT", `/super-admin/plan-settings/niche/${niche}`, { values });
+      if (r?.success === false) throw new Error(r.error ?? "Erro ao salvar");
+      fill(r.data);
+      setMsg({ kind: "ok", text: `Planos de ${nicheLabel(niche)} salvos.` });
+    } catch (e: any) { setMsg({ kind: "error", text: e?.message ?? "Erro ao salvar" }); }
+    finally { setSaving(false); }
+  };
+  /** Copia para o formulário os valores que valem hoje em outro nicho (só grava ao clicar em Salvar). */
+  const copyFrom = async (bt: string) => {
+    if (!bt) return;
+    setMsg(null);
+    try {
+      const r: any = await saFetch("GET", `/super-admin/plan-settings/niche/${bt}`);
+      if (r?.success === false) throw new Error(r.error);
+      const v: Record<string, string> = {};
+      for (const g of NICHE_PLAN_FIELDS) for (const [f] of g.fields) {
+        const cell = r?.data?.[g.plan]?.[f];
+        v[`${g.plan}.${f}`] = cell && cell.value !== null ? String(cell.value) : "";
+      }
+      setVals(v);
+      setMsg({ kind: "ok", text: `Valores de ${nicheLabel(bt)} copiados. Confira e clique em "Salvar".` });
+    } catch (e: any) { setMsg({ kind: "error", text: e?.message ?? "Erro ao copiar" }); }
+  };
+  const placeholder = (plan: string, f: string) => {
+    const cell = data?.[plan]?.[f];
+    if (!cell || cell.source === "niche") return "";
+    if (cell.value === null) return f === "max_clients" ? "ilimitado" : "-";
+    return `${cell.value} (${PLAN_SOURCE_LABEL[cell.source] ?? cell.source})`;
+  };
+  const inputSt = { width:150, padding:"8px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontFamily:FB, fontSize:14, textAlign:"center" as const };
+
+  return (
+    <div style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, fontFamily:FB }}>
+      <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:6 }}>Planos por nicho</div>
+      <div style={{ fontSize:14, color:C.textMuted, marginBottom:16 }}>Campo vazio usa o valor geral (mais abaixo) ou o padrão do sistema, mostrado em cinza.</div>
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+        {niches.map(bt => <Btn key={bt} small variant={bt === niche ? "primary" : "secondary"} onClick={() => setNiche(bt)}>{nicheLabel(bt)}</Btn>)}
+      </div>
+      <label style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", marginBottom:16 }}>
+        <span style={{ fontSize:14, color:C.text }}>Copiar valores de outro nicho:</span>
+        <select value="" onChange={e => copyFrom(e.target.value)} style={{ ...inputSt, width:"auto", textAlign:"left" }}>
+          <option value="">Escolher...</option>
+          {niches.filter(bt => bt !== niche).map(bt => <option key={bt} value={bt}>{nicheLabel(bt)}</option>)}
+        </select>
+      </label>
+      {msg && <div style={{ fontSize:14, marginBottom:14, padding:"10px 12px", borderRadius:10, color: msg.kind === "ok" ? C.sage : C.ruby, background: `${msg.kind === "ok" ? C.sage : C.ruby}14` }}>{msg.text}</div>}
+      {!data ? <div style={{ fontSize:14, color:C.textMuted }}>Carregando...</div> : NICHE_PLAN_FIELDS.map(g => (
+        <div key={g.plan} style={{ borderTop:`1px solid ${C.border}`, paddingTop:14, marginTop:14 }}>
+          <div style={{ fontSize:16, fontWeight:700, color:C.rose, marginBottom:12 }}>{g.title}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {g.fields.map(([f, label]) => {
+              const k = `${g.plan}.${f}`;
+              return (
+                <label key={k} style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+                  <span style={{ flex:"1 1 200px", fontSize:14, color:C.text }}>{label}</span>
+                  <input type="number" min={0} step={["monthly", "semiannual", "annual"].includes(f) ? "0.01" : "1"} value={vals[k] ?? ""}
+                    placeholder={placeholder(g.plan, f)} onChange={e => setVals(v => ({ ...v, [k]: e.target.value }))} style={inputSt} />
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <div style={{ display:"flex", justifyContent:"flex-end", marginTop:18 }}>
+        <Btn onClick={save} disabled={saving || !data}>{saving ? "Salvando..." : "Salvar"}</Btn>
+      </div>
+    </div>
+  );
+}
+
 function PlanSettingsPanel({ saFetch }: any) {
   const [settings, setSettings] = useState<any[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
@@ -1165,17 +1284,17 @@ function PlanSettingsPanel({ saFetch }: any) {
   };
   const groups = [
     { title: "Inteligencia Artificial (em breve)", keys: ["ai_monthly_budget_brl"], disabled: true },
-    { title: "Plano Gratuito & Trial", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
-    { title: "Plano Basico", keys: ["plan_basic_monthly","plan_basic_semiannual","plan_basic_annual","plan_basic_max_users"] },
-    { title: "Plano Pro", keys: ["plan_pro_monthly","plan_pro_semiannual","plan_pro_annual","plan_pro_max_users"] },
-    { title: "Plano Super", keys: ["plan_super_monthly","plan_super_semiannual","plan_super_annual","plan_super_max_users"] },
+    { title: "Gratuito & Trial (geral: vale quando o nicho não tem valor)", keys: ["free_max_clients","free_max_appointments_month","trial_days"] },
+    { title: "Plano Basico (geral)", keys: ["plan_basic_monthly","plan_basic_semiannual","plan_basic_annual","plan_basic_max_users"] },
+    { title: "Plano Pro (geral)", keys: ["plan_pro_monthly","plan_pro_semiannual","plan_pro_annual","plan_pro_max_users"] },
+    { title: "Plano Super (geral)", keys: ["plan_super_monthly","plan_super_semiannual","plan_super_annual","plan_super_max_users"] },
     { title: "Anti-ban WhatsApp", keys: ["whatsapp_min_interval_seconds","whatsapp_max_interval_seconds","whatsapp_daily_limit_new","whatsapp_daily_limit_warm","whatsapp_daily_limit_mature","whatsapp_send_start_hour","whatsapp_send_end_hour"] },
   ];
-  if (settings.length === 0) return null;
   return (
     <div style={{ marginTop:32 }}>
+      <NichePlansPanel saFetch={saFetch} />
       <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:20, fontFamily:FB }}>Configuracoes Globais</div>
-      {groups.map(g => (
+      {settings.length > 0 && groups.map(g => (
         <div key={g.title} style={{ background:C.card, borderRadius:16, padding:24, marginBottom:20, border:`1px solid ${C.border}`, opacity: g.disabled ? 0.75 : 1 }}>
           <div style={{ fontSize:16, fontWeight:700, color: g.disabled ? "#888" : C.rose, marginBottom:20, fontFamily:FB }}>{g.title}{g.disabled ? " ??" : ""}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
