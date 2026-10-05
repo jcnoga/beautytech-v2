@@ -1596,8 +1596,13 @@ function ProfessionalsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" });
+  const emptyForm = { fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" };
+  const [form, setForm] = useState(emptyForm);
  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
+  // Fechar (Cancelar, X ou fora do modal) e abrir um novo cadastro sempre zeram o formulário,
+  // para o "+ Nova Profissional" não herdar dados nem foto de quem foi editado antes.
+  const closeForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm); };
+  const openNew = () => { setEditingId(null); setForm(emptyForm); setShowForm(true); };
 
   const exportXLSX = () => {
     const XLSX = (window as any).XLSX;
@@ -1664,9 +1669,7 @@ function ProfessionalsPage() {
         const r: any = await professionalsApi.create(payload);
         setData(d => [...d, r.data]);
       }
-      setShowForm(false);
-      setEditingId(null);
-      setForm({ fullName:"", whatsapp:"", email:"", commissionPct:"50", monthlyGoal:"", color:"#E8A598", avatarUrl:"" });
+      closeForm();
     } catch(e: any) {
       alert("Erro: " + e.message);
     } finally { setSaving(false); }
@@ -1692,7 +1695,7 @@ function ProfessionalsPage() {
 
   return (
     <div>
-      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={() => setShowForm(true)}>+ Nova Profissional</Btn>} />
+      <PageHeader title="Profissionais" sub={`${data.length} profissionais ativos`} action={<Btn onClick={openNew}>+ Nova Profissional</Btn>} />
         {scheduleProf && <ProfessionalScheduleModal professional={scheduleProf} token={(() => { const k = Object.keys(localStorage).find(k=>k.includes('auth-token')); return k ? JSON.parse(localStorage.getItem(k)||'{}')?.access_token : ''; })()} onClose={() => setScheduleProf(null)} />}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
         {data.length === 0 && <div style={{ color: C.textMuted, fontFamily: FB }}>Nenhum profissional cadastrado.</div>}
@@ -1727,7 +1730,7 @@ function ProfessionalsPage() {
           </div>
         ))}
 </div>
-      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingId(null); }} title={editingId ? "Editar Profissional" : "Nova Profissional"}>
+      <Modal open={showForm} onClose={closeForm} title={editingId ? "Editar Profissional" : "Nova Profissional"}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
           <div style={{ width:64, height:64, borderRadius:"50%", overflow:"hidden", background:"#2a2a2a", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:"1px solid rgba(201,169,110,0.3)" }}>
             {form.avatarUrl ? <img src={form.avatarUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:24 }}>👩</span>}
