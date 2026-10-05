@@ -268,6 +268,7 @@ test("salão não usa nenhuma rota do Pilates; Pilates não usa rotas de salão"
   for (const url of ["/clients", "/professionals", "/services", "/appointments"]) {
     assert.equal((await call("GET", url, A.token)).json().code, "FEATURE_NOT_ALLOWED", url);
   }
+  assert.equal((await call("GET", "/financial", A.token)).statusCode, 200, "Financeiro liberado para o Pilates");
 });
 
 test("Pilates usa o termo LGPD existente (C8)", async () => {

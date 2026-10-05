@@ -38,7 +38,7 @@ export const FEATURES = {
   professionals:      ["beauty_salon", "barbershop", "aesthetics_clinic"],
   services:           ["beauty_salon", "barbershop", "aesthetics_clinic"],
   packages:           ["beauty_salon", "barbershop", "aesthetics_clinic"],
-  financial:          ["beauty_salon", "barbershop", "aesthetics_clinic"],
+  financial:          ["beauty_salon", "barbershop", "aesthetics_clinic", "pilates"], // Pilates: lançamentos manuais (mensalidades ainda não geram lançamento)
   commissions:        ["beauty_salon", "barbershop", "aesthetics_clinic"],
   goals:              ["beauty_salon", "barbershop", "aesthetics_clinic"],
   crm:                ["beauty_salon", "barbershop", "aesthetics_clinic"],

@@ -131,7 +131,7 @@ test("frontend: toda tela do menu tem feature válida; pilates só vê as telas 
   for (const m of menu[1].matchAll(/\{ id:"(\w+)"/g)) assert.ok(m[1] in pages, `item de menu ${m[1]} sem feature (ficaria escondido)`);
   const pilates = Object.keys(pages).filter((p) => F.isFeatureAllowed(pages[p], "pilates")).sort();
   const telasPilates = ["class_agenda", "class_instructors", "class_leads", "class_modalities", "class_schedules", "class_students", "class_today", "memberships"];
-  assert.deepEqual(pilates, ["ajuda", "auditlogs", "checkout", ...telasPilates, "pricing", "settings"].sort());
+  assert.deepEqual(pilates, ["ajuda", "auditlogs", "checkout", "financial", ...telasPilates, "pricing", "settings"].sort());
   for (const bt of CLASSIC) {
     const escondidas = Object.keys(pages).filter((p) => !F.isFeatureAllowed(pages[p], bt)).sort();
     assert.deepEqual(escondidas, telasPilates, `${bt}: só as telas do Pilates ficam escondidas`);
@@ -170,6 +170,7 @@ const globals: Record<string, (t: Tenant) => string> = {
   settings: () => "/team",
   audit_logs: () => "/audit-logs",
   consent_forms: (t) => `/consent-forms/${t.client}`, // termo LGPD: 3 nichos atuais + Pilates (C8)
+  financial: () => "/financial", // Financeiro: 3 nichos atuais + Pilates
 };
 const exclusivas: Record<string, (t: Tenant) => string> = {
   dashboard: () => "/dashboard/kpis",
@@ -179,7 +180,6 @@ const exclusivas: Record<string, (t: Tenant) => string> = {
   professionals: () => "/professionals",
   services: () => "/services",
   packages: () => "/packages",
-  financial: () => "/financial",
   commissions: () => "/commissions",
   goals: () => "/goals",
   crm: () => "/leads",
