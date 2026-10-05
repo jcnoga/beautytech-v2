@@ -382,11 +382,8 @@ export default function DiscoveryPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18 }}>
                 {tenants.map(t => {
                   const cor = t.primaryColor || C.primary;
-                  // Pilates ainda não tem reserva de aula online: o botão abre o WhatsApp do studio para a aula experimental.
-                  const zap = (t.whatsapp || t.phone || "").replace(/\D/g, "");
-                  const pilatesZap = t.businessType === "pilates" && zap
-                    ? `https://wa.me/${zap.length <= 11 ? "55" + zap : zap}?text=${encodeURIComponent(`Olá! Vi o ${t.name} no ZenSalon e gostaria de agendar uma aula experimental de Pilates.`)}`
-                    : null;
+                  // Pilates: o botão leva à página do studio (modalidades, contato); lá o botão abre o WhatsApp.
+                  const isPilates = t.businessType === "pilates";
                   return (
                     <div key={t.id} style={{
                       background: C.card, border: `1px solid ${C.border}`,
@@ -422,13 +419,13 @@ export default function DiscoveryPage() {
                             {t.distKm < 1 ? `${Math.round(t.distKm*1000)}m de você` : `${t.distKm.toFixed(1)}km de você`}
                           </div>
                         )}
-                        <a href={pilatesZap ?? `/agendar/${t.slug}`} {...(pilatesZap ? { target: "_blank", rel: "noopener noreferrer" } : {})} style={{
+                        <a href={`/agendar/${t.slug}`} style={{
                           display: "block", textAlign: "center", padding: "10px 0",
                           background: `linear-gradient(135deg, ${cor}, ${cor}CC)`,
                           color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: ".88rem",
                           textDecoration: "none",
                         }}>
-                          {pilatesZap ? "Agendar aula experimental" : "Agendar agora"}
+                          {isPilates ? "Agendar aula experimental" : "Agendar agora"}
                         </a>
                       </div>
                     </div>

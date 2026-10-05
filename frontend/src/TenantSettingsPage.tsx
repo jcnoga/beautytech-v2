@@ -393,24 +393,6 @@ export default function TenantSettingsPage() {
         </div>
       </div>
 
-      <div style={{ marginTop:24, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
-        <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16 }}>Preview da Landing Page</div>
-        <div style={{ background:"#080808", borderRadius:12, padding:"32px 20px", textAlign:"center", backgroundImage:form.coverUrl?`linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.8)), url(${form.coverUrl})`:"none", backgroundSize:"cover", backgroundPosition:"center" }}>
-          {form.logoUrl
-            ? <img src={form.logoUrl} style={{ width:60, height:60, borderRadius:"50%", objectFit:"cover", border:`2px solid ${form.primaryColor||C.gold}`, display:"block", margin:"0 auto 12px" }} />
-            : <div style={{ width:60, height:60, borderRadius:"50%", background:`${form.primaryColor||C.gold}22`, border:`2px solid ${form.primaryColor||C.gold}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, margin:"0 auto 12px" }}>{isPilates ? "🧘" : "✂"}</div>
-          }
-          <div style={{ fontSize:11, color:form.primaryColor||C.gold, letterSpacing:"0.2em", textTransform:"uppercase", marginBottom:6 }}>{isPilates ? "Studio de Pilates" : "Salão de Beleza"}</div>
-          <div style={{ fontSize:22, fontWeight:700, color:"#fff", fontFamily:FD }}>{form.name||(isPilates ? "Nome do Studio" : "Nome do Salão")}</div>
-          {form.addressCity && <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:6 }}>📍 {form.addressCity}{form.addressState?`, ${form.addressState}`:""}</div>}
-          <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:16 }}>
-            <a href={`https://www.zensalon.com.br/agendar/${form.slug||"seu-salao"}`} target="_blank"
-              style={{ padding:"8px 20px", background:form.primaryColor||C.gold, color:"#0f0f0f", borderRadius:50, fontSize:11, fontWeight:700, textDecoration:"none" }}>{isPilates ? "Agendar aula experimental" : "Agendar Agora"}</a>
-            {form.whatsapp && <a href={`https://wa.me/55${form.whatsapp.replace(/\D/g,"")}`} target="_blank"
-              style={{ padding:"8px 20px", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:50, fontSize:11, textDecoration:"none" }}>WhatsApp</a>}
-          </div>
-        </div>
-      </div>
       </>)}
     </div>
   );
