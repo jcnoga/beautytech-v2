@@ -144,10 +144,23 @@ export default function TenantSettingsPage() {
     { id:"landing",  label:"Landing Page" },
     { id:"equipe",   label:"Equipe" },
     { id:"rules",    label:"Regras das aulas" },
-  ].filter(tab => !(isPilates && tab.id === "landing")) // página pública do studio: fase futura (C12)
-   .filter(tab => tab.id !== "rules" || (can("class_settings") && canManage)); // Aulas em turma: só dono/gerente
+  ].filter(tab => tab.id !== "rules" || (can("class_settings") && canManage)); // Aulas em turma: só dono/gerente
 
-  // Logo: na aba Landing Page; no Pilates (sem Landing Page até a C12) fica na aba Identidade.
+  // Foto de capa: fundo da landing page e do cartão na busca pública (/buscar).
+  const coverBlock = (
+    <div style={{ marginBottom:24 }}>
+      <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Foto de capa</label>
+      {form.coverUrl && <img src={form.coverUrl} alt="Capa" style={{ width:"100%", height:140, objectFit:"cover", borderRadius:12, marginBottom:10 }} />}
+      <label style={{ display:"inline-block", padding:"10px 20px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:10, color:C.gold, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB, marginBottom:12 }}>
+        {uploading ? "Enviando..." : "📁 Escolher Capa"}
+        <input type="file" accept="image/*" onChange={e => handleUpload(e, "cover")} style={{ display:"none" }} />
+      </label>
+      {isPilates && <div style={{ fontSize:13, color:C.textMuted, marginBottom:10 }}>Aparece no cartão do studio na busca do ZenSalon. Recomendado: foto horizontal, 1200x400px.</div>}
+      <Inp label="Ou cole a URL da capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
+    </div>
+  );
+
+  // Logo e capa: na aba Landing Page (todos os nichos).
   const logoBlock = (
     <div style={{ marginBottom:24 }}>
       <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Logo do estabelecimento</label>
@@ -191,7 +204,6 @@ export default function TenantSettingsPage() {
         {activeTab === "identity" && (
           <div>
             <Inp label="Nome do estabelecimento" value={form.name} onChange={f("name")} placeholder={isPilates ? "Ex: Studio Equilíbrio Pilates" : "Ex: Salão Beleza Total"} />
-            {isPilates && logoBlock}
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Cor principal</label>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -246,19 +258,11 @@ export default function TenantSettingsPage() {
           <div>
             {logoBlock}
 
-            <div style={{ marginBottom:24 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:C.textMuted, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.08em" }}>Foto de capa</label>
-              {form.coverUrl && <img src={form.coverUrl} alt="Capa" style={{ width:"100%", height:140, objectFit:"cover", borderRadius:12, marginBottom:10 }} />}
-              <label style={{ display:"inline-block", padding:"10px 20px", background:`${C.gold}20`, border:`1px solid ${C.gold}40`, borderRadius:10, color:C.gold, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:FB, marginBottom:12 }}>
-                {uploading ? "Enviando..." : "📁 Escolher Capa"}
-                <input type="file" accept="image/*" onChange={e => handleUpload(e, "cover")} style={{ display:"none" }} />
-              </label>
-              <Inp label="Ou cole a URL da capa" value={form.coverUrl} onChange={f("coverUrl")} placeholder="https://..." />
-            </div>
+            {coverBlock}
 
-            {!isPilates && <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 16px", fontSize:12, color:C.textMuted }}>
-              💡 A landing page em <strong style={{ color:C.gold }}>{form.slug||"seu-salao"}.zensalon.com.br</strong> será atualizada automaticamente após salvar.
-            </div>}
+            <div style={{ background:`${C.gold}12`, border:`1px solid ${C.gold}30`, borderRadius:12, padding:"12px 16px", fontSize:13, color:C.textMuted }}>
+              💡 A página {isPilates ? "do studio" : "do salão"} em <strong style={{ color:C.gold }}>www.zensalon.com.br/agendar/{form.slug||"seu-link"}</strong> é atualizada automaticamente após salvar.
+            </div>
           </div>
         )}
 
@@ -367,9 +371,9 @@ export default function TenantSettingsPage() {
         </div>}
       </div>
 
-      {!isPilates && (<>
+      {(<>
       <div style={{ marginTop:24, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
-        <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16 }}>🔗 Sua URL Pública de Agendamento</div>
+        <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16 }}>{isPilates ? "🔗 Página pública do studio" : "🔗 Sua URL Pública de Agendamento"}</div>
         <div style={{ background:C.surface, borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
           <span style={{ flex:1, fontSize:13, color:C.gold, fontFamily:"monospace", wordBreak:"break-all" }}>
             {`https://www.zensalon.com.br/agendar/${form.slug||"seu-salao"}`}
@@ -384,7 +388,7 @@ export default function TenantSettingsPage() {
           </a>
         </div>
         <div style={{ fontSize:11, color:C.textMuted }}>
-          Compartilhe este link com seus clientes para que eles possam agendar online.
+          {isPilates ? "Compartilhe este link com seus alunos e interessados: a página mostra o studio, as modalidades e o botão de aula experimental pelo WhatsApp." : "Compartilhe este link com seus clientes para que eles possam agendar online."}
         </div>
       </div>
 
@@ -393,14 +397,14 @@ export default function TenantSettingsPage() {
         <div style={{ background:"#080808", borderRadius:12, padding:"32px 20px", textAlign:"center", backgroundImage:form.coverUrl?`linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.8)), url(${form.coverUrl})`:"none", backgroundSize:"cover", backgroundPosition:"center" }}>
           {form.logoUrl
             ? <img src={form.logoUrl} style={{ width:60, height:60, borderRadius:"50%", objectFit:"cover", border:`2px solid ${form.primaryColor||C.gold}`, display:"block", margin:"0 auto 12px" }} />
-            : <div style={{ width:60, height:60, borderRadius:"50%", background:`${form.primaryColor||C.gold}22`, border:`2px solid ${form.primaryColor||C.gold}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, margin:"0 auto 12px" }}>✂</div>
+            : <div style={{ width:60, height:60, borderRadius:"50%", background:`${form.primaryColor||C.gold}22`, border:`2px solid ${form.primaryColor||C.gold}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, margin:"0 auto 12px" }}>{isPilates ? "🧘" : "✂"}</div>
           }
-          <div style={{ fontSize:11, color:form.primaryColor||C.gold, letterSpacing:"0.2em", textTransform:"uppercase", marginBottom:6 }}>Salão de Beleza</div>
-          <div style={{ fontSize:22, fontWeight:700, color:"#fff", fontFamily:FD }}>{form.name||"Nome do Salão"}</div>
+          <div style={{ fontSize:11, color:form.primaryColor||C.gold, letterSpacing:"0.2em", textTransform:"uppercase", marginBottom:6 }}>{isPilates ? "Studio de Pilates" : "Salão de Beleza"}</div>
+          <div style={{ fontSize:22, fontWeight:700, color:"#fff", fontFamily:FD }}>{form.name||(isPilates ? "Nome do Studio" : "Nome do Salão")}</div>
           {form.addressCity && <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:6 }}>📍 {form.addressCity}{form.addressState?`, ${form.addressState}`:""}</div>}
           <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:16 }}>
             <a href={`https://www.zensalon.com.br/agendar/${form.slug||"seu-salao"}`} target="_blank"
-              style={{ padding:"8px 20px", background:form.primaryColor||C.gold, color:"#0f0f0f", borderRadius:50, fontSize:11, fontWeight:700, textDecoration:"none" }}>Agendar Agora</a>
+              style={{ padding:"8px 20px", background:form.primaryColor||C.gold, color:"#0f0f0f", borderRadius:50, fontSize:11, fontWeight:700, textDecoration:"none" }}>{isPilates ? "Agendar aula experimental" : "Agendar Agora"}</a>
             {form.whatsapp && <a href={`https://wa.me/55${form.whatsapp.replace(/\D/g,"")}`} target="_blank"
               style={{ padding:"8px 20px", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:50, fontSize:11, textDecoration:"none" }}>WhatsApp</a>}
           </div>
