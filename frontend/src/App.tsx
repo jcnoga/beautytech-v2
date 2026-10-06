@@ -2792,6 +2792,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [saLogs, setSaLogs]   = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [deleting, setDeleting] = useState<any>(null); // conta com a janela "Excluir conta" aberta
   const [stats, setStats]     = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [search, setSearch]   = useState("");
@@ -3362,15 +3363,127 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 </Btn>
               </div>
             </div>
+            {/* Excluir conta: prévia + nome exato + senha (DeleteTenantModal) */}
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.ruby, marginBottom:6 }}>Zona de perigo</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:12 }}>Apaga todos os registros da conta, com backup antes. Mostra uma prévia e pede confirmação.</div>
+              <Btn variant="danger" full onClick={() => setDeleting(selected)}>Excluir conta...</Btn>
+            </div>
           </div>
         )}
       </Modal>
       {showLogs && <SuperAdminLogsModal base={base} token={token} onClose={() => setShowLogs(false)} />}
+      {deleting && <DeleteTenantModal tenant={deleting} saFetch={saFetch} onClose={() => setDeleting(null)}
+        onDeleted={() => { setSelected(null); load(); }} />}
       {saTab === "sistema" && <PlanSettingsPanel saFetch={saFetch} />}
     </div>
   );
 }
 
+
+// --- SUPER ADMIN: EXCLUIR CONTA ----------------------------------
+// Prévia (só lê) → nome exato + senha do Super Admin → exclusão (backend: backup, transação única, limpeza externa).
+// API: GET /super-admin/tenants/:id/deletion-preview, POST /super-admin/tenants/:id/delete,
+//      POST /super-admin/operations/:id/retry-cleanup.
+const CLEANUP_LABEL: Record<string, string> = { gotrue: "Logins", whatsapp: "WhatsApp", uploads: "Arquivos" };
+function DeleteTenantModal({ tenant, saFetch, onClose, onDeleted }: any) {
+  const [preview, setPreview] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
+  const loadPreview = async () => {
+    setError(""); setPreview(null);
+    try { setPreview((await saFetch("GET", `/super-admin/tenants/${tenant.id}/deletion-preview`)).data); }
+    catch (e: any) { setError(e.message); }
+  };
+  useEffect(() => { loadPreview(); }, [tenant.id]);
+
+  const confirmDelete = async () => {
+    setBusy(true); setError("");
+    try {
+      const r = await saFetch("POST", `/super-admin/tenants/${tenant.id}/delete`, { confirmName: name, password, previewHash: preview.previewHash });
+      setResult(r.data); setPassword("");
+      onDeleted();
+    } catch (e: any) { setError(e.message); setPassword(""); }
+    finally { setBusy(false); }
+  };
+  const retry = async () => {
+    setBusy(true); setError("");
+    try { const r = await saFetch("POST", `/super-admin/operations/${result.operationId}/retry-cleanup`); setResult({ ...result, ...r.data }); }
+    catch (e: any) { setError(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const nameOk = preview && name === preview.tenant.name;
+  const blocked = preview?.blocks?.length > 0;
+  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.ceil(b / 1024)} KB`;
+  const box: any = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 14 };
+
+  return (
+    <Modal open onClose={busy ? undefined : onClose} title={`Excluir conta: ${tenant.name}`} width={600}>
+      {error && <div style={{ ...box, borderColor: C.ruby, color: C.ruby, fontSize: 14 }}>{error}</div>}
+
+      {result ? (<>
+        <div style={{ ...box, borderColor: C.sage }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.sage }}>Conta excluída do banco.</div>
+          <div style={{ fontSize: 13, color: C.textSec, marginTop: 6 }}>Backup guardado em:</div>
+          <div style={{ fontSize: 13, color: C.text, fontFamily: "monospace", wordBreak: "break-all", marginTop: 2 }}>{result.backupDir}</div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>Para restaurar: scripts/restaurar-conta.ts com ZS_CONFIRMAR_RESTAURACAO=sim (ver o manifest.json do backup).</div>
+        </div>
+        <div style={box}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 }}>Limpeza fora do banco</div>
+          {Object.entries(result.cleanup ?? {}).map(([k, v]: any) => (
+            <div key={k} style={{ fontSize: 14, color: v.ok ? C.text : C.ruby, marginBottom: 4 }}>
+              {v.ok ? "✓" : "✗"} {CLEANUP_LABEL[k] ?? k}{v.skipped ? ` (${v.skipped})` : ""}{v.error ? `: ${v.error}` : ""}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          {!result.complete && <Btn variant="gold" onClick={retry} disabled={busy}>{busy ? "Tentando..." : "Tentar limpeza de novo"}</Btn>}
+          <Btn variant="secondary" onClick={onClose}>Fechar</Btn>
+        </div>
+      </>) : !preview ? (
+        <div style={{ fontSize: 14, color: C.textMuted }}>{error ? "" : "Carregando a prévia..."}</div>
+      ) : (<>
+        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 12 }}>
+          Apaga <b style={{ color: C.text }}>todos</b> os registros desta conta. Antes, um backup só dela é guardado no servidor.
+        </div>
+        <div style={box}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{preview.totalRows} registros em {Object.keys(preview.counts).length} tabelas</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: "2px 12px", marginTop: 8, maxHeight: 180, overflowY: "auto" }}>
+            {Object.entries(preview.counts).sort((a: any, b: any) => b[1] - a[1]).map(([t, n]: any) => (
+              <div key={t} style={{ fontSize: 12, color: C.textSec, fontFamily: "monospace" }}>{t}: <b style={{ color: C.text }}>{n}</b></div>
+            ))}
+          </div>
+          <div style={{ fontSize: 13, color: C.textSec, marginTop: 10 }}>
+            Logins: <b style={{ color: C.text }}>{preview.authUsers}</b> · Arquivos: <b style={{ color: C.text }}>{preview.uploads.files}</b> ({fmtBytes(preview.uploads.bytes)})
+            · WhatsApp: <b style={{ color: C.text }}>{preview.whatsapp.mode === "manual" ? "não usa" : `${preview.whatsapp.mode}${preview.whatsapp.instance ? ` (${preview.whatsapp.instance})` : ""}`}</b>
+          </div>
+        </div>
+        {blocked ? (<>
+          <div style={{ ...box, borderColor: C.ruby }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.ruby, marginBottom: 6 }}>Não é possível excluir agora:</div>
+            {preview.blocks.map((b: any) => <div key={b.code} style={{ fontSize: 14, color: C.text, marginBottom: 4 }}>• {b.message}</div>)}
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="secondary" onClick={loadPreview}>Atualizar prévia</Btn>
+            <Btn variant="secondary" onClick={onClose}>Fechar</Btn>
+          </div>
+        </>) : (<>
+          <Inp label={`Digite o nome exato da conta: ${preview.tenant.name}`} value={name} onChange={setName} placeholder={preview.tenant.name} />
+          <Inp label="Senha do Super Admin" type="password" value={password} onChange={setPassword} />
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="secondary" onClick={onClose} disabled={busy}>Cancelar</Btn>
+            <Btn variant="danger" onClick={confirmDelete} disabled={!nameOk || !password || busy}>{busy ? "Excluindo..." : "Excluir definitivamente"}</Btn>
+          </div>
+        </>)}
+      </>)}
+    </Modal>
+  );
+}
 
 // --- NOTIFICA??ES ---------------------------------------------
 function NotificationsPage() {
