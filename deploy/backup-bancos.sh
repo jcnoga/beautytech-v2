@@ -63,6 +63,16 @@ ls -1d "$BASE"/20??-??-??_???? 2>/dev/null | sort | head -n -"$MANTER" | while r
   rm -rf -- "$velho" && echo "   removido: $velho"
 done
 
+# Backups do "Excluir conta" (Super Admin): dados pessoais de contas excluídas. Pasta só do root (700) e
+# retenção de $CONTAS_DIAS dias, contados da exclusão; depois disso são apagados aqui, automaticamente.
+CONTAS_DIR="${CONTAS_DIR:-/opt/backups/contas}"
+CONTAS_DIAS="${CONTAS_DIAS:-90}"
+if [ -d "$CONTAS_DIR" ]; then
+  chmod 700 "$CONTAS_DIR"
+  find "$CONTAS_DIR" -mindepth 1 -maxdepth 1 -type d -name '20??-??-??_*' -mtime +"$CONTAS_DIAS" -print -exec rm -rf -- {} + \
+    | sed 's/^/   conta removida (mais de '"$CONTAS_DIAS"' dias): /'
+fi
+
 if [ -f "$R2_ENV" ]; then
   R2_BUCKET=$(sed -n 's/^R2_BUCKET=//p' "$R2_ENV")
   r2() { docker run --rm --env-file "$R2_ENV" -v "$BASE:/data:ro" "$RCLONE_IMAGE" "$@"; }

@@ -121,7 +121,7 @@ async function exportAuthUsers(userIds: string[]) {
 
 async function writeBackup(c: Awaited<ReturnType<typeof collect>>, actor: string, wa: { mode: string | null; instance: string | null }) {
   const dir = path.resolve(env.TENANT_BACKUPS_DIR, `${stampSP()}_${String(c.tenant.slug).replace(/[^a-z0-9-]/gi, "")}_${c.tenant.id.slice(0, 8)}`);
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 }); // dados pessoais: só root/API (arquivos em 600)
   const dados = gzipSync(Buffer.from(JSON.stringify(await repo.exportRows(db, c.tenant.id, c.tables, c.userIds))));
   const auth = await exportAuthUsers(c.userIds);
   const logins = gzipSync(Buffer.from(JSON.stringify(auth)));
