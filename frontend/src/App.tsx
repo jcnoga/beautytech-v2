@@ -2893,6 +2893,17 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     load();
   };
 
+  // Marcas da conta: protegida (não pode ser excluída) e conta de teste (libera os dados de teste).
+  const setFlag = async (id: string, flags: { isProtected?: boolean; isTestAccount?: boolean }) => {
+    try {
+      const r: any = await saFetch("PATCH", `/super-admin/tenants/${id}/flags`, flags);
+      setSelected((s: any) => (s && s.id === id ? { ...s, isProtected: r.data.isProtected, isTestAccount: r.data.isTestAccount } : s));
+      load();
+    } catch (e: any) {
+      alert("Erro ao mudar a marca da conta: " + (e?.message ?? "erro desconhecido"));
+    }
+  };
+
   const extendTrial = async (id: string) => {
     setSaving(true);
     try {
@@ -3334,6 +3345,21 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                   ? <Btn variant="danger" full onClick={() => { block(selected.id); setSelected(null); }}>Bloquear Acesso</Btn>
                   : <Btn variant="gold"   full onClick={() => { unblock(selected.id); setSelected(null); }}>Liberar Acesso</Btn>
                 }
+              </div>
+            </div>
+            {/* Marcas da conta (migration 0011): protegida = "Excluir conta" recusa; conta de teste = libera os dados de teste */}
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:6 }}>Proteção e testes</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:12 }}>
+                Protegida: não pode ser excluída. Conta de teste: pode receber e apagar dados de teste.
+              </div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <Btn variant={selected.isProtected ? "gold" : "secondary"} onClick={() => setFlag(selected.id, { isProtected: !selected.isProtected })}>
+                  {selected.isProtected ? "✓ Protegida" : "Marcar como protegida"}
+                </Btn>
+                <Btn variant={selected.isTestAccount ? "gold" : "secondary"} onClick={() => setFlag(selected.id, { isTestAccount: !selected.isTestAccount })}>
+                  {selected.isTestAccount ? "✓ Conta de teste" : "Marcar como conta de teste"}
+                </Btn>
               </div>
             </div>
           </div>
