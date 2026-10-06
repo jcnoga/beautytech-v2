@@ -2233,8 +2233,13 @@ function PackagesPage() {
 }
 
 // --- FINANCEIRO -----------------------------------------------
-function FinancialPage() {
+// Situação do lançamento: [rótulo, cor]. Função (não constante) porque o tema troca C.
+const txStatus = (s: string): [string, string] =>
+  s === "confirmed" ? ["Pago", C.sage] : s === "cancelled" ? ["Cancelado", C.textMuted] : s === "refunded" ? ["Estornado", C.textMuted] : ["Pendente", C.gold];
+
+function FinancialPage({ businessType }: { businessType?: string }) {
   const [data, setData] = useState<any[]>([]);
+  const [generating, setGenerating] = useState(false);
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
   const [accounts, setAccounts] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
@@ -2307,6 +2312,26 @@ function FinancialPage() {
     }
   };
 
+  // Pilates: cria as mensalidades que faltam (matrículas de antes das mensalidades ou sem fim). Não duplica.
+  const generateInstallments = async () => {
+    if (!confirm("Gerar as mensalidades que faltam das matrículas ativas? As que já existem não são criadas de novo.")) return;
+    setGenerating(true);
+    try {
+      const r: any = await financialApi.generateInstallments();
+      const n = r.data?.created ?? 0;
+      alert(n ? `${n} mensalidade(s) criada(s) como receita pendente.` : "Nenhuma mensalidade faltando.");
+      if (n) {
+        const [t, s]: any = await Promise.all([financialApi.list({ limit: 100 }), financialApi.summary()]);
+        setData(t.data ?? []);
+        setSummary(s.data ?? summary);
+      }
+    } catch (e: any) {
+      alert("Erro ao gerar: " + e.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
 useEffect(() => {
     Promise.all([financialApi.list({ limit: 100 }), financialApi.summary(), financialApi.accounts()])
       .then(([t, s, a]: any) => {
@@ -2328,7 +2353,7 @@ useEffect(() => {
   const cols = [
     { key:"description", label:"Descricao", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
     { key:"type", label:"Tipo", render: (t: any) => <Badge label={t.type==="revenue"?"Receita":"Despesa"} color={t.type==="revenue"?C.sage:C.ruby} /> },
-    { key:"status", label:"Status", render: (t: any) => <Badge label={t.status==="confirmed"?"Pago":"Pendente"} color={t.status==="confirmed"?C.sage:C.gold} /> },
+    { key:"status", label:"Status", render: (t: any) => <Badge label={txStatus(t.status)[0]} color={txStatus(t.status)[1]} /> },
     { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "-"}</span> },
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
@@ -2346,6 +2371,7 @@ useEffect(() => {
         <div style={{ display:"flex", gap:8 }}>
           <Btn small variant="secondary" onClick={exportXLSX}>XLSX</Btn>
           <Btn small variant="secondary" onClick={exportPDF}>PDF</Btn>
+          {businessType === "pilates" && <Btn variant="secondary" onClick={generateInstallments} disabled={generating}>{generating ? "Gerando..." : "Gerar mensalidades"}</Btn>}
           <Btn onClick={() => setShowForm(true)}>+ Nova Transacao</Btn>
         </div>
       } />
@@ -4449,7 +4475,7 @@ const logout = async () => {
       <Sidebar page={pageId} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft: isMobile ? 0 : 220, padding: isMobile ? "70px 16px 16px" : 36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner setPage={setPage} />
-        <PageComponent />
+        <PageComponent businessType={tenantInfo?.businessType} />
       </main>
     </>
   );

@@ -38,7 +38,7 @@ const HELP = {
   emergencyPhone: <>Telefone dessa pessoa de contato, com DDD.</>,
   plan: <>Qual plano o aluno está contratando. Os planos são cadastrados no menu <b>Planos</b>. O aluno pode ter mais de uma matrícula ativa, ex.: mensalidade + pacote extra.</>,
   enrollStart: <>A partir de quando a matrícula vale. A data final é calculada pelo plano: a vigência (mensalidade) ou a validade em dias (pacote).</>,
-  dueDay: <>Dia do mês em que a mensalidade vence, de 1 a 28, ex.: 10. Se ficar vazio, vale o dia da data de início. Por enquanto é um registro para o studio se organizar.</>,
+  dueDay: <>Dia do mês em que a mensalidade vence, de 1 a 28, ex.: 10. Se ficar vazio, vale o dia da data de início.<br />Ao matricular, as mensalidades entram no <b>Financeiro</b> como receitas pendentes: a 1ª vence na data de início e as seguintes neste dia de cada mês. Pacote: uma parcela só, na data de início.</>,
   price: <>Quanto este aluno vai pagar nesta matrícula. Vazio = o preço do plano. Use para dar desconto ou preço especial só para este aluno, sem mudar o plano.</>,
 };
 

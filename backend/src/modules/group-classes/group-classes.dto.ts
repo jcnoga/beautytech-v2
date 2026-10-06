@@ -160,6 +160,7 @@ export const enrollmentUpdateDto = z.object({
   status:  opt(z.enum(ENROLLMENT_STATUSES)),
   endDate: nul(day),
   dueDay:  nul(int.min(1).max(28)),
+  price:   opt(money), // vale só para as parcelas pendentes futuras
   notes:   nul(str(2000)),
 });
 
