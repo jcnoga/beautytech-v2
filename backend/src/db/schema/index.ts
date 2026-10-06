@@ -471,6 +471,9 @@ export const financialTransactions = pgTable("financial_transactions", {
   tags:           text("tags").array().notNull().default(sql`'{}'::text[]`),
   isRecurring:    boolean("is_recurring").notNull().default(false),
   recurringRule:  jsonb("recurring_rule").notNull().default({}),
+  // Pilates: parcela de uma matrícula (mensalidade); único por matrícula+parcela (migration 0010).
+  enrollmentId:   uuid("enrollment_id").references(() => membershipEnrollments.id, { onDelete: "set null" }),
+  installmentNo:  integer("installment_no"),
   ...audit,
 }, (t) => ({
   tenantIdx:   index("transactions_tenant_idx").on(t.tenantId),
