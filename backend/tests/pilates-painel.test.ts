@@ -95,7 +95,8 @@ test("nicho: salão recebe 403; Pilates recebe o painel vazio", async () => {
   assert.equal(s.json().code, "FEATURE_NOT_ALLOWED");
   const a = await call("/classes/dashboard", A.token);
   assert.equal(a.statusCode, 200, a.body);
-  assert.deepEqual({ ...data(a), date: undefined }, { date: undefined, activeStudents: 0, today: { classes: 0, students: 0, capacity: 0 } });
+  assert.deepEqual({ ...data(a), date: undefined }, { date: undefined, activeStudents: 0, today: { classes: 0, students: 0, capacity: 0 },
+    money: { toReceive: { amount: 0, count: 0 }, overdue: { amount: 0, count: 0, students: 0 } } });
   assert.match(data(a).date, /^\d{4}-\d{2}-\d{2}$/);
 });
 
@@ -132,6 +133,29 @@ test("aulas hoje: só as não canceladas, com alunos (inscrições ativas + fixo
   const [{ n }] = await sql`SELECT count(*)::int n FROM class_bookings WHERE session_id = ${s2}`;
   assert.ok(n <= 1, "fixo materializado no máximo uma vez");
   assert.deepEqual(data(await call("/classes/dashboard", B.token)).today, { classes: 1, students: 0, capacity: 8 }, "isolamento");
+});
+
+test("mensalidades no painel: a receber até o fim do mês, atrasados (valor, parcelas, alunos); só Financeiro para cima", async () => {
+  const [acc] = await sql`INSERT INTO financial_accounts (tenant_id, name, type) VALUES (${A.id}, 'Caixa', 'cash') RETURNING id`;
+  const [enr1] = await sql`SELECT id FROM membership_enrollments WHERE client_id = ${c1} LIMIT 1`;
+  const [enr2] = await sql`SELECT id FROM membership_enrollments WHERE client_id = ${c2} AND end_date IS NULL`;
+  const tx = (enr: string | null, no: number | null, due: any, amount: number, status = "pending") =>
+    sql`INSERT INTO financial_transactions (tenant_id, account_id, type, status, description, amount, due_date, enrollment_id, installment_no)
+      VALUES (${A.id}, ${acc.id}, 'revenue', ${status}, 'x', ${amount}, ${due}, ${enr}, ${no})`;
+  await tx(enr1.id, 1, sql`${TODAY} - 10`, 100);                         // atrasada (Ana)
+  await tx(enr2.id, 1, sql`${TODAY} - 3`, 80);                           // atrasada (Bia)
+  await tx(enr2.id, 2, sql`${TODAY} - 1`, 80, "confirmed");              // paga: fora
+  await tx(enr1.id, 2, TODAY, 100);                                      // vence hoje: a receber
+  await tx(enr1.id, 3, sql`date_trunc('month', ${TODAY}) + interval '2 months'`, 100); // mês que vem+: fora
+  await tx(null, null, TODAY, 999);                                      // lançamento manual: fora
+  const m = data(await call("/classes/dashboard", A.token)).money;
+  assert.deepEqual(m, { toReceive: { amount: 100, count: 1 }, overdue: { amount: 180, count: 2, students: 2 } });
+  assert.deepEqual(data(await call("/classes/dashboard", B.token)).money.overdue, { amount: 0, count: 0, students: 0 }, "isolamento");
+  const rec = randomUUID();
+  await sql`INSERT INTO user_profiles (tenant_id, auth_user_id, full_name, role) VALUES (${A.id}, ${rec}, 'Recepção', 'receptionist')`;
+  const r = data(await call("/classes/dashboard", await token(rec)));
+  assert.equal(r.money, null, "recepção não vê valores");
+  assert.equal(r.activeStudents, 2, "mas vê o resto do painel");
 });
 
 test("geração de aulas idempotente: 5 chamadas simultâneas não duplicam aulas nem inscrições fixas", async () => {

@@ -7,6 +7,6 @@ import { studioDashboard } from "./dashboard.service";
 
 export async function classDashboardModule(fastify: FastifyInstance) {
   fastify.get("/classes/dashboard", { preHandler: [authenticate] }, async (req: any, reply) => {
-    return reply.send({ success: true, data: await studioDashboard(db, req.tenantContext.tenantId) });
+    return reply.send({ success: true, data: await studioDashboard(db, req.tenantContext.tenantId, req.tenantContext.role) });
   });
 }

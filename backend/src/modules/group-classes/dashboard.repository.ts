@@ -26,6 +26,29 @@ export async function todayClasses(exec: Exec, tenantId: string): Promise<{ clas
   return { classes: Number(r?.classes ?? 0), students: Number(r?.students ?? 0), capacity: Number(r?.capacity ?? 0) };
 }
 
+/**
+ * Mensalidades pendentes (parcelas de matrícula, não apagadas): a receber de hoje até o fim do mês (Brasília) e
+ * atrasadas (venceram antes de hoje), com total, quantidade e alunos distintos. Lançamento manual não entra.
+ */
+export async function installmentTotals(exec: Exec, tenantId: string) {
+  const [r] = rows(await exec.execute(sql`
+    SELECT
+      coalesce(sum(ft.amount) FILTER (WHERE ft.due_date >= ${todaySP}
+        AND ft.due_date < date_trunc('month', ${todaySP}) + interval '1 month'), 0)::float AS due_amount,
+      count(*) FILTER (WHERE ft.due_date >= ${todaySP}
+        AND ft.due_date < date_trunc('month', ${todaySP}) + interval '1 month')::int AS due_count,
+      coalesce(sum(ft.amount) FILTER (WHERE ft.due_date < ${todaySP}), 0)::float AS overdue_amount,
+      count(*) FILTER (WHERE ft.due_date < ${todaySP})::int AS overdue_count,
+      count(DISTINCT e.client_id) FILTER (WHERE ft.due_date < ${todaySP})::int AS overdue_students
+    FROM financial_transactions ft
+    JOIN membership_enrollments e ON e.id = ft.enrollment_id
+    WHERE ft.tenant_id = ${tenantId} AND ft.status = 'pending' AND ft.deleted_at IS NULL`));
+  return {
+    toReceive: { amount: Number(r?.due_amount ?? 0), count: Number(r?.due_count ?? 0) },
+    overdue: { amount: Number(r?.overdue_amount ?? 0), count: Number(r?.overdue_count ?? 0), students: Number(r?.overdue_students ?? 0) },
+  };
+}
+
 /** Data de hoje em Brasília (AAAA-MM-DD), a mesma usada nas contagens. */
 export async function todayDate(exec: Exec): Promise<string> {
   const [r] = rows(await exec.execute(sql`SELECT to_char(${todaySP}, 'YYYY-MM-DD') AS d`));

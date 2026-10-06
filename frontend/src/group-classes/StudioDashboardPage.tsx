@@ -1,9 +1,10 @@
 // Aulas em turma: Painel do studio (tela inicial do Pilates). Só exibe os números calculados no backend.
-// "A receber" e "Atrasados" entram quando as mensalidades gerarem lançamento no Financeiro.
+// "A receber" (até o fim do mês) e "Atrasados" vêm das mensalidades; só aparecem para quem tem acesso ao
+// Financeiro (o backend manda `money: null` para os outros).
 // API: GET /classes/dashboard.
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import { type Theme, fmtDay, PageHeader, Button, Card, Notice, Empty } from "./ui";
+import { type Theme, brl, fmtDay, PageHeader, Button, Card, Notice, Empty } from "./ui";
 
 export default function StudioDashboardPage({ C, FD, FB }: Theme) {
   const t = { C, FD, FB };
@@ -19,10 +20,10 @@ export default function StudioDashboardPage({ C, FD, FB }: Theme) {
   };
   useEffect(() => { load(); }, []);
 
-  const big = (value: number | string, label: string, sub?: string) => (
+  const big = (value: number | string, label: string, sub?: string, color?: string) => (
     <Card C={C} style={{ padding: 22 }}>
       <div style={{ fontSize: 15, color: C.textSec, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 44, fontWeight: 800, color: C.text, fontFamily: FD, lineHeight: 1.1, marginTop: 6 }}>{value}</div>
+      <div style={{ fontSize: typeof value === "string" ? 36 : 44, fontWeight: 800, color: color ?? C.text, fontFamily: FD, lineHeight: 1.1, marginTop: 6 }}>{value}</div>
       {sub && <div style={{ fontSize: 15, color: C.textMuted, marginTop: 6 }}>{sub}</div>}
     </Card>
   );
@@ -37,6 +38,13 @@ export default function StudioDashboardPage({ C, FD, FB }: Theme) {
           {big(data.activeStudents, "Alunos ativos", "com matrícula ativa hoje")}
           {big(data.today.classes, "Aulas hoje",
             data.today.classes ? `${data.today.students} ${data.today.students === 1 ? "aluno" : "alunos"} de ${data.today.capacity} vagas` : "nenhuma aula hoje")}
+          {data.money && big(brl(data.money.toReceive.amount), "A receber este mês",
+            data.money.toReceive.count ? `${data.money.toReceive.count} ${data.money.toReceive.count === 1 ? "mensalidade" : "mensalidades"} até o fim do mês` : "nada a receber até o fim do mês")}
+          {data.money && big(brl(data.money.overdue.amount), "Atrasados",
+            data.money.overdue.count
+              ? `${data.money.overdue.students} ${data.money.overdue.students === 1 ? "aluno" : "alunos"} · ${data.money.overdue.count} ${data.money.overdue.count === 1 ? "mensalidade" : "mensalidades"}`
+              : "nenhum atraso",
+            data.money.overdue.count ? C.ruby : undefined)}
         </div>
       )}
     </div>
