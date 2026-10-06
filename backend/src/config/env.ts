@@ -26,6 +26,8 @@ const envSchema = z.object({
   // Uploads: volume compartilhado com o nginx do container web, publicado em PUBLIC_UPLOADS_URL
   UPLOADS_DIR:        z.string().default("./uploads"),
   PUBLIC_UPLOADS_URL: z.string().default("/uploads").transform((v) => v.replace(/\/+$/, "")),
+  // Backup de cada conta antes do "Excluir conta" (Super Admin). Na VPS: volume do host /opt/backups/contas.
+  TENANT_BACKUPS_DIR: z.string().default("./backups/contas"),
   CORS_ORIGINS: z.string().default("http://localhost:5173")
     .transform((v) => v.split(",").map((s) => s.trim())),
   RATE_LIMIT_MAX:    z.coerce.number().default(200),

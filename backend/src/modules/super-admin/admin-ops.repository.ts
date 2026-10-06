@@ -72,6 +72,18 @@ export async function finishOperation(exec: Exec, id: string, f: { status: strin
     WHERE id = ${id}`);
 }
 
+export async function getOperation(exec: Exec, id: string) {
+  const [r] = rows(await exec.execute(sql`SELECT id, operation, target_tenant_id AS "tenantId", target_tenant_name AS "tenantName",
+      status, counts, details FROM admin_operations WHERE id = ${id}`));
+  return r as any;
+}
+
+/** Última migration aplicada (para o manifesto do backup: restaurar só na mesma estrutura). */
+export async function lastMigration(exec: Exec): Promise<string | null> {
+  const [r] = rows(await exec.execute(sql`SELECT max(created_at)::text AS m FROM drizzle.__drizzle_migrations`));
+  return r?.m ?? null;
+}
+
 export async function listOperations(exec: Exec, tenantId?: string) {
   return rows(await exec.execute(sql`SELECT id, operation, target_tenant_id AS "tenantId", target_tenant_name AS "tenantName",
       actor, status, counts, details, started_at AS "startedAt", finished_at AS "finishedAt"

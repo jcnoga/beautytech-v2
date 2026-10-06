@@ -219,7 +219,15 @@ export async function disconnectInstance(tenantId: string) {
 
 export async function deleteInstance(tenantId: string) {
   assertWhatsappEnabled();
-  const cfg = await getTenantWhatsappConfig(tenantId);
+  return deleteInstanceWith(await getTenantWhatsappConfig(tenantId), tenantId);
+}
+
+/** Configuração do WhatsApp da conta (lida antes de excluir a conta, para apagar a instância depois). */
+export const whatsappConfigOf = getTenantWhatsappConfig;
+
+/** Apaga a instância da Evolution com uma configuração já lida (a conta pode nem existir mais no banco). */
+export async function deleteInstanceWith(cfg: Awaited<ReturnType<typeof getTenantWhatsappConfig>>, tenantId: string) {
+  assertWhatsappEnabled();
   if (cfg.mode === "manual" || cfg.mode === "zapi") return { message: "Operacao nao aplicavel para este modo" };
   const apiUrl = cfg.mode === "cloud" ? getCloudConfig().apiUrl : (cfg.apiUrl ?? "");
   const apiKey = cfg.mode === "cloud" ? getCloudConfig().apiKey : (cfg.apiKey ?? "");

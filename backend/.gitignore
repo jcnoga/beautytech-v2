@@ -2,3 +2,5 @@
 .~lock.*
 *.odt
 uploads/
+# Backups das contas excluídas pelo Super Admin (dados pessoais: nunca no git)
+backups/
