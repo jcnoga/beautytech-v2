@@ -2314,7 +2314,7 @@ function FinancialPage({ businessType }: { businessType?: string }) {
 
   // Pilates: cria as mensalidades que faltam (matrículas de antes das mensalidades ou sem fim). Não duplica.
   const generateInstallments = async () => {
-    if (!confirm("Gerar as mensalidades que faltam das matrículas ativas? As que já existem não são criadas de novo.")) return;
+    if (!confirm("Gerar as mensalidades que faltam das matrículas ativas?\n\nANTES, confira no Financeiro se não há mensalidades lançadas à mão (pela \"+ Nova Transacao\"). Essas o sistema não reconhece e ficariam em dobro: apague-as ou não gere.\n\nAs mensalidades já geradas pelo sistema não são criadas de novo.")) return;
     setGenerating(true);
     try {
       const r: any = await financialApi.generateInstallments();

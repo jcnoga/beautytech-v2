@@ -126,9 +126,20 @@ test("matricular gera as parcelas pendentes (categoria Mensalidades, conta criad
   assert.equal((await parcels(data(z).id)).length, 0);
 });
 
-test("mudar o valor: só as pendentes futuras; paga e atrasada ficam como estão", async () => {
+test("mudar o valor: só Admin/Gerente; só as pendentes futuras; paga e atrasada ficam como estão", async () => {
   await sql`UPDATE financial_transactions SET status = 'confirmed' WHERE enrollment_id = ${e1} AND installment_no = 1`;
-  const r = await req("PATCH", `/memberships/enrollments/${e1}`, A.token, { price: 250 });
+  for (const role of ["receptionist", "professional", "financial"]) {
+    const uid = randomUUID();
+    await sql`INSERT INTO user_profiles (tenant_id, auth_user_id, full_name, role) VALUES (${A.id}, ${uid}, ${role}, ${role})`;
+    const tok = await token(uid);
+    const x = await req("PATCH", `/memberships/enrollments/${e1}`, tok, { price: 1 });
+    assert.equal(x.statusCode, 403, `${role} não muda o valor`);
+    assert.equal((await req("PATCH", `/memberships/enrollments/${e1}`, tok, { notes: "ok" })).statusCode, 200, `${role} edita o resto`);
+  }
+  assert.deepEqual((await parcels(e1)).map((p) => p.amount), [200, 200, 200]);
+  const mid = randomUUID();
+  await sql`INSERT INTO user_profiles (tenant_id, auth_user_id, full_name, role) VALUES (${A.id}, ${mid}, 'Gerente', 'manager')`;
+  const r = await req("PATCH", `/memberships/enrollments/${e1}`, await token(mid), { price: 250 });
   assert.equal(r.statusCode, 200, r.body);
   assert.deepEqual((await parcels(e1)).map((p) => [p.no, p.status, p.amount]), [[1, "confirmed", 200], [2, "pending", 200], [3, "pending", 250]]);
 });

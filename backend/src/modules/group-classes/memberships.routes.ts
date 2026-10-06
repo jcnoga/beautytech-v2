@@ -10,7 +10,7 @@ import {
   clients, professionals, services, professionalSchedules,
   studentProfiles, membershipPlans, membershipEnrollments,
 } from "@db/schema/index";
-import { authenticate, requireFinancial, requireManager } from "@middleware/auth";
+import { authenticate, hasRole, requireFinancial, requireManager } from "@middleware/auth";
 import { parseBody } from "../dtos";
 import { rejectForeignRefs } from "../tenant-guard";
 import { auditLog, checkProfessionalLimit } from "../all-modules";
@@ -377,6 +377,10 @@ export async function membershipsModule(fastify: FastifyInstance) {
     if (!current) return notFound(reply, "Matricula nao encontrada");
     const body = parseBody(enrollmentUpdateDto, req, reply); if (!body) return;
     const changes = defined(body);
+    // Valor da matrícula mexe nas mensalidades: só Admin (owner) e Gerente.
+    if ("price" in changes && !hasRole(req.tenantContext.role, "manager")) {
+      return reply.status(403).send({ success: false, error: "Só o Admin ou o Gerente pode mudar o valor da matrícula", code: "FORBIDDEN" });
+    }
     const endDate = "endDate" in changes ? (changes.endDate as string | null) : toDay(current.endDate);
     if (endDate && endDate < (toDay(current.startDate) as string)) return reply.status(400).send({ success: false, error: "Fim antes do inicio" });
     // Matrícula e parcelas juntas: encerrar/cancelar, mudar fim, valor ou vencimento acerta as pendentes futuras.
