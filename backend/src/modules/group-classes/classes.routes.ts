@@ -9,7 +9,7 @@ import { parseBody } from "../dtos";
 import { auditLog } from "../all-modules";
 import { rows, getStudioSettings, settingsToApi, PLAN_RULES, STUDIO_ONLY } from "./rules";
 import {
-  ClassError, TZ, ensureSessions, lockSession, bookWithCredit, bookWithMakeup, cancelBooking, cancelSessionByStudio,
+  ClassError, TZ, ensureSessions, sessionTakenSql, lockSession, bookWithCredit, bookWithMakeup, cancelBooking, cancelSessionByStudio,
   markAttendance, createPause, createSlot, deleteSlot, updateSchedule, expireMakeups,
   scheduleConflict, sessionConflict, toDay,
 } from "./classes.service";
@@ -55,13 +55,7 @@ const sessionSelect = sql`
     to_char(ss.starts_at AT TIME ZONE ${TZ}, 'HH24:MI') AS start_local, to_char(ss.ends_at AT TIME ZONE ${TZ}, 'HH24:MI') AS end_local,
     ss.instructor_id, i.full_name AS instructor_name, ss.instructor_overridden, ss.modality_id, m.name AS modality_name,
     ss.room, ss.capacity, ss.class_type, ss.status, ss.cancel_reason, ss.notes,
-    ((SELECT count(*) FROM class_bookings b WHERE b.session_id = ss.id AND b.status IN ('booked','present','absent','excused'))
-     + (SELECT count(*) FROM class_enrollment_slots es JOIN membership_enrollments e ON e.id = es.enrollment_id AND e.status = 'active'
-        WHERE ss.schedule_id IS NOT NULL AND es.schedule_id = ss.schedule_id AND ss.session_date >= e.start_date
-          AND (e.end_date IS NULL OR ss.session_date <= e.end_date)
-          AND NOT EXISTS (SELECT 1 FROM class_bookings b2 WHERE b2.session_id = ss.id AND b2.client_id = e.client_id)
-          AND NOT EXISTS (SELECT 1 FROM membership_pauses pp WHERE pp.enrollment_id = e.id AND ss.session_date BETWEEN pp.start_date AND pp.end_date))
-    )::int AS taken,
+    ${sessionTakenSql} AS taken,
     (ss.status = 'scheduled' AND ss.ends_at < now()
       AND EXISTS (SELECT 1 FROM class_bookings b3 WHERE b3.session_id = ss.id AND b3.status = 'booked')) AS pending_attendance
   FROM class_sessions ss

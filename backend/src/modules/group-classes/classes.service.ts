@@ -27,6 +27,18 @@ const fail = (status: number, code: string, message: string): never => { throw n
 const occupying = sql.raw(`('booked','present','absent','excused')`);
 const todaySP = sql.raw(`(now() AT TIME ZONE '${TZ}')::date`);
 
+/**
+ * Vagas ocupadas de uma aula (alias ss = class_sessions), em SQL: inscrições ativas + horários fixos que ainda não
+ * viraram inscrição naquela data (fora de pausa). Mesma regra de seatsTaken; usada nas listas de aulas e no painel.
+ */
+export const sessionTakenSql = sql`((SELECT count(*) FROM class_bookings b WHERE b.session_id = ss.id AND b.status IN ('booked','present','absent','excused'))
+     + (SELECT count(*) FROM class_enrollment_slots es JOIN membership_enrollments e ON e.id = es.enrollment_id AND e.status = 'active'
+        WHERE ss.schedule_id IS NOT NULL AND es.schedule_id = ss.schedule_id AND ss.session_date >= e.start_date
+          AND (e.end_date IS NULL OR ss.session_date <= e.end_date)
+          AND NOT EXISTS (SELECT 1 FROM class_bookings b2 WHERE b2.session_id = ss.id AND b2.client_id = e.client_id)
+          AND NOT EXISTS (SELECT 1 FROM membership_pauses pp WHERE pp.enrollment_id = e.id AND ss.session_date BETWEEN pp.start_date AND pp.end_date))
+    )::int`;
+
 // ─── geração ────────────────────────────────────────────────────────────────
 /** Gera (sem duplicar) as aulas das próximas 4 semanas de todas as turmas ativas e materializa os fixos. */
 export async function ensureSessions(exec: Exec, tenantId: string, scheduleId?: string) {

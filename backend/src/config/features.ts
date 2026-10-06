@@ -122,6 +122,7 @@ export const ROUTE_FEATURES: Record<string, Feature> = {
   "/memberships/enrollments": "memberships",
   "/classes/modalities": "class_settings",
   "/classes/settings": "class_settings",
+  "/classes/dashboard": "group_classes",
   "/classes/schedules": "group_classes",
   "/classes/sessions": "group_classes",
   "/classes/slots": "group_classes",
