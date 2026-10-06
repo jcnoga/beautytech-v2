@@ -1,6 +1,45 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 02/10/2026 (fim do dia 01/10 registrado). Colar no início da próxima conversa.
+Atualizado em 05/10/2026 (fim do dia). Colar no início da próxima conversa.
+
+## ONDE PARAMOS (05/10, fim do dia) — retomar em 06/10
+**Produção (www.zensalon.com.br) = `origin/vps` `f7e6cac`** — Pilates NO AR desde 05/10:
+- Merge do `ramo-pilates` no `vps` + migrations **0003 a 0009 aplicadas no banco `zensalon`** (backup antes:
+  `/opt/backups/diario/2026-10-05_1929/zensalon.dump`). Ensaio feito antes num banco descartável (já apagado).
+- Também no ar: busca pública com Pilates (botão "Agendar aula experimental" → página do studio → WhatsApp),
+  aba Landing Page do studio (logo + foto da landing page; sem prévia), cache do PWA corrigido no nginx
+  (index/sw.js/registerSW/manifest = no-cache), Financeiro liberado para o Pilates, correção da cobrança
+  semestral/anual (preço por mês × meses) e Básico pago ≠ gratuito.
+- Primeira conta Pilates real: "Studio Equilibrio Pilates" (em teste, 30 dias = valor geral da produção).
+- Fluxo de deploy usado: merge do `ramo-pilates` no `vps` numa worktree separada (`../beautytech-v2-merge`, com
+  junctions para o node_modules — remover as junctions ANTES do `git worktree remove`), rotina, push, na VPS
+  `git pull` + `build --no-cache` + `up -d --no-deps` só do que mudou; migrations com `scripts/migrar.ts` num
+  container descartável (`docker run --rm ... zensalon-api`, só `POSTGRES_URL`, confere `current_database()`).
+
+**`ramo-pilates` = `4718bd6` (com push até `1981f2a`; o `4718bd6` está SEM push e SEM deploy):**
+- `4718bd6` **Painel do studio** (`GET /classes/dashboard`, tela "Painel" = inicial do Pilates): Alunos ativos
+  (matrícula ativa valendo hoje) e Aulas hoje (com ocupação). Testes em `tests/pilates-painel.test.ts`
+  (inclui 5 chamadas simultâneas: geração de aulas idempotente pelas restrições únicas). 122 testes ok.
+
+**PRÓXIMO (06/10): mensalidades gerando lançamento no Financeiro — plano apresentado, AGUARDA 4 decisões:**
+- a) 1ª parcela vence na data de início e as demais no dia de vencimento? (sugestão: sim)
+- b) Pausa continua cobrando? (sugestão: sim, sem mudança automática)
+- c) Ao cancelar, parcelas atrasadas seguem como dívida? (sugestão: sim)
+- d) Mudança de valor da matrícula afeta só parcelas pendentes futuras? (sugestão: sim)
+- Plano: migration 0010 (financial_transactions.enrollment_id + installment_no, único por matrícula+parcela);
+  gerar todas as parcelas ao matricular (frequência: 1 por mês de vigência; pacote: parcela única; valor 0: nada);
+  receita pendente, categoria "Mensalidades", conta padrão; encerrar/cancelar cancela pendentes futuras;
+  botão "Gerar mensalidades das matrículas ativas" (idempotente); ficha mostra parcelas + "Receber";
+  depois o painel ganha "A receber" e "Atrasados". 4 commits, parar depois do 2.
+- Depois: WhatsApp (o usuário reconecta a instância pelo QR e testa um envio antes de liberar para o Pilates),
+  Automações, Contrato PDF. Comissões só quando um cliente pedir.
+
+**Pendências soltas:**
+- Super Admin da produção: "Dias de trial" geral = 30 (usuário quer 60) e preços do Pilates ainda não configurados.
+- Backup sem cópia externa (R2 não configurado); aviso de "collation version mismatch" no Postgres da VPS.
+- AgroLab: `WHATSAPP_API_URL=http://localhost:8080` não alcança a Evolution (já não funcionava antes).
+- n8n: chave de API nova a criar (a antiga pode ter sumido no reset de 05/10); n8n-mcp aponta para ngrok fora do ar.
+- Portas fechadas em 05/10: Evolution 8080 e n8n (agora `127.0.0.1:5678`); backups dos composes com data no nome.
 
 ## 05/10 — Preparação do merge do Pilates na produção (parte A)
 - **Diferenças da produção (vinda do Railway) em relação às migrations**, achadas comparando a estrutura (só leitura):
