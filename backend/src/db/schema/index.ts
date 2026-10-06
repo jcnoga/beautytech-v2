@@ -108,6 +108,9 @@ export const tenants = pgTable("tenants", {
   coverUrl:     text("cover_url"),
   galleryImages: jsonb("gallery_images").notNull().default([]),
   customDomain: varchar("custom_domain", { length: 255 }).unique(),
+  // Super Admin (migration 0011): protegida = "Excluir conta" recusa; conta de teste = libera os dados de teste.
+  isProtected:   boolean("is_protected").notNull().default(false),
+  isTestAccount: boolean("is_test_account").notNull().default(false),
   ...audit,
 });
 
@@ -898,6 +901,42 @@ export const automationSettings = pgTable("automation_settings", {
   postServiceHours:    integer("post_service_hours").notNull().default(2),
   createdAt:           timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ─── Super Admin: auditoria e lotes de dados de teste (migration 0011) ─────────────────────────
+// admin_operations NÃO tem tenant_id nem ligação com tenants: sobrevive à exclusão da conta.
+export const adminOperations = pgTable("admin_operations", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  operation:        varchar("operation", { length: 30 }).notNull(), // tenant_delete | test_generate | test_delete
+  targetTenantId:   uuid("target_tenant_id"),
+  targetTenantName: varchar("target_tenant_name", { length: 255 }),
+  actor:            varchar("actor", { length: 255 }).notNull(),
+  ip:               varchar("ip", { length: 64 }),
+  status:           varchar("status", { length: 20 }).notNull().default("started"), // started | done | partial | failed
+  counts:           jsonb("counts").notNull().default({}),
+  details:          jsonb("details").notNull().default({}),
+  startedAt:        timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  finishedAt:       timestamp("finished_at", { withTimezone: true }),
+});
+
+export const testBatches = pgTable("test_batches", {
+  id:         uuid("id").primaryKey().defaultRandom(),
+  tenantId:   uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  status:     varchar("status", { length: 20 }).notNull().default("generating"), // generating | ready | failed | deleted
+  createdBy:  varchar("created_by", { length: 255 }).notNull(),
+  counts:     jsonb("counts").notNull().default({}),
+  createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+});
+
+export const testBatchItems = pgTable("test_batch_items", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  batchId:   uuid("batch_id").notNull().references(() => testBatches.id, { onDelete: "cascade" }),
+  tenantId:  uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  tableName: varchar("table_name", { length: 63 }).notNull(),
+  recordId:  uuid("record_id").notNull(),
+  kind:      varchar("kind", { length: 10 }).notNull().default("root"), // root | derived
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const planSettings = pgTable("plan_settings", {
