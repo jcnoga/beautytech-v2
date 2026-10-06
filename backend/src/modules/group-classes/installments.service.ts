@@ -154,6 +154,33 @@ export async function syncInstallments(tx: Exec, tenantId: string, enrollmentId:
   return { created: await generateInstallments(tx, tenantId, e.id, userId), cancelled, updated };
 }
 
+/** Formas de pagamento aceitas no "Receber" (valores do enum payment_method). */
+export const RECEIVE_METHODS = ["pix", "cash", "debit_card", "credit_card", "bank_transfer", "other"] as const;
+
+/** Parcelas de um aluno (todas as matrículas), da mais antiga para a mais nova. `overdue` = pendente vencida antes de hoje. */
+export async function studentInstallments(tx: Exec, tenantId: string, studentId: string) {
+  return rows(await tx.execute(sql`SELECT ft.id, ft.enrollment_id AS "enrollmentId", ft.installment_no AS "installmentNo",
+      ft.description, ft.amount, to_char(ft.due_date, 'YYYY-MM-DD') AS "dueDate", ft.status, ft.payment_method AS "paymentMethod",
+      ft.paid_at AS "paidAt", p.name AS "planName", (ft.status = 'pending' AND ft.due_date < ${todaySP}) AS overdue
+    FROM financial_transactions ft
+    JOIN membership_enrollments e ON e.id = ft.enrollment_id
+    JOIN membership_plans p ON p.id = e.plan_id
+    WHERE ft.tenant_id = ${tenantId} AND e.client_id = ${studentId} AND ft.deleted_at IS NULL
+    ORDER BY ft.due_date, ft.installment_no`));
+}
+
+/** "Receber": marca a parcela pendente como paga hoje. null = não achou (ou não é parcela de matrícula); "not_pending" = já paga/cancelada. */
+export async function receiveInstallment(tx: Exec, tenantId: string, id: string, paymentMethod: string, userId: string | null) {
+  const [r] = rows(await tx.execute(sql`UPDATE financial_transactions
+    SET status = 'confirmed', paid_at = now(), payment_method = ${paymentMethod}, updated_by = ${userId}, updated_at = now()
+    WHERE id = ${id} AND tenant_id = ${tenantId} AND enrollment_id IS NOT NULL AND deleted_at IS NULL AND status = 'pending'
+    RETURNING id, status, to_char(paid_at AT TIME ZONE ${TZ}, 'YYYY-MM-DD') AS "paidOn"`));
+  if (r) return r;
+  const [exists] = rows(await tx.execute(sql`SELECT status FROM financial_transactions
+    WHERE id = ${id} AND tenant_id = ${tenantId} AND enrollment_id IS NOT NULL AND deleted_at IS NULL`));
+  return exists ? "not_pending" : null;
+}
+
 /** "Gerar mensalidades das matrículas ativas": cria só o que falta (apertar de novo não duplica). */
 export async function generateAllInstallments(tx: Exec, tenantId: string, userId: string | null) {
   await lockTenant(tx, tenantId);

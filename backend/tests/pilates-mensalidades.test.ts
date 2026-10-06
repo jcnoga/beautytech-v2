@@ -206,3 +206,40 @@ test("isolamento e nicho: B não vê nem gera as de A; salão recebe 403", async
   assert.equal(s.statusCode, 403);
   assert.equal(s.json().code, "FEATURE_NOT_ALLOWED");
 });
+
+test("ficha do aluno: lista as parcelas (atrasada marcada) e 'Receber' marca como paga hoje", async () => {
+  const [{ client_id: ana }] = await sql`SELECT client_id FROM membership_enrollments WHERE id = ${e1}`;
+  const list = data(await req("GET", `/memberships/enrollments/installments?studentId=${ana}`, A.token));
+  const mine = list.filter((i: any) => i.enrollmentId === e1);
+  assert.deepEqual(mine.map((i: any) => [i.installmentNo, i.status, i.overdue]), [[1, "confirmed", false], [2, "pending", true], [3, "pending", false]]);
+  assert.equal(mine[0].planName, "Trimestral 2x");
+  assert.ok(list.every((i: any) => i.enrollmentId), "só parcelas de matrícula");
+
+  const p2 = mine[1].id;
+  assert.equal((await req("POST", `/memberships/enrollments/installments/${p2}/receive`, A.token, { paymentMethod: "bitcoin" })).statusCode, 400);
+  const ok = await req("POST", `/memberships/enrollments/installments/${p2}/receive`, A.token, { paymentMethod: "pix" });
+  assert.equal(ok.statusCode, 200, ok.body);
+  assert.equal(data(ok).paidOn, today);
+  const [row] = await sql`SELECT status, payment_method, paid_at IS NOT NULL AS paid FROM financial_transactions WHERE id = ${p2}`;
+  assert.deepEqual({ ...row }, { status: "confirmed", payment_method: "pix", paid: true });
+  const again = await req("POST", `/memberships/enrollments/installments/${p2}/receive`, A.token, { paymentMethod: "cash" });
+  assert.equal(again.statusCode, 409);
+});
+
+test("Receber/listar: só Financeiro para cima, só do próprio studio, só parcelas de matrícula", async () => {
+  const [{ client_id: ana }] = await sql`SELECT client_id FROM membership_enrollments WHERE id = ${e1}`;
+  const [p3] = await sql`SELECT id FROM financial_transactions WHERE enrollment_id = ${e1} AND installment_no = 3`;
+  const rec = randomUUID();
+  await sql`INSERT INTO user_profiles (tenant_id, auth_user_id, full_name, role) VALUES (${A.id}, ${rec}, 'Recepção', 'receptionist')`;
+  const rt = await token(rec);
+  assert.equal((await req("GET", `/memberships/enrollments/installments?studentId=${ana}`, rt)).statusCode, 403);
+  assert.equal((await req("POST", `/memberships/enrollments/installments/${p3.id}/receive`, rt, { paymentMethod: "pix" })).statusCode, 403);
+  assert.equal((await req("POST", `/memberships/enrollments/installments/${p3.id}/receive`, B.token, { paymentMethod: "pix" })).statusCode, 404, "outro studio");
+  assert.deepEqual(data(await req("GET", `/memberships/enrollments/installments?studentId=${ana}`, B.token)), [], "outro studio não lista");
+  const [acc] = await sql`SELECT id FROM financial_accounts WHERE tenant_id = ${A.id} LIMIT 1`;
+  const [manual] = await sql`INSERT INTO financial_transactions (tenant_id, account_id, type, status, description, amount, due_date)
+    VALUES (${A.id}, ${acc.id}, 'revenue', 'pending', 'Venda avulsa', 10, ${today}) RETURNING id`;
+  assert.equal((await req("POST", `/memberships/enrollments/installments/${manual.id}/receive`, A.token, { paymentMethod: "pix" })).statusCode, 404, "lançamento manual não é parcela");
+  const [{ status }] = await sql`SELECT status FROM financial_transactions WHERE id = ${p3.id}`;
+  assert.equal(status, "pending");
+});

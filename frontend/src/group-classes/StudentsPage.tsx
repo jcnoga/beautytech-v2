@@ -1,7 +1,7 @@
 // Aulas em turma: Alunos (reaproveita o cadastro de clientes + ficha do aluno) e suas matrículas.
 // Matrícula por frequência ativa mostra os horários fixos (EnrollmentSlots).
 // Seção Histórico: créditos e reposições do aluno (StudentHistory).
-// Ficha em abas (Matrículas · Dados · Histórico · LGPD): abre em Matrículas quando o aluno tem matrícula ativa;
+// Ficha em abas (Matrículas · Pagamentos · Dados · Histórico · LGPD): abre em Matrículas quando o aluno tem matrícula ativa;
 // só as ativas aparecem em cartões; as encerradas/canceladas ficam em "Ver anteriores".
 // API: /class-students, /memberships/enrollments, /memberships/plans, /class-instructors, /consent-forms (C8), /classes/slots.
 import { useEffect, useState } from "react";
@@ -12,6 +12,7 @@ import {
 } from "./ui";
 import EnrollmentSlots from "./EnrollmentSlots";
 import StudentHistory from "./StudentHistory";
+import StudentPayments from "./StudentPayments";
 
 const EMPTY = {
   fullName: "", phone: "", whatsapp: "", email: "", birthDate: "",
@@ -68,7 +69,7 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [enroll, setEnroll] = useState<any>({ planId: "", startDate: todaySP(), dueDay: "", price: "" });
   const [consent, setConsent] = useState<any | null>(null);
-  const [tab, setTab] = useState<"enrollments" | "data" | "history" | "lgpd">("data");
+  const [tab, setTab] = useState<"enrollments" | "payments" | "data" | "history" | "lgpd">("data");
   const [loadError, setLoadError] = useState(""); // matrículas ou termo LGPD não carregaram
   const [showPast, setShowPast] = useState(false);
   const [moreOpen, setMoreOpen] = useState<string | null>(null); // matrícula com o menu "Mais" aberto
@@ -176,7 +177,7 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
   const active = enrollments.filter((e) => e.status === "active" || e.status === "paused");
   const past = enrollments.filter((e) => e.status !== "active" && e.status !== "paused");
   const hasTabs = !!(editing?.id && editing.hasProfile);
-  const TABS: [typeof tab, string][] = [["enrollments", `Matrículas (${active.length})`], ["data", "Dados"], ["history", "Histórico"], ["lgpd", "LGPD"]];
+  const TABS: [typeof tab, string][] = [["enrollments", `Matrículas (${active.length})`], ["payments", "Pagamentos"], ["data", "Dados"], ["history", "Histórico"], ["lgpd", "LGPD"]];
 
   /** O principal da matrícula em letra grande: aulas restantes (pacote) ou aulas da semana (frequência). */
   const usageLine = (e: any) => {
@@ -350,6 +351,7 @@ export default function ClassStudentsPage({ C, FD, FB }: Theme) {
           </div>
         )}
 
+        {hasTabs && tab === "payments" && <StudentPayments {...t} studentId={editing.id} />}
         {hasTabs && tab === "history" && <StudentHistory {...t} studentId={editing.id} />}
 
         {hasTabs && tab === "lgpd" && (

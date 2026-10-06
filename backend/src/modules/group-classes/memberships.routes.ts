@@ -16,7 +16,9 @@ import { rejectForeignRefs } from "../tenant-guard";
 import { auditLog, checkProfessionalLimit } from "../all-modules";
 import { ClassError, creditUsage, materializeFixed, pruneFixed, TZ } from "./classes.service";
 import { assertStudentLimit, insertStudent } from "./students.service";
-import { generateAllInstallments, generateInstallments, syncInstallments } from "./installments.service";
+import {
+  generateAllInstallments, generateInstallments, receiveInstallment, RECEIVE_METHODS, studentInstallments, syncInstallments,
+} from "./installments.service";
 import { limitMessage } from "../billing/plan-limits.service";
 import { rows } from "./rules";
 import {
@@ -395,6 +397,27 @@ export async function membershipsModule(fastify: FastifyInstance) {
     await materializeFixed(db, tenantId);
     auditLog({ tenantId, userId, action: "classes.enrollment.updated", tableName: "membership_enrollments", recordId: row.id, newData: { ...changes, installments } });
     return reply.send({ success: true, data: withDays({ ...row, installments }, ENROLLMENT_DAYS) });
+  });
+
+  // Ficha do aluno, aba Pagamentos: parcelas de todas as matrículas. Mesma permissão do Financeiro.
+  fastify.get("/memberships/enrollments/installments", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const { studentId } = req.query as any;
+    if (typeof studentId !== "string" || !UUID.test(studentId)) return reply.send({ success: true, data: [] });
+    return reply.send({ success: true, data: await studentInstallments(db, tenantId, studentId) });
+  });
+
+  // "Receber": parcela pendente vira paga hoje, com a forma de pagamento.
+  fastify.post("/memberships/enrollments/installments/:id/receive", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    if (!UUID.test(req.params.id)) return notFound(reply, "Parcela nao encontrada");
+    const method = (req.body as any)?.paymentMethod;
+    if (!(RECEIVE_METHODS as readonly string[]).includes(method)) return reply.status(400).send({ success: false, error: "Escolha a forma de pagamento", code: "VALIDATION_ERROR" });
+    const r = await receiveInstallment(db, tenantId, req.params.id, method, userId);
+    if (r === null) return notFound(reply, "Parcela nao encontrada");
+    if (r === "not_pending") return reply.status(409).send({ success: false, error: "Esta parcela já foi paga ou cancelada", code: "NOT_PENDING" });
+    auditLog({ tenantId, userId, action: "classes.installment.received", tableName: "financial_transactions", recordId: req.params.id, newData: { paymentMethod: method } });
+    return reply.send({ success: true, data: r });
   });
 
   // Matrículas de antes das mensalidades (ou sem fim): cria as parcelas que faltam. Apertar de novo não duplica.
