@@ -16,7 +16,7 @@ Atualizado em 05/10/2026 (fim do dia). Colar no início da próxima conversa.
   `git pull` + `build --no-cache` + `up -d --no-deps` só do que mudou; migrations com `scripts/migrar.ts` num
   container descartável (`docker run --rm ... zensalon-api`, só `POSTGRES_URL`, confere `current_database()`).
 
-**`ramo-pilates` = `4718bd6` (com push até `1981f2a`; o `4718bd6` está SEM push e SEM deploy):**
+**`ramo-pilates` = `bf33780` (tudo com push; o painel `4718bd6` está SEM deploy):**
 - `4718bd6` **Painel do studio** (`GET /classes/dashboard`, tela "Painel" = inicial do Pilates): Alunos ativos
   (matrícula ativa valendo hoje) e Aulas hoje (com ocupação). Testes em `tests/pilates-painel.test.ts`
   (inclui 5 chamadas simultâneas: geração de aulas idempotente pelas restrições únicas). 122 testes ok.
