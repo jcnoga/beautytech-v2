@@ -114,8 +114,9 @@ export async function generateInstallments(tx: Exec, tenantId: string, enrollmen
 }
 
 /**
- * Acerta as parcelas depois de mudar a matrícula. Chamar DENTRO de uma transação. "Futura" = vence depois de hoje;
- * as que já venceram (atrasadas) nunca mudam: continuam como dívida, mesmo com a matrícula cancelada.
+ * Acerta as parcelas depois de mudar a matrícula. Chamar DENTRO de uma transação. "Futura" = vence hoje ou depois
+ * (matrícula cancelada no dia em que começou não vira dívida); as atrasadas (venceram antes de hoje) nunca mudam:
+ * continuam como dívida, mesmo com a matrícula cancelada.
  *  - Encerrada/cancelada ou valor 0: cancela as pendentes futuras.
  *  - Fim antecipado: cancela as pendentes futuras que passaram do novo fim; fim prorrogado: cria as que faltam.
  *  - Valor ou dia de vencimento mudou: vale só para as pendentes futuras (o vencimento novo só se ainda for futuro).
@@ -128,7 +129,7 @@ export async function syncInstallments(tx: Exec, tenantId: string, enrollmentId:
   if (!e) return { created: 0, cancelled: 0, updated: 0 };
   const today = toDay(e.today)!;
   const future = sql`enrollment_id = ${e.id} AND tenant_id = ${tenantId} AND status = 'pending' AND deleted_at IS NULL
-    AND due_date > ${today}`;
+    AND due_date >= ${today}`;
   const cancel = async (extra = sql`TRUE`) => rows(await tx.execute(sql`UPDATE financial_transactions
     SET status = 'cancelled', updated_by = ${userId}, updated_at = now() WHERE ${future} AND ${extra} RETURNING id`)).length;
 
@@ -140,14 +141,14 @@ export async function syncInstallments(tx: Exec, tenantId: string, enrollmentId:
   if (revive) {
     updated += rows(await tx.execute(sql`UPDATE financial_transactions SET status = 'pending', updated_by = ${userId}, updated_at = now()
       WHERE enrollment_id = ${e.id} AND tenant_id = ${tenantId} AND status = 'cancelled' AND deleted_at IS NULL
-        AND due_date > ${today} AND installment_no <= ${list.length} RETURNING id`)).length;
+        AND due_date >= ${today} AND installment_no <= ${list.length} RETURNING id`)).length;
   }
   for (const i of list) {
     const r = rows(await tx.execute(sql`UPDATE financial_transactions
-      SET amount = ${e.price}, due_date = CASE WHEN ${i.due}::date > ${today} THEN ${i.due}::date ELSE due_date END,
+      SET amount = ${e.price}, due_date = CASE WHEN ${i.due}::date >= ${today} THEN ${i.due}::date ELSE due_date END,
         updated_by = ${userId}, updated_at = now()
       WHERE ${future} AND installment_no = ${i.no}
-        AND (amount <> ${e.price} OR (due_date <> ${i.due}::date AND ${i.due}::date > ${today})) RETURNING id`));
+        AND (amount <> ${e.price} OR (due_date <> ${i.due}::date AND ${i.due}::date >= ${today})) RETURNING id`));
     updated += r.length;
   }
   return { created: await generateInstallments(tx, tenantId, e.id, userId), cancelled, updated };

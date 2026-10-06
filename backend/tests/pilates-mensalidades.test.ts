@@ -160,6 +160,15 @@ test("cancelar: futuras canceladas, atrasada continua como dívida; reativar tra
   assert.deepEqual((await parcels(e1)).map((p) => p.status), ["confirmed", "pending", "pending"]);
 });
 
+test("matricular e cancelar no mesmo dia: a parcela que vence hoje é cancelada (não vira dívida)", async () => {
+  const c = await student(A, "Duda");
+  const r = await req("POST", "/memberships/enrollments", A.token, { studentId: c, planId: A.monthly, startDate: today });
+  const id = data(r).id;
+  assert.deepEqual((await parcels(id)).map((p) => [p.no, p.due, p.status]).slice(0, 1), [[1, today, "pending"]]);
+  await req("PATCH", `/memberships/enrollments/${id}`, A.token, { status: "cancelled" });
+  assert.deepEqual([...new Set((await parcels(id)).map((p) => p.status))], ["cancelled"]);
+});
+
 test("Gerar mensalidades: matrícula antiga sem parcelas e sem fim; apertar de novo não duplica", async () => {
   const c = await student(A, "Bia");
   const [old] = await sql`INSERT INTO membership_enrollments (tenant_id, client_id, plan_id, start_date, price)

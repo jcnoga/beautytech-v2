@@ -77,7 +77,8 @@ const MOCK_KPIS = { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0
 
 // --- HELPERS -------------------------------------------------
 const brl = (v: any) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
+// Data sem hora ("2026-10-06") é dia de calendário: new Date() a leria como meia-noite UTC = dia anterior no Brasil.
+const fmtDate = (d: any) => !d ? "-" : typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split("-").reverse().join("/") : new Date(d).toLocaleDateString("pt-BR");
 const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "-";
 const fmtPct = (v: any) => `${Number(v || 0).toFixed(1)}%`;
 
