@@ -38,7 +38,7 @@ export const FEATURES = {
   professionals:      ["beauty_salon", "barbershop", "aesthetics_clinic"],
   services:           ["beauty_salon", "barbershop", "aesthetics_clinic"],
   packages:           ["beauty_salon", "barbershop", "aesthetics_clinic"],
-  financial:          ["beauty_salon", "barbershop", "aesthetics_clinic", "pilates"], // Pilates: lançamentos manuais (mensalidades ainda não geram lançamento)
+  financial:          ["beauty_salon", "barbershop", "aesthetics_clinic", "pilates"], // Pilates: lançamentos manuais + parcelas das matrículas (mensalidades)
   commissions:        ["beauty_salon", "barbershop", "aesthetics_clinic"],
   goals:              ["beauty_salon", "barbershop", "aesthetics_clinic"],
   crm:                ["beauty_salon", "barbershop", "aesthetics_clinic"],
@@ -122,6 +122,7 @@ export const ROUTE_FEATURES: Record<string, Feature> = {
   "/memberships/enrollments": "memberships",
   "/classes/modalities": "class_settings",
   "/classes/settings": "class_settings",
+  "/classes/dashboard": "group_classes",
   "/classes/schedules": "group_classes",
   "/classes/sessions": "group_classes",
   "/classes/slots": "group_classes",

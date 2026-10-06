@@ -71,6 +71,20 @@
       "when": 1791300000000,
       "tag": "0009_plan_tier_trial",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1791400000000,
+      "tag": "0010_enrollment_installments",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1791500000000,
+      "tag": "0011_admin_operations_test_data",
+      "breakpoints": true
     }
   ]
 }

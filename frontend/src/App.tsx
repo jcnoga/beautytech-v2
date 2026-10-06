@@ -21,6 +21,7 @@ import { can, setCurrentBusinessType } from './config/nicho';
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type Feature } from './config/features';
 import ClassStudentsPage from './group-classes/StudentsPage';
 import ClassLeadsPage from './group-classes/LeadsPage';
+import StudioDashboardPage from './group-classes/StudioDashboardPage';
 import MembershipsPage from './group-classes/PlansPage';
 import ClassInstructorsPage from './group-classes/InstructorsPage';
 import ClassModalitiesPage from './group-classes/ModalitiesPage';
@@ -76,7 +77,14 @@ const MOCK_KPIS = { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0
 
 // --- HELPERS -------------------------------------------------
 const brl = (v: any) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
+// Data sem hora é dia de calendário. Vem como "2026-10-06" ou, das colunas date via API, "2026-10-06T00:00:00.000Z";
+// new Date() leria as duas como meia-noite UTC = dia anterior no Brasil. Por isso usa só o AAAA-MM-DD.
+const CALENDAR_DAY = /^(\d{4})-(\d{2})-(\d{2})(T00:00:00(\.0+)?Z)?$/;
+const fmtDate = (d: any) => {
+  if (!d) return "-";
+  const m = typeof d === "string" ? CALENDAR_DAY.exec(d) : null;
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : new Date(d).toLocaleDateString("pt-BR");
+};
 const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "-";
 const fmtPct = (v: any) => `${Number(v || 0).toFixed(1)}%`;
 
@@ -660,7 +668,7 @@ function DashboardPage() {
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ fontSize:11, color: C.textMuted }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR", { day:"2-digit", month:"short" }) : ""}</span>
+                <span style={{ fontSize:11, color: C.textMuted }}>{c.birthDate ? new Date(`${String(c.birthDate).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR", { day:"2-digit", month:"short" }) : ""}</span>
                 <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.rose, textDecoration:"none", fontWeight:600 }}>WhatsApp</a>
               </div>
             </div>
@@ -817,7 +825,7 @@ function ClientsPage() {
     const rows = filtered.map((c: any) => ({
       "Nome": c.fullName,
       "Genero": c.gender === "female" ? "Feminino" : c.gender === "male" ? "Masculino" : "Outro",
-      "Nascimento": c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR") : "-",
+      "Nascimento": fmtDate(c.birthDate),
       "Segmento": c.segment ?? "-",
       "Visitas": c.totalVisits ?? 0,
     }));
@@ -839,7 +847,7 @@ function ClientsPage() {
       c.whatsapp ?? "-",
       c.email ?? "-",
       c.gender === "female" ? "Feminino" : c.gender === "male" ? "Masculino" : "Outro",
-      c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(c.birthDate),
       c.segment ?? "-",
       c.totalVisits ?? 0,
     ]);
@@ -1740,7 +1748,7 @@ function ProfessionalsPage() {
       "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
       "Status": t.status === "confirmed" ? "Pago" : "Pendente",
       "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Vencimento": fmtDate(t.dueDate),
       "Valor": Number(t.amount),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -1762,7 +1770,7 @@ function ProfessionalsPage() {
       t.type === "revenue" ? "Receita" : "Despesa",
       t.status === "confirmed" ? "Pago" : "Pendente",
       t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(t.dueDate),
       `R$ ${Number(t.amount).toFixed(2)}`,
     ]);
     (doc as any).autoTable({
@@ -2232,8 +2240,13 @@ function PackagesPage() {
 }
 
 // --- FINANCEIRO -----------------------------------------------
-function FinancialPage() {
+// Situação do lançamento: [rótulo, cor]. Função (não constante) porque o tema troca C.
+const txStatus = (s: string): [string, string] =>
+  s === "confirmed" ? ["Pago", C.sage] : s === "cancelled" ? ["Cancelado", C.textMuted] : s === "refunded" ? ["Estornado", C.textMuted] : ["Pendente", C.gold];
+
+function FinancialPage({ businessType }: { businessType?: string }) {
   const [data, setData] = useState<any[]>([]);
+  const [generating, setGenerating] = useState(false);
   const [summary, setSummary] = useState<any>({ revenue:0, expenses:0, profit:0 });
   const [accounts, setAccounts] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
@@ -2253,7 +2266,7 @@ function FinancialPage() {
       "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
       "Status": t.status === "confirmed" ? "Pago" : "Pendente",
       "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Vencimento": fmtDate(t.dueDate),
       "Valor": Number(t.amount),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -2275,7 +2288,7 @@ function FinancialPage() {
       t.type === "revenue" ? "Receita" : "Despesa",
       t.status === "confirmed" ? "Pago" : "Pendente",
       t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(t.dueDate),
       `R$ ${Number(t.amount).toFixed(2)}`,
     ]);
     (doc as any).autoTable({
@@ -2306,6 +2319,26 @@ function FinancialPage() {
     }
   };
 
+  // Pilates: cria as mensalidades que faltam (matrículas de antes das mensalidades ou sem fim). Não duplica.
+  const generateInstallments = async () => {
+    if (!confirm("Gerar as mensalidades que faltam das matrículas ativas?\n\nANTES, confira no Financeiro se não há mensalidades lançadas à mão (pela \"+ Nova Transacao\"). Essas o sistema não reconhece e ficariam em dobro: apague-as ou não gere.\n\nAs mensalidades já geradas pelo sistema não são criadas de novo.")) return;
+    setGenerating(true);
+    try {
+      const r: any = await financialApi.generateInstallments();
+      const n = r.data?.created ?? 0;
+      alert(n ? `${n} mensalidade(s) criada(s) como receita pendente.` : "Nenhuma mensalidade faltando.");
+      if (n) {
+        const [t, s]: any = await Promise.all([financialApi.list({ limit: 100 }), financialApi.summary()]);
+        setData(t.data ?? []);
+        setSummary(s.data ?? summary);
+      }
+    } catch (e: any) {
+      alert("Erro ao gerar: " + e.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
 useEffect(() => {
     Promise.all([financialApi.list({ limit: 100 }), financialApi.summary(), financialApi.accounts()])
       .then(([t, s, a]: any) => {
@@ -2327,7 +2360,7 @@ useEffect(() => {
   const cols = [
     { key:"description", label:"Descricao", render: (t: any) => <span style={{ fontWeight:600, color: C.text }}>{t.description}</span> },
     { key:"type", label:"Tipo", render: (t: any) => <Badge label={t.type==="revenue"?"Receita":"Despesa"} color={t.type==="revenue"?C.sage:C.ruby} /> },
-    { key:"status", label:"Status", render: (t: any) => <Badge label={t.status==="confirmed"?"Pago":"Pendente"} color={t.status==="confirmed"?C.sage:C.gold} /> },
+    { key:"status", label:"Status", render: (t: any) => <Badge label={txStatus(t.status)[0]} color={txStatus(t.status)[1]} /> },
     { key:"paymentMethod", label:"Forma", render: (t: any) => <span style={{ color: C.textMuted, fontSize:12 }}>{t.paymentMethod ? PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod : "-"}</span> },
     { key:"dueDate", label:"Vencimento", render: (t: any) => <span style={{ color: C.text, fontSize:12 }}>{fmtDate(t.dueDate)}</span> },
     { key:"amount", label:"Valor", render: (t: any) => <span style={{ fontWeight:700, color: t.type==="revenue" ? C.sage : C.ruby }}>{t.type==="expense"?"-":""}{brl(t.amount)}</span> },
@@ -2345,6 +2378,7 @@ useEffect(() => {
         <div style={{ display:"flex", gap:8 }}>
           <Btn small variant="secondary" onClick={exportXLSX}>XLSX</Btn>
           <Btn small variant="secondary" onClick={exportPDF}>PDF</Btn>
+          {businessType === "pilates" && <Btn variant="secondary" onClick={generateInstallments} disabled={generating}>{generating ? "Gerando..." : "Gerar mensalidades"}</Btn>}
           <Btn onClick={() => setShowForm(true)}>+ Nova Transacao</Btn>
         </div>
       } />
@@ -2511,7 +2545,7 @@ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
       "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
       "Status": t.status === "confirmed" ? "Pago" : "Pendente",
       "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Vencimento": fmtDate(t.dueDate),
       "Valor": Number(t.amount),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -2533,7 +2567,7 @@ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
       t.type === "revenue" ? "Receita" : "Despesa",
       t.status === "confirmed" ? "Pago" : "Pendente",
       t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(t.dueDate),
       `R$ ${Number(t.amount).toFixed(2)}`,
     ]);
     (doc as any).autoTable({
@@ -2764,6 +2798,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [saLogs, setSaLogs]   = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [deleting, setDeleting] = useState<any>(null); // conta com a janela "Excluir conta" aberta
   const [stats, setStats]     = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [search, setSearch]   = useState("");
@@ -2863,6 +2898,17 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const unblock = async (id: string) => {
     await saFetch("POST", `/super-admin/tenants/${id}/unblock`);
     load();
+  };
+
+  // Marcas da conta: protegida (não pode ser excluída) e conta de teste (libera os dados de teste).
+  const setFlag = async (id: string, flags: { isProtected?: boolean; isTestAccount?: boolean }) => {
+    try {
+      const r: any = await saFetch("PATCH", `/super-admin/tenants/${id}/flags`, flags);
+      setSelected((s: any) => (s && s.id === id ? { ...s, isProtected: r.data.isProtected, isTestAccount: r.data.isTestAccount } : s));
+      load();
+    } catch (e: any) {
+      alert("Erro ao mudar a marca da conta: " + (e?.message ?? "erro desconhecido"));
+    }
   };
 
   const extendTrial = async (id: string) => {
@@ -2966,11 +3012,8 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     }
   };
 
-  const deleteTenant = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja DELETAR o salao "${name}"? Esta acao nao pode ser desfeita.`)) return;
-    await saFetch("DELETE", `/super-admin/tenants/${id}`);
-    load();
-  };
+  // Excluir conta: sempre pela janela com prévia, nome exato + senha, backup e transação (DeleteTenantModal).
+  const deleteTenant = (t: any) => setDeleting(t);
   const TRIAL_STATUS: any = {
     trial:   { label:"Trial",    color: C.gold },
     active:  { label:"Ativo",    color: C.sage },
@@ -3026,7 +3069,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
           ? <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); block(t.id); }}>Bloquear</Btn>
           : <Btn small variant="gold"   onClick={(e: any) => { e.stopPropagation(); unblock(t.id); }}>Liberar</Btn>
         }
-        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); deleteTenant(t.id, t.name); }}>Deletar</Btn>
+        <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); deleteTenant(t); }}>Excluir...</Btn>
         <Btn small variant="gold" onClick={(e: any) => { e.stopPropagation(); impersonateTenant(t.id, t.name); }}>Acessar como</Btn>
       </div>
     )},
@@ -3308,15 +3351,142 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 }
               </div>
             </div>
+            {/* Marcas da conta (migration 0011): protegida = "Excluir conta" recusa; conta de teste = libera os dados de teste */}
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:6 }}>Proteção e testes</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:12 }}>
+                Protegida: não pode ser excluída. Conta de teste: pode receber e apagar dados de teste.
+              </div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <Btn variant={selected.isProtected ? "gold" : "secondary"} onClick={() => setFlag(selected.id, { isProtected: !selected.isProtected })}>
+                  {selected.isProtected ? "✓ Protegida" : "Marcar como protegida"}
+                </Btn>
+                <Btn variant={selected.isTestAccount ? "gold" : "secondary"} onClick={() => setFlag(selected.id, { isTestAccount: !selected.isTestAccount })}>
+                  {selected.isTestAccount ? "✓ Conta de teste" : "Marcar como conta de teste"}
+                </Btn>
+              </div>
+            </div>
+            {/* Excluir conta: prévia + nome exato + senha (DeleteTenantModal) */}
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.ruby, marginBottom:6 }}>Zona de perigo</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:12 }}>Apaga todos os registros da conta, com backup antes. Mostra uma prévia e pede confirmação.</div>
+              <Btn variant="danger" full onClick={() => setDeleting(selected)}>Excluir conta...</Btn>
+            </div>
           </div>
         )}
       </Modal>
       {showLogs && <SuperAdminLogsModal base={base} token={token} onClose={() => setShowLogs(false)} />}
+      {deleting && <DeleteTenantModal tenant={deleting} saFetch={saFetch} onClose={() => setDeleting(null)}
+        onDeleted={() => { setSelected(null); load(); }} />}
       {saTab === "sistema" && <PlanSettingsPanel saFetch={saFetch} />}
     </div>
   );
 }
 
+
+// --- SUPER ADMIN: EXCLUIR CONTA ----------------------------------
+// Prévia (só lê) → nome exato + senha do Super Admin → exclusão (backend: backup, transação única, limpeza externa).
+// API: GET /super-admin/tenants/:id/deletion-preview, POST /super-admin/tenants/:id/delete,
+//      POST /super-admin/operations/:id/retry-cleanup.
+const CLEANUP_LABEL: Record<string, string> = { gotrue: "Logins", whatsapp: "WhatsApp", uploads: "Arquivos" };
+function DeleteTenantModal({ tenant, saFetch, onClose, onDeleted }: any) {
+  const [preview, setPreview] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
+  const loadPreview = async () => {
+    setError(""); setPreview(null);
+    try { setPreview((await saFetch("GET", `/super-admin/tenants/${tenant.id}/deletion-preview`)).data); }
+    catch (e: any) { setError(e.message); }
+  };
+  useEffect(() => { loadPreview(); }, [tenant.id]);
+
+  const confirmDelete = async () => {
+    setBusy(true); setError("");
+    try {
+      const r = await saFetch("POST", `/super-admin/tenants/${tenant.id}/delete`, { confirmName: name, password, previewHash: preview.previewHash });
+      setResult(r.data); setPassword("");
+      onDeleted();
+    } catch (e: any) { setError(e.message); setPassword(""); }
+    finally { setBusy(false); }
+  };
+  const retry = async () => {
+    setBusy(true); setError("");
+    try { const r = await saFetch("POST", `/super-admin/operations/${result.operationId}/retry-cleanup`); setResult({ ...result, ...r.data }); }
+    catch (e: any) { setError(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const nameOk = preview && name === preview.tenant.name;
+  const blocked = preview?.blocks?.length > 0;
+  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.ceil(b / 1024)} KB`;
+  const box: any = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 14 };
+
+  return (
+    <Modal open onClose={busy ? undefined : onClose} title={`Excluir conta: ${tenant.name}`} width={600}>
+      {error && <div style={{ ...box, borderColor: C.ruby, color: C.ruby, fontSize: 14 }}>{error}</div>}
+
+      {result ? (<>
+        <div style={{ ...box, borderColor: C.sage }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.sage }}>Conta excluída do banco.</div>
+          <div style={{ fontSize: 13, color: C.textSec, marginTop: 6 }}>Backup guardado em:</div>
+          <div style={{ fontSize: 13, color: C.text, fontFamily: "monospace", wordBreak: "break-all", marginTop: 2 }}>{result.backupDir}</div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>Para restaurar: scripts/restaurar-conta.ts com ZS_CONFIRMAR_RESTAURACAO=sim (ver o manifest.json do backup).</div>
+        </div>
+        <div style={box}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 }}>Limpeza fora do banco</div>
+          {Object.entries(result.cleanup ?? {}).map(([k, v]: any) => (
+            <div key={k} style={{ fontSize: 14, color: v.ok ? C.text : C.ruby, marginBottom: 4 }}>
+              {v.ok ? "✓" : "✗"} {CLEANUP_LABEL[k] ?? k}{v.skipped ? ` (${v.skipped})` : ""}{v.error ? `: ${v.error}` : ""}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          {!result.complete && <Btn variant="gold" onClick={retry} disabled={busy}>{busy ? "Tentando..." : "Tentar limpeza de novo"}</Btn>}
+          <Btn variant="secondary" onClick={onClose}>Fechar</Btn>
+        </div>
+      </>) : !preview ? (
+        <div style={{ fontSize: 14, color: C.textMuted }}>{error ? "" : "Carregando a prévia..."}</div>
+      ) : (<>
+        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 12 }}>
+          Apaga <b style={{ color: C.text }}>todos</b> os registros desta conta. Antes, um backup só dela é guardado no servidor.
+        </div>
+        <div style={box}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{preview.totalRows} registros em {Object.keys(preview.counts).length} tabelas</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: "2px 12px", marginTop: 8, maxHeight: 180, overflowY: "auto" }}>
+            {Object.entries(preview.counts).sort((a: any, b: any) => b[1] - a[1]).map(([t, n]: any) => (
+              <div key={t} style={{ fontSize: 12, color: C.textSec, fontFamily: "monospace" }}>{t}: <b style={{ color: C.text }}>{n}</b></div>
+            ))}
+          </div>
+          <div style={{ fontSize: 13, color: C.textSec, marginTop: 10 }}>
+            Logins: <b style={{ color: C.text }}>{preview.authUsers}</b> · Arquivos: <b style={{ color: C.text }}>{preview.uploads.files}</b> ({fmtBytes(preview.uploads.bytes)})
+            · WhatsApp: <b style={{ color: C.text }}>{preview.whatsapp.mode === "manual" ? "não usa" : `${preview.whatsapp.mode}${preview.whatsapp.instance ? ` (${preview.whatsapp.instance})` : ""}`}</b>
+          </div>
+        </div>
+        {blocked ? (<>
+          <div style={{ ...box, borderColor: C.ruby }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.ruby, marginBottom: 6 }}>Não é possível excluir agora:</div>
+            {preview.blocks.map((b: any) => <div key={b.code} style={{ fontSize: 14, color: C.text, marginBottom: 4 }}>• {b.message}</div>)}
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="secondary" onClick={loadPreview}>Atualizar prévia</Btn>
+            <Btn variant="secondary" onClick={onClose}>Fechar</Btn>
+          </div>
+        </>) : (<>
+          <Inp label={`Digite o nome exato da conta: ${preview.tenant.name}`} value={name} onChange={setName} placeholder={preview.tenant.name} />
+          <Inp label="Senha do Super Admin" type="password" value={password} onChange={setPassword} />
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="secondary" onClick={onClose} disabled={busy}>Cancelar</Btn>
+            <Btn variant="danger" onClick={confirmDelete} disabled={!nameOk || !password || busy}>{busy ? "Excluindo..." : "Excluir definitivamente"}</Btn>
+          </div>
+        </>)}
+      </>)}
+    </Modal>
+  );
+}
 
 // --- NOTIFICA??ES ---------------------------------------------
 function NotificationsPage() {
@@ -3710,7 +3880,7 @@ function AutomationsPage() {
       c.phone?.includes(q);
     const matchSeg = segFilter === "all" || c.segment === segFilter;
     const matchBirthday = !birthdayFilter ||
-      (c.birthDate && new Date(c.birthDate).getMonth() + 1 === month);
+      (c.birthDate && Number(String(c.birthDate).slice(5, 7)) === month);
     return matchSearch && matchSeg && matchBirthday;
   });
 
@@ -4112,6 +4282,7 @@ function ClassSchedulesScreen()   { useTheme(); return <SchedulesPage C={C} FD={
 function ClassAgendaScreen()      { useTheme(); return <ClassAgendaPage C={C} FD={FD} FB={FB} />; }
 function ClassTodayScreen()       { useTheme(); return <TodayPage C={C} FD={FD} FB={FB} />; }
 function ClassLeadsScreen()       { useTheme(); return <ClassLeadsPage C={C} FD={FD} FB={FB} />; }
+function StudioDashboardScreen()  { useTheme(); return <StudioDashboardPage C={C} FD={FD} FB={FB} />; }
 
 // Tela do app -> funcionalidade (config/features.ts). Tela fora desta lista não é exibida (negação por padrão).
 const PAGE_FEATURES: Record<string, Feature> = {
@@ -4123,7 +4294,7 @@ const PAGE_FEATURES: Record<string, Feature> = {
   class_students: "class_students", memberships: "memberships",
   class_instructors: "class_instructors", class_modalities: "class_settings",
   class_schedules: "group_classes", class_agenda: "group_classes", class_today: "group_classes",
-  class_leads: "class_leads",
+  class_leads: "class_leads", class_dashboard: "group_classes",
 };
 
 const MENU_GROUPS = [
@@ -4137,6 +4308,7 @@ const MENU_GROUPS = [
   {
     group: "STUDIO",
     items: [
+      { id:"class_dashboard",   label:"Painel",      icon:"*", premium:false },
       { id:"class_today",       label:"Aulas de hoje", icon:"*", premium:false },
       { id:"class_agenda",      label:"Agenda de aulas", icon:"o", premium:false },
       { id:"class_leads",       label:"Interessados", icon:"+", premium:false },
@@ -4385,6 +4557,7 @@ const logout = async () => {
     class_agenda:      ClassAgendaScreen,
     class_today:       ClassTodayScreen,
     class_leads:       ClassLeadsScreen,
+    class_dashboard:   StudioDashboardScreen,
   };
 
   const isRootDomain = (window.location.hostname.includes('zensalon.com.br') || window.location.hostname === 'localhost') && !new URLSearchParams(window.location.search).get('impersonating') && !sessionStorage.getItem('impersonation_token') && !resetSenhaMatch;
@@ -4399,7 +4572,7 @@ const logout = async () => {
   // Nicho: tela não permitida cai na primeira liberada (o bloqueio real é o 403 do backend).
   setCurrentBusinessType(tenantInfo?.businessType ?? null);
   const canPage = (id: string) => can(PAGE_FEATURES[id], tenantInfo?.businessType);
-  const pageId = canPage(page) ? page : (["dashboard", "class_today", "settings"].find(canPage) ?? "settings");
+  const pageId = canPage(page) ? page : (["dashboard", "class_dashboard", "class_today", "settings"].find(canPage) ?? "settings");
   const PageComponent = PAGES[pageId] ?? PAGES["settings"];
   if (loading) return (
     <div style={{ minHeight:"100vh", background: C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -4445,7 +4618,7 @@ const logout = async () => {
       <Sidebar page={pageId} setPage={setPage} user={user} tenantInfo={tenantInfo} onLogout={logout} />
       <main style={{ marginLeft: isMobile ? 0 : 220, padding: isMobile ? "70px 16px 16px" : 36, minHeight:"100vh", background: C.bg }}>
         <TrialBanner setPage={setPage} />
-        <PageComponent />
+        <PageComponent businessType={tenantInfo?.businessType} />
       </main>
     </>
   );

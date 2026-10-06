@@ -14,7 +14,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push:pg",
     "db:studio": "drizzle-kit studio",
-    "test": "node --import tsx --test --test-concurrency=1 tests/isolamento.test.ts tests/nichos.test.ts tests/pilates.test.ts tests/pilates-aulas.test.ts tests/pilates-interessados.test.ts tests/planos-cobranca.test.ts tests/planos-nicho.test.ts tests/whatsapp-trava.test.ts",
+    "test": "node --import tsx --test --test-concurrency=1 tests/isolamento.test.ts tests/excluir-conta.test.ts tests/nichos.test.ts tests/pilates.test.ts tests/pilates-aulas.test.ts tests/pilates-interessados.test.ts tests/pilates-mensalidades.test.ts tests/pilates-painel.test.ts tests/planos-cobranca.test.ts tests/planos-nicho.test.ts tests/super-admin-base.test.ts tests/whatsapp-trava.test.ts",
     "test:whatsapp": "node --import tsx --test tests/whatsapp-trava.test.ts"
   },
   "dependencies": {

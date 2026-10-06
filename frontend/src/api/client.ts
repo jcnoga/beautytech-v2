@@ -137,6 +137,8 @@ export const financialApi = {
   create:         (dto: any) => api.post<any>("/financial", dto),
   update:         (id: string, dto: any) => api.patch<any>(`/financial/${id}`, dto),
   confirmPayment: (id: string, dto: any) => api.post<any>(`/financial/${id}/confirm-payment`, dto),
+  // Pilates: mensalidades que faltam das matrículas ativas (rota de matrículas, só para o nicho Pilates)
+  generateInstallments: () => api.post<any>("/memberships/enrollments/installments"),
 };
 
 export const commissionsApi = {

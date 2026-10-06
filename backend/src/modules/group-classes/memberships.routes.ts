@@ -10,12 +10,15 @@ import {
   clients, professionals, services, professionalSchedules,
   studentProfiles, membershipPlans, membershipEnrollments,
 } from "@db/schema/index";
-import { authenticate, requireManager } from "@middleware/auth";
+import { authenticate, hasRole, requireFinancial, requireManager } from "@middleware/auth";
 import { parseBody } from "../dtos";
 import { rejectForeignRefs } from "../tenant-guard";
 import { auditLog, checkProfessionalLimit } from "../all-modules";
 import { ClassError, creditUsage, materializeFixed, pruneFixed, TZ } from "./classes.service";
 import { assertStudentLimit, insertStudent } from "./students.service";
+import {
+  generateAllInstallments, generateInstallments, receiveInstallment, RECEIVE_METHODS, studentInstallments, syncInstallments,
+} from "./installments.service";
 import { limitMessage } from "../billing/plan-limits.service";
 import { rows } from "./rules";
 import {
@@ -356,12 +359,16 @@ export async function membershipsModule(fastify: FastifyInstance) {
       : endAfterDays(body.startDate, plan.validityDays ?? 30));
     if (endDate < body.startDate) return reply.status(400).send({ success: false, error: "Fim antes do inicio" });
     const dueDay = body.dueDay ?? (plan.kind === "frequency" ? Math.min(Number(body.startDate.slice(8, 10)), 28) : null);
-    const [row] = await db.insert(membershipEnrollments).values({
-      tenantId, clientId: body.studentId, planId: plan.id, startDate: body.startDate, endDate, dueDay,
-      price: body.price ?? plan.price, notes: body.notes ?? null,
-    }).returning();
-    auditLog({ tenantId, userId, action: "classes.enrollment.created", tableName: "membership_enrollments", recordId: row.id, newData: { studentId: body.studentId, planId: plan.id } });
-    return reply.status(201).send({ success: true, data: withDays({ ...row, planName: plan.name, planKind: plan.kind }, ENROLLMENT_DAYS) });
+    // Matrícula e parcelas (mensalidades no Financeiro) juntas: ou grava tudo, ou nada.
+    const { row, installments } = await db.transaction(async (tx) => {
+      const [row] = await tx.insert(membershipEnrollments).values({
+        tenantId, clientId: body.studentId, planId: plan.id, startDate: body.startDate, endDate, dueDay,
+        price: body.price ?? plan.price, notes: body.notes ?? null,
+      }).returning();
+      return { row, installments: await generateInstallments(tx, tenantId, row.id, userId) };
+    });
+    auditLog({ tenantId, userId, action: "classes.enrollment.created", tableName: "membership_enrollments", recordId: row.id, newData: { studentId: body.studentId, planId: plan.id, installments } });
+    return reply.status(201).send({ success: true, data: withDays({ ...row, planName: plan.name, planKind: plan.kind, installmentsCreated: installments }, ENROLLMENT_DAYS) });
   });
 
   fastify.patch("/memberships/enrollments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
@@ -372,15 +379,53 @@ export async function membershipsModule(fastify: FastifyInstance) {
     if (!current) return notFound(reply, "Matricula nao encontrada");
     const body = parseBody(enrollmentUpdateDto, req, reply); if (!body) return;
     const changes = defined(body);
+    // Valor da matrícula mexe nas mensalidades: só Admin (owner) e Gerente.
+    if ("price" in changes && !hasRole(req.tenantContext.role, "manager")) {
+      return reply.status(403).send({ success: false, error: "Só o Admin ou o Gerente pode mudar o valor da matrícula", code: "FORBIDDEN" });
+    }
     const endDate = "endDate" in changes ? (changes.endDate as string | null) : toDay(current.endDate);
     if (endDate && endDate < (toDay(current.startDate) as string)) return reply.status(400).send({ success: false, error: "Fim antes do inicio" });
-    const [row] = await db.update(membershipEnrollments).set({ ...(changes as any), updatedAt: new Date() })
-      .where(and(eq(membershipEnrollments.id, current.id), eq(membershipEnrollments.tenantId, tenantId))).returning();
+    // Matrícula e parcelas juntas: encerrar/cancelar, mudar fim, valor ou vencimento acerta as pendentes futuras.
+    const { row, installments } = await db.transaction(async (tx) => {
+      const [row] = await tx.update(membershipEnrollments).set({ ...(changes as any), updatedAt: new Date() })
+        .where(and(eq(membershipEnrollments.id, current.id), eq(membershipEnrollments.tenantId, tenantId))).returning();
+      const revive = "endDate" in changes || (changes.status === "active" && ["ended", "cancelled"].includes(current.status));
+      return { row, installments: await syncInstallments(tx, tenantId, row.id, userId, revive) };
+    });
     // Horários fixos (Fase 3): encerrar/cancelar/antecipar o fim tira as aulas futuras; prorrogar gera as novas.
     await pruneFixed(db, tenantId, current.id);
     await materializeFixed(db, tenantId);
-    auditLog({ tenantId, userId, action: "classes.enrollment.updated", tableName: "membership_enrollments", recordId: row.id, newData: changes });
-    return reply.send({ success: true, data: withDays(row, ENROLLMENT_DAYS) });
+    auditLog({ tenantId, userId, action: "classes.enrollment.updated", tableName: "membership_enrollments", recordId: row.id, newData: { ...changes, installments } });
+    return reply.send({ success: true, data: withDays({ ...row, installments }, ENROLLMENT_DAYS) });
+  });
+
+  // Ficha do aluno, aba Pagamentos: parcelas de todas as matrículas. Mesma permissão do Financeiro.
+  fastify.get("/memberships/enrollments/installments", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
+    const { tenantId } = req.tenantContext;
+    const { studentId } = req.query as any;
+    if (typeof studentId !== "string" || !UUID.test(studentId)) return reply.send({ success: true, data: [] });
+    return reply.send({ success: true, data: await studentInstallments(db, tenantId, studentId) });
+  });
+
+  // "Receber": parcela pendente vira paga hoje, com a forma de pagamento.
+  fastify.post("/memberships/enrollments/installments/:id/receive", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    if (!UUID.test(req.params.id)) return notFound(reply, "Parcela nao encontrada");
+    const method = (req.body as any)?.paymentMethod;
+    if (!(RECEIVE_METHODS as readonly string[]).includes(method)) return reply.status(400).send({ success: false, error: "Escolha a forma de pagamento", code: "VALIDATION_ERROR" });
+    const r = await receiveInstallment(db, tenantId, req.params.id, method, userId);
+    if (r === null) return notFound(reply, "Parcela nao encontrada");
+    if (r === "not_pending") return reply.status(409).send({ success: false, error: "Esta parcela já foi paga ou cancelada", code: "NOT_PENDING" });
+    auditLog({ tenantId, userId, action: "classes.installment.received", tableName: "financial_transactions", recordId: req.params.id, newData: { paymentMethod: method } });
+    return reply.send({ success: true, data: r });
+  });
+
+  // Matrículas de antes das mensalidades (ou sem fim): cria as parcelas que faltam. Apertar de novo não duplica.
+  fastify.post("/memberships/enrollments/installments", { preHandler: [authenticate, requireFinancial] }, async (req: any, reply) => {
+    const { tenantId, userId } = req.tenantContext;
+    const result = await db.transaction((tx) => generateAllInstallments(tx, tenantId, userId));
+    auditLog({ tenantId, userId, action: "classes.installments.generated", tableName: "financial_transactions", recordId: tenantId, newData: result });
+    return reply.send({ success: true, data: result });
   });
 
   // ═══ MODALIDADES (services) ═══════════════════════════════════════════════

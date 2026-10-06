@@ -81,6 +81,17 @@ Restaurar de verdade um banco (ex.: `zensalon`), com o sistema parado:
 `docker exec -i vps-migrator-postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d zensalon --clean --if-exists' < /opt/backups/diario/<data>/zensalon.dump`.
 Não cobre `evolution-postgres` nem o volume do n8n (ficam fora do Postgres compartilhado).
 
+### Backups do "Excluir conta" (`/opt/backups/contas`)
+Antes de excluir uma conta, o Super Admin grava um backup só dela em `/opt/backups/contas/<data>_<slug>_<id8>/`
+(manifest, dados, logins sem senha, arquivos e sha256sums). **Contém dados pessoais.**
+- Criar antes do primeiro deploy com a montagem (senão o Docker cria a pasta aberta): `install -d -m 700 -o root -g root /opt/backups/contas`.
+- Acesso: só root (pasta 700, arquivos 600; a API roda como root no container).
+- Retenção: **90 dias** contados da exclusão. O `backup-bancos.sh` (cron diário, root) apaga os mais antigos e reaplica o 700.
+- Pedido do titular para apagar antes (LGPD): o dono do sistema apaga a pasta da conta à mão (`rm -rf /opt/backups/contas/<pasta>`).
+  Lembrar que o backup diário completo (`/opt/backups/diario`, 7 dias; R2, 30 dias quando configurado) também tem os dados até girar.
+- Restaurar: `docker run --rm --env-file .env.api ... -v /opt/backups/contas:/data/backups-contas zensalon-api node --import tsx scripts/restaurar-conta.ts /data/backups-contas/<pasta>`
+  (sem `ZS_CONFIRMAR_RESTAURACAO=sim` só confere; com ele, aplica). Depois, cada usuário entra com "Esqueci minha senha".
+
 ## Observações
 
 - `/auth/v1/admin` não é publicado: a API usa a API admin do GoTrue pela rede interna (`http://zensalon-gotrue:9999`).

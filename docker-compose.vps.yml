@@ -72,8 +72,12 @@ services:
       TRUST_PROXY: ${TRUST_PROXY}
       UPLOADS_DIR: /data/uploads
       PUBLIC_UPLOADS_URL: ${PUBLIC_URL}/uploads
+      # Backup de cada conta antes do "Excluir conta" (dados pessoais). Criar ANTES do up, senão o Docker cria 755:
+      #   install -d -m 700 -o root -g root /opt/backups/contas    (retenção: 90 dias, deploy/backup-bancos.sh)
+      TENANT_BACKUPS_DIR: /data/backups-contas
     volumes:
       - uploads:/data/uploads
+      - /opt/backups/contas:/data/backups-contas
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
       interval: 30s
