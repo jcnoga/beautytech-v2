@@ -141,6 +141,13 @@ test("prévia: só lê; contagens, logins, arquivos, sem bloqueios; só Super Ad
   assert.deepEqual(await snapshot(A), before, "prévia não muda nada");
 });
 
+test("rota antiga DELETE /super-admin/tenants/:id está desativada (410) e não apaga nada", async () => {
+  const before = await snapshot(A);
+  const r = await req("DELETE", `/super-admin/tenants/${A.id}`);
+  assert.deepEqual([r.statusCode, r.json().code], [410, "USE_NEW_DELETE"]);
+  assert.deepEqual(await snapshot(A), before);
+});
+
 test("confirmação: nome errado, senha errada e prévia velha recusam; nada é apagado", async () => {
   svc.resetPasswordLocks();
   const p = await preview(A);
