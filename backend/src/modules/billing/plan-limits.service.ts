@@ -29,6 +29,20 @@ export function parseSetting(raw: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/**
+ * Valor para GRAVAR em plan_settings: número quando for número (tira camadas de aspas: "\"30\"" → 30), objeto como está,
+ * texto sem as aspas extras. Gravar sempre com `${JSON.stringify(v)}::text::jsonb`: só `::jsonb` faz o driver
+ * codificar de novo e salvar uma string JSON (era assim até 06/10/2026; ver scripts/consertar-plan-settings.sql).
+ */
+export function settingValueToStore(raw: unknown): unknown {
+  if (raw !== null && typeof raw === "object") return raw;
+  if (typeof raw === "number") return raw;
+  let s = raw === null || raw === undefined ? "" : String(raw).trim();
+  for (let i = 0; i < 10 && /^".*"$/s.test(s); i++) { try { s = String(JSON.parse(s)).trim(); } catch { break; } }
+  const n = parseSetting(s);
+  return n !== undefined ? n : s;
+}
+
 /** Lê um campo de um plano: nicho → geral → código. Única função com essa ordem. */
 export function resolvePlanSetting(settings: Settings, businessType: string, plan: LimitPlan, field: string): { value: number | null; source: Source } {
   const niche = parseSetting(settings.get(nicheKey(businessType, plan, field)));
@@ -146,7 +160,7 @@ export async function saveNicheSettings(businessType: string, values: Record<str
   await db.transaction(async (tx) => {
     for (const op of ops) {
       if (op.value === null) await tx.execute(sql`DELETE FROM plan_settings WHERE key = ${op.key}`);
-      else await tx.execute(sql`INSERT INTO plan_settings (key, value, updated_at) VALUES (${op.key}, ${JSON.stringify(op.value)}::jsonb, now())
+      else await tx.execute(sql`INSERT INTO plan_settings (key, value, updated_at) VALUES (${op.key}, ${JSON.stringify(op.value)}::text::jsonb, now())
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`);
     }
   });

@@ -2,6 +2,24 @@
 
 Atualizado em 05/10/2026 (fim do dia). Colar no início da próxima conversa.
 
+## ONDE PARAMOS (06/10, ~17h50 Brasília)
+**Produção = `origin/vps` `bba92c4`** (deploy 06/10 ~17h45): mensalidades do Pilates (parcelas no Financeiro, aba
+Pagamentos com "Receber", painel A receber/Atrasados), "Excluir conta" no Super Admin (prévia, nome + senha,
+backup em `/opt/backups/contas` 700, transação, limpeza externa, `scripts/restaurar-conta.ts`), botão "Deletar" antigo
+DESATIVADO (rota responde 410; ela apagava sem transação nem backup), datas sem hora corrigidas (Financeiro/nascimento).
+- Migrations **0010 e 0011 aplicadas** no `zensalon` (backup antes: `/opt/backups/diario/2026-10-06_2043`; ensaio antes
+  na estrutura da produção, ida e volta). Conferido: /health, 410 na rota antiga, prévia numa conta real sem bloqueio,
+  preços/limites iguais.
+- `backup-bancos.sh` agora apaga backups de contas com mais de 90 dias (cron diário, root).
+- `ramo-pilates` = `bc33f38` (com push). Teste do usuário das mensalidades: OK (06/10).
+
+**PRÓXIMO:**
+1. Correção do `::jsonb` em `plan_settings` (gravação com `::text::jsonb`; dados: 42 chaves gravadas como texto, a API lê
+   certo; `ai_monthly_budget_brl` com várias camadas). SQL de conserto proposto, não aplicado.
+2. Dados de teste no Super Admin: commits 5 a 8 (bloqueio de envios externos → gerar → apagar → tela). Decisões
+   padrão aceitas pelo usuário (ver conversa de 06/10): protegida/conta de teste, 90 dias, sem assinatura com lote ativo.
+- Usuário não tem nenhuma conta pagante (06/10).
+
 ## ONDE PARAMOS (05/10, fim do dia) — retomar em 06/10
 **Produção (www.zensalon.com.br) = `origin/vps` `f7e6cac`** — Pilates NO AR desde 05/10:
 - Merge do `ramo-pilates` no `vps` + migrations **0003 a 0009 aplicadas no banco `zensalon`** (backup antes:
