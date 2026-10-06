@@ -77,8 +77,14 @@ const MOCK_KPIS = { appointmentsToday: 0, appointmentsMonth: 0, activeClients: 0
 
 // --- HELPERS -------------------------------------------------
 const brl = (v: any) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-// Data sem hora ("2026-10-06") é dia de calendário: new Date() a leria como meia-noite UTC = dia anterior no Brasil.
-const fmtDate = (d: any) => !d ? "-" : typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split("-").reverse().join("/") : new Date(d).toLocaleDateString("pt-BR");
+// Data sem hora é dia de calendário. Vem como "2026-10-06" ou, das colunas date via API, "2026-10-06T00:00:00.000Z";
+// new Date() leria as duas como meia-noite UTC = dia anterior no Brasil. Por isso usa só o AAAA-MM-DD.
+const CALENDAR_DAY = /^(\d{4})-(\d{2})-(\d{2})(T00:00:00(\.0+)?Z)?$/;
+const fmtDate = (d: any) => {
+  if (!d) return "-";
+  const m = typeof d === "string" ? CALENDAR_DAY.exec(d) : null;
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : new Date(d).toLocaleDateString("pt-BR");
+};
 const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "-";
 const fmtPct = (v: any) => `${Number(v || 0).toFixed(1)}%`;
 
@@ -662,7 +668,7 @@ function DashboardPage() {
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
               <div style={{ fontSize:13, color: C.text, fontFamily: FB }}>{c.fullName}</div>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ fontSize:11, color: C.textMuted }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR", { day:"2-digit", month:"short" }) : ""}</span>
+                <span style={{ fontSize:11, color: C.textMuted }}>{c.birthDate ? new Date(`${String(c.birthDate).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR", { day:"2-digit", month:"short" }) : ""}</span>
                 <a href={`https://wa.me/55${c.whatsapp?.replace(/\D/g,"")}`} target="_blank" style={{ fontSize:11, color: C.rose, textDecoration:"none", fontWeight:600 }}>WhatsApp</a>
               </div>
             </div>
@@ -819,7 +825,7 @@ function ClientsPage() {
     const rows = filtered.map((c: any) => ({
       "Nome": c.fullName,
       "Genero": c.gender === "female" ? "Feminino" : c.gender === "male" ? "Masculino" : "Outro",
-      "Nascimento": c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR") : "-",
+      "Nascimento": fmtDate(c.birthDate),
       "Segmento": c.segment ?? "-",
       "Visitas": c.totalVisits ?? 0,
     }));
@@ -841,7 +847,7 @@ function ClientsPage() {
       c.whatsapp ?? "-",
       c.email ?? "-",
       c.gender === "female" ? "Feminino" : c.gender === "male" ? "Masculino" : "Outro",
-      c.birthDate ? new Date(c.birthDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(c.birthDate),
       c.segment ?? "-",
       c.totalVisits ?? 0,
     ]);
@@ -1742,7 +1748,7 @@ function ProfessionalsPage() {
       "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
       "Status": t.status === "confirmed" ? "Pago" : "Pendente",
       "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Vencimento": fmtDate(t.dueDate),
       "Valor": Number(t.amount),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -1764,7 +1770,7 @@ function ProfessionalsPage() {
       t.type === "revenue" ? "Receita" : "Despesa",
       t.status === "confirmed" ? "Pago" : "Pendente",
       t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(t.dueDate),
       `R$ ${Number(t.amount).toFixed(2)}`,
     ]);
     (doc as any).autoTable({
@@ -2260,7 +2266,7 @@ function FinancialPage({ businessType }: { businessType?: string }) {
       "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
       "Status": t.status === "confirmed" ? "Pago" : "Pendente",
       "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Vencimento": fmtDate(t.dueDate),
       "Valor": Number(t.amount),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -2282,7 +2288,7 @@ function FinancialPage({ businessType }: { businessType?: string }) {
       t.type === "revenue" ? "Receita" : "Despesa",
       t.status === "confirmed" ? "Pago" : "Pendente",
       t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(t.dueDate),
       `R$ ${Number(t.amount).toFixed(2)}`,
     ]);
     (doc as any).autoTable({
@@ -2539,7 +2545,7 @@ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
       "Tipo": t.type === "revenue" ? "Receita" : "Despesa",
       "Status": t.status === "confirmed" ? "Pago" : "Pendente",
       "Forma": t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      "Vencimento": t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      "Vencimento": fmtDate(t.dueDate),
       "Valor": Number(t.amount),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -2561,7 +2567,7 @@ const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]:v }));
       t.type === "revenue" ? "Receita" : "Despesa",
       t.status === "confirmed" ? "Pago" : "Pendente",
       t.paymentMethod ? (PAYMENT_LABEL[t.paymentMethod] ?? t.paymentMethod) : "-",
-      t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "-",
+      fmtDate(t.dueDate),
       `R$ ${Number(t.amount).toFixed(2)}`,
     ]);
     (doc as any).autoTable({
@@ -3874,7 +3880,7 @@ function AutomationsPage() {
       c.phone?.includes(q);
     const matchSeg = segFilter === "all" || c.segment === segFilter;
     const matchBirthday = !birthdayFilter ||
-      (c.birthDate && new Date(c.birthDate).getMonth() + 1 === month);
+      (c.birthDate && Number(String(c.birthDate).slice(5, 7)) === month);
     return matchSearch && matchSeg && matchBirthday;
   });
 
