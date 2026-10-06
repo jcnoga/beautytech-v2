@@ -14,6 +14,7 @@ import {
   WhatsappDisabledError,
 } from "./whatsapp.service.js";
 import { env } from "../../config/env.js";
+import { TestContactBlockedError } from "../super-admin/test-data.guard.js";
 
 export async function whatsappModule(fastify: FastifyInstance) {
   fastify.get("/whatsapp/status", { preHandler: [authenticate] }, async (req: any, reply) => {
@@ -152,6 +153,7 @@ export async function whatsappModule(fastify: FastifyInstance) {
       return reply.send({ success: true, data });
     } catch (error: any) {
       if (error instanceof WhatsappDisabledError) return reply.status(503).send({ success: false, error: error.message, code: "WHATSAPP_DISABLED" });
+      if (error instanceof TestContactBlockedError) return reply.status(422).send({ success: false, error: error.message, code: "TEST_CONTACT" });
       return reply.status(500).send({ success: false, error: error.message });
     }
   });

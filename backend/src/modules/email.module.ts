@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 import { env, EMAIL_FROM } from "../config/env.js";
+import { guardResend } from "./super-admin/test-data.guard.js";
 
-const resend = new Resend(env.RESEND_API_KEY);
+// guardResend: e-mail de dados de teste (.invalid) nunca é enviado.
+const resend = guardResend(new Resend(env.RESEND_API_KEY));
 const FROM = EMAIL_FROM;
 
 export async function sendWelcomeEmail(params: {

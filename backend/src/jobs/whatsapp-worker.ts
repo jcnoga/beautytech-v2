@@ -2,6 +2,7 @@ import { db } from '../db/connection.js';
 import { notifications, clients } from '../db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
 import { sendTextMessage } from '../modules/whatsapp/whatsapp.service.js';
+import { testRecordIds } from '../modules/super-admin/test-data.guard.js';
 
 export async function processWhatsAppQueue() {
   console.log('[WhatsAppWorker] Processando fila de notificacoes...');
@@ -15,9 +16,11 @@ export async function processWhatsAppQueue() {
   .where(and(eq(notifications.status, 'pending'), eq(notifications.channel, 'whatsapp')))
   .limit(20);
 
+  // Dados de teste: notificação de cliente de teste nunca sai (marcada como falha, sem envio).
+  const testClients = await testRecordIds(db, 'clients', pending.map((r) => r.notification.clientId as string));
   for (const row of pending) {
     const phone = row.client?.whatsapp;
-    if (!phone) {
+    if (!phone || testClients.has(row.notification.clientId as string)) {
       await db.update(notifications).set({ status: 'failed' }).where(eq(notifications.id, row.notification.id));
       continue;
     }
