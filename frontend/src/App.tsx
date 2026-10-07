@@ -2799,6 +2799,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
   const [logsLoading, setLogsLoading] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [deleting, setDeleting] = useState<any>(null); // conta com a janela "Excluir conta" aberta
+  const [testData, setTestData] = useState<any>(null); // conta com a janela "Dados de teste" aberta
   const [stats, setStats]     = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [search, setSearch]   = useState("");
@@ -2836,7 +2837,8 @@ function SuperAdminDashboard({ token, onLogout }: any) {
     });
     const data = await res.json();
     if (res.ok === false || data?.success === false) {
-      throw new Error(data?.error || `Erro ${res.status} ao chamar ${endpoint}`);
+      // message como sempre; code e data (quando a API manda) para telas que mostram detalhes do erro
+      throw Object.assign(new Error(data?.error || `Erro ${res.status} ao chamar ${endpoint}`), { code: data?.code, data: data?.data });
     }
     return data;
   };
@@ -3364,6 +3366,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
                 <Btn variant={selected.isTestAccount ? "gold" : "secondary"} onClick={() => setFlag(selected.id, { isTestAccount: !selected.isTestAccount })}>
                   {selected.isTestAccount ? "✓ Conta de teste" : "Marcar como conta de teste"}
                 </Btn>
+                <Btn variant="secondary" onClick={() => setTestData(selected)}>Dados de teste...</Btn>
               </div>
             </div>
             {/* Excluir conta: prévia + nome exato + senha (DeleteTenantModal) */}
@@ -3378,6 +3381,7 @@ function SuperAdminDashboard({ token, onLogout }: any) {
       {showLogs && <SuperAdminLogsModal base={base} token={token} onClose={() => setShowLogs(false)} />}
       {deleting && <DeleteTenantModal tenant={deleting} saFetch={saFetch} onClose={() => setDeleting(null)}
         onDeleted={() => { setSelected(null); load(); }} />}
+      {testData && <TestDataModal tenant={testData} saFetch={saFetch} onClose={() => setTestData(null)} />}
       {saTab === "sistema" && <PlanSettingsPanel saFetch={saFetch} />}
     </div>
   );
@@ -3483,6 +3487,174 @@ function DeleteTenantModal({ tenant, saFetch, onClose, onDeleted }: any) {
             <Btn variant="danger" onClick={confirmDelete} disabled={!nameOk || !password || busy}>{busy ? "Excluindo..." : "Excluir definitivamente"}</Btn>
           </div>
         </>)}
+      </>)}
+    </Modal>
+  );
+}
+
+// --- SUPER ADMIN: DADOS DE TESTE ---------------------------------
+// Só chama a API e mostra o resultado; as regras (travas, o que sai, ligações com dados reais) ficam no backend.
+// API: GET/POST /super-admin/tenants/:id/test-data, GET /super-admin/tenants/:id/test-data/:batchId/preview,
+//      DELETE /super-admin/tenants/:id/test-data/:batchId.
+const TEST_TABLE_LABEL: Record<string, string> = {
+  clients: "Clientes / alunos", professionals: "Profissionais / instrutores", services: "Serviços",
+  appointments: "Agendamentos", appointment_services: "Itens dos agendamentos", financial_transactions: "Lançamentos do Financeiro",
+  financial_accounts: "Contas do Financeiro", financial_categories: "Categorias do Financeiro", membership_plans: "Planos",
+  membership_enrollments: "Matrículas", membership_pauses: "Pausas de matrícula", class_schedules: "Horários da grade",
+  class_sessions: "Aulas", class_bookings: "Inscrições em aulas", class_enrollment_slots: "Horários fixos de matrícula",
+  class_makeup_credits: "Reposições", student_profiles: "Fichas de aluno", leads: "Interessados",
+  professional_schedules: "Horários de profissionais", professional_services: "Serviços de profissionais", audit_logs: "Histórico",
+};
+const TEST_BATCH_STATUS: Record<string, { label: string; color: string }> = { // color = chave do tema (C muda com o tema)
+  generating: { label: "Gerando", color: "gold" }, ready: { label: "Pronto", color: "sage" },
+  failed: { label: "Falhou (desfeito)", color: "ruby" }, deleted: { label: "Apagado", color: "textMuted" },
+};
+const TEST_ERROR_HINT: Record<string, string> = {
+  BATCH_RUNNING: "Aguarde a geração terminar e clique em Atualizar.",
+  LINKED_TO_REAL_DATA: "Remova a ligação com o dado real (ex.: a inscrição da aluna real) e tente de novo.",
+  BATCH_NOT_READY: "Clique em Atualizar para ver a situação atual do lote.",
+};
+const tableLabel = (t: string) => TEST_TABLE_LABEL[t] ?? t;
+const sumCounts = (c: Record<string, number> | null | undefined) => Object.values(c ?? {}).reduce((a, n) => a + Number(n), 0);
+
+function CountsList({ counts, color }: { counts: Record<string, number>; color?: string }) {
+  const entries = Object.entries(counts ?? {}).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) return <div style={{ fontSize: 14, color: C.textMuted }}>Nada.</div>;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "4px 14px" }}>
+      {entries.map(([t, n]) => (
+        <div key={t} style={{ fontSize: 14, color: color ?? C.textSec }}>{tableLabel(t)}: <b style={{ color: color ?? C.text }}>{n}</b></div>
+      ))}
+    </div>
+  );
+}
+
+function TestDataModal({ tenant, saFetch, onClose }: any) {
+  const [info, setInfo] = useState<any>(null);       // { batches, blocks, needs }
+  const [error, setError] = useState<any>(null);     // { message, code, linked }
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState("");              // "" | "gerando" | "prévia" | "apagando"
+  const [preview, setPreview] = useState<any>(null); // prévia do apagar de um lote
+
+  const fail = (e: any) => setError({ message: e.message, code: e.code, linked: e.data?.linked });
+  const load = async () => {
+    try { setInfo((await saFetch("GET", `/super-admin/tenants/${tenant.id}/test-data`)).data); }
+    catch (e: any) { fail(e); }
+  };
+  useEffect(() => { load(); }, [tenant.id]);
+
+  const running = useRef(false); // trava imediata: o estado "busy" só muda na próxima renderização
+  const run = async (kind: string, fn: () => Promise<void>) => {
+    if (running.current) return;
+    running.current = true;
+    setBusy(kind); setError(null); setNotice("");
+    try { await fn(); } catch (e: any) { fail(e); await load(); }
+    finally { running.current = false; setBusy(""); }
+  };
+  const generate = () => run("gerando", async () => {
+    const r = await saFetch("POST", `/super-admin/tenants/${tenant.id}/test-data`);
+    setNotice(`Lote gerado: ${sumCounts(r.data.counts)} registros.`);
+    await load();
+  });
+  const openPreview = (batchId: string) => run("prévia", async () => {
+    setPreview((await saFetch("GET", `/super-admin/tenants/${tenant.id}/test-data/${batchId}/preview`)).data);
+  });
+  const confirmDelete = () => run("apagando", async () => {
+    let r: any;
+    try { r = await saFetch("DELETE", `/super-admin/tenants/${tenant.id}/test-data/${preview.batchId}`); }
+    catch (e) { // recusado: a prévia volta atualizada (mostra o que impede o apagar)
+      try { setPreview((await saFetch("GET", `/super-admin/tenants/${tenant.id}/test-data/${preview.batchId}/preview`)).data); } catch { /* fica a anterior */ }
+      throw e;
+    }
+    setPreview(null);
+    setNotice(`Lote apagado: ${sumCounts(r.data.deleted)} registros removidos.`);
+    await load();
+  });
+
+  // borda em partes: as caixas de erro/aviso trocam só a cor (sem misturar "border" com "borderColor")
+  const box: any = { background: C.surface, borderWidth: 1, borderStyle: "solid", borderColor: C.border, borderRadius: 12, padding: "12px 14px", marginBottom: 14 };
+  const fmt =(d: string) => d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "";
+  const genBlocked = (info?.blocks?.length ?? 0) > 0;
+
+  return (
+    <Modal open onClose={busy ? undefined : onClose} title={`Dados de teste: ${tenant.name}`} width={680}>
+      {error && (
+        <div style={{ ...box, borderColor: C.ruby }}>
+          <div style={{ fontSize: 15, color: C.ruby, fontWeight: 700 }}>{error.message}</div>
+          {error.linked && <div style={{ marginTop: 8 }}><CountsList counts={error.linked} color={C.ruby} /></div>}
+          {TEST_ERROR_HINT[error.code] && <div style={{ fontSize: 14, color: C.text, marginTop: 8 }}>{TEST_ERROR_HINT[error.code]}</div>}
+        </div>
+      )}
+      {notice && <div style={{ ...box, borderColor: C.sage, fontSize: 15, color: C.sage, fontWeight: 700 }}>{notice}</div>}
+
+      {preview ? (<>
+        <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 10 }}>Apagar lote de {fmt(info?.batches?.find((b: any) => b.id === preview.batchId)?.createdAt)}</div>
+        <div style={box}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Será apagado ({sumCounts(preview.toDelete)} registros):</div>
+          <CountsList counts={preview.toDelete} />
+        </div>
+        {Object.keys(preview.linkedOutside ?? {}).length > 0 && (
+          <div style={{ ...box, borderColor: C.ruby }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 8 }}>Ligado a dados fora do lote (impede o apagar):</div>
+            <CountsList counts={preview.linkedOutside} color={C.ruby} />
+          </div>
+        )}
+        {preview.blocks?.length > 0 ? (<>
+          <div style={{ ...box, borderColor: C.ruby }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 6 }}>Não é possível apagar agora:</div>
+            {preview.blocks.map((b: any) => <div key={b.code} style={{ fontSize: 14, color: C.text, marginBottom: 4 }}>• {b.message}</div>)}
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <Btn variant="secondary" onClick={() => openPreview(preview.batchId)} disabled={!!busy}>{busy === "prévia" ? "Atualizando..." : "Atualizar prévia"}</Btn>
+            <Btn variant="secondary" onClick={() => setPreview(null)} disabled={!!busy}>Voltar</Btn>
+          </div>
+        </>) : (
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <Btn variant="secondary" onClick={() => setPreview(null)} disabled={!!busy}>Cancelar</Btn>
+            <Btn variant="danger" onClick={confirmDelete} disabled={!!busy}>
+              {busy === "apagando" ? "Apagando..." : `Apagar ${sumCounts(preview.toDelete)} registros definitivamente`}
+            </Btn>
+          </div>
+        )}
+      </>) : !info ? (
+        <div style={{ fontSize: 15, color: C.textMuted }}>{error ? "" : "Carregando..."}</div>
+      ) : (<>
+        <div style={box}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Um lote cria:</div>
+          <CountsList counts={Object.fromEntries(Object.entries(info.needs ?? {}).filter(([, n]) => Number(n) > 0)) as any} />
+          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>Nomes com [TESTE] e contatos fictícios, que nunca recebem mensagens.</div>
+        </div>
+        {genBlocked && (
+          <div style={{ ...box, borderColor: C.ruby }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 6 }}>Não é possível gerar agora:</div>
+            {info.blocks.map((b: any) => <div key={b.code} style={{ fontSize: 14, color: C.text, marginBottom: 4 }}>• {b.message}</div>)}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+          <Btn variant="gold" onClick={generate} disabled={genBlocked || !!busy}>{busy === "gerando" ? "Gerando..." : "Gerar dados de teste"}</Btn>
+          <Btn variant="secondary" onClick={() => run("atualizando", load)} disabled={!!busy}>Atualizar</Btn>
+        </div>
+
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Lotes desta conta</div>
+        {info.batches.length === 0 && <div style={{ fontSize: 14, color: C.textMuted }}>Nenhum lote gerado.</div>}
+        {info.batches.map((b: any) => {
+          const s = TEST_BATCH_STATUS[b.status];
+          const st = { label: s?.label ?? b.status, color: s ? C[s.color] : C.textSec };
+          return (
+            <div key={b.id} style={box}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                <div style={{ fontSize: 15, color: C.text }}>
+                  <b>{fmt(b.createdAt)}</b> · <span style={{ color: st.color, fontWeight: 700 }}>{st.label}</span>
+                  <div style={{ fontSize: 13, color: C.textMuted }}>por {b.createdBy}</div>
+                </div>
+                {b.status === "ready" && (
+                  <Btn variant="danger" onClick={() => openPreview(b.id)} disabled={!!busy}>{busy === "prévia" ? "Carregando..." : "Apagar..."}</Btn>
+                )}
+              </div>
+              <CountsList counts={b.counts ?? {}} />
+            </div>
+          );
+        })}
       </>)}
     </Modal>
   );
