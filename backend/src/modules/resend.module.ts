@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 import { EMAIL_FROM } from "../config/env.js";
+import { guardResend } from "./super-admin/test-data.guard.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// guardResend: e-mail de dados de teste (.invalid) nunca é enviado.
+const resend = guardResend(new Resend(process.env.RESEND_API_KEY));
 const FROM = EMAIL_FROM;
 const FRONTEND = process.env.FRONTEND_URL ?? "https://zensalon.com.br";
 

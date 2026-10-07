@@ -1,7 +1,8 @@
-﻿import type { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { eq, and, isNull, gte, lte, sql } from "drizzle-orm";
 import { db } from "@db/connection";
 import { tenants, services, professionals, clients, appointments, appointmentServices } from "@db/schema/index";
+import { isTestClient } from "../super-admin/test-data.guard";
 
 export async function publicBookingModule(fastify: FastifyInstance) {
 
@@ -263,6 +264,8 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       durationMinutes: service.durationMinutes, total: service.price,
     });
 
+    // Dados de teste: cliente de teste não recebe confirmação (nem e-mail nem WhatsApp).
+    const isTestBooking = await isTestClient(db, clientId);
 // Dispara e-mail de confirmaÃ§Ã£o (fire and forget)
     try {
       const clientData = await db.select({ email: clients.email, fullName: clients.fullName, whatsapp: clients.whatsapp })
@@ -273,7 +276,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
         .from(professionals).where(eq(professionals.id, professionalId));
 
 const emailToUse = clientData[0]?.email;
-      if (emailToUse) {
+      if (emailToUse && !isTestBooking) {
         const { sendAppointmentReminderEmail } = await import("../resend.module.js");
         await sendAppointmentReminderEmail({
           to: clientData[0].email,
@@ -286,7 +289,7 @@ const emailToUse = clientData[0]?.email;
         });
       }
       // Dispara confirmacao via WhatsApp (fire and forget)
-      if (clientData[0]?.whatsapp) {
+      if (clientData[0]?.whatsapp && !isTestBooking) {
         try {
           const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
           let waNumber = clientData[0].whatsapp.replace(/\D/g, "");
@@ -309,7 +312,7 @@ const emailToUse = clientData[0]?.email;
     try {
       const clientWa = await db.select({ whatsapp: clients.whatsapp, fullName: clients.fullName })
         .from(clients).where(eq(clients.id, clientId));
-      if (clientWa[0]?.whatsapp) {
+      if (clientWa[0]?.whatsapp && !isTestBooking) {
         const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
         const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR");
         await sendTextMessage(clientWa[0].whatsapp, "Ola " + (clientWa[0].fullName ?? "") + "! Seu agendamento esta confirmado para " + dateStr + " as " + time + ". Ate la!", tenant.id);
@@ -321,7 +324,7 @@ const emailToUse = clientData[0]?.email;
     try {
       const clientWa = await db.select({ whatsapp: clients.whatsapp, fullName: clients.fullName })
         .from(clients).where(eq(clients.id, clientId));
-      if (clientWa[0]?.whatsapp) {
+      if (clientWa[0]?.whatsapp && !isTestBooking) {
         const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
         const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR");
         await sendTextMessage(clientWa[0].whatsapp, "Ola " + (clientWa[0].fullName ?? "") + "! Seu agendamento esta confirmado para " + dateStr + " as " + time + ". Ate la!", tenant.id);

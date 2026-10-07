@@ -5,6 +5,7 @@ import { eq, and, gte, lte, isNull, sql } from 'drizzle-orm';
 import { processWhatsAppQueue } from './whatsapp-worker.js';
 import { disconnectInstance } from '../modules/whatsapp/whatsapp.service.js';
 import { checkSubscriptionNotifications } from './subscription-notifications.js';
+import { isTestClient } from '../modules/super-admin/test-data.guard.js';
 
 
 async function tenantPodeWhatsApp(tenantId: string): Promise<boolean> {
@@ -25,7 +26,7 @@ function formatMessage(template: string, data: Record<string, string>): string {
     .replace(/{valor}/g, data.valor ?? '');
 }
 
-async function checkAppointmentReminders() {
+export async function checkAppointmentReminders() {
   console.log('[Scheduler] Verificando lembretes de agendamento...');
   const now = new Date();
   const activeTenants = await db.select({ id: tenants.id }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt)));
@@ -45,7 +46,7 @@ async function checkAppointmentReminders() {
         .from(appointments).where(and(eq(appointments.tenantId, tenant.id), eq(appointments.status, 'confirmed'), gte(appointments.scheduledAt, from24), lte(appointments.scheduledAt, to24), isNull(appointments.deletedAt), isNull(appointments.reminderSentAt)));
       for (const appt of appts24) {
         const [client] = await db.select().from(clients).where(eq(clients.id, appt.clientId));
-        if (!client?.whatsapp) continue;
+        if (!client?.whatsapp || await isTestClient(db, client.id)) continue; // dados de teste: nunca recebem
         const msg = formatMessage(tmpl24h[0].message, { nome: client.fullName.split(' ')[0], data: new Date(appt.scheduledAt).toLocaleDateString('pt-BR'), hora: new Date(appt.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) });
         await db.insert(notifications).values({ tenantId: tenant.id, clientId: client.id, channel: 'whatsapp', message: msg, status: 'pending', referenceId: appt.id });
         await db.update(appointments).set({ reminderSentAt: now }).where(eq(appointments.id, appt.id));
@@ -59,7 +60,7 @@ async function checkAppointmentReminders() {
         .from(appointments).where(and(eq(appointments.tenantId, tenant.id), eq(appointments.status, 'confirmed'), gte(appointments.scheduledAt, from2), lte(appointments.scheduledAt, to2), isNull(appointments.deletedAt)));
       for (const appt of appts2) {
         const [client] = await db.select().from(clients).where(eq(clients.id, appt.clientId));
-        if (!client?.whatsapp) continue;
+        if (!client?.whatsapp || await isTestClient(db, client.id)) continue; // dados de teste: nunca recebem
         const msg = formatMessage(tmpl2h[0].message, { nome: client.fullName.split(' ')[0], hora: new Date(appt.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) });
         await db.insert(notifications).values({ tenantId: tenant.id, clientId: client.id, channel: 'whatsapp', message: msg, status: 'pending', referenceId: appt.id });
         console.log('[Scheduler] Lembrete 2h gerado para ' + client.fullName);
@@ -82,7 +83,7 @@ async function checkBirthdays() {
       require('drizzle-orm').sql`SELECT * FROM clients WHERE tenant_id = ${tenant.id} AND is_active = true AND deleted_at IS NULL AND EXTRACT(MONTH FROM birth_date) = ${month} AND EXTRACT(DAY FROM birth_date) = ${day}`
     );
     for (const client of (birthdayClients.rows as any[])) {
-      if (!client.whatsapp) continue;
+      if (!client.whatsapp || await isTestClient(db, client.id)) continue; // dados de teste: nunca recebem
       const msg = formatMessage(tmpl.message, { nome: client.full_name.split(' ')[0] });
       await db.insert(notifications).values({ tenantId: tenant.id, clientId: client.id, channel: 'whatsapp', message: msg, status: 'pending' });
       console.log('[Scheduler] Aniversario gerado para ' + client.full_name);
@@ -90,7 +91,7 @@ async function checkBirthdays() {
   }
 }
 
-async function checkReactivation() {
+export async function checkReactivation() {
   console.log('[Scheduler] Verificando clientes inativos...');
   const activeTenants = await db.select({ id: tenants.id }).from(tenants).where(and(eq(tenants.isActive, true), isNull(tenants.deletedAt)));
   for (const tenant of activeTenants) {
@@ -99,7 +100,7 @@ async function checkReactivation() {
     if (!tmpl) continue;
     const inactiveClients = await db.select().from(clients).where(and(eq(clients.tenantId, tenant.id), eq(clients.isActive, true), eq(clients.segment, 'at_risk'), isNull(clients.deletedAt))).limit(20);
     for (const client of inactiveClients) {
-      if (!client.whatsapp) continue;
+      if (!client.whatsapp || await isTestClient(db, client.id)) continue; // dados de teste: nunca recebem
       const msg = formatMessage(tmpl.message, { nome: client.fullName.split(' ')[0] });
       await db.insert(notifications).values({ tenantId: tenant.id, clientId: client.id, channel: 'whatsapp', message: msg, status: 'pending' });
     }

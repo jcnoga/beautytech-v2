@@ -13,10 +13,13 @@ DESATIVADO (rota responde 410; ela apagava sem transação nem backup), datas se
 - `backup-bancos.sh` agora apaga backups de contas com mais de 90 dias (cron diário, root).
 - `ramo-pilates` = `bc33f38` (com push). Teste do usuário das mensalidades: OK (06/10).
 
+**06/10 ~19h55: produção = `origin/vps` `2069d31`** — correção do `::jsonb` (plan_settings gravado como número; só a
+API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO no `zensalon` (backup antes:
+`/opt/backups/diario/2026-10-06_2253`): 42 valores de texto viraram número, todas as 43 chaves são number,
+`ai_monthly_budget_brl` = 0. Preços/limites/trial conferidos iguais antes e depois.
+
 **PRÓXIMO:**
-1. Correção do `::jsonb` em `plan_settings` (gravação com `::text::jsonb`; dados: 42 chaves gravadas como texto, a API lê
-   certo; `ai_monthly_budget_brl` com várias camadas). SQL de conserto proposto, não aplicado.
-2. Dados de teste no Super Admin: commits 5 a 8 (bloqueio de envios externos → gerar → apagar → tela). Decisões
+1. Dados de teste no Super Admin: commits 5 a 8 (bloqueio de envios externos → gerar → apagar → tela). Decisões
    padrão aceitas pelo usuário (ver conversa de 06/10): protegida/conta de teste, 90 dias, sem assinatura com lote ativo.
 - Usuário não tem nenhuma conta pagante (06/10).
 

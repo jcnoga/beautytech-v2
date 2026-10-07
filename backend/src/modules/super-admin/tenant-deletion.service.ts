@@ -26,7 +26,7 @@ import {
 type Block = { code: string; message: string };
 
 /** Assinatura ativa no Asaas? Consulta na hora. Asaas sem chave ou fora do ar = erro (a exclusão recusa). */
-async function asaasSubscriptionActive(subscriptionId: string): Promise<boolean> {
+export async function asaasSubscriptionActive(subscriptionId: string): Promise<boolean> {
   const raw = process.env.ASAAS_API_KEY ?? "";
   if (!raw) throw new Error("Asaas não configurado neste ambiente");
   const key = raw.startsWith("$") ? raw : `$${raw}`;
