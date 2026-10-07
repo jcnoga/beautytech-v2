@@ -240,7 +240,7 @@ test("pilates: ações diretas também são negadas (e nada é gravado)", async 
   assert.ok(featureDenied(await call("POST", "/clients", p.token, { fullName: "Invasor" })));
   assert.ok(featureDenied(await call("POST", "/client-records", p.token, { clientId: p.client, notes: "x" })));
   assert.ok(featureDenied(await call("POST", "/protocols", p.token, { name: "x" })));
-  assert.ok(featureDenied(await call("POST", "/demo/seed", p.token)));
+  assert.ok(featureDenied(await call("DELETE", "/demo/examples", p.token)));
   const depois = (await sql`SELECT count(*)::int AS n FROM clients WHERE tenant_id = ${p.id}`)[0].n;
   assert.equal(depois, antes);
 });

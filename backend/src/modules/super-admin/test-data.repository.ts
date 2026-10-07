@@ -15,8 +15,11 @@ export const SHARED_TABLES = new Set(["financial_accounts", "financial_categorie
 export type RowRef = { table: string; id: string };
 export type BatchRows = Map<string, Set<string>>; // tabela -> ids
 
-export async function createBatch(exec: Exec, tenantId: string, actor: string) {
-  const [b] = rows(await exec.execute(sql`INSERT INTO test_batches (tenant_id, status, created_by) VALUES (${tenantId}, 'generating', ${actor}) RETURNING id, created_at`));
+/** Tipo do lote (0012): 'test' = dados de teste do Super Admin; 'example' = exemplo criado no cadastro da conta. */
+export type BatchKind = "test" | "example";
+
+export async function createBatch(exec: Exec, tenantId: string, actor: string, kind: BatchKind = "test") {
+  const [b] = rows(await exec.execute(sql`INSERT INTO test_batches (tenant_id, status, created_by, kind) VALUES (${tenantId}, 'generating', ${actor}, ${kind}) RETURNING id, created_at`));
   return b as { id: string; created_at: string };
 }
 
@@ -35,26 +38,32 @@ export async function batchItems(exec: Exec, batchId: string): Promise<{ table: 
 
 export async function findBatch(exec: Exec, tenantId: string, batchId: string) {
   const [b] = rows(await exec.execute(sql`SELECT id, tenant_id AS "tenantId", status, created_by AS "createdBy", counts,
-      created_at AS "createdAt", finished_at AS "finishedAt" FROM test_batches WHERE id = ${batchId} AND tenant_id = ${tenantId}`));
+      created_at AS "createdAt", finished_at AS "finishedAt" FROM test_batches WHERE id = ${batchId} AND tenant_id = ${tenantId} AND kind = 'test'`));
   return b as any;
 }
 
 export async function listBatches(exec: Exec, tenantId: string) {
   return rows(await exec.execute(sql`SELECT b.id, b.status, b.created_by AS "createdBy", b.counts, b.created_at AS "createdAt",
       b.finished_at AS "finishedAt", (SELECT count(*)::int FROM test_batch_items i WHERE i.batch_id = b.id) AS items
-    FROM test_batches b WHERE b.tenant_id = ${tenantId} ORDER BY b.created_at DESC`));
+    FROM test_batches b WHERE b.tenant_id = ${tenantId} AND b.kind = 'test' ORDER BY b.created_at DESC`));
 }
 
-/** Lote em andamento ou pronto (ainda não apagado) na conta. */
+/** Lote de TESTE em andamento ou pronto (ainda não apagado) na conta. Exemplo do cadastro não conta. */
 export async function hasLiveBatch(exec: Exec, tenantId: string): Promise<boolean> {
-  const [r] = rows(await exec.execute(sql`SELECT 1 AS x FROM test_batches WHERE tenant_id = ${tenantId} AND status IN ('generating','ready') LIMIT 1`));
+  const [r] = rows(await exec.execute(sql`SELECT 1 AS x FROM test_batches WHERE tenant_id = ${tenantId} AND kind = 'test' AND status IN ('generating','ready') LIMIT 1`));
   return !!r;
 }
 
-/** Lote sendo gerado na conta. */
+/** Lote de teste sendo gerado na conta. */
 export async function hasRunningBatch(exec: Exec, tenantId: string): Promise<boolean> {
-  const [r] = rows(await exec.execute(sql`SELECT 1 AS x FROM test_batches WHERE tenant_id = ${tenantId} AND status = 'generating' LIMIT 1`));
+  const [r] = rows(await exec.execute(sql`SELECT 1 AS x FROM test_batches WHERE tenant_id = ${tenantId} AND kind = 'test' AND status = 'generating' LIMIT 1`));
   return !!r;
+}
+
+/** Lotes de exemplo (cadastro) prontos da conta. */
+export async function readyExampleBatches(exec: Exec, tenantId: string): Promise<string[]> {
+  return rows(await exec.execute(sql`SELECT id::text AS id FROM test_batches WHERE tenant_id = ${tenantId} AND kind = 'example' AND status = 'ready' ORDER BY created_at`))
+    .map((r: any) => r.id);
 }
 
 export async function setBatchStatus(exec: Exec, batchId: string, status: string) {
@@ -78,10 +87,12 @@ const add = (m: BatchRows, table: string, id: string) => {
  * Todas as linhas do lote: raízes registradas + o que aponta para elas (fechamento pelas ligações do banco)
  * + cliente convertido de interessado de teste. Só dentro da conta.
  */
-export async function collectBatchRows(exec: Exec, tenantId: string, batchId: string, edges: FkEdge[]): Promise<BatchRows> {
+export async function collectBatchRows(exec: Exec, tenantId: string, batchId: string, edges: FkEdge[], exclude: Set<string> = new Set()): Promise<BatchRows> {
+  // exclude: tabelas que nunca entram no conjunto, nem como raiz nem por arrasto (ex.: a conta e os logins, cujo
+  // arrasto alcançaria a conta inteira).
   const m: BatchRows = new Map();
-  for (const it of await batchItems(exec, batchId)) add(m, it.table, it.id);
-  const incoming = edges.filter((e) => !BOOKKEEPING.has(e.child) && e.parentColumn === "id");
+  for (const it of await batchItems(exec, batchId)) if (!exclude.has(it.table)) add(m, it.table, it.id);
+  const incoming = edges.filter((e) => !BOOKKEEPING.has(e.child) && !exclude.has(e.child) && e.parentColumn === "id");
   let frontier: RowRef[] = [...m.entries()].flatMap(([t, ids]) => [...ids].map((id) => ({ table: t, id })));
   for (let round = 0; frontier.length > 0 && round < 20; round++) {
     const byTable = new Map<string, string[]>();

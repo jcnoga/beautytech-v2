@@ -923,6 +923,7 @@ export const testBatches = pgTable("test_batches", {
   id:         uuid("id").primaryKey().defaultRandom(),
   tenantId:   uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   status:     varchar("status", { length: 20 }).notNull().default("generating"), // generating | ready | failed | deleted
+  kind:       varchar("kind", { length: 10 }).notNull().default("test"), // test (Super Admin) | example (cadastro) — 0012
   createdBy:  varchar("created_by", { length: 255 }).notNull(),
   counts:     jsonb("counts").notNull().default({}),
   createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
