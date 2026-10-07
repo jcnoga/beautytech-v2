@@ -1,6 +1,32 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 05/10/2026 (fim do dia). Colar no início da próxima conversa.
+Atualizado em 07/10/2026. Colar no início da próxima conversa.
+
+## ONDE PARAMOS (07/10)
+**Produção = `origin/vps` = `origin/main` = `ramo-pilates` = `cfa1373`** (deploy 07/10 ~13h51 VPS): dados de teste no
+Super Admin (gerar, prévia, apagar, tela "Dados de teste..." na janela da conta) + nenhum envio externo para contatos de
+teste. Sem migration nova (0011 já estava aplicada). Backup antes: `/opt/backups/diario/2026-10-07_1347` (zensalon.dump
+370.663 bytes). Imagens anteriores na VPS: `zensalon-api:antes-0710` e `zensalon-web:antes-0710` (apagar depois de
+1–2 dias estáveis). Testes manuais do usuário: 8 de 8 OK; conferência da produção OK.
+- Regra do apagar: registro arrastado ligado a dado fora do lote bloqueia (409 LINKED_TO_REAL_DATA). **Inscrição
+  cancelada de aluno real também bloqueia** (faz parte do histórico dele); só sai apagando a inscrição no banco.
+- Rotina hoje: **173 testes** no backend (inclui `planos-cobranca`, que veio do `vps`), check com base **12**, build.
+
+**Railway, Vercel e Supabase desligados (07/10, pelo usuário):**
+- Railway: repositório desconectado (era o `main`), serviço offline. Vercel: repositório desconectado; domínios
+  zensalon.com.br, www, beautytech.zensalon.com.br e websitelog.com.br removidos (sobrou beautytech-v2.vercel.app).
+  Supabase: projeto pausado; backup do banco e dos arquivos baixado no computador do usuário.
+- **`vps` juntado no `main` (07/10)**, avanço simples. **Fim da regra "não fazer push no `main`"** (nada mais faz deploy
+  a partir dele). A produção continua saindo do ramo `vps`.
+- **Excluir os projetos do Railway e da Vercel em ~14/10; o Supabase depois de ~29/10.**
+- **`/opt/backups/zensalon/` fica guardado até o fim de 2026**: é a única cópia do Supabase na VPS (dumps do schema
+  public de 28 e 29/09 + contagens: 56 tabelas, 1.758 registros, iguais às da VPS). NÃO apagar na limpeza.
+- Conferido antes: DNS dos 3 nomes → VPS; nenhum `.env` da VPS, nem o site publicado, nem o banco apontam para
+  Railway/Supabase/Vercel; webhooks da Evolution → zensalon.com.br.
+
+**PRÓXIMO:** segurança da VPS (`agrolab_app`, porta 32768 do n8n, chave do Asaas), backup no R2, configurar trial/preços
+do Pilates na produção, WhatsApp. Opcional: apagar `railway.toml`, `vercel.json` e o endereço reserva do Railway em
+`HomePage.tsx`.
 
 ## ONDE PARAMOS (06/10, ~17h50 Brasília)
 **Produção = `origin/vps` `bba92c4`** (deploy 06/10 ~17h45): mensalidades do Pilates (parcelas no Financeiro, aba
@@ -129,11 +155,11 @@ API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO 
 - Railway **pausado** (deployment `3c0cc9d6` removido; serviço e variáveis mantidos). Vercel e Supabase de reserva até ~06/10.
 - **Nicho Pilates, ramo `ramo-pilates`: Fase 3b (telas) concluída e aprovada em 30/09; ajustes de 01/10 até `64d96f3`. NADA publicado na VPS.** Próximo passo: Fase 4 (plano em 04/10).
 
-## Regras até ~06/10
+## Regras (atualizadas em 07/10)
 - Repo `jcnoga/beautytech-v2`, pasta `C:\projetos\beautytech-v2`. Produção = ramo **`vps`**; Pilates = ramo **`ramo-pilates`**.
-- **Não fazer push no `main`**: o Railway está ligado ao repo e pode subir sozinho. **Não clicar em "Criar PR".**
-- Não desligar Supabase nem Vercel. Usar o sistema e anotar erros.
-- **Plano de volta:** DNS no Registro.br `@` A → `76.76.21.21` e `www` CNAME → `cname.vercel-dns.com`; Railway: Deployments → ⋮ → Redeploy no `3c0cc9d6`.
+- ~~Não fazer push no `main`~~: **regra encerrada em 07/10** (Railway e Vercel desconectados do repositório; `main` = `vps`).
+- ~~Não desligar Supabase nem Vercel~~: desligados em 07/10 (ver "ONDE PARAMOS (07/10)").
+- ~~Plano de volta para Vercel/Railway~~: não existe mais. Volta agora = imagens `antes-*` na VPS e backups em `/opt/backups/diario/`.
 
 ## Nicho Pilates — ramo `ramo-pilates`
 - Especificação: `docs/prompt_pilates_zensalon.md` (itens numerados + adendo C1–C10). Matriz funcionalidades × nichos: `docs/matriz_nichos.md`.
@@ -215,14 +241,14 @@ API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO 
 - `/opt/apps/zensalon` (ramo vps). Containers `zensalon-web`, `zensalon-api`, `zensalon-gotrue`. Bancos `zensalon` e `gotrue_zensalon` no `vps-migrator-postgres`.
 - Um container Postgres com um banco por sistema: `zensalon`, `agroconsult`, `apps_production` (AgroLab). O AgroLab conecta direto no banco do AgroConsult.
 - Segredos (chmod 600): `/root/zensalon-superadmin.txt`, `/root/zensalon-bot-db.txt`, `/root/n8n-owner.txt`, `/root/zensalon-supabase.env`.
-- Backups pontuais: `.env.bak-*` e `.env.api.bak-*` em `/opt/apps/zensalon`; `/opt/backups/zensalon/`; `/opt/backups/n8n/20260929T123222Z/`; `/opt/backups/removidos/2026-09-29/` (OdontoPro e AgroNexo) → apagar em ~29/10/2026.
+- Backups pontuais: `.env.bak-*` e `.env.api.bak-*` em `/opt/apps/zensalon`; `/opt/backups/n8n/20260929T123222Z/`; `/opt/backups/removidos/2026-09-29/` (OdontoPro e AgroNexo) → apagar em ~29/10/2026. **`/opt/backups/zensalon/` (cópia do Supabase) → guardar até o fim de 2026.**
 
 ## PENDÊNCIAS (VPS)
 1. **WhatsApp desconectado** desde 04/08: reconectar as instâncias pelo QR code na tela de WhatsApp e testar a resposta automática.
 2. **Fluxo n8n "💜 ZenSalon — Atendimento WhatsApp"** nunca rodou. Recomendação: deixar parado (a resposta automática já está na API; os dois juntos respondem em dobro).
 3. **Limpeza de disco da VPS:** aprovados `docker builder prune`, cache do apt e temporários em /tmp. A imagem postgres:17-alpine fica até 06/10.
 4. **Backup fora da VPS (Cloudflare R2):** criar bucket e token (passo a passo em `docs/virada.md` e em `deploy/backup-bancos.sh`). Hoje todos os backups ficam no mesmo disco.
-5. **~06/10:** criar `agrolab_app` e fechar as conexões abertas (AgroLab e gotrue-test usam o superusuário e enxergam o banco do ZenSalon; bancos do AgroConsult aceitam qualquer usuário); desligar Railway e Vercel; trocar a senha do banco no Supabase e desativá-lo; juntar `vps` → `main` (antes, desligar o deploy automático do Railway); apagar `/opt/backups/zensalon/` e os `.bak-*`.
+5. **~06/10:** criar `agrolab_app` e fechar as conexões abertas (AgroLab e gotrue-test usam o superusuário e enxergam o banco do ZenSalon; bancos do AgroConsult aceitam qualquer usuário); ~~desligar Railway e Vercel; desativar o Supabase; juntar `vps` → `main`~~ (feito em 07/10; excluir Railway/Vercel em ~14/10 e Supabase depois de ~29/10); apagar os `.bak-*` antigos (`/opt/backups/zensalon/` fica até o fim de 2026).
 6. **Chave do Asaas:** um pedaço apareceu em logs. Trocar numa sessão própria, junto com o AgroConsult (mesma conta). O webhook do AgroConsult no Asaas está "Interrompido".
 7. **Domínios próprios de teste** (`websitelog.com.br`, `www.dominioteste-nogueira.com.br`) ainda apontam para a Vercel. Rota de domínio próprio na VPS fica para depois.
 8. Registro.br (zona 99labpro.com.br), falta você apagar: `agronexo`, `api-agronexo`, `gotrue-agronexo`, `api.odontopro`, `gotrue-odontopro`. DNS do 99labpro conferido e OK; única dúvida é o MX (contato@/suporte@).
