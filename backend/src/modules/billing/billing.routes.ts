@@ -11,6 +11,15 @@ import {
   PlanTier, PlanPeriod,
 } from "./billing.service.js";
 import { loadNichePlans } from "./plan-limits.service.js";
+import { hasLiveBatch } from "../super-admin/test-data.repository.js";
+
+/** Conta com lote de dados de teste (gerando ou pronto) não assina plano: apague os dados de teste antes. */
+async function refuseWithTestData(req: any, reply: any) {
+  if (await hasLiveBatch(db, req.tenantContext.tenantId)) {
+    return reply.status(409).send({ success: false, code: "TEST_DATA_ACTIVE",
+      error: "Esta conta tem dados de teste. Apague os dados de teste (Super Admin) antes de assinar um plano." });
+  }
+}
 
 export async function billingRoutes(fastify: any) {
   const ASAAS_KEY = (process.env.ASAAS_API_KEY ?? "").startsWith("$") ? process.env.ASAAS_API_KEY! : `$${process.env.ASAAS_API_KEY ?? ""}`;
@@ -87,7 +96,7 @@ export async function billingRoutes(fastify: any) {
   });
 
   // POST /billing/subscribe
-  fastify.post("/billing/subscribe", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+  fastify.post("/billing/subscribe", { preHandler: [authenticate, refuseWithTestData] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { tier, period } = req.body as { tier: PlanTier; period: PlanPeriod };
 
@@ -290,7 +299,7 @@ export async function billingRoutes(fastify: any) {
   // Cria cobrança avulsa Pix e retorna QR Code
   // O plano só ativa via webhook após confirmação
   // ──────────────────────────────────────────────────────────
-  fastify.post("/billing/checkout-pix", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+  fastify.post("/billing/checkout-pix", { preHandler: [authenticate, refuseWithTestData] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { tier, period } = req.body as { tier: PlanTier; period: PlanPeriod };
 
@@ -339,7 +348,7 @@ export async function billingRoutes(fastify: any) {
   // POST /billing/checkout-card
   // Cria cobrança avulsa cartão e retorna invoiceUrl
   // ──────────────────────────────────────────────────────────
-  fastify.post("/billing/checkout-card", { preHandler: [authenticate] }, async (req: any, reply: any) => {
+  fastify.post("/billing/checkout-card", { preHandler: [authenticate, refuseWithTestData] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { tier, period } = req.body as { tier: PlanTier; period: PlanPeriod };
 

@@ -15,6 +15,7 @@ import { classLeadsModule } from "./modules/group-classes/leads.routes.js";
 import { classDashboardModule } from "./modules/group-classes/dashboard.routes.js";
 import { adminOpsModule } from "./modules/super-admin/admin-ops.routes.js";
 import { tenantDeletionModule } from "./modules/super-admin/tenant-deletion.routes.js";
+import { testDataModule } from "./modules/super-admin/test-data.routes.js";
 import {
   clientsModule, demoModule, professionalsModule, appointmentsModule, servicesModule, packagesModule,
   financialModule, commissionsModule, dashboardModule, crmModule, loyaltyModule, campaignsModule,
@@ -64,4 +65,5 @@ export const API_MODULES = [
   classDashboardModule,
   adminOpsModule,
   tenantDeletionModule,
+  testDataModule,
 ] as const;
