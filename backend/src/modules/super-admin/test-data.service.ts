@@ -6,6 +6,8 @@
 //   (telefone DDD 00, e-mail .invalid), que nunca recebem nada (test-data.guard).
 // - Tudo ou nada: se algo falhar no meio, o que já foi criado é apagado pelos ids do lote e o lote fica "failed".
 // - Auditoria em admin_operations (quem, quando, conta, contagens).
+// - Apagar: só as linhas do lote (anotadas + arrastadas pelas ligações do banco), numa transação; recusa (409, nada
+//   apagado) se algo arrastado estiver ligado a dado fora do lote. Gerar e apagar usam a trava da conta (clique duplo).
 import jwt from "jsonwebtoken";
 import type { FastifyInstance } from "fastify";
 import { sql } from "drizzle-orm";
@@ -40,8 +42,7 @@ export async function generationBlocks(tenantId: string) {
       if (await asaasSubscriptionActive(t.asaasSubscriptionId)) blocks.push({ code: "SUBSCRIPTION_ACTIVE", message: "Conta com assinatura ativa não recebe dados de teste." });
     } catch (e: any) { blocks.push({ code: "ASAAS_UNREACHABLE", message: `Não foi possível confirmar a assinatura no Asaas (${e.message}).` }); }
   }
-  const [busy] = rows(await db.execute(sql`SELECT 1 AS x FROM test_batches WHERE tenant_id = ${tenantId} AND status = 'generating' LIMIT 1`));
-  if (busy) blocks.push({ code: "BATCH_RUNNING", message: "Já há um lote sendo gerado nesta conta." });
+  if (await repo.hasRunningBatch(db, tenantId)) blocks.push({ code: "BATCH_RUNNING", message: "Já há um lote sendo gerado nesta conta." });
 
   const lim = await getTenantLimits(tenantId);
   const need = needs(t.businessType);
@@ -164,7 +165,12 @@ export async function undoBatch(tenantId: string, batchId: string) {
 export async function generateTestData(app: FastifyInstance, tenantId: string, actor: string, ip: string | null) {
   const { tenant, blocks } = await generationBlocks(tenantId);
   if (blocks.length) throw new AdminOpsError(409, blocks[0].code, blocks.map((b) => b.message).join(" "), { blocks });
-  const batch = await repo.createBatch(db, tenantId, actor);
+  // Clique duplo: conferir "lote em andamento" e criar o lote sob a trava da conta; o 2º pedido espera e recebe 409.
+  const batch = await db.transaction(async (tx) => {
+    await repo.lockTenantBatches(tx, tenantId);
+    if (await repo.hasRunningBatch(tx, tenantId)) throw new AdminOpsError(409, "BATCH_RUNNING", "Já há um lote sendo gerado nesta conta.");
+    return repo.createBatch(tx, tenantId, actor);
+  });
   const opId = await ops.insertOperation(db, { operation: "test_generate", tenantId, tenantName: tenant.name, actor, ip, details: { batchId: batch.id } });
   const c: Ctx = { app, token: await ownerToken(tenantId, actor), batchId: batch.id, tenantId, counts: {} };
   const sharedBefore = await repo.sharedIds(db, tenantId); // conta/categoria que a geração criar entram no lote
@@ -190,4 +196,74 @@ export async function generateTestData(app: FastifyInstance, tenantId: string, a
 
 export async function listTestBatches(tenantId: string) {
   return repo.listBatches(db, tenantId);
+}
+
+const toCounts = (m: repo.BatchRows) => Object.fromEntries([...m].filter(([, ids]) => ids.size > 0).map(([t, ids]) => [t, ids.size]));
+
+/** Conjunto a apagar (anotados + arrastados, sem recursos compartilhados em uso) e o que está ligado a dados fora do lote. */
+async function deletionPlan(exec: any, tenantId: string, batchId: string, edges: Awaited<ReturnType<typeof ops.fkEdges>>) {
+  const m = await repo.collectBatchRows(exec, tenantId, batchId, edges);
+  for (const k of await repo.sharedInUse(exec, tenantId, m, edges)) m.get(k.table)?.delete(k.id);
+  const annotated = new Set((await repo.batchItems(exec, batchId)).map((i) => `${i.table}:${i.id}`));
+  const linked = await repo.linkedOutside(exec, tenantId, m, annotated, edges);
+  return { m, counts: toCounts(m), linked };
+}
+
+/** Travas do apagar (lidas na hora; dentro da transação, depois da trava da conta). */
+async function deletionBlocks(exec: any, tenantId: string, batch: any) {
+  const blocks: { code: string; message: string }[] = [];
+  const t = await ops.findTenant(exec, tenantId);
+  if (!t?.isTestAccount) blocks.push({ code: "NOT_TEST_ACCOUNT", message: "A conta não está marcada como conta de teste." });
+  if (batch.status !== "ready") blocks.push({ code: "BATCH_NOT_READY", message: `O lote não está pronto (situação: ${batch.status}).` });
+  if (await repo.hasRunningBatch(exec, tenantId)) blocks.push({ code: "BATCH_RUNNING", message: "Há um lote sendo gerado nesta conta." });
+  return blocks;
+}
+
+const linkedBlock = (linked: Record<string, number>) => ({
+  code: "LINKED_TO_REAL_DATA",
+  message: `Há registros do lote ligados a dados fora do lote (${Object.entries(linked).map(([t, n]) => `${t}: ${n}`).join("; ")}). Nada foi apagado.`,
+});
+
+/** Prévia do apagar: o que sai (por tabela) e, à parte, o que está ligado a dados fora do lote. Não apaga nada. */
+export async function previewBatchDeletion(tenantId: string, batchId: string) {
+  const batch = await repo.findBatch(db, tenantId, batchId);
+  if (!batch) throw new AdminOpsError(404, "NOT_FOUND", "Lote não encontrado nesta conta");
+  const { counts, linked } = await deletionPlan(db, tenantId, batchId, await ops.fkEdges(db));
+  const blocks = await deletionBlocks(db, tenantId, batch);
+  if (Object.keys(linked).length) blocks.push(linkedBlock(linked));
+  return { batchId, status: batch.status, toDelete: counts, linkedOutside: linked, blocks };
+}
+
+/**
+ * Apaga um lote: só as linhas do lote (anotadas + arrastadas pelas ligações), filhos antes dos pais, numa transação
+ * sob a trava da conta. Qualquer trava ou ligação com dado fora do lote = 409 sem apagar nada; erro no meio = nada apagado.
+ */
+export async function deleteTestBatch(tenantId: string, batchId: string, actor: string, ip: string | null) {
+  const t = await ops.findTenant(db, tenantId);
+  if (!t) throw new AdminOpsError(404, "NOT_FOUND", "Conta não encontrada");
+  const opId = await ops.insertOperation(db, { operation: "test_delete", tenantId, tenantName: t.name, actor, ip, details: { batchId } });
+  try {
+    const deleted = await db.transaction(async (tx) => {
+      await repo.lockTenantBatches(tx, tenantId);
+      const batch = await repo.findBatch(tx, tenantId, batchId);
+      if (!batch) throw new AdminOpsError(404, "NOT_FOUND", "Lote não encontrado nesta conta");
+      const blocks = await deletionBlocks(tx, tenantId, batch);
+      if (blocks.length) throw new AdminOpsError(409, blocks[0].code, blocks.map((b) => b.message).join(" "), { blocks });
+      const edges = await ops.fkEdges(tx);
+      const plan = await deletionPlan(tx, tenantId, batchId, edges);
+      if (Object.keys(plan.linked).length) {
+        const b = linkedBlock(plan.linked);
+        throw new AdminOpsError(409, b.code, b.message, { linked: plan.linked });
+      }
+      const out = await repo.deleteRows(tx, tenantId, plan.m, deletionOrder([...plan.m.keys()], edges));
+      await repo.setBatchStatus(tx, batchId, "deleted");
+      return out;
+    });
+    await ops.finishOperation(db, opId, { status: "done", counts: deleted });
+    return { batchId, deleted };
+  } catch (e: any) {
+    await ops.finishOperation(db, opId, { status: "failed", details: { batchId, error: e.message, code: e.code ?? null } });
+    if (e instanceof AdminOpsError) throw e;
+    throw new AdminOpsError(500, "DELETE_FAILED", `O apagar falhou e nada foi removido (${e.message}).`);
+  }
 }

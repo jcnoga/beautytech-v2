@@ -51,6 +51,16 @@ export async function hasLiveBatch(exec: Exec, tenantId: string): Promise<boolea
   return !!r;
 }
 
+/** Lote sendo gerado na conta. */
+export async function hasRunningBatch(exec: Exec, tenantId: string): Promise<boolean> {
+  const [r] = rows(await exec.execute(sql`SELECT 1 AS x FROM test_batches WHERE tenant_id = ${tenantId} AND status = 'generating' LIMIT 1`));
+  return !!r;
+}
+
+export async function setBatchStatus(exec: Exec, batchId: string, status: string) {
+  await exec.execute(sql`UPDATE test_batches SET status = ${status}, finished_at = now() WHERE id = ${batchId}`);
+}
+
 /** Trava da conta para gerar/apagar lotes (até o fim da transação). */
 export async function lockTenantBatches(tx: Exec, tenantId: string) {
   await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"test-batches:" + tenantId}))`);
@@ -137,6 +147,31 @@ export async function sharedInUse(exec: Exec, tenantId: string, m: BatchRows, ed
     }
   }
   return keep;
+}
+
+/** Ligações que não contam como "dado fora do lote": a própria conta, logins e recursos compartilhados. */
+const NEUTRAL_PARENTS = new Set(["tenants", "user_profiles", ...SHARED_TABLES]);
+
+/**
+ * Linhas que sairiam por arrasto (não anotadas no lote) e que também apontam para um registro FORA do conjunto
+ * (ex.: inscrição de uma aluna real numa aula gerada pelo lote). Devolve tabela -> quantidade de linhas.
+ */
+export async function linkedOutside(exec: Exec, tenantId: string, m: BatchRows, annotated: Set<string>, edges: FkEdge[]) {
+  const out: Record<string, number> = {};
+  for (const [table, ids] of m) {
+    const dragged = [...ids].filter((id) => !annotated.has(`${table}:${id}`));
+    if (dragged.length === 0) continue;
+    const bad = new Set<string>();
+    for (const e of edges.filter((x) => x.child === table && x.parentColumn === "id" && !NEUTRAL_PARENTS.has(x.parent))) {
+      const inSet = [...(m.get(e.parent) ?? [])];
+      const found = rows(await exec.execute(sql`SELECT id::text AS id FROM ${sql.identifier(table)} WHERE tenant_id = ${tenantId}
+        AND id::text IN (${sql.join(dragged.map((i) => sql`${i}`), sql`, `)}) AND ${sql.identifier(e.childColumn)} IS NOT NULL
+        ${inSet.length ? sql`AND ${sql.identifier(e.childColumn)}::text NOT IN (${sql.join(inSet.map((i) => sql`${i}`), sql`, `)})` : sql``}`));
+      for (const r of found) bad.add(r.id);
+    }
+    if (bad.size) out[table] = bad.size;
+  }
+  return out;
 }
 
 /** Apaga as linhas do conjunto, tabela por tabela, na ordem dada (filhos antes dos pais). Devolve a contagem. */
