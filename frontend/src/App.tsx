@@ -481,6 +481,12 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tenantName, setTenantName] = useState('');
+  // Dados de exemplo do cadastro: o botão só aparece para o dono e quando ainda há exemplo (a API decide os dois).
+  const [hasExamples, setHasExamples] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
+  useEffect(() => {
+    api.get<any>("/demo/examples").then((r) => setHasExamples(!!r.data?.exists)).catch(() => setHasExamples(false));
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -589,19 +595,9 @@ function DashboardPage() {
         </div>
       )}
       <PageHeader title="Dashboard" sub={`${NOW.toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`} action={
-        <div style={{ display:"flex", gap:8 }}>
-          <Btn small variant="gold" onClick={async () => {
-            if (!confirm("Inserir dados de demonstracao?")) return;
-            try { await api.post<any>("/demo/seed", {}); alert("Dados inseridos! Recarregue a pagina."); }
-            catch(e: any) { alert("Erro: " + e.message); }
-          }}>+ Demo</Btn>
-          <Btn small variant="danger" onClick={async () => {
-            if (!confirm("Remover dados de demonstracao?")) return;
-            try { await api.delete("/demo/clear"); alert("Dados removidos! Recarregue a pagina."); }
-            catch(e: any) { alert("Erro: " + e.message); }
-          }}>Limpar Demo</Btn>
-        </div>
+        hasExamples ? <Btn small variant="secondary" onClick={() => setShowExamples(true)}>Remover dados de exemplo...</Btn> : undefined
       } />
+      {showExamples && <ExampleDataModal onClose={(removed: boolean) => { setShowExamples(false); if (removed) window.location.reload(); }} />}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))", gap:16, marginBottom:28 }}>
         <KpiCard icon="Cal" label="Agendamentos Hoje"  value={k.appointmentsToday} sub={`${k.appointmentsMonth} no mes`} color={C.rose} />
         <KpiCard icon="Cli" label="Clientes Ativos"    value={k.activeClients}     sub="clientes"           color={C.gold} />
@@ -3504,6 +3500,10 @@ const TEST_TABLE_LABEL: Record<string, string> = {
   class_sessions: "Aulas", class_bookings: "Inscrições em aulas", class_enrollment_slots: "Horários fixos de matrícula",
   class_makeup_credits: "Reposições", student_profiles: "Fichas de aluno", leads: "Interessados",
   professional_schedules: "Horários de profissionais", professional_services: "Serviços de profissionais", audit_logs: "Histórico",
+  service_categories: "Categorias de serviço", packages: "Pacotes", client_records: "Fichas de cliente", protocols: "Protocolos",
+  protocol_sessions: "Sessões de protocolo", treatment_packages: "Pacotes de tratamento", package_sessions: "Sessões de pacote",
+  notifications: "Avisos", commissions: "Comissões", reviews: "Avaliações", loyalty_transactions: "Fidelidade",
+  appointment_photos: "Fotos de atendimento", consent_forms: "Termos", gift_cards: "Vale-presentes", referrals: "Indicações",
 };
 const TEST_BATCH_STATUS: Record<string, { label: string; color: string }> = { // color = chave do tema (C muda com o tema)
   generating: { label: "Gerando", color: "gold" }, ready: { label: "Pronto", color: "sage" },
@@ -3660,6 +3660,83 @@ function TestDataModal({ tenant, saFetch, onClose }: any) {
             </div>
           );
         })}
+      </>)}
+    </Modal>
+  );
+}
+
+// --- DADOS DE EXEMPLO (dono da conta) -----------------------------
+// Prévia (o que sai e o que está ligado a dados reais) → confirmação → remoção (tudo ou nada). Só chama a API.
+// API: GET /demo/examples, DELETE /demo/examples.
+function ExampleDataModal({ onClose }: { onClose: (removed: boolean) => void }) {
+  const [preview, setPreview] = useState<any>(null);
+  const [error, setError] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<any>(null);
+  const running = useRef(false); // trava imediata contra clique duplo
+
+  const load = async () => {
+    setError(null);
+    try { setPreview((await api.get<any>("/demo/examples")).data); }
+    catch (e: any) { setError({ message: e.message }); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const remove = async () => {
+    if (running.current) return;
+    running.current = true; setBusy(true); setError(null);
+    try { setDone((await api.delete<any>("/demo/examples")).data); }
+    catch (e: any) { setError({ message: e.message, code: e.code, linked: e.data?.linked }); await load(); }
+    finally { running.current = false; setBusy(false); }
+  };
+
+  const box: any = { background: C.surface, borderWidth: 1, borderStyle: "solid", borderColor: C.border, borderRadius: 12, padding: "12px 14px", marginBottom: 14 };
+  const linked = preview?.linkedOutside ?? {};
+  const linkedText = (l: Record<string, number>) =>
+    `Há dados de exemplo ligados a dados reais: ${Object.entries(l).map(([t, n]) => `${tableLabel(t)}: ${n}`).join("; ")}. Nada foi apagado.`;
+
+  return (
+    <Modal open onClose={busy ? undefined : () => onClose(!!done)} title="Remover dados de exemplo" width={620}>
+      {error && (
+        <div style={{ ...box, borderColor: C.ruby, fontSize: 15, color: C.ruby, fontWeight: 700 }}>
+          {error.code === "LINKED_TO_REAL_DATA" && error.linked ? linkedText(error.linked) : error.message}
+        </div>
+      )}
+      {done ? (<>
+        <div style={{ ...box, borderColor: C.sage, fontSize: 15, color: C.sage, fontWeight: 700 }}>
+          Dados de exemplo removidos: {sumCounts(done.deleted)} registros.
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}><Btn variant="gold" onClick={() => onClose(true)}>Fechar</Btn></div>
+      </>) : !preview ? (
+        <div style={{ fontSize: 15, color: C.textMuted }}>{error ? "" : "Carregando..."}</div>
+      ) : !preview.exists ? (<>
+        <div style={{ fontSize: 15, color: C.text, marginBottom: 14 }}>Esta conta não tem mais dados de exemplo.</div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}><Btn variant="secondary" onClick={() => onClose(false)}>Fechar</Btn></div>
+      </>) : (<>
+        <div style={{ fontSize: 15, color: C.textSec, marginBottom: 12 }}>
+          Remove os profissionais, serviços, clientes, agendamentos e lançamentos de exemplo criados no cadastro.
+          Seus dados reais, logins e configurações não são apagados.
+        </div>
+        <div style={box}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Será apagado ({sumCounts(preview.toDelete)} registros):</div>
+          <CountsList counts={preview.toDelete} />
+        </div>
+        {Object.keys(linked).length > 0 ? (<>
+          <div style={{ ...box, borderColor: C.ruby }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 8 }}>Não é possível remover agora:</div>
+            <div style={{ fontSize: 14, color: C.text, marginBottom: 8 }}>{linkedText(linked)}</div>
+            <div style={{ fontSize: 14, color: C.text }}>Exemplo: um agendamento de cliente real com um profissional de exemplo. Troque o profissional ou apague esse registro e tente de novo.</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <Btn variant="secondary" onClick={load} disabled={busy}>Atualizar</Btn>
+            <Btn variant="secondary" onClick={() => onClose(false)} disabled={busy}>Fechar</Btn>
+          </div>
+        </>) : (
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <Btn variant="secondary" onClick={() => onClose(false)} disabled={busy}>Cancelar</Btn>
+            <Btn variant="danger" onClick={remove} disabled={busy}>{busy ? "Removendo..." : `Remover ${sumCounts(preview.toDelete)} registros de exemplo`}</Btn>
+          </div>
+        )}
       </>)}
     </Modal>
   );
