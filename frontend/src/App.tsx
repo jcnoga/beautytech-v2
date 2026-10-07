@@ -3516,6 +3516,12 @@ const TEST_ERROR_HINT: Record<string, string> = {
 };
 const tableLabel = (t: string) => TEST_TABLE_LABEL[t] ?? t;
 const sumCounts = (c: Record<string, number> | null | undefined) => Object.values(c ?? {}).reduce((a, n) => a + Number(n), 0);
+/** Texto da trava LINKED_TO_REAL_DATA com os nomes claros das tabelas (a API manda os nomes técnicos). */
+const linkedMessage = (linked: Record<string, number>) =>
+  `Há registros do lote ligados a dados fora do lote: ${Object.entries(linked).map(([t, n]) => `${tableLabel(t)}: ${n}`).join("; ")}. Nada foi apagado.`
+  + (linked.class_bookings ? " Inclui inscrições canceladas, que fazem parte do histórico do aluno real." : "");
+const blockMessage = (b: any, linked?: Record<string, number>) =>
+  b.code === "LINKED_TO_REAL_DATA" && linked && Object.keys(linked).length ? linkedMessage(linked) : b.message;
 
 function CountsList({ counts, color }: { counts: Record<string, number>; color?: string }) {
   const entries = Object.entries(counts ?? {}).sort((a, b) => b[1] - a[1]);
@@ -3580,8 +3586,7 @@ function TestDataModal({ tenant, saFetch, onClose }: any) {
     <Modal open onClose={busy ? undefined : onClose} title={`Dados de teste: ${tenant.name}`} width={680}>
       {error && (
         <div style={{ ...box, borderColor: C.ruby }}>
-          <div style={{ fontSize: 15, color: C.ruby, fontWeight: 700 }}>{error.message}</div>
-          {error.linked && <div style={{ marginTop: 8 }}><CountsList counts={error.linked} color={C.ruby} /></div>}
+          <div style={{ fontSize: 15, color: C.ruby, fontWeight: 700 }}>{blockMessage(error, error.linked)}</div>
           {TEST_ERROR_HINT[error.code] && <div style={{ fontSize: 14, color: C.text, marginTop: 8 }}>{TEST_ERROR_HINT[error.code]}</div>}
         </div>
       )}
@@ -3602,7 +3607,7 @@ function TestDataModal({ tenant, saFetch, onClose }: any) {
         {preview.blocks?.length > 0 ? (<>
           <div style={{ ...box, borderColor: C.ruby }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 6 }}>Não é possível apagar agora:</div>
-            {preview.blocks.map((b: any) => <div key={b.code} style={{ fontSize: 14, color: C.text, marginBottom: 4 }}>• {b.message}</div>)}
+            {preview.blocks.map((b: any) => <div key={b.code} style={{ fontSize: 14, color: C.text, marginBottom: 4 }}>• {blockMessage(b, preview.linkedOutside)}</div>)}
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
             <Btn variant="secondary" onClick={() => openPreview(preview.batchId)} disabled={!!busy}>{busy === "prévia" ? "Atualizando..." : "Atualizar prévia"}</Btn>
