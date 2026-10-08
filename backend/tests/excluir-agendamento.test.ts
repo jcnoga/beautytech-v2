@@ -102,12 +102,7 @@ test("outra conta, já apagado ou id inválido: 404 sem tocar em nada", async ()
   assert.equal((await req(A, "DELETE", "/appointments/nao-e-um-id")).statusCode, 404, "id inválido");
 });
 
-test("histórico público por WhatsApp não mostra agendamento apagado", async () => {
-  const keep = await appt(B, "confirmed");
-  const gone = await appt(B, "confirmed");
-  assert.equal((await req(B, "DELETE", `/appointments/${gone}`)).statusCode, 204);
+test("histórico público por WhatsApp está desligado (410), com ou sem agendamento apagado", async () => {
   const r = await app.inject({ method: "GET", url: `${PREFIX}/public/my-appointments?whatsapp=${encodeURIComponent(B.phone)}` });
-  const ids = r.json().data.map((x: any) => x.id);
-  assert.ok(ids.includes(keep));
-  assert.ok(!ids.includes(gone));
+  assert.deepEqual([r.statusCode, r.json().code], [410, "UNAVAILABLE"]);
 });

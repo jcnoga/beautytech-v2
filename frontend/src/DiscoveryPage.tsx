@@ -1,5 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 
+// "Meus Agendamentos" DESLIGADO (08/10/2026): a busca por WhatsApp mostrava agendamentos de qualquer pessoa sem
+// login. A rota responde 410. Volta (true) só com confirmação por código enviado ao WhatsApp do número.
+const MEUS_AGENDAMENTOS_ATIVO = false;
+
 const API = ((import.meta as any).env?.VITE_API_URL ?? "http://localhost:3000/api/v1").replace(/\/+$/, "");
 
 const C = {
@@ -203,7 +207,7 @@ export default function DiscoveryPage() {
           >
             Buscar Salões
           </button>
-          <button
+          {MEUS_AGENDAMENTOS_ATIVO && <button
             onClick={() => setView("meus-agendamentos")}
             style={{
               background: "transparent", border: "none", cursor: "pointer", fontFamily: FB,
@@ -214,11 +218,11 @@ export default function DiscoveryPage() {
             }}
           >
             📅 Meus Agendamentos
-          </button>
+          </button>}
         </div>
       </div>
 
-      {view === "meus-agendamentos" ? (
+      {MEUS_AGENDAMENTOS_ATIVO && view === "meus-agendamentos" ? (
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px" }}>
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, marginBottom: 6 }}>Meus Agendamentos</h1>
           <p style={{ color: C.textMuted, fontSize: ".9rem", marginBottom: 24 }}>

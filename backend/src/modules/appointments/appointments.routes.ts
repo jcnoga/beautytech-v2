@@ -5,6 +5,23 @@ import { tenants, services, professionals, clients, appointments, appointmentSer
 import { isTestClient } from "../super-admin/test-data.guard";
 import { freeSlots, localToUtc, lockProfessional, checkAgendaRules, AgendaRuleError } from "./agenda-rules";
 
+/** Limite das rotas públicas que gravam (cadastro de cliente e agendamento): por IP (plugin rate-limit). */
+export const PUBLIC_LIMIT = 10;
+const PUBLIC_RATE_LIMIT = { max: PUBLIC_LIMIT, timeWindow: "1 minute" };
+
+// Limite por telefone (em memória; a API roda num processo só): no máximo PUBLIC_LIMIT por minuto por número,
+// mesmo trocando de IP.
+const phoneHits = new Map<string, number[]>();
+export function publicPhoneLimited(phone: string, now = Date.now()): boolean {
+  const key = String(phone ?? "").replace(/\D/g, "").slice(-11);
+  if (!key) return false;
+  const recent = (phoneHits.get(key) ?? []).filter((t) => now - t < 60_000);
+  recent.push(now);
+  phoneHits.set(key, recent);
+  if (phoneHits.size > 10_000) for (const [k, v] of phoneHits) if (!v.some((t) => now - t < 60_000)) phoneHits.delete(k);
+  return recent.length > PUBLIC_LIMIT;
+}
+
 export async function publicBookingModule(fastify: FastifyInstance) {
 
   fastify.get("/public/tenants", async (req: any, reply) => {
@@ -94,33 +111,33 @@ export async function publicBookingModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data: available, date, total: available.length });
   });
 
-  fastify.post("/public/clients/register", async (req: any, reply) => {
+  // Cadastro do cliente pela página pública de agendamento (sem login). Segurança (08/10/2026):
+  // - responde só o id (UUID aleatório) e se já existia: nunca nome, e-mail ou telefone de quem já está cadastrado;
+  // - não altera cadastro existente (antes gravava o e-mail informado em quem não tinha);
+  // - no máximo PUBLIC_LIMIT tentativas por minuto por IP (rate-limit) e por telefone (publicPhoneLimited).
+  fastify.post("/public/clients/register", { config: { rateLimit: PUBLIC_RATE_LIMIT } }, async (req: any, reply) => {
     const { tenantSlug, fullName, whatsapp, email, phone } = req.body as any;
     if (!tenantSlug || !fullName || !whatsapp)
       return reply.status(400).send({ success: false, error: "tenantSlug, fullName e whatsapp sao obrigatorios" });
+    if (publicPhoneLimited(whatsapp))
+      return reply.status(429).send({ success: false, code: "TOO_MANY_ATTEMPTS", error: "Muitas tentativas com este telefone. Aguarde um minuto." });
 
     const [tenant] = await db.select({ id: tenants.id }).from(tenants)
       .where(and(eq(tenants.slug, tenantSlug), eq(tenants.isActive, true)));
     if (!tenant) return reply.status(404).send({ success: false, error: "Estabelecimento nao encontrado" });
 
-    const [existing] = await db.select({ id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp, email: clients.email })
+    const [existing] = await db.select({ id: clients.id })
       .from(clients).where(and(eq(clients.tenantId, tenant.id), eq(clients.whatsapp, whatsapp), isNull(clients.deletedAt)));
-    if (existing) {
-      if (email && !existing.email) {
-        await db.update(clients).set({ email }).where(eq(clients.id, existing.id));
-        existing.email = email;
-      }
-      return reply.send({ success: true, data: { ...existing, isExisting: true } });
-    }
+    if (existing) return reply.send({ success: true, data: { id: existing.id, isExisting: true } });
 
     const [client] = await db.insert(clients).values({
       tenantId: tenant.id, fullName, whatsapp,
       email: email ?? null, phone: phone ?? null, source: "online_booking",
-    }).returning({ id: clients.id, fullName: clients.fullName, whatsapp: clients.whatsapp });
-    return reply.status(201).send({ success: true, data: { ...client, isExisting: false } });
+    }).returning({ id: clients.id });
+    return reply.status(201).send({ success: true, data: { id: client.id, isExisting: false } });
   });
 
-  fastify.post("/public/appointments", async (req: any, reply) => {
+  fastify.post("/public/appointments", { config: { rateLimit: PUBLIC_RATE_LIMIT } }, async (req: any, reply) => {
     const { tenantSlug, clientId, professionalId, serviceId, date, time, clientNotes } = req.body as any;
     if (!tenantSlug || !clientId || !professionalId || !serviceId || !date || !time)
       return reply.status(400).send({ success: false, error: "Campos obrigatorios: tenantSlug, clientId, professionalId, serviceId, date, time" });
