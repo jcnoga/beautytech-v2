@@ -7,8 +7,8 @@
 // - Não anota (e "Remover dados de exemplo" nunca apaga): a conta, os logins, configurações (modelos de mensagem,
 //   regras do studio) e as contas/categorias do Financeiro. Ver PROTECTED_TABLES.
 // - Remover: só as linhas dos lotes 'example' (anotadas + arrastadas pelas ligações do banco), numa transação; recusa
-//   (409, nada apagado) se algo arrastado estiver ligado a dado real (ex.: agendamento de cliente real com
-//   profissional de exemplo). Mesmo motor do apagar dos dados de teste.
+//   (409, nada apagado) se algo arrastado for dado real: qualquer registro não anotado no lote (ex.: agendamento criado
+//   à mão com cliente de exemplo), salvo o histórico automático (HISTORY_TABLES). Mesmo motor do apagar dos dados de teste.
 import { sql } from "drizzle-orm";
 import { db } from "@db/connection";
 import { rows } from "../group-classes/rules";
@@ -25,6 +25,9 @@ export const PROTECTED_TABLES = new Set([
   "tenants", "user_profiles", "class_settings", "message_templates", "financial_accounts", "financial_categories",
   "test_batches", "test_batch_items", "admin_operations",
 ]);
+
+/** Histórico automático: sai junto com o exemplo sem impedir a remoção (avisos que o sistema tentou enviar, histórico). */
+export const HISTORY_TABLES = new Set(["notifications", "audit_logs"]);
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -256,7 +259,15 @@ async function removalPlan(exec: any, tenantId: string, edges: Awaited<ReturnTyp
   }
   for (const t of PROTECTED_TABLES) m.delete(t);
   for (const k of await repo.sharedInUse(exec, tenantId, m, edges)) m.get(k.table)?.delete(k.id);
-  const linked = await repo.linkedOutside(exec, tenantId, m, annotated, edges);
+  // Dado real que sairia junto: todo registro arrastado (não anotado no lote) conta como real, salvo o histórico
+  // automático (HISTORY_TABLES), que sai junto sem impedir.
+  // Ex.: agendamento criado à mão com cliente e profissional de exemplo: não aponta para fora, mas é real.
+  const linked: Record<string, number> = {};
+  for (const [t, ids] of m) {
+    if (HISTORY_TABLES.has(t)) continue;
+    const n = [...ids].filter((id) => !annotated.has(`${t}:${id}`)).length;
+    if (n > 0) linked[t] = n;
+  }
   const toDelete = Object.fromEntries([...m].filter(([, ids]) => ids.size > 0).map(([t, ids]) => [t, ids.size]));
   // Só os registros anotados no lote (sem os arrastados). Com ligação a dado real, a tela mostra estes: o "toDelete"
   // incluiria o próprio dado real (ex.: o agendamento do cliente real), e ele não sai.
@@ -281,7 +292,7 @@ export async function removeExampleData(tenantId: string) {
     if (!plan.batchIds.length) throw new AdminOpsError(409, "NO_EXAMPLE", "Esta conta não tem dados de exemplo.");
     if (Object.keys(plan.linked).length) {
       throw new AdminOpsError(409, "LINKED_TO_REAL_DATA",
-        `Há dados de exemplo ligados a dados reais (${Object.entries(plan.linked).map(([t, n]) => `${t}: ${n}`).join("; ")}). Nada foi apagado.`,
+        `Há dados reais ligados aos dados de exemplo (${Object.entries(plan.linked).map(([t, n]) => `${t}: ${n}`).join("; ")}). Nada foi apagado.`,
         { linked: plan.linked });
     }
     const deleted = await repo.deleteRows(tx as any, tenantId, plan.m, deletionOrder([...plan.m.keys()], edges));

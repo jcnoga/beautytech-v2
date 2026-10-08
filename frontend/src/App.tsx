@@ -3701,7 +3701,7 @@ function ExampleDataModal({ onClose }: { onClose: (removed: boolean) => void }) 
   // Recusa por ligação: se a prévia já mostra o quadro com o motivo, o aviso só diz que nada foi apagado.
   const errorText = (er: any) => er.code !== "LINKED_TO_REAL_DATA" ? er.message
     : blocked || !er.linked ? "A remoção foi recusada. Nada foi apagado."
-    : `A remoção foi recusada: há dados de exemplo ligados a dados reais (${linkedList(er.linked)}). Nada foi apagado.`;
+    : `A remoção foi recusada: há dados reais ligados aos dados de exemplo (${linkedList(er.linked)}). Nada foi apagado.`;
 
   return (
     <Modal open onClose={busy ? undefined : () => onClose(!!done)} title="Remover dados de exemplo" width={620}>
@@ -3738,8 +3738,8 @@ function ExampleDataModal({ onClose }: { onClose: (removed: boolean) => void }) 
         {blocked ? (<>
           <div style={{ ...box, borderColor: C.ruby }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 8 }}>Não é possível remover agora:</div>
-            <div style={{ fontSize: 14, color: C.text, marginBottom: 8 }}>Há dados de exemplo ligados a dados reais: {linkedList(linked)}.</div>
-            <div style={{ fontSize: 14, color: C.text }}>Exemplo: um agendamento de cliente real com um profissional de exemplo. Troque o profissional ou apague esse registro e tente de novo.</div>
+            <div style={{ fontSize: 14, color: C.text, marginBottom: 8 }}>Há dados reais ligados aos dados de exemplo: {linkedList(linked)}.</div>
+            <div style={{ fontSize: 14, color: C.text }}>Exemplo: um agendamento criado à mão com cliente, profissional ou serviço de exemplo. Troque por um cadastro real e tente de novo.</div>
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
             <Btn variant="secondary" onClick={load} disabled={busy}>Atualizar</Btn>

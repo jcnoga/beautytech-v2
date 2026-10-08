@@ -154,6 +154,31 @@ test("agendamento de cliente real com profissional de exemplo: remover recusado,
   await sql`DELETE FROM appointments WHERE id = ${ap.id}`;
 });
 
+test("agendamento criado à mão com cliente E profissional de exemplo: é dado real, remover recusado, nada apagado", async () => {
+  const b = await exampleBatch(SALON);
+  const [cl] = await sql`SELECT c.id FROM clients c JOIN test_batch_items i ON i.record_id = c.id AND i.batch_id = ${b.id} LIMIT 1`;
+  const [prof] = await sql`SELECT p.id FROM professionals p JOIN test_batch_items i ON i.record_id = p.id AND i.batch_id = ${b.id} LIMIT 1`;
+  const [ap] = await sql`INSERT INTO appointments (tenant_id, client_id, professional_id, status, scheduled_at, ends_at, duration_minutes)
+    VALUES (${SALON.id}, ${cl.id}, ${prof.id}, 'confirmed', now() + interval '3 days', now() + interval '3 days 1 hour', 60) RETURNING id`;
+  const p = data(await req("GET", "/demo/examples", SALON.owner));
+  assert.deepEqual(p.linkedOutside, { appointments: 1 }, "não aponta para fora, mas não é do lote: conta como real");
+  const mid = await counts(SALON);
+  const r = await req("DELETE", "/demo/examples", SALON.owner);
+  assert.deepEqual([r.statusCode, r.json().code], [409, "LINKED_TO_REAL_DATA"]);
+  assert.match(r.json().error, /Há dados reais ligados aos dados de exemplo \(appointments: 1\)\. Nada foi apagado\./);
+  assert.deepEqual(await counts(SALON), mid, "nada apagado, nem em cascata");
+  await sql`DELETE FROM appointments WHERE id = ${ap.id}`;
+});
+
+test("histórico automático (aviso enviado a cliente de exemplo) não impede a remoção", async () => {
+  const b = await exampleBatch(SALON);
+  const [cl] = await sql`SELECT c.id FROM clients c JOIN test_batch_items i ON i.record_id = c.id AND i.batch_id = ${b.id} LIMIT 1`;
+  await sql`INSERT INTO notifications (tenant_id, client_id, channel, message, status) VALUES (${SALON.id}, ${cl.id}, 'whatsapp', 'Lembrete', 'failed')`;
+  const p = data(await req("GET", "/demo/examples", SALON.owner));
+  assert.deepEqual(p.linkedOutside, {});
+  assert.equal(p.toDelete.notifications, 1, "o aviso sai junto");
+});
+
 test("remover: só o exemplo sai; conta, logins, configurações e Financeiro ficam, mesmo se anotados no lote", async () => {
   const b = await exampleBatch(SALON);
   // anotação indevida das tabelas protegidas (não acontece no cadastro): mesmo assim nunca saem
