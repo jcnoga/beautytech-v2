@@ -23,6 +23,15 @@ import { fakeEmail, fakePhone } from "./test-data.guard";
 
 const PILATES = "pilates";
 const dayPlus = (n: number) => { const d = new Date(); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+/** `count` deslocamentos de dia (a partir de `from`, andando no sentido do sinal) que caem de segunda a sexta. */
+const weekdays = (from: number, count: number) => {
+  const out: number[] = [];
+  for (let k = from; out.length < count; k += Math.sign(from)) {
+    const d = new Date(); d.setUTCDate(d.getUTCDate() + k);
+    if (d.getUTCDay() >= 1 && d.getUTCDay() <= 5) out.push(k);
+  }
+  return out;
+};
 const at = (dayOffset: number, hour: number) => { const d = new Date(); d.setUTCDate(d.getUTCDate() + dayOffset); d.setUTCHours(hour + 3, 0, 0, 0); return d; }; // hora de Brasília
 
 /** O que o lote vai ocupar nos limites do plano. */
@@ -102,9 +111,14 @@ async function generateSalon(c: Ctx) {
   for (let i = 1; i <= S.clients; i++) {
     cls.push(await create(c, "/clients", { fullName: `${TEST_PREFIX} Cliente ${i}`, whatsapp: fakePhone(i), email: fakeEmail(i), acceptsWhatsapp: false, acceptsMarketing: false }, "clients"));
   }
+  // Dentro da jornada padrão do profissional novo (seg-sex 08-18, intervalo 12-13): dias úteis distintos, fora do
+  // intervalo; a agenda recusa domingo, intervalo e choque (agenda-rules).
+  const half = Math.ceil(S.appointments / 2);
+  const pastDays = weekdays(-1, half), nextDays = weekdays(1, S.appointments - half);
+  const HOURS = [9, 10, 11, 13, 14, 15, 16];
   for (let i = 0; i < S.appointments; i++) {
-    const past = i < S.appointments / 2;
-    const start = at(past ? -(i + 1) : i - S.appointments / 2 + 1, 9 + (i % 8));
+    const past = i < half;
+    const start = at(past ? pastDays[i] : nextDays[i - half], HOURS[i % HOURS.length]);
     const svc = svcs[i % svcs.length], pro = pros[i % pros.length];
     await create(c, "/appointments", {
       clientId: cls[i % cls.length].id, professionalId: pro.id, status: past ? "completed" : "confirmed",

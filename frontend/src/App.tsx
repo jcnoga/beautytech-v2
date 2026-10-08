@@ -1462,6 +1462,7 @@ function AgendaPage() {
   }, [viewMode]);
 
   const [availableProfs, setAvailableProfs] = useState<any[]>([]);
+  const [availKey, setAvailKey] = useState(""); // "servico|data" da última busca: o aviso só vale para ela
   const [slots, setSlots] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -1473,6 +1474,7 @@ function AgendaPage() {
     const r = await fetch(`${import.meta.env["VITE_API_URL"]}/professionals/available?serviceId=${serviceId}&date=${date}`, { headers: { Authorization: `Bearer ${token}` } });
     const d = await r.json();
     setAvailableProfs(d.data ?? []);
+    setAvailKey(serviceId + "|" + date);
   };
 
   const fetchSlots = async (professionalId: string, serviceId: string, date: string) => {
@@ -1494,6 +1496,7 @@ function AgendaPage() {
       durationMinutes: svc?.durationMinutes?.toString() ?? p.durationMinutes,
       totalPrice:      svc?.price?.toString() ?? p.totalPrice,
     }));
+    if (selectedDate) fetchAvailableProfs(serviceId, selectedDate);
   };
 
   const save = async () => {
@@ -1676,7 +1679,8 @@ function AgendaPage() {
                 <option key={p.id} value={p.id}>{p.full_name ?? p.fullName}{p.duration_minutes ? ` (${p.duration_minutes}min)` : ""}</option>
               ))}
             </select>
-            {form.serviceId && availableProfs.length === 0 && <div style={{ fontSize:11, color:"#e05c5c", marginTop:4 }}>Nenhum profissional habilitado para este servico nesta data.</div>}
+            {/* só depois de buscar com serviço E data; o backend confere de novo ao salvar */}
+            {form.serviceId && selectedDate && availKey === form.serviceId + "|" + selectedDate && availableProfs.length === 0 && <div style={{ fontSize:11, color:"#e05c5c", marginTop:4 }}>Nenhum profissional com este servico configurado para este dia.</div>}
           </div>
 
           <div style={{ marginBottom:14, gridColumn:"1/-1" }}>

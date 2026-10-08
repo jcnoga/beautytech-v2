@@ -5,6 +5,8 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "@db/connection.js";
 import { authenticate } from "@middleware/auth.js";
 import { rejectForeignRefs } from "../tenant-guard.js";
+import { rows } from "../group-classes/rules";
+import { localToUtc, OCCUPYING_STATUSES } from "../appointments/agenda-rules";
 
 export async function professionalScheduleRoutes(fastify: any) {
 
@@ -139,7 +141,7 @@ export async function professionalScheduleRoutes(fastify: any) {
     const { serviceId, date } = req.query as any;
     if (!serviceId || !date) return reply.status(400).send({ success: false, error: "serviceId e date sao obrigatorios" });
 
-    const dayOfWeek = new Date(date).getDay();
+    const dayOfWeek = new Date(date + "T00:00:00Z").getUTCDay(); // dia da data (sem fuso)
 
     const result = await db.execute(sql`
       SELECT p.id, p.full_name, p.color, ps.duration_minutes, ps.commission_type, ps.commission_value,
@@ -158,93 +160,50 @@ export async function professionalScheduleRoutes(fastify: any) {
     return reply.send({ success: true, data: rows });
   });
 
-  // GET /professionals/:id/slots?serviceId=&date=  slots disponiveis
+  // GET /professionals/:id/slots?serviceId=&date=  horários livres (data e horas de Brasília)
+  // Mesmas regras do cadastro (agenda-rules): jornada e intervalo do dia, bloqueios e agendamentos que ocupam.
   fastify.get("/professionals/:id/slots", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { serviceId, date } = req.query as any;
-    if (!date) return reply.status(400).send({ success: false, error: "date obrigatorio" });
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(String(date))) return reply.status(400).send({ success: false, error: "date obrigatorio (AAAA-MM-DD)" });
+    const q = async (s: any) => rows(await db.execute(s)) as any[];
+    const dayOfWeek = new Date(date + "T00:00:00Z").getUTCDay();
 
-    const dayOfWeek = new Date(date).getDay();
+    const [sched] = await q(sql`SELECT is_working, start_time, end_time, slot_minutes, break_start, break_end FROM professional_schedules
+      WHERE professional_id = ${req.params.id} AND tenant_id = ${tenantId} AND day_of_week = ${dayOfWeek} LIMIT 1`);
+    const day = sched ?? { is_working: true, start_time: "08:00", end_time: "18:00", slot_minutes: 30 };
+    if (!day.is_working) return reply.send({ success: true, data: [], duration: 0 });
+    const step = Number(day.slot_minutes) || 30;
 
-    // Busca jornada
-    const schedResult = await db.execute(sql`
-      SELECT * FROM professional_schedules
-      WHERE professional_id = ${req.params.id}
-      AND tenant_id = ${tenantId}
-      AND day_of_week = ${dayOfWeek}
-    `);
-    const schedRows = (schedResult as any).rows ?? [];
-    const sched = schedRows[0] ?? { is_working: true, start_time: "08:00", end_time: "18:00", slot_minutes: 30 };
-
-    if (!sched.is_working) return reply.send({ success: true, data: [] });
-
-    // Busca duracao do servico
-    let duration = sched.slot_minutes ?? 30;
+    // Duração: a do profissional para o serviço; senão a do serviço; senão o passo da jornada
+    let duration = step;
     if (serviceId) {
-      const svcResult = await db.execute(sql`
-        SELECT duration_minutes FROM professional_services
-        WHERE professional_id = ${req.params.id}
-        AND service_id = ${serviceId}
-        AND tenant_id = ${tenantId}
-      `);
-      const svcRows = (svcResult as any).rows ?? [];
-      if (svcRows[0]) duration = svcRows[0].duration_minutes;
+      const [ps] = await q(sql`SELECT ps.duration_minutes AS d, s.duration_minutes AS sd FROM services s
+        LEFT JOIN professional_services ps ON ps.service_id = s.id AND ps.professional_id = ${req.params.id} AND ps.tenant_id = ${tenantId}
+        WHERE s.id = ${serviceId} AND s.tenant_id = ${tenantId}`);
+      duration = Number(ps?.d ?? ps?.sd ?? step) || step;
     }
 
-    // Busca agendamentos existentes
-    const dateStart = date + "T00:00:00Z";
-    const dateEnd   = date + "T23:59:59Z";
-    const appResult = await db.execute(sql`
-      SELECT scheduled_at, ends_at FROM appointments
-      WHERE professional_id = ${req.params.id}
-      AND tenant_id = ${tenantId}
-      AND scheduled_at >= ${dateStart}
-      AND scheduled_at <= ${dateEnd}
-      AND status NOT IN ('cancelled','no_show')
-      AND deleted_at IS NULL
-    `);
-    const appointments = (appResult as any).rows ?? [];
+    const dayStart = localToUtc(date, "00:00"), dayEnd = new Date(dayStart.getTime() + 24 * 3600000);
+    const busy = await q(sql`SELECT scheduled_at AS s, coalesce(ends_at, scheduled_at + make_interval(mins => coalesce(duration_minutes, 60))) AS e
+      FROM appointments WHERE professional_id = ${req.params.id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
+        AND status IN ${sql.raw(`(${OCCUPYING_STATUSES.map((s) => `'${s}'`).join(",")})`)}
+        AND scheduled_at < ${dayEnd.toISOString()} AND coalesce(ends_at, scheduled_at + make_interval(mins => coalesce(duration_minutes, 60))) > ${dayStart.toISOString()}
+      UNION ALL
+      SELECT starts_at, ends_at FROM professional_blocks WHERE professional_id = ${req.params.id} AND tenant_id = ${tenantId}
+        AND starts_at < ${dayEnd.toISOString()} AND ends_at > ${dayStart.toISOString()}`);
 
-    // Busca bloqueios
-    const blockResult = await db.execute(sql`
-      SELECT starts_at, ends_at FROM professional_blocks
-      WHERE professional_id = ${req.params.id}
-      AND tenant_id = ${tenantId}
-      AND starts_at >= ${dateStart}
-      AND ends_at <= ${dateEnd}
-    `);
-    const blocks = (blockResult as any).rows ?? [];
-
-    // Gera slots
-    const [startH, startM] = sched.start_time.split(":").map(Number);
-    const [endH, endM]     = sched.end_time.split(":").map(Number);
-    const startMins = startH * 60 + startM;
-    const endMins   = endH * 60 + endM;
+    const toMin = (v: any) => { if (!v) return null; const [h, m] = String(v).split(":").map(Number); return h * 60 + (m || 0); };
+    const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const ws = toMin(day.start_time) ?? 480, we = toMin(day.end_time) ?? 1080;
+    const bs = toMin(day.break_start), be = toMin(day.break_end);
     const slots: string[] = [];
-
-    for (let m = startMins; m + duration <= endMins; m += sched.slot_minutes ?? 30) {
-      const slotStart = new Date(`${date}T${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:00`);
-      const slotEnd   = new Date(slotStart.getTime() + duration * 60000);
-
-      // Verifica conflito com agendamentos
-      const hasConflict = appointments.some((a: any) => {
-        const aStart = new Date(a.scheduled_at);
-        const aEnd   = new Date(a.ends_at ?? new Date(aStart.getTime() + 60*60000));
-        return slotStart < aEnd && slotEnd > aStart;
-      });
-
-      // Verifica bloqueios
-      const isBlocked = blocks.some((b: any) => {
-        const bStart = new Date(b.starts_at);
-        const bEnd   = new Date(b.ends_at);
-        return slotStart < bEnd && slotEnd > bStart;
-      });
-
-      if (!hasConflict && !isBlocked) {
-        slots.push(`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`);
-      }
+    for (let m = ws; m + duration <= we; m += step) {
+      if (bs !== null && be !== null && m < be && m + duration > bs) continue; // intervalo
+      const s = localToUtc(date, hm(m)), e = new Date(s.getTime() + duration * 60000);
+      if (busy.some((b: any) => s < new Date(b.e) && e > new Date(b.s))) continue;
+      slots.push(hm(m));
     }
-
     return reply.send({ success: true, data: slots, duration });
   });
 }

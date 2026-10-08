@@ -9,6 +9,7 @@ import type { FastifyInstance } from "fastify";
 import { eq, and, ilike, isNull, desc, gte, lte, sql, count } from "drizzle-orm";
 import { db } from "@db/connection";
 import postgres from "postgres";
+import { checkAgendaRules, lockProfessional, AgendaRuleError, OCCUPYING_STATUSES } from "./appointments/agenda-rules.js";
 import { env, EMAIL_FROM } from "@config/env";
 import { normalizeBusinessType, isFeatureAllowed, BUSINESS_TYPES } from "@config/features";
 const _rawClient = postgres(env.POSTGRES_URL, { prepare: false, ssl: env.POSTGRES_SSL ? { rejectUnauthorized: false } : false });
@@ -361,9 +362,24 @@ export async function appointmentsModule(fastify: FastifyInstance) {
       services: (svcs ?? []).map((s) => s.serviceId),
     })) return;
     const values = { ...body, tenantId, createdBy: userId, updatedBy: userId };
-const [appt] = await db.insert(appointments).values(values).returning();
-    if (svcs?.length) {
-      await db.insert(appointmentServices).values(svcs.map((s) => ({ ...s, appointmentId: appt.id, tenantId })));
+    // Regras da agenda (habilitado, jornada/bloqueio, choque) conferidas e gravadas sob a trava do profissional.
+    let appt: any;
+    try {
+      appt = await db.transaction(async (tx) => {
+        await lockProfessional(tx, tenantId, body.professionalId);
+        if (OCCUPYING_STATUSES.includes((body.status ?? "pending") as any)) {
+          await checkAgendaRules(tx, { tenantId, professionalId: body.professionalId, scheduledAt: body.scheduledAt, endsAt: body.endsAt,
+            services: (svcs ?? []).map((s) => ({ serviceId: s.serviceId, professionalId: s.professionalId })) });
+        }
+        const [a] = await tx.insert(appointments).values(values).returning();
+        if (svcs?.length) {
+          await tx.insert(appointmentServices).values(svcs.map((s) => ({ ...s, appointmentId: a.id, tenantId })));
+        }
+        return a;
+      });
+    } catch (e) {
+      if (e instanceof AgendaRuleError) return reply.status(e.status).send({ success: false, code: e.code, error: e.message });
+      throw e;
     }
     auditLog({ tenantId, userId, action: "appointment.created", tableName: "appointments", recordId: appt.id, newData: { scheduledAt: appt.scheduledAt, totalPrice: appt.totalPrice } });
     return reply.status(201).send({ success: true, data: appt });
@@ -373,10 +389,37 @@ const [appt] = await db.insert(appointments).values(values).returning();
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(appointmentUpdateDto, req, reply); if (!body) return;
     if (await rejectForeignRefs(reply, tenantId, { clients: [body.clientId], professionals: [body.professionalId] })) return;
-    const [appt] = await db.update(appointments)
-      .set({ ...body, updatedBy: userId, updatedAt: new Date() })
-      .where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)))
-      .returning();
+    // Mudou horário, profissional ou status: confere as regras da agenda com os valores finais (o próprio não conta).
+    const touchesSlot = ["scheduledAt", "endsAt", "durationMinutes", "professionalId", "status"].some((k) => k in body);
+    let appt: any;
+    try {
+      appt = await db.transaction(async (tx) => {
+        const [cur] = await tx.select().from(appointments)
+          .where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId), isNull(appointments.deletedAt)));
+        if (!cur) return null;
+        if (touchesSlot) {
+          const profId = "professionalId" in body ? body.professionalId : cur.professionalId;
+          const status = (body.status ?? cur.status) as any;
+          const start = body.scheduledAt ?? cur.scheduledAt;
+          const end = body.endsAt ?? (body.durationMinutes || body.scheduledAt
+            ? new Date(new Date(start).getTime() + (body.durationMinutes ?? cur.durationMinutes ?? 60) * 60000)
+            : cur.endsAt ?? new Date(new Date(start).getTime() + (cur.durationMinutes ?? 60) * 60000));
+          await lockProfessional(tx, tenantId, profId);
+          if (OCCUPYING_STATUSES.includes(status)) {
+            await checkAgendaRules(tx, { tenantId, professionalId: profId, scheduledAt: new Date(start), endsAt: new Date(end), ignoreAppointmentId: cur.id });
+          }
+        }
+        const [a] = await tx.update(appointments)
+          .set({ ...body, updatedBy: userId, updatedAt: new Date() })
+          .where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)))
+          .returning();
+        return a;
+      });
+    } catch (e) {
+      if (e instanceof AgendaRuleError) return reply.status(e.status).send({ success: false, code: e.code, error: e.message });
+      throw e;
+    }
+    if (!appt) return reply.status(404).send({ success: false, code: "NOT_FOUND", error: "Agendamento não encontrado." });
     return reply.send({ success: true, data: appt });
   });
 
