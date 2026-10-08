@@ -27,6 +27,15 @@ nesse período curto, o que não prova nada sobre antes. Ação: log de acesso d
 `/var/log/traefik/access.log`, 30 dias, `/etc/logrotate.d/traefik`) agendado para 08/10 21h05
 (`/root/traefik-accesslog/aplicar.sh`, timer `traefik-accesslog`, volta sozinho se algum site mudar de resposta).
 
+**Backup fora da VPS (08/10/2026):** Cloudflare R2, bucket `vps-backups` (ciclo de vida 30 dias, bucket lock 29 dias),
+token "Object Read & Write" só nesse bucket (conferido: acesso negado ao `agroconsult-knowledge`). Cópia diária
+criptografada com rclone crypt (`/root/backup-r2.env`, 600) e conferida com `cryptcheck`. Senha e salt do crypt ficam
+FORA da VPS: gerenciador de senhas do Google (item `backup-vps-r2.local`) e papel. Teste de restauração feito no
+computador local com a senha copiada do gerenciador: `2026-10-08_2006` baixado e descriptografado, 12 arquivos ok no
+SHA256SUMS, `zensalon` restaurado num Postgres 15 descartável = produção (69 tabelas, 2151 linhas), uploads 54 arquivos.
+A pasta enviada às 19:55 UTC usa uma senha descartada (não abre; some sozinha em 30 dias).
+Aviso no backup: `collation version mismatch` nos bancos `postgres` e `vps_migrator` (avaliar `REFRESH COLLATION VERSION`).
+
 **Pendente, ANTES de qualquer conta conectar o WhatsApp:** o `POST /public/appointments` tenta mandar a confirmação
 por WhatsApp **três vezes** (`appointments.routes.ts` ~220, ~243, ~255). Hoje nada sai (nenhuma instância `open`;
 telefone DDD 00 bloqueado). Atenção: a conta `beautytech` (pro, cloud) está com a instância em `connecting` com
