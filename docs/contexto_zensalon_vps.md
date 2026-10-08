@@ -2,6 +2,36 @@
 
 Atualizado em 08/10/2026. Colar no início da próxima conversa.
 
+## ONDE PARAMOS (08/10, ~18h) — continuar em 09/10
+**Estado:** produção = `vps` = `main` = `080f031` (código `2374e7e` + script de backup + docs); `ramo-pilates` = docs
+à frente (sem efeito na VPS). Tag de volta: `antes-2374e7e` (= `02f2685`; as imagens `:antes-2374e7e` somem com o
+prune noturno).
+
+**Feito hoje (08/10):** furo das rotas públicas fechado e conferido (seção SEGURANÇA abaixo); 4.5 (retroativo do
+exemplo) e 4.6 (`main` = `vps`) concluídos; backup diário criptografado no R2 + restauração testada (ver abaixo).
+
+**Primeiro a fazer em 09/10:**
+1. **Conferir o Traefik:** a troca rodou sozinha às 21h05 de 08/10 (timer `traefik-accesslog`). Ler
+   `/root/traefik-accesslog/resultado.txt` (última linha `RESULTADO: OK | VOLTOU | FALHOU`), conferir os 12 sites
+   (ZenSalon, Evolution, n8n, Petshop, AgroConsult site/API/login, AgroLab app/API/login, Ollama), que
+   `/var/log/traefik/access.log` está crescendo e `logrotate -d /etc/logrotate.d/traefik`. Se VOLTOU: ver o motivo no
+   resultado antes de tentar de novo (fora do horário comercial). Apagar o timer/unidade transitória depois.
+2. **Conferir o backup das 03h10 de 09/10** no `/var/log/backup-bancos.log`: precisa ter
+   `R2: enviado e conferido (criptografado)` e `== OK`.
+
+**Próximos, nesta ordem:**
+3. **Envio triplo de WhatsApp** no `POST /public/appointments` (`appointments.routes.ts` ~220, ~243, ~255): deixar
+   uma confirmação só, com teste garantindo exatamente 1 envio; subir só a API. OBRIGATÓRIO antes de qualquer conta
+   conectar (hoje nenhuma instância `open`; `beautytech` em `connecting`; `sal-o-beleza-pura` usa a instância
+   `zensalon` da plataforma).
+4. Mensagem do 429 por IP sai em inglês ("Rate limit exceeded"): traduzir (o 429 por telefone já é em português).
+5. Incluir no backup o `evolution-postgres` e o volume do n8n (hoje fora).
+6. Aviso `collation version mismatch` nos bancos `postgres` e `vps_migrator`: avaliar `REFRESH COLLATION VERSION`.
+7. Opcional: trocar o token do R2 e a senha do crypt (passaram pela conversa), mesmo roteiro de 08/10; guardar a senha
+   também na conta Google principal (hoje só na conta "J" + papel).
+8. Pendências que já estavam na lista: horários do exemplo, limite do plano grátis contando apagados/cancelados,
+   itens 3/5/2/1/4 da seção de 07/10.
+
 ## SEGURANÇA — furo nas rotas públicas (fechado em 08/10/2026, `2374e7e`)
 **O que expunha (rotas sem login, no ar desde antes da VPS, vindas do Railway):**
 - `GET /public/my-appointments?whatsapp=<número>`: listava até 100 agendamentos de quem tivesse aquele número, **em
