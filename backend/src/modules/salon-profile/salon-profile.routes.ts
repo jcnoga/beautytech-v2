@@ -186,6 +186,7 @@ export async function salonProfilePublicModule(fastify: FastifyInstance) {
       LEFT JOIN appointment_services aps ON aps.appointment_id = a.id
       LEFT JOIN services s             ON s.id = aps.service_id
       WHERE regexp_replace(c.whatsapp, '\D', '', 'g') = ${digits}
+        AND a.deleted_at IS NULL
       GROUP BY a.id, a.scheduled_at, a.status, t.name, t.slug, p.full_name
       ORDER BY a.scheduled_at DESC
       LIMIT 100

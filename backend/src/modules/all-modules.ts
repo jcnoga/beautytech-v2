@@ -301,10 +301,25 @@ export async function appointmentsModule(fastify: FastifyInstance) {
     return reply.send({ success: true, data, total: Number(total), page: Number(page ?? 1), limit: l, totalPages: Math.ceil(Number(total) / l) });
   });
 
+  // Excluir agendamento = marcar deleted_at (some da Agenda, relatórios, disponibilidade e lembretes). Só pendente,
+  // confirmado ou cancelado: concluído/em atendimento/não compareceu ficam (Financeiro, comissão, histórico).
+  // Conferência e marcação num comando só (id + conta + status permitido + ainda não apagado). Se nada foi marcado,
+  // a leitura seguinte só escolhe a resposta: 409 (status não permite) ou 404 (não existe, outra conta ou já apagado).
   fastify.delete("/appointments/:id", { preHandler: [authenticate] }, async (req: any, reply) => {
-    const { tenantId } = req.tenantContext;
-    await db.update(appointments).set({ deletedAt: new Date() }).where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId)));
-    return reply.status(204).send();
+    const { tenantId, userId } = req.tenantContext;
+    const id = String(req.params.id);
+    const notFound = () => reply.status(404).send({ success: false, error: "Agendamento não encontrado.", code: "NOT_FOUND" });
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return notFound();
+    const done = await db.update(appointments).set({ deletedAt: new Date(), updatedBy: userId, updatedAt: new Date() })
+      .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId), isNull(appointments.deletedAt),
+        sql`${appointments.status} IN ('pending','confirmed','cancelled')`))
+      .returning({ id: appointments.id });
+    if (done.length) return reply.status(204).send();
+    const [cur] = await db.select({ status: appointments.status }).from(appointments)
+      .where(and(eq(appointments.id, id), eq(appointments.tenantId, tenantId), isNull(appointments.deletedAt)));
+    if (!cur) return notFound();
+    return reply.status(409).send({ success: false, code: "APPOINTMENT_NOT_DELETABLE",
+      error: "Só é possível excluir agendamento pendente, confirmado ou cancelado." });
   });
 
   

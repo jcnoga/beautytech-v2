@@ -1621,6 +1621,10 @@ function AgendaPage() {
         {["pending","confirmed"].includes(a.appointment?.status) && (
           <Btn small variant="danger" onClick={(e: any) => { e.stopPropagation(); changeStatus(a.appointment.id,"cancelled"); }}>?</Btn>
         )}
+        {/* Excluir: só pendente, confirmado ou cancelado (o backend confere de novo); some da Agenda */}
+        {["pending","confirmed","cancelled"].includes(a.appointment?.status) && (
+          <Btn small variant="secondary" onClick={(e: any) => { e.stopPropagation(); deleteAppointment(a.appointment.id); }}>Excluir</Btn>
+        )}
         <WaButton client={a.client} status={a.appointment?.status} scheduledAt={a.appointment?.scheduledAt} />
       </div>
     )},

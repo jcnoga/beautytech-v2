@@ -139,6 +139,26 @@ test("lembretes e reativação: só o cliente real entra na fila", async () => {
   assert.deepEqual(rows.map((r) => [r.client_id, r.message]), [[real, "Lembrete Real"], [real, "Saudade, Real"]]);
 });
 
+test("lembretes 24h e 2h: agendamento apagado (deleted_at) não gera lembrete", async () => {
+  const { checkAppointmentReminders } = await import("../src/jobs/scheduler");
+  await sql`DELETE FROM notifications WHERE tenant_id = ${T.id}`;
+  await sql`INSERT INTO message_templates (tenant_id, name, trigger, message, is_active)
+    VALUES (${T.id}, 'appointment_reminder_2h', 'appointment_reminder_2h', 'Daqui a pouco, {nome}', true)`;
+  const [c] = await sql`INSERT INTO clients (tenant_id, full_name, whatsapp) VALUES (${T.id}, 'Apagado Cliente', '(34) 97777-3333') RETURNING id`;
+  for (const at of ["24 hours", "2 hours"]) {
+    await sql`INSERT INTO appointments (tenant_id, client_id, scheduled_at, ends_at, status, deleted_at)
+      VALUES (${T.id}, ${c.id}, now() + ${at}::interval, now() + ${at}::interval + interval '1 hour', 'confirmed', now())`;
+  }
+  const [vivo] = await sql`INSERT INTO clients (tenant_id, full_name, whatsapp) VALUES (${T.id}, 'Ativo Cliente', '(34) 97777-4444') RETURNING id`;
+  await sql`INSERT INTO appointments (tenant_id, client_id, scheduled_at, ends_at, status)
+    VALUES (${T.id}, ${vivo.id}, now() + interval '2 hours', now() + interval '3 hours', 'confirmed')`;
+  await checkAppointmentReminders();
+  const n = await sql`SELECT message FROM notifications WHERE tenant_id = ${T.id} AND client_id = ${c.id}`;
+  assert.deepEqual(n.map((r) => r.message), [], "nenhum lembrete para agendamento apagado");
+  const ok = await sql`SELECT message FROM notifications WHERE tenant_id = ${T.id} AND client_id = ${vivo.id}`;
+  assert.deepEqual(ok.map((r) => r.message), ["Daqui a pouco, Ativo"], "o não apagado recebe (o teste não passa à toa)");
+});
+
 test("envio manual: registro de teste recusado (422); cliente real entra na fila", async () => {
   for (const c of [fake, disguised]) {
     const r = await req("POST", "/automations/notifications/send-manual", { clientId: c, message: "oi" });

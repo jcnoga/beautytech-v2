@@ -201,6 +201,7 @@ export async function professionalScheduleRoutes(fastify: any) {
       AND scheduled_at >= ${dateStart}
       AND scheduled_at <= ${dateEnd}
       AND status NOT IN ('cancelled','no_show')
+      AND deleted_at IS NULL
     `);
     const appointments = (appResult as any).rows ?? [];
 
