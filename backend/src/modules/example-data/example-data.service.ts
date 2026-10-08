@@ -258,13 +258,18 @@ async function removalPlan(exec: any, tenantId: string, edges: Awaited<ReturnTyp
   for (const k of await repo.sharedInUse(exec, tenantId, m, edges)) m.get(k.table)?.delete(k.id);
   const linked = await repo.linkedOutside(exec, tenantId, m, annotated, edges);
   const toDelete = Object.fromEntries([...m].filter(([, ids]) => ids.size > 0).map(([t, ids]) => [t, ids.size]));
-  return { batchIds, m, toDelete, linked };
+  // Só os registros anotados no lote (sem os arrastados). Com ligação a dado real, a tela mostra estes: o "toDelete"
+  // incluiria o próprio dado real (ex.: o agendamento do cliente real), e ele não sai.
+  const examples = Object.fromEntries([...m]
+    .map(([t, ids]) => [t, [...ids].filter((id) => annotated.has(`${t}:${id}`)).length] as const)
+    .filter(([, n]) => n > 0));
+  return { batchIds, m, toDelete, examples, linked };
 }
 
-/** Prévia do "Remover dados de exemplo": o que sai (por tabela) e o que está ligado a dados reais. Não apaga nada. */
+/** Prévia do "Remover dados de exemplo": o que sai (por tabela), o que é exemplo e o que está ligado a dados reais. Não apaga nada. */
 export async function previewExampleRemoval(tenantId: string) {
-  const { batchIds, toDelete, linked } = await removalPlan(db, tenantId, await ops.fkEdges(db));
-  return { exists: batchIds.length > 0, toDelete, linkedOutside: linked };
+  const { batchIds, toDelete, examples, linked } = await removalPlan(db, tenantId, await ops.fkEdges(db));
+  return { exists: batchIds.length > 0, toDelete, examples, linkedOutside: linked };
 }
 
 /** Remove os dados de exemplo: tudo ou nada, sob a trava da conta. 409 se não houver exemplo ou se houver ligação com dado real. */

@@ -142,6 +142,10 @@ test("agendamento de cliente real com profissional de exemplo: remover recusado,
     VALUES (${SALON.id}, ${SALON.realClient}, ${prof.id}, 'confirmed', now() + interval '2 days', now() + interval '2 days 1 hour', 60) RETURNING id`;
   const p = data(await req("GET", "/demo/examples", SALON.owner));
   assert.deepEqual(p.linkedOutside, { appointments: 1 });
+  // o agendamento real sairia por arrasto (toDelete), mas não é exemplo: a tela bloqueada mostra só "examples"
+  assert.equal(p.toDelete.appointments, 7);
+  assert.equal(p.examples.appointments, 6);
+  assert.equal(p.examples.clients, 5);
   const mid = await counts(SALON);
   const r = await req("DELETE", "/demo/examples", SALON.owner);
   assert.deepEqual([r.statusCode, r.json().code], [409, "LINKED_TO_REAL_DATA"]);

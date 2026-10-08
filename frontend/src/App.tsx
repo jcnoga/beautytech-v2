@@ -3686,20 +3686,28 @@ function ExampleDataModal({ onClose }: { onClose: (removed: boolean) => void }) 
     if (running.current) return;
     running.current = true; setBusy(true); setError(null);
     try { setDone((await api.delete<any>("/demo/examples")).data); }
-    catch (e: any) { setError({ message: e.message, code: e.code, linked: e.data?.linked }); await load(); }
+    catch (e: any) {
+      // recarrega a prévia (que limpa o erro) e só depois mostra o aviso da recusa, para ele não sumir
+      const err = { message: e.message, code: e.code, linked: e.data?.linked };
+      await load(); setError(err);
+    }
     finally { running.current = false; setBusy(false); }
   };
 
   const box: any = { background: C.surface, borderWidth: 1, borderStyle: "solid", borderColor: C.border, borderRadius: 12, padding: "12px 14px", marginBottom: 14 };
   const linked = preview?.linkedOutside ?? {};
-  const linkedText = (l: Record<string, number>) =>
-    `Há dados de exemplo ligados a dados reais: ${Object.entries(l).map(([t, n]) => `${tableLabel(t)}: ${n}`).join("; ")}. Nada foi apagado.`;
+  const blocked = Object.keys(linked).length > 0;
+  const linkedList = (l: Record<string, number>) => Object.entries(l).map(([t, n]) => `${tableLabel(t)}: ${n}`).join("; ");
+  // Recusa por ligação: se a prévia já mostra o quadro com o motivo, o aviso só diz que nada foi apagado.
+  const errorText = (er: any) => er.code !== "LINKED_TO_REAL_DATA" ? er.message
+    : blocked || !er.linked ? "A remoção foi recusada. Nada foi apagado."
+    : `A remoção foi recusada: há dados de exemplo ligados a dados reais (${linkedList(er.linked)}). Nada foi apagado.`;
 
   return (
     <Modal open onClose={busy ? undefined : () => onClose(!!done)} title="Remover dados de exemplo" width={620}>
       {error && (
         <div style={{ ...box, borderColor: C.ruby, fontSize: 15, color: C.ruby, fontWeight: 700 }}>
-          {error.code === "LINKED_TO_REAL_DATA" && error.linked ? linkedText(error.linked) : error.message}
+          {errorText(error)}
         </div>
       )}
       {done ? (<>
@@ -3717,14 +3725,20 @@ function ExampleDataModal({ onClose }: { onClose: (removed: boolean) => void }) 
           Remove os profissionais, serviços, clientes, agendamentos e lançamentos de exemplo criados no cadastro.
           Seus dados reais, logins e configurações não são apagados.
         </div>
+        {/* bloqueado: mostra só o que é exemplo (o "Será apagado" contaria também o dado real ligado, que não sai) */}
         <div style={box}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Será apagado ({sumCounts(preview.toDelete)} registros):</div>
-          <CountsList counts={preview.toDelete} />
+          {blocked ? (<>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Dados de exemplo nesta conta ({sumCounts(preview.examples)} registros):</div>
+            <CountsList counts={preview.examples} />
+          </>) : (<>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Será apagado ({sumCounts(preview.toDelete)} registros):</div>
+            <CountsList counts={preview.toDelete} />
+          </>)}
         </div>
-        {Object.keys(linked).length > 0 ? (<>
+        {blocked ? (<>
           <div style={{ ...box, borderColor: C.ruby }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 8 }}>Não é possível remover agora:</div>
-            <div style={{ fontSize: 14, color: C.text, marginBottom: 8 }}>{linkedText(linked)}</div>
+            <div style={{ fontSize: 14, color: C.text, marginBottom: 8 }}>Há dados de exemplo ligados a dados reais: {linkedList(linked)}.</div>
             <div style={{ fontSize: 14, color: C.text }}>Exemplo: um agendamento de cliente real com um profissional de exemplo. Troque o profissional ou apague esse registro e tente de novo.</div>
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
