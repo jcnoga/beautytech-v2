@@ -3,18 +3,28 @@
 # AgroConsult, AgroNexo, OdontoPro, GoTrues...) e do volume de uploads do ZenSalon.
 # - Um pg_dump (formato custom) por banco + pg_dumpall --globals-only (papéis e senhas).
 # - Guarda os 7 backups mais recentes em /opt/backups/diario/<data>.
-# - Se existir /root/backup-r2.env, envia uma cópia para o Cloudflare R2 (rclone em container, nada
-#   instalado na VPS) e apaga no R2 o que tiver mais de R2_DIAS dias (padrão 30).
+# - Se existir /root/backup-r2.env, envia uma cópia CRIPTOGRAFADA (rclone crypt) para o Cloudflare R2 (rclone em
+#   container, nada instalado na VPS) e confere com cryptcheck. Sem o remote crypt "r2c" no arquivo, não envia nada.
+#   Os antigos são apagados pela regra de ciclo de vida do bucket (30 dias), não por este script: o token não
+#   precisa apagar e um erro aqui nunca some com backup.
 # Só lê os bancos; não altera nenhum sistema.
 #
-# /root/backup-r2.env (chmod 600):
-#   R2_BUCKET=<nome do bucket>
+# /root/backup-r2.env (chmod 600). Senha e salt do crypt ficam guardados FORA da VPS (gerenciador de senhas e papel);
+# aqui só a forma "obscure" do rclone, que a VPS precisa para criptografar (quem é root na VPS consegue revertê-la:
+# a criptografia protege o que está no R2 e um vazamento do token, não uma invasão da VPS).
+#   R2_BUCKET=vps-backups
 #   RCLONE_CONFIG_R2_TYPE=s3
 #   RCLONE_CONFIG_R2_PROVIDER=Cloudflare
 #   RCLONE_CONFIG_R2_ACCESS_KEY_ID=...
 #   RCLONE_CONFIG_R2_SECRET_ACCESS_KEY=...
 #   RCLONE_CONFIG_R2_ENDPOINT=https://<id da conta>.r2.cloudflarestorage.com
-#   RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true
+#   RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true          (token restrito ao bucket não lista buckets)
+#   RCLONE_CONFIG_R2C_TYPE=crypt
+#   RCLONE_CONFIG_R2C_REMOTE=r2:vps-backups/vps
+#   RCLONE_CONFIG_R2C_PASSWORD=<rclone obscure da senha>
+#   RCLONE_CONFIG_R2C_PASSWORD2=<rclone obscure do salt>
+#
+# Restaurar (em qualquer máquina, com a senha e o salt guardados fora): ver deploy/README.md, "Backup no R2".
 #
 # Uso (na VPS): sh /opt/apps/zensalon/deploy/backup-bancos.sh   (o cron roda todo dia; ver deploy/README.md)
 set -eu
@@ -22,7 +32,6 @@ PG="${PG_CONTAINER:-vps-migrator-postgres}"
 BASE="${BACKUP_DIR:-/opt/backups/diario}"
 MANTER="${MANTER:-7}"
 R2_ENV="${R2_ENV:-/root/backup-r2.env}"
-R2_DIAS="${R2_DIAS:-30}"
 RCLONE_IMAGE="${RCLONE_IMAGE:-rclone/rclone:1.68}"
 UPLOADS_VOL="${UPLOADS_VOL:-zensalon_uploads}"
 
@@ -78,13 +87,13 @@ if [ -d "$CONTAS_DIR" ]; then
 fi
 
 if [ -f "$R2_ENV" ]; then
-  R2_BUCKET=$(sed -n 's/^R2_BUCKET=//p' "$R2_ENV")
   r2() { docker run --rm --env-file "$R2_ENV" -v "$BASE:/data:ro" "$RCLONE_IMAGE" "$@"; }
-  if r2 copy "/data/$NOME" "r2:$R2_BUCKET/vps/$NOME" --stats-one-line --stats 0; then
-    echo "   R2: enviado para $R2_BUCKET/vps/$NOME"
-    r2 delete "r2:$R2_BUCKET/vps" --min-age "${R2_DIAS}d" || echo "AVISO: limpeza antiga no R2 falhou"
+  if ! grep -q '^RCLONE_CONFIG_R2C_TYPE=crypt$' "$R2_ENV"; then
+    echo "ERRO: $R2_ENV sem o remote crypt r2c; nada enviado (backup nunca sai sem criptografia)"; FALHAS=$((FALHAS+1))
+  elif r2 copy "/data/$NOME" "r2c:$NOME" --stats-one-line --stats 0 && r2 cryptcheck "/data/$NOME" "r2c:$NOME" -q; then
+    echo "   R2: enviado e conferido (criptografado) em r2c:$NOME"
   else
-    echo "ERRO: envio para o R2"; FALHAS=$((FALHAS+1))
+    echo "ERRO: envio ou conferência no R2"; FALHAS=$((FALHAS+1))
   fi
 else
   echo "   R2: $R2_ENV não existe; cópia externa pulada"

@@ -64,7 +64,7 @@ docker exec -i vps-migrator-postgres psql -U <superusuário> -d postgres \
 
 ## Backup (todos os bancos da VPS + uploads do ZenSalon)
 
-`deploy/backup-bancos.sh` faz um `pg_dump` de **cada banco** do `vps-migrator-postgres` (todos os sistemas, não só o ZenSalon), `pg_dumpall --globals-only` (papéis) e um `tar.gz` do volume `zensalon_uploads`. Guarda os 7 mais recentes em `/opt/backups/diario/` e, se existir `/root/backup-r2.env` (formato no cabeçalho do script), envia uma cópia para o Cloudflare R2 (retenção de 30 dias lá).
+`deploy/backup-bancos.sh` faz um `pg_dump` de **cada banco** do `vps-migrator-postgres` (todos os sistemas, não só o ZenSalon), `pg_dumpall --globals-only` (papéis) e um `tar.gz` do volume `zensalon_uploads`. Guarda os 7 mais recentes em `/opt/backups/diario/` e, se existir `/root/backup-r2.env` (formato no cabeçalho do script), envia uma cópia **criptografada** para o Cloudflare R2 (ver "Backup no R2" abaixo).
 
 ```bash
 # Cron: todo dia às 03:10 de Brasília (06:10 UTC; a VPS está em UTC)
@@ -81,6 +81,29 @@ Restaurar de verdade um banco (ex.: `zensalon`), com o sistema parado:
 `docker exec -i vps-migrator-postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d zensalon --clean --if-exists' < /opt/backups/diario/<data>/zensalon.dump`.
 Não cobre `evolution-postgres` nem o volume do n8n (ficam fora do Postgres compartilhado).
 
+### Backup no R2 (bucket `vps-backups`, criptografado com rclone crypt)
+- Cada backup diário vai para `r2c:<data>` (no bucket: `vps-backups/vps/<nomes embaralhados>`) e é conferido com
+  `cryptcheck`. Sem o remote crypt `r2c` no `/root/backup-r2.env`, o script não envia nada.
+- Retenção: **regra de ciclo de vida do bucket (30 dias)**. O script não apaga nada no R2.
+- Token do R2: só "Object Read & Write" no bucket `vps-backups`.
+- **Senha e salt do crypt ficam FORA da VPS** (gerenciador de senhas e papel). Sem eles, o que está no R2 é ilegível
+  para sempre. Na VPS só existe a forma `rclone obscure` (reversível por quem é root lá).
+
+Restaurar em qualquer máquina com Docker, digitando a senha e o salt guardados (nada fica gravado em disco):
+```bash
+read -r -s -p "senha: " S; echo; read -r -s -p "salt: " T; echo
+export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true \
+  RCLONE_CONFIG_R2_ENDPOINT=https://<id da conta>.r2.cloudflarestorage.com \
+  RCLONE_CONFIG_R2_ACCESS_KEY_ID=... RCLONE_CONFIG_R2_SECRET_ACCESS_KEY=... \
+  RCLONE_CONFIG_R2C_TYPE=crypt RCLONE_CONFIG_R2C_REMOTE=r2:vps-backups/vps
+export RCLONE_CONFIG_R2C_PASSWORD=$(docker run --rm rclone/rclone:1.68 obscure "$S")
+export RCLONE_CONFIG_R2C_PASSWORD2=$(docker run --rm rclone/rclone:1.68 obscure "$T")
+R="docker run --rm -e RCLONE_CONFIG_R2_TYPE -e RCLONE_CONFIG_R2_PROVIDER -e RCLONE_CONFIG_R2_NO_CHECK_BUCKET -e RCLONE_CONFIG_R2_ENDPOINT -e RCLONE_CONFIG_R2_ACCESS_KEY_ID -e RCLONE_CONFIG_R2_SECRET_ACCESS_KEY -e RCLONE_CONFIG_R2C_TYPE -e RCLONE_CONFIG_R2C_REMOTE -e RCLONE_CONFIG_R2C_PASSWORD -e RCLONE_CONFIG_R2C_PASSWORD2 -v $PWD/restaurado:/out rclone/rclone:1.68"
+$R lsd r2c:                                   # lista as datas
+$R copy r2c:<data> /out/<data>                # baixa e descriptografa
+(cd restaurado/<data> && sha256sum -c SHA256SUMS)
+```
+
 ### Backups do "Excluir conta" (`/opt/backups/contas`)
 Antes de excluir uma conta, o Super Admin grava um backup só dela em `/opt/backups/contas/<data>_<slug>_<id8>/`
 (manifest, dados, logins sem senha, arquivos e sha256sums). **Contém dados pessoais.**
@@ -88,7 +111,7 @@ Antes de excluir uma conta, o Super Admin grava um backup só dela em `/opt/back
 - Acesso: só root (pasta 700, arquivos 600; a API roda como root no container).
 - Retenção: **90 dias** contados da exclusão. O `backup-bancos.sh` (cron diário, root) apaga os mais antigos e reaplica o 700.
 - Pedido do titular para apagar antes (LGPD): o dono do sistema apaga a pasta da conta à mão (`rm -rf /opt/backups/contas/<pasta>`).
-  Lembrar que o backup diário completo (`/opt/backups/diario`, 7 dias; R2, 30 dias quando configurado) também tem os dados até girar.
+  Lembrar que o backup diário completo (`/opt/backups/diario`, 7 dias; R2, 30 dias pela regra do bucket) também tem os dados até girar.
 - Restaurar: `docker run --rm --env-file .env.api ... -v /opt/backups/contas:/data/backups-contas zensalon-api node --import tsx scripts/restaurar-conta.ts /data/backups-contas/<pasta>`
   (sem `ZS_CONFIRMAR_RESTAURACAO=sim` só confere; com ele, aplica). Depois, cada usuário entra com "Esqueci minha senha".
 
