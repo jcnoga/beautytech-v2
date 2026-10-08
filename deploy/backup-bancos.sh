@@ -26,6 +26,10 @@ R2_DIAS="${R2_DIAS:-30}"
 RCLONE_IMAGE="${RCLONE_IMAGE:-rclone/rclone:1.68}"
 UPLOADS_VOL="${UPLOADS_VOL:-zensalon_uploads}"
 
+# Nenhum comando daqui lê a entrada: fechá-la evita que docker exec/run engulam o que vem depois de quem chamou
+# (ex.: o resto de um bloco enviado por ssh, que antes sumia sem aviso).
+exec < /dev/null
+
 # Nunca duas execuções ao mesmo tempo.
 exec 9> /var/lock/backup-bancos.lock
 flock -n 9 || { echo "Outro backup em andamento; saindo."; exit 1; }
@@ -37,7 +41,7 @@ mkdir -p "$DIR"
 echo "== $(date -u '+%F %T') UTC  backup em $DIR"
 
 # Superusuário do próprio container (conexão pelo socket local, sem senha).
-psql_pg() { docker exec -i -e PGOPTIONS='-c client_min_messages=error' "$PG" sh -c 'exec "$@" -U "$POSTGRES_USER"' sh "$@"; }
+psql_pg() { docker exec -e PGOPTIONS='-c client_min_messages=error' "$PG" sh -c 'exec "$@" -U "$POSTGRES_USER"' sh "$@"; }
 
 FALHAS=0
 psql_pg pg_dumpall --globals-only > "$DIR/globals.sql" || { echo "ERRO: globals"; FALHAS=$((FALHAS+1)); }
