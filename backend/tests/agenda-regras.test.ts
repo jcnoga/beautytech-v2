@@ -192,3 +192,37 @@ test("página pública: horário de Brasília, mesmos horários livres da agenda
   const [x, y] = await Promise.all([pub(DAY2, "14:00"), book(P, S1, DAY2, "14:00")]);
   assert.deepEqual([x.statusCode, y.statusCode].sort(), [201, 409], "pública e interna ao mesmo tempo: só uma passa");
 });
+
+test("reativar (cancelado/não compareceu → status que ocupa) confere choque; pelas rotas de ação e pela edição", async () => {
+  const D = "2030-01-09"; // quarta
+  const a = (await book(P, S1, D, "09:00")).json().data;
+  assert.equal((await req("POST", `/appointments/${a.id}/cancel`, { reason: "x" })).statusCode, 200);
+  const b = await book(P, S1, D, "09:00");
+  assert.equal(b.statusCode, 201, "horário liberado pelo cancelado foi ocupado por outro");
+
+  for (const [method, url, payload] of [
+    ["POST", `/appointments/${a.id}/confirm`, undefined],
+    ["POST", `/appointments/${a.id}/checkin`, undefined],
+    ["POST", `/appointments/${a.id}/complete`, {}],
+    ["PATCH", `/appointments/${a.id}`, { status: "pending" }],
+  ] as const) {
+    const r = await req(method, url, payload);
+    assert.deepEqual([r.statusCode, r.json().code], [409, "SCHEDULE_CONFLICT"], `${method} ${url}`);
+  }
+  const [{ status }] = await sql`SELECT status FROM appointments WHERE id = ${a.id}`;
+  assert.equal(status, "cancelled", "continua cancelado");
+
+  // não compareceu → confirmado também confere
+  await sql`UPDATE appointments SET status = 'no_show' WHERE id = ${a.id}`;
+  assert.equal((await req("POST", `/appointments/${a.id}/confirm`)).statusCode, 409);
+
+  // liberado o horário (o outro foi cancelado), reativar passa
+  assert.equal((await req("POST", `/appointments/${b.json().data.id}/cancel`, { reason: "x" })).statusCode, 200);
+  const ok = await req("POST", `/appointments/${a.id}/confirm`);
+  assert.equal(ok.statusCode, 200, ok.body);
+  assert.equal(ok.json().data.status, "confirmed");
+
+  // status que ocupa → status que ocupa não confere (confirmado → em atendimento → concluído)
+  assert.equal((await req("POST", `/appointments/${a.id}/checkin`)).statusCode, 200);
+  assert.equal((await req("POST", `/appointments/${a.id}/complete`, {})).statusCode, 200);
+});

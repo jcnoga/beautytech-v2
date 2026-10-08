@@ -1567,7 +1567,7 @@ function AgendaPage() {
           ? { ...a, appointment: { ...a.appointment, status } }
           : a
       ));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { alert(e?.message ?? "Não foi possível mudar o status."); } // ex.: 409 "já tem agendamento das..."
   };
 
   const filtered = filter === "all"

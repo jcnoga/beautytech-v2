@@ -101,9 +101,16 @@ export async function checkAgendaRules(exec: any, c: SlotCheck) {
   }
 
   // 3) choque com outro agendamento do mesmo profissional
+  await checkConflict(exec, c);
+}
+
+/** Regra 3 sozinha: outro agendamento do mesmo profissional ocupando o horário → 409 SCHEDULE_CONFLICT. */
+export async function checkConflict(exec: any, c: Pick<SlotCheck, "tenantId" | "professionalId" | "scheduledAt" | "endsAt" | "ignoreAppointmentId">) {
+  if (!c.professionalId) return;
+  const q = async (s: any) => rows(await exec.execute(s)) as any[];
   const [hit] = await q(sql`SELECT a.scheduled_at, coalesce(a.ends_at, a.scheduled_at + make_interval(mins => coalesce(a.duration_minutes, 60))) AS ends_at,
-      c.full_name AS client
-    FROM appointments a LEFT JOIN clients c ON c.id = a.client_id
+      c.full_name AS client, p.full_name AS prof
+    FROM appointments a LEFT JOIN clients c ON c.id = a.client_id LEFT JOIN professionals p ON p.id = a.professional_id
     WHERE a.tenant_id = ${c.tenantId} AND a.professional_id = ${c.professionalId} AND a.deleted_at IS NULL
       AND a.status IN ${OCCUPYING_SQL}
       ${c.ignoreAppointmentId ? sql`AND a.id <> ${c.ignoreAppointmentId}` : sql``}
@@ -112,9 +119,14 @@ export async function checkAgendaRules(exec: any, c: SlotCheck) {
     ORDER BY a.scheduled_at LIMIT 1`);
   if (hit) {
     throw new AgendaRuleError(409, "SCHEDULE_CONFLICT",
-      `${who} já tem agendamento das ${hmOf(new Date(hit.scheduled_at))} às ${hmOf(new Date(hit.ends_at))}${hit.client ? ` (${hit.client})` : ""}.`);
+      `${hit.prof ?? "O profissional"} já tem agendamento das ${hmOf(new Date(hit.scheduled_at))} às ${hmOf(new Date(hit.ends_at))}${hit.client ? ` (${hit.client})` : ""}.`);
   }
 }
+
+/** Mudança de status que volta a ocupar o horário (cancelado/não compareceu/remarcado → pendente/confirmado/
+ *  em atendimento/concluído): confere choque. Status que ocupa → status que ocupa não confere. */
+export const reoccupies = (from: string | null | undefined, to: string | null | undefined) =>
+  !!to && (OCCUPYING_STATUSES as readonly string[]).includes(to) && !(OCCUPYING_STATUSES as readonly string[]).includes(from ?? "");
 
 /** Trava o profissional até o fim da transação: dois agendamentos ao mesmo tempo não passam juntos pela conferência. */
 export async function lockProfessional(exec: any, tenantId: string, professionalId?: string | null) {
