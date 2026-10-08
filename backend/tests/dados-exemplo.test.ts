@@ -179,6 +179,31 @@ test("histórico automático (aviso enviado a cliente de exemplo) não impede a 
   assert.equal(p.toDelete.notifications, 1, "o aviso sai junto");
 });
 
+test("agendamento à mão com cliente de exemplo: CANCELADO continua impedindo; APAGADO no app libera e sai junto", async () => {
+  const b = await exampleBatch(SALON);
+  const [cl] = await sql`SELECT c.id FROM clients c JOIN test_batch_items i ON i.record_id = c.id AND i.batch_id = ${b.id} LIMIT 1`;
+  const [prof] = await sql`SELECT p.id FROM professionals p JOIN test_batch_items i ON i.record_id = p.id AND i.batch_id = ${b.id} LIMIT 1`;
+  const [svcRow] = await sql`SELECT s.id FROM services s JOIN test_batch_items i ON i.record_id = s.id AND i.batch_id = ${b.id} LIMIT 1`;
+  const [ap] = await sql`INSERT INTO appointments (tenant_id, client_id, professional_id, status, scheduled_at, ends_at, duration_minutes)
+    VALUES (${SALON.id}, ${cl.id}, ${prof.id}, 'confirmed', now() + interval '5 days', now() + interval '5 days 1 hour', 60) RETURNING id`;
+  await sql`INSERT INTO appointment_services (appointment_id, service_id, price, tenant_id) VALUES (${ap.id}, ${svcRow.id}, 50, ${SALON.id})`;
+
+  // cancelar pelo app (status 'cancelled'): continua sendo dado real
+  assert.equal((await req("POST", `/appointments/${ap.id}/cancel`, SALON.owner, { reason: "teste" })).statusCode, 200);
+  let p = data(await req("GET", "/demo/examples", SALON.owner));
+  assert.deepEqual(p.linkedOutside, { appointments: 1, appointment_services: 1 }, "cancelado impede");
+  assert.deepEqual([(await req("DELETE", "/demo/examples", SALON.owner)).statusCode], [409]);
+
+  // apagar pelo app (só marca deleted_at): não impede mais; o agendamento e o item dele sairão junto
+  assert.equal((await req("DELETE", `/appointments/${ap.id}`, SALON.owner)).statusCode, 204);
+  const [{ marcado }] = await sql`SELECT deleted_at IS NOT NULL AS marcado FROM appointments WHERE id = ${ap.id}`;
+  assert.equal(marcado, true, "o app só marca como apagado; o registro continua no banco");
+  p = data(await req("GET", "/demo/examples", SALON.owner));
+  assert.deepEqual(p.linkedOutside, {}, "apagado libera");
+  assert.equal(p.toDelete.appointments, 7, "os 6 do exemplo + o apagado");
+  // (a remoção em si é feita no teste seguinte, que confere que a conta volta ao que era antes do exemplo)
+});
+
 test("remover: só o exemplo sai; conta, logins, configurações e Financeiro ficam, mesmo se anotados no lote", async () => {
   const b = await exampleBatch(SALON);
   // anotação indevida das tabelas protegidas (não acontece no cadastro): mesmo assim nunca saem

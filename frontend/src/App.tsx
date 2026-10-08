@@ -3739,7 +3739,7 @@ function ExampleDataModal({ onClose }: { onClose: (removed: boolean) => void }) 
           <div style={{ ...box, borderColor: C.ruby }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.ruby, marginBottom: 8 }}>Não é possível remover agora:</div>
             <div style={{ fontSize: 14, color: C.text, marginBottom: 8 }}>Há dados reais ligados aos dados de exemplo: {linkedList(linked)}.</div>
-            <div style={{ fontSize: 14, color: C.text }}>Exemplo: um agendamento criado à mão com cliente, profissional ou serviço de exemplo. Troque por um cadastro real e tente de novo.</div>
+            <div style={{ fontSize: 14, color: C.text }}>Exemplo: um agendamento criado à mão com cliente, profissional ou serviço de exemplo. Troque por um cadastro real ou apague o agendamento (cancelar não basta) e tente de novo.</div>
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
             <Btn variant="secondary" onClick={load} disabled={busy}>Atualizar</Btn>

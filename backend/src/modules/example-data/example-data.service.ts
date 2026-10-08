@@ -8,7 +8,8 @@
 //   regras do studio) e as contas/categorias do Financeiro. Ver PROTECTED_TABLES.
 // - Remover: só as linhas dos lotes 'example' (anotadas + arrastadas pelas ligações do banco), numa transação; recusa
 //   (409, nada apagado) se algo arrastado for dado real: qualquer registro não anotado no lote (ex.: agendamento criado
-//   à mão com cliente de exemplo), salvo o histórico automático (HISTORY_TABLES). Mesmo motor do apagar dos dados de teste.
+//   à mão com cliente de exemplo), salvo o histórico automático (HISTORY_TABLES) e o agendamento já APAGADO no app
+//   (deleted_at, com os itens dele); CANCELADO continua impedindo. Mesmo motor do apagar dos dados de teste.
 import { sql } from "drizzle-orm";
 import { db } from "@db/connection";
 import { rows } from "../group-classes/rules";
@@ -245,6 +246,23 @@ export async function seedExampleData(tenantId: string, actor: string) {
   });
 }
 
+/** Agendamentos arrastados (fora do lote) já apagados no app (deleted_at) e os itens deles: "tabela:id". */
+async function discardedAppointments(exec: any, tenantId: string, m: repo.BatchRows, annotated: Set<string>) {
+  const dragged = [...(m.get("appointments") ?? [])].filter((id) => !annotated.has(`appointments:${id}`));
+  const out = new Set<string>();
+  if (!dragged.length) return out;
+  const list = sql.join(dragged.map((i) => sql`${i}`), sql`, `);
+  const apps = rows(await exec.execute(sql`SELECT id::text AS id FROM appointments WHERE tenant_id = ${tenantId}
+    AND deleted_at IS NOT NULL AND id::text IN (${list})`)) as { id: string }[];
+  for (const a of apps) out.add(`appointments:${a.id}`);
+  if (apps.length) {
+    const its = rows(await exec.execute(sql`SELECT id::text AS id FROM appointment_services WHERE tenant_id = ${tenantId}
+      AND appointment_id::text IN (${sql.join(apps.map((a) => sql`${a.id}`), sql`, `)})`)) as { id: string }[];
+    for (const i of its) out.add(`appointment_services:${i.id}`);
+  }
+  return out;
+}
+
 /** Conjunto a remover (todos os lotes de exemplo prontos da conta), sem tabelas protegidas, e as ligações com dado real. */
 async function removalPlan(exec: any, tenantId: string, edges: Awaited<ReturnType<typeof ops.fkEdges>>) {
   const batchIds = await repo.readyExampleBatches(exec, tenantId);
@@ -262,10 +280,13 @@ async function removalPlan(exec: any, tenantId: string, edges: Awaited<ReturnTyp
   // Dado real que sairia junto: todo registro arrastado (não anotado no lote) conta como real, salvo o histórico
   // automático (HISTORY_TABLES), que sai junto sem impedir.
   // Ex.: agendamento criado à mão com cliente e profissional de exemplo: não aponta para fora, mas é real.
+  // Agendamento APAGADO no app (deleted_at; o "Apagar" só marca) não impede e sai junto, com os itens dele.
+  // CANCELADO (status) continua contando como real. Comissão, lançamento, avaliação etc. de apagado continuam impedindo.
+  const free = await discardedAppointments(exec, tenantId, m, annotated);
   const linked: Record<string, number> = {};
   for (const [t, ids] of m) {
     if (HISTORY_TABLES.has(t)) continue;
-    const n = [...ids].filter((id) => !annotated.has(`${t}:${id}`)).length;
+    const n = [...ids].filter((id) => !annotated.has(`${t}:${id}`) && !free.has(`${t}:${id}`)).length;
     if (n > 0) linked[t] = n;
   }
   const toDelete = Object.fromEntries([...m].filter(([, ids]) => ids.size > 0).map(([t, ids]) => [t, ids.size]));
