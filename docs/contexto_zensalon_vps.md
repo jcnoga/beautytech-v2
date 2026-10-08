@@ -2,6 +2,37 @@
 
 Atualizado em 08/10/2026. Colar no início da próxima conversa.
 
+## SEGURANÇA — furo nas rotas públicas (fechado em 08/10/2026, `2374e7e`)
+**O que expunha (rotas sem login, no ar desde antes da VPS, vindas do Railway):**
+- `GET /public/my-appointments?whatsapp=<número>`: listava até 100 agendamentos de quem tivesse aquele número, **em
+  todas as contas** (data e hora, status, nome e link da conta, profissional, serviços). Bastava saber ou chutar
+  um telefone. A aba "Meus Agendamentos" da página `/buscar` usava essa rota.
+- `POST /public/clients/register` (página pública de agendamento): com um telefone já cadastrado na conta, devolvia
+  **nome completo, WhatsApp e e-mail** do cliente; e gravava o e-mail informado em quem não tinha (qualquer pessoa
+  podia pôr um e-mail no cadastro de outra). Sem limite de tentativas: dava para varrer números.
+
+**Como foi fechado (no ar em 08/10/2026, ~16h de Brasília; API e web reconstruídas, sem migration):**
+- `my-appointments` responde **410 UNAVAILABLE** e a aba sumiu da tela (`MEUS_AGENDAMENTOS_ATIVO = false` em
+  `DiscoveryPage.tsx`). Volta só com código de confirmação enviado ao WhatsApp do número.
+- Cadastro responde só `{ id (UUID aleatório), isExisting }` e não altera cadastro existente.
+- Limite de 10 por minuto por IP no cadastro e no `POST /public/appointments`, e 10 por minuto por telefone no
+  cadastro. A API vê o IP real (`TRUST_PROXY=172.16.4.1`, conferido com uma chamada externa).
+- Conferido na produção: 410 + aba ausente no bundle servido; telefone existente → só id, cadastro igual no banco;
+  429 a partir da 10ª tentativa; cadastro novo + agendamento ok (teste na Barbearia Zenon, apagado pelo id depois).
+- Testes: `tests/publico-seguranca.test.ts` (206 no total).
+
+**Não há como saber se foi usado:** não havia log de acesso (sem Nginx; o Traefik estava com o log de acesso
+desligado) e o log da API só guarda o período desde o último `up` do container. Nenhuma chamada às duas rotas apareceu
+nesse período curto, o que não prova nada sobre antes. Ação: log de acesso do Traefik (JSON em
+`/var/log/traefik/access.log`, 30 dias, `/etc/logrotate.d/traefik`) agendado para 08/10 21h05
+(`/root/traefik-accesslog/aplicar.sh`, timer `traefik-accesslog`, volta sozinho se algum site mudar de resposta).
+
+**Pendente, ANTES de qualquer conta conectar o WhatsApp:** o `POST /public/appointments` tenta mandar a confirmação
+por WhatsApp **três vezes** (`appointments.routes.ts` ~220, ~243, ~255). Hoje nada sai (nenhuma instância `open`;
+telefone DDD 00 bloqueado). Atenção: a conta `beautytech` (pro, cloud) está com a instância em `connecting` com
+número associado, e a `sal-o-beleza-pura` (cloud, sem instância) usa a `zensalon` da plataforma: reconectar qualquer
+uma das duas antes da correção = cliente recebe 3 mensagens.
+
 ## ONDE PARAMOS (08/10) — dados de exemplo: retroativo da produção em andamento
 **Estado:** `origin/vps` = `origin/ramo-pilates` = `8009abc` (push feito, SEM deploy; produção roda `cfa1373`).
 Local à frente (sem push): `4e42f89`, `3b62b00`, `85b867c`, `484f2a4` + excluir agendamento + este docs.
@@ -22,8 +53,7 @@ Local à frente (sem push): `4e42f89`, `3b62b00`, `85b867c`, `484f2a4` + excluir
   agendamentos (sempre 08:00–18:00 de 30 em 30).
 - Depois: horários dos agendamentos do exemplo (20:22, 01:22...: hora da criação + N horas).
 - Depois: limite mensal do plano grátis conta agendamentos apagados e cancelados.
-- Depois (segurança): `GET /public/my-appointments?whatsapp=` lista agendamentos de qualquer conta só pelo número,
-  sem login; e o `'\D'` no SQL vira `D` (só acha telefone gravado só com dígitos).
+- ~~Depois (segurança): `GET /public/my-appointments?whatsapp=`~~ fechado em 08/10 (ver SEGURANÇA no topo).
 
 **Passo 4 (produção), quando aprovado:** push → `git pull` + build API e web → backup novo → 0012 (`migrar.ts`) →
 `up -d --no-deps` API e web + conferências → prévia do script (parar e mostrar) → aplicar com OK → `main` = `vps`.
