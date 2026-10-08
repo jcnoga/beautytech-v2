@@ -25,7 +25,7 @@ const PREFIX = "/api/v1";
 const sql = postgres(DB_URL, { max: 6, onnotice: () => {} });
 let app: any;
 let rules: typeof import("../src/modules/appointments/agenda-rules");
-let T: { id: string; token: string }, client: string, P: string, Q: string, S1: string, S2: string;
+let T: { id: string; token: string; slug: string }, client: string, P: string, Q: string, S1: string, S2: string;
 const DAY = "2030-01-03";    // quinta-feira
 const SUNDAY = "2030-01-06"; // domingo
 
@@ -56,11 +56,12 @@ before(async () => {
   await app.ready();
   rules = await import("../src/modules/appointments/agenda-rules");
 
+  const slug = "agenda-" + Date.now();
   const [t] = await sql`INSERT INTO tenants (name, slug, business_type, plan_tier, trial_ends_at)
-    VALUES ('Salão Agenda', ${"agenda-" + Date.now()}, 'beauty_salon', 'trial', now() + interval '20 days') RETURNING id`;
+    VALUES ('Salão Agenda', ${slug}, 'beauty_salon', 'trial', now() + interval '20 days') RETURNING id`;
   const owner = randomUUID();
   await sql`INSERT INTO user_profiles (tenant_id, auth_user_id, full_name, role) VALUES (${t.id}, ${owner}, 'Dono', 'owner')`;
-  T = { id: t.id, token: await token(owner) };
+  T = { id: t.id, token: await token(owner), slug };
   client = (await sql`INSERT INTO clients (tenant_id, full_name, whatsapp) VALUES (${t.id}, 'Ana', '34999990000') RETURNING id`)[0].id;
   P = (await sql`INSERT INTO professionals (tenant_id, full_name) VALUES (${t.id}, 'Marina') RETURNING id`)[0].id;
   Q = (await sql`INSERT INTO professionals (tenant_id, full_name) VALUES (${t.id}, 'Julia') RETURNING id`)[0].id; // nada configurado
@@ -155,4 +156,39 @@ test("horários livres: jornada, intervalo, bloqueio e agendamentos de Brasília
 test("dois cadastros ao mesmo tempo no mesmo horário: só um passa", async () => {
   const [a, b] = await Promise.all([book(P, S1, DAY, "11:00"), book(P, S1, DAY, "11:00")]);
   assert.deepEqual([a.statusCode, b.statusCode].sort(), [201, 409]);
+});
+
+test("editar só status ou observação de agendamento antigo fora das regras: passa; mudar o horário confere", async () => {
+  // antigo: domingo (Marina não atende) e em cima de outro agendamento, gravado antes das regras
+  const old = { ...at(SUNDAY, "10:00") };
+  const [a] = await sql`INSERT INTO appointments (tenant_id, client_id, professional_id, status, scheduled_at, ends_at, duration_minutes)
+    VALUES (${T.id}, ${client}, ${P}, 'confirmed', ${old.scheduledAt}, ${old.endsAt}, 60) RETURNING id`;
+  await sql`INSERT INTO appointments (tenant_id, client_id, professional_id, status, scheduled_at, ends_at, duration_minutes)
+    VALUES (${T.id}, ${client}, ${P}, 'confirmed', ${old.scheduledAt}, ${old.endsAt}, 60)`;
+  assert.equal((await req("PATCH", `/appointments/${a.id}`, { internalNotes: "observação" })).statusCode, 200, "observação");
+  assert.equal((await req("PATCH", `/appointments/${a.id}`, { status: "completed" })).statusCode, 200, "status");
+  assert.equal((await req("PATCH", `/appointments/${a.id}`, { ...old, professionalId: P, internalNotes: "x" })).statusCode, 200,
+    "reenviar o mesmo horário e profissional não conta como mudança");
+  const moved = await req("PATCH", `/appointments/${a.id}`, at(SUNDAY, "11:00"));
+  assert.deepEqual([moved.statusCode, moved.json().code], [422, "OUTSIDE_SCHEDULE"], "mudou o horário: confere");
+});
+
+test("página pública: horário de Brasília, mesmos horários livres da agenda interna, choque recusado", async () => {
+  const pub = (date: string, time: string) => app.inject({ method: "POST", url: `${PREFIX}/public/appointments`,
+    payload: { tenantSlug: T.slug, clientId: client, professionalId: P, serviceId: S1, date, time } });
+  const free = async (date: string) => (await app.inject({ method: "GET",
+    url: `${PREFIX}/public/tenants/${T.slug}/availability?professionalId=${P}&serviceId=${S1}&date=${date}` })).json().data;
+  const DAY2 = "2030-01-08"; // terça
+  const internal = (await req("GET", `/professionals/${P}/slots?serviceId=${S1}&date=${DAY2}`)).json().data;
+  assert.deepEqual(await free(DAY2), internal, "pública = interna");
+  const r = await pub(DAY2, "09:00");
+  assert.equal(r.statusCode, 201, r.body);
+  const [row] = await sql`SELECT scheduled_at FROM appointments WHERE id = ${r.json().data.id}`;
+  assert.equal(new Date(row.scheduled_at).toISOString(), "2030-01-08T12:00:00.000Z", "09:00 de Brasília = 12:00 UTC");
+  assert.ok(!(await free(DAY2)).includes("09:00"), "some dos horários livres");
+  const again = await pub(DAY2, "09:30");
+  assert.deepEqual([again.statusCode, again.json().code], [409, "SCHEDULE_CONFLICT"]);
+  assert.match(again.json().error, /Horario indisponivel/);
+  const [x, y] = await Promise.all([pub(DAY2, "14:00"), book(P, S1, DAY2, "14:00")]);
+  assert.deepEqual([x.statusCode, y.statusCode].sort(), [201, 409], "pública e interna ao mesmo tempo: só uma passa");
 });

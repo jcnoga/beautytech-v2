@@ -3,6 +3,7 @@ import { eq, and, isNull, gte, lte, sql } from "drizzle-orm";
 import { db } from "@db/connection";
 import { tenants, services, professionals, clients, appointments, appointmentServices } from "@db/schema/index";
 import { isTestClient } from "../super-admin/test-data.guard";
+import { freeSlots, localToUtc, lockProfessional, checkAgendaRules, AgendaRuleError } from "./agenda-rules";
 
 export async function publicBookingModule(fastify: FastifyInstance) {
 
@@ -87,107 +88,9 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       .from(services).where(and(eq(services.id, serviceId), eq(services.tenantId, tenant.id)));
     if (!service) return reply.status(404).send({ success: false, error: "Servico nao encontrado" });
 
-    const targetDate = new Date(date + "T12:00:00");
-    const dayOfWeek = targetDate.getDay();
-    const dayNames = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
-    const dayName = dayNames[dayOfWeek];
-
-    // Busca jornada da nova tabela professional_schedules
-    const schedResult = await db.execute(sql`
-      SELECT * FROM professional_schedules
-      WHERE professional_id = ${professionalId}
-      AND tenant_id = ${tenant.id}
-      AND day_of_week = ${dayOfWeek}
-    `);
-    const schedRows = (schedResult as any).rows ?? (Array.isArray(schedResult) ? schedResult : []);
-
-    let startH: number, startM: number, endH: number, endM: number, slotSize: number;
-
-    if (schedRows.length > 0) {
-      // Usa nova tabela
-      const sched = schedRows[0];
-      if (!sched.is_working) {
-        return reply.send({ success: true, data: [], message: "Profissional nao trabalha neste dia" });
-      }
-      [startH, startM] = sched.start_time.split(":").map(Number);
-      [endH, endM]     = sched.end_time.split(":").map(Number);
-      slotSize         = sched.slot_minutes ?? 30;
-    } else {
-      // Fallback para workingHours antigo
-      const wh = (professional.workingHours as any) ?? {};
-      const dayConfig = wh[String(dayOfWeek)] ?? wh[dayName];
-      if (!dayConfig || (!dayConfig.enabled && !dayConfig.isWorking)) {
-        return reply.send({ success: true, data: [], message: "Profissional nao trabalha neste dia" });
-      }
-      [startH, startM] = (dayConfig.start ?? "08:00").split(":").map(Number);
-      [endH, endM]     = (dayConfig.end   ?? "18:00").split(":").map(Number);
-      slotSize         = 30;
-    }
-    const slotDuration = service.durationMinutes;
-    const slots: string[] = [];
-    let current = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    while (current + slotDuration <= endMinutes) {
-      slots.push(String(Math.floor(current / 60)).padStart(2,"0") + ":" + String(current % 60).padStart(2,"0"));
-      current += (slotSize ?? slotDuration);
-    }
-
-    const dayStart = new Date(date + "T00:00:00.000Z");
-    const dayEnd   = new Date(date + "T23:59:59.999Z");
-    const existingAppts = await db.select({
-      scheduledAt: appointments.scheduledAt, endsAt: appointments.endsAt,
-      durationMinutes: appointments.durationMinutes,
-    }).from(appointments).where(and(
-      eq(appointments.professionalId, professionalId),
-      eq(appointments.tenantId, tenant.id),
-      gte(appointments.scheduledAt, dayStart),
-      lte(appointments.scheduledAt, dayEnd),
-      isNull(appointments.deletedAt)
-    ));
-
-    // Busca bloqueios manuais
-    const blocksResult = await db.execute(sql`
-      SELECT starts_at, ends_at FROM professional_blocks
-      WHERE professional_id = ${professionalId}
-      AND tenant_id = ${tenant.id}
-      AND starts_at <= ${dayEnd}
-      AND ends_at >= ${dayStart}
-    `);
-    const blocks = (blocksResult as any).rows ?? (Array.isArray(blocksResult) ? blocksResult : []);
-
-    const available = slots.filter(slot => {
-      const [sh, sm] = slot.split(":").map(Number);
-      const slotStart = sh * 60 + sm;
-      const slotEnd   = slotStart + slotDuration;
-      const conflictsAppt = existingAppts.some(appt => {
-        const as_ = new Date(appt.scheduledAt);
-        const ae  = appt.endsAt ? new Date(appt.endsAt) : new Date(as_.getTime() + appt.durationMinutes * 60000);
-        const asMin = as_.getUTCHours() * 60 + as_.getUTCMinutes();
-        const aeMin = ae.getUTCHours()  * 60 + ae.getUTCMinutes();
-        return slotStart < aeMin && slotEnd > asMin;
-      });
-      // Verifica intervalo de almoco
-      const breakStart = schedRows[0]?.break_start;
-      const breakEnd   = schedRows[0]?.break_end;
-      const conflictsBreak = breakStart && breakEnd ? (() => {
-        const [bsh, bsm] = breakStart.split(":").map(Number);
-        const [beh, bem] = breakEnd.split(":").map(Number);
-        const bsMin = bsh * 60 + bsm;
-        const beMin = beh * 60 + bem;
-        return slotStart < beMin && slotEnd > bsMin;
-      })() : false;
-
-      const conflictsBlock = blocks.some((b) => {
-        const bStart = new Date(b.starts_at);
-        const bEnd   = new Date(b.ends_at);
-        // Converte slot para UTC considerando fuso do servidor (UTC)
-        const slotDateStart = new Date(`${date}T${String(Math.floor(slotStart/60)).padStart(2,"0")}:${String(slotStart%60).padStart(2,"0")}:00-03:00`);
-        const slotDateEnd   = new Date(`${date}T${String(Math.floor(slotEnd/60)).padStart(2,"0")}:${String(slotEnd%60).padStart(2,"0")}:00-03:00`);
-        return slotDateStart < bEnd && slotDateEnd > bStart;
-      });
-      return !conflictsAppt && !conflictsBlock && !conflictsBreak;
-    });
-
+    // Mesmas regras da agenda interna (agenda-rules): jornada, intervalo, bloqueios e agendamentos, em horário de Brasília.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) return reply.status(400).send({ success: false, error: "date invalida (AAAA-MM-DD)" });
+    const { slots: available } = await freeSlots(db, tenant.id, professionalId, serviceId, date);
     return reply.send({ success: true, data: available, date, total: available.length });
   });
 
@@ -238,31 +141,39 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       .from(clients).where(and(eq(clients.id, clientId), eq(clients.tenantId, tenant.id)));
     if (!client) return reply.status(404).send({ success: false, error: "Cliente nao encontrado" });
 
-    const scheduledAt = new Date(date + "T" + time + ":00");
+    // Horário de Brasília; conferência (habilitado, jornada, choque) e gravação sob a trava do profissional,
+    // como na agenda interna (agenda-rules).
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !/^\d{2}:\d{2}$/.test(String(time)))
+      return reply.status(400).send({ success: false, error: "Data ou horario invalido" });
+    const scheduledAt = localToUtc(date, time);
     const endsAt = new Date(scheduledAt.getTime() + service.durationMinutes * 60000);
+    let appointment: any;
+    try {
+      appointment = await db.transaction(async (tx) => {
+        await lockProfessional(tx, tenant.id, professional.id);
+        await checkAgendaRules(tx, { tenantId: tenant.id, professionalId: professional.id, scheduledAt, endsAt,
+          services: [{ serviceId: service.id, professionalId: professional.id }] });
+        const [a] = await tx.insert(appointments).values({
+          tenantId: tenant.id, clientId: client.id, professionalId: professional.id,
+          status: "pending", scheduledAt, endsAt,
+          durationMinutes: service.durationMinutes, totalPrice: service.price,
+          subtotal: service.price, source: "online_booking", clientNotes: clientNotes ?? null,
+        }).returning();
+        await tx.insert(appointmentServices).values({
+          tenantId: tenant.id, appointmentId: a.id, serviceId: service.id,
+          professionalId: professional.id, price: service.price,
+          durationMinutes: service.durationMinutes, total: service.price,
+        });
+        return a;
+      });
+    } catch (e) {
+      if (e instanceof AgendaRuleError) {
+        const error = e.code === "SCHEDULE_CONFLICT" ? "Horario indisponivel. Por favor escolha outro horario." : e.message;
+        return reply.status(e.status).send({ success: false, code: e.code, error });
+      }
+      throw e;
+    }
 
-    const conflict = await db.select({ id: appointments.id }).from(appointments).where(and(
-      eq(appointments.professionalId, professionalId),
-      eq(appointments.tenantId, tenant.id),
-      isNull(appointments.deletedAt),
-      lte(appointments.scheduledAt, endsAt),
-      gte(appointments.endsAt, scheduledAt)
-    ));
-    if (conflict.length > 0)
-      return reply.status(409).send({ success: false, error: "Horario indisponivel. Por favor escolha outro horario." });
-
-    const [appointment] = await db.insert(appointments).values({
-      tenantId: tenant.id, clientId: client.id, professionalId: professional.id,
-      status: "pending", scheduledAt, endsAt,
-      durationMinutes: service.durationMinutes, totalPrice: service.price,
-      subtotal: service.price, source: "online_booking", clientNotes: clientNotes ?? null,
-    }).returning();
-
-    await db.insert(appointmentServices).values({
-      tenantId: tenant.id, appointmentId: appointment.id, serviceId: service.id,
-      professionalId: professional.id, price: service.price,
-      durationMinutes: service.durationMinutes, total: service.price,
-    });
 
     // Dados de teste: cliente de teste não recebe confirmação (nem e-mail nem WhatsApp).
     const isTestBooking = await isTestClient(db, clientId);

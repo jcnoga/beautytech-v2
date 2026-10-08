@@ -5,8 +5,7 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "@db/connection.js";
 import { authenticate } from "@middleware/auth.js";
 import { rejectForeignRefs } from "../tenant-guard.js";
-import { rows } from "../group-classes/rules";
-import { localToUtc, OCCUPYING_STATUSES } from "../appointments/agenda-rules";
+import { freeSlots } from "../appointments/agenda-rules";
 
 export async function professionalScheduleRoutes(fastify: any) {
 
@@ -160,50 +159,12 @@ export async function professionalScheduleRoutes(fastify: any) {
     return reply.send({ success: true, data: rows });
   });
 
-  // GET /professionals/:id/slots?serviceId=&date=  horários livres (data e horas de Brasília)
-  // Mesmas regras do cadastro (agenda-rules): jornada e intervalo do dia, bloqueios e agendamentos que ocupam.
+  // GET /professionals/:id/slots?serviceId=&date=  horários livres (data e horas de Brasília; regras em agenda-rules)
   fastify.get("/professionals/:id/slots", { preHandler: [authenticate] }, async (req: any, reply: any) => {
     const { tenantId } = req.tenantContext;
     const { serviceId, date } = req.query as any;
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(String(date))) return reply.status(400).send({ success: false, error: "date obrigatorio (AAAA-MM-DD)" });
-    const q = async (s: any) => rows(await db.execute(s)) as any[];
-    const dayOfWeek = new Date(date + "T00:00:00Z").getUTCDay();
-
-    const [sched] = await q(sql`SELECT is_working, start_time, end_time, slot_minutes, break_start, break_end FROM professional_schedules
-      WHERE professional_id = ${req.params.id} AND tenant_id = ${tenantId} AND day_of_week = ${dayOfWeek} LIMIT 1`);
-    const day = sched ?? { is_working: true, start_time: "08:00", end_time: "18:00", slot_minutes: 30 };
-    if (!day.is_working) return reply.send({ success: true, data: [], duration: 0 });
-    const step = Number(day.slot_minutes) || 30;
-
-    // Duração: a do profissional para o serviço; senão a do serviço; senão o passo da jornada
-    let duration = step;
-    if (serviceId) {
-      const [ps] = await q(sql`SELECT ps.duration_minutes AS d, s.duration_minutes AS sd FROM services s
-        LEFT JOIN professional_services ps ON ps.service_id = s.id AND ps.professional_id = ${req.params.id} AND ps.tenant_id = ${tenantId}
-        WHERE s.id = ${serviceId} AND s.tenant_id = ${tenantId}`);
-      duration = Number(ps?.d ?? ps?.sd ?? step) || step;
-    }
-
-    const dayStart = localToUtc(date, "00:00"), dayEnd = new Date(dayStart.getTime() + 24 * 3600000);
-    const busy = await q(sql`SELECT scheduled_at AS s, coalesce(ends_at, scheduled_at + make_interval(mins => coalesce(duration_minutes, 60))) AS e
-      FROM appointments WHERE professional_id = ${req.params.id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
-        AND status IN ${sql.raw(`(${OCCUPYING_STATUSES.map((s) => `'${s}'`).join(",")})`)}
-        AND scheduled_at < ${dayEnd.toISOString()} AND coalesce(ends_at, scheduled_at + make_interval(mins => coalesce(duration_minutes, 60))) > ${dayStart.toISOString()}
-      UNION ALL
-      SELECT starts_at, ends_at FROM professional_blocks WHERE professional_id = ${req.params.id} AND tenant_id = ${tenantId}
-        AND starts_at < ${dayEnd.toISOString()} AND ends_at > ${dayStart.toISOString()}`);
-
-    const toMin = (v: any) => { if (!v) return null; const [h, m] = String(v).split(":").map(Number); return h * 60 + (m || 0); };
-    const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-    const ws = toMin(day.start_time) ?? 480, we = toMin(day.end_time) ?? 1080;
-    const bs = toMin(day.break_start), be = toMin(day.break_end);
-    const slots: string[] = [];
-    for (let m = ws; m + duration <= we; m += step) {
-      if (bs !== null && be !== null && m < be && m + duration > bs) continue; // intervalo
-      const s = localToUtc(date, hm(m)), e = new Date(s.getTime() + duration * 60000);
-      if (busy.some((b: any) => s < new Date(b.e) && e > new Date(b.s))) continue;
-      slots.push(hm(m));
-    }
+    const { slots, duration } = await freeSlots(db, tenantId, req.params.id, serviceId, date);
     return reply.send({ success: true, data: slots, duration });
   });
 }

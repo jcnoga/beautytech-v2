@@ -389,14 +389,19 @@ export async function appointmentsModule(fastify: FastifyInstance) {
     const { tenantId, userId } = req.tenantContext;
     const body = parseBody(appointmentUpdateDto, req, reply); if (!body) return;
     if (await rejectForeignRefs(reply, tenantId, { clients: [body.clientId], professionals: [body.professionalId] })) return;
-    // Mudou horário, profissional ou status: confere as regras da agenda com os valores finais (o próprio não conta).
-    const touchesSlot = ["scheduledAt", "endsAt", "durationMinutes", "professionalId", "status"].some((k) => k in body);
+    // Regras da agenda só quando MUDA horário (início, fim, duração) ou profissional, comparando com o atual:
+    // editar status ou observação de agendamento antigo não passa por jornada/choque. O próprio não conta como choque.
+    // (Serviços não mudam por esta rota.)
     let appt: any;
     try {
       appt = await db.transaction(async (tx) => {
         const [cur] = await tx.select().from(appointments)
           .where(and(eq(appointments.id, req.params.id), eq(appointments.tenantId, tenantId), isNull(appointments.deletedAt)));
         if (!cur) return null;
+        const same = (a: any, b: any) => (a instanceof Date || b instanceof Date)
+          ? (a ? new Date(a).getTime() : null) === (b ? new Date(b).getTime() : null) : (a ?? null) === (b ?? null);
+        const touchesSlot = (["scheduledAt", "endsAt", "durationMinutes", "professionalId"] as const)
+          .some((k) => k in body && !same((body as any)[k], (cur as any)[k]));
         if (touchesSlot) {
           const profId = "professionalId" in body ? body.professionalId : cur.professionalId;
           const status = (body.status ?? cur.status) as any;

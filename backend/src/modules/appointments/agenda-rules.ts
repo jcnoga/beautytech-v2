@@ -120,3 +120,47 @@ export async function checkAgendaRules(exec: any, c: SlotCheck) {
 export async function lockProfessional(exec: any, tenantId: string, professionalId?: string | null) {
   if (professionalId) await exec.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"agenda:" + tenantId + ":" + professionalId}))`);
 }
+
+/**
+ * Horários livres (HH:MM de Brasília) de um profissional num dia, para um serviço: jornada e intervalo do dia (sem
+ * jornada cadastrada: 08:00-18:00), bloqueios e agendamentos que ocupam. Usado pela agenda interna e pela página
+ * pública de agendamento, com as mesmas regras do cadastro.
+ */
+export async function freeSlots(exec: any, tenantId: string, professionalId: string, serviceId: string | null | undefined, date: string) {
+  const q = async (s: any) => rows(await exec.execute(s)) as any[];
+  const dow = new Date(date + "T00:00:00Z").getUTCDay();
+  const [sched] = await q(sql`SELECT is_working, start_time, end_time, slot_minutes, break_start, break_end FROM professional_schedules
+    WHERE professional_id = ${professionalId} AND tenant_id = ${tenantId} AND day_of_week = ${dow} LIMIT 1`);
+  const day = sched ?? { is_working: true, start_time: "08:00", end_time: "18:00", slot_minutes: 30 };
+  if (!day.is_working) return { slots: [] as string[], duration: 0 };
+  const step = Number(day.slot_minutes) || 30;
+
+  // Duração: a do profissional para o serviço; senão a do serviço; senão o passo da jornada
+  let duration = step;
+  if (serviceId) {
+    const [ps] = await q(sql`SELECT ps.duration_minutes AS d, s.duration_minutes AS sd FROM services s
+      LEFT JOIN professional_services ps ON ps.service_id = s.id AND ps.professional_id = ${professionalId} AND ps.tenant_id = ${tenantId}
+      WHERE s.id = ${serviceId} AND s.tenant_id = ${tenantId}`);
+    duration = Number(ps?.d ?? ps?.sd ?? step) || step;
+  }
+
+  const dayStart = localToUtc(date, "00:00"), dayEnd = new Date(dayStart.getTime() + 24 * 3600000);
+  const busy = await q(sql`SELECT scheduled_at AS s, coalesce(ends_at, scheduled_at + make_interval(mins => coalesce(duration_minutes, 60))) AS e
+    FROM appointments WHERE professional_id = ${professionalId} AND tenant_id = ${tenantId} AND deleted_at IS NULL
+      AND status IN ${OCCUPYING_SQL}
+      AND scheduled_at < ${dayEnd.toISOString()} AND coalesce(ends_at, scheduled_at + make_interval(mins => coalesce(duration_minutes, 60))) > ${dayStart.toISOString()}
+    UNION ALL
+    SELECT starts_at, ends_at FROM professional_blocks WHERE professional_id = ${professionalId} AND tenant_id = ${tenantId}
+      AND starts_at < ${dayEnd.toISOString()} AND ends_at > ${dayStart.toISOString()}`);
+
+  const ws = toMin(day.start_time) ?? 480, we = toMin(day.end_time) ?? 1080;
+  const bs = toMin(day.break_start), be = toMin(day.break_end);
+  const slots: string[] = [];
+  for (let m = ws; m + duration <= we; m += step) {
+    if (bs !== null && be !== null && m < be && m + duration > bs) continue; // intervalo
+    const s = localToUtc(date, hm(m)), e = new Date(s.getTime() + duration * 60000);
+    if (busy.some((b: any) => s < new Date(b.e) && e > new Date(b.s))) continue;
+    slots.push(hm(m));
+  }
+  return { slots, duration };
+}
