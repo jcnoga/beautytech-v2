@@ -1,6 +1,7 @@
 // "+ Demo" ANTIGO (antes do lote 'example'): o retroativo anota o exemplo no lote e troca os contatos por fictícios,
-// sem apagar nada; prévia não grava; confere nome da conta e extras; agendamento criado à mão não entra; depois disso
-// o "Remover dados de exemplo" funciona (e recusa enquanto houver ligação com dado real).
+// sem apagar nada; prévia não grava; confere nome da conta e extras; agendamento criado à mão não entra, nem o
+// cliente/profissional/serviço do demo que ele usa (opção B); contatos de todos trocados; depois disso o
+// "Remover dados de exemplo" funciona sem recusa e deixa os feitos à mão e o que eles usam.
 // Uso: sh scripts/test-db.sh   (o banco de teste é APAGADO a cada execução)
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -22,7 +23,7 @@ let legacy: typeof import("../src/modules/example-data/example-legacy");
 let svc: typeof import("../src/modules/example-data/example-data.service");
 let guard: typeof import("../src/modules/super-admin/test-data.guard");
 
-type Old = { id: string; name: string; realClient: string; handAppt: string; protectedIds: Record<string, string> };
+type Old = { id: string; name: string; realClient: string; handAppt: string; handAppt2: string; protectedIds: Record<string, string> };
 let A: Old, B: Old;
 
 /** Conta com o "+ Demo" antigo: nomes "Demo", tag 'demo', (34) 98001-..., internal_notes 'demo'; um profissional
@@ -53,15 +54,22 @@ async function oldDemo(name: string): Promise<Old> {
   const [a2] = await sql`INSERT INTO appointments (tenant_id, client_id, professional_id, status, scheduled_at, ends_at, duration_minutes, internal_notes)
     VALUES (${t.id}, ${cl[1]}, ${p2.id}, 'confirmed', now() + interval '1 day', now() + interval '1 day 1 hour', 60, 'demo') RETURNING id`;
   await sql`INSERT INTO appointment_services (appointment_id, service_id, price, tenant_id) VALUES (${a2.id}, ${s2.id}, 180, ${t.id})`;
+  // feitos à mão: cliente real com profissional do demo; e cliente do demo com profissional e serviço renomeados
   const [hand] = await sql`INSERT INTO appointments (tenant_id, client_id, professional_id, status, scheduled_at, ends_at, duration_minutes)
     VALUES (${t.id}, ${real.id}, ${p1.id}, 'pending', now() + interval '2 days', now() + interval '2 days 1 hour', 60) RETURNING id`;
+  const [hand2] = await sql`INSERT INTO appointments (tenant_id, client_id, professional_id, status, scheduled_at, ends_at, duration_minutes)
+    VALUES (${t.id}, ${cl[1]}, ${p2.id}, 'pending', now() + interval '4 days', now() + interval '4 days 1 hour', 60) RETURNING id`;
+  await sql`INSERT INTO appointment_services (appointment_id, service_id, price, tenant_id) VALUES (${hand2.id}, ${s2.id}, 180, ${t.id})`;
+  // histórico automático: aviso (falhou) para o cliente do demo que entra no lote
+  await sql`INSERT INTO notifications (tenant_id, client_id, channel, message, status)
+    VALUES (${t.id}, ${cl[0]}, 'whatsapp', 'Lembrete', 'failed')`;
   await sql`INSERT INTO financial_transactions (tenant_id, account_id, type, amount, description, due_date)
     VALUES (${t.id}, ${acc.id}, 'revenue', 60, 'Demo - Demo Escova', current_date), (${t.id}, ${acc.id}, 'revenue', 99, 'Venda real', current_date)`;
   await sql`INSERT INTO leads (tenant_id, name, whatsapp, source, status) VALUES (${t.id}, 'Demo Lead Maria', '(34) 98002-0001', 'instagram', 'new'),
     (${t.id}, 'Lead Real', '34988887777', 'google', 'new')`;
   await sql`INSERT INTO packages (tenant_id, client_id, name, total_sessions, used_sessions, remaining_sessions, total_value, status)
     VALUES (${t.id}, ${cl[0]}, 'Demo Pacote 5x Demo Escova', 5, 2, 3, 270, 'active')`;
-  return { id: t.id, name, realClient: real.id, handAppt: hand.id,
+  return { id: t.id, name, realClient: real.id, handAppt: hand.id, handAppt2: hand2.id,
     protectedIds: { tenants: t.id, user_profiles: up.id, financial_accounts: acc.id, financial_categories: fc.id } };
 }
 const acct = (o: Old, extra = true) => ({ id: o.id, name: o.name, extraProfessionals: extra ? ["Julia Costa"] : [], extraServices: extra ? ["Coloracao"] : [] });
@@ -90,11 +98,16 @@ after(async () => {
 test("prévia: mostra nome por nome e não grava nada", async () => {
   const r = await legacy.annotateLegacyDemo(acct(A), { apply: false, actor: "t" });
   assert.equal(r.applied, false);
-  assert.deepEqual(r.names.clients, ["Ana Demo Silva", "Bruno Santos"]);
-  assert.deepEqual(r.names.professionals, ["Marina Demo Santos", "Julia Costa"]);
-  assert.deepEqual(r.names.services, ["Demo Escova", "Coloracao"]);
+  assert.deepEqual(r.names.clients, ["Ana Demo Silva"]);
+  assert.equal(r.names.professionals, undefined, "os dois profissionais são usados em agendamentos feitos à mão");
+  assert.deepEqual(r.names.services, ["Demo Escova"]);
   assert.equal(r.counts.appointments, 2, "só os do + Demo (internal_notes demo)");
-  assert.deepEqual(r.contacts, { clients: 2, leads: 1 });
+  assert.deepEqual(r.excluded.map((x) => `${x.table}:${x.name}`).sort(), [
+    "clients:Bruno Santos", "professionals:Julia Costa", "professionals:Marina Demo Santos",
+    "service_categories:Demo Cabelo", "services:Coloracao",
+  ]);
+  assert.match(r.excluded.find((x) => x.name === "Bruno Santos")!.reason, /1 agendamento\(s\) feito\(s\) à mão/);
+  assert.deepEqual(r.contacts, { clients: 2, leads: 1 }, "contatos de TODOS os clientes do demo, dentro ou fora");
   assert.equal((await batches(A)).length, 0);
   const [c] = await sql`SELECT whatsapp FROM clients WHERE tenant_id = ${A.id} AND full_name = 'Ana Demo Silva'`;
   assert.equal(c.whatsapp, "(34) 98001-0001", "contato não muda na prévia");
@@ -115,6 +128,12 @@ test("aplicar: anota o exemplo, troca contatos; real, agendamento à mão e cont
   const has = (tb: string, id: string) => it.some((i) => i.table_name === tb && i.id === id);
   assert.ok(!has("clients", A.realClient), "cliente real não entra");
   assert.ok(!has("appointments", A.handAppt), "agendamento feito à mão não entra");
+  assert.ok(!has("appointments", A.handAppt2), "agendamento feito à mão com cliente do demo não entra");
+  const fora = await sql`SELECT 'clients' t, id::text FROM clients WHERE tenant_id = ${A.id} AND full_name = 'Bruno Santos'
+    UNION ALL SELECT 'professionals', id::text FROM professionals WHERE tenant_id = ${A.id}
+    UNION ALL SELECT 'services', id::text FROM services WHERE tenant_id = ${A.id} AND name = 'Coloracao'
+    UNION ALL SELECT 'service_categories', id::text FROM service_categories WHERE tenant_id = ${A.id}`;
+  for (const f of fora) assert.ok(!has(f.t, f.id), `${f.t} ligado a agendamento feito à mão fica fora`);
   for (const [tb, id] of Object.entries(A.protectedIds)) assert.ok(!has(tb, id), tb);
   const tx = await sql`SELECT description FROM financial_transactions WHERE id::text IN ${sql(it.filter((i) => i.table_name === "financial_transactions").map((i) => i.id))}`;
   assert.deepEqual(tx.map((x) => x.description), ["Demo - Demo Escova"]);
@@ -137,18 +156,22 @@ test("aplicar: anota o exemplo, troca contatos; real, agendamento à mão e cont
   assert.equal(again.skipped, "já tem lote de exemplo");
 });
 
-test("depois do retroativo: remover recusa pela ligação com o real; sem ela, só o exemplo sai", async () => {
+test("depois do retroativo: remover funciona sem recusa; feitos à mão e o que eles usam ficam", async () => {
   const p = await svc.previewExampleRemoval(A.id);
-  assert.deepEqual(p.linkedOutside, { appointments: 1 }, "agendamento à mão do cliente real com profissional do exemplo");
-  await assert.rejects(svc.removeExampleData(A.id), (e: any) => e.code === "LINKED_TO_REAL_DATA");
-  const [realProf] = await sql`INSERT INTO professionals (tenant_id, full_name) VALUES (${A.id}, 'Profissional Real') RETURNING id`;
-  await sql`UPDATE appointments SET professional_id = ${realProf.id} WHERE id = ${A.handAppt}`; // "troque o profissional"
+  assert.deepEqual(p.linkedOutside, {}, "o que os agendamentos feitos à mão usam ficou fora do lote");
   await svc.removeExampleData(A.id);
-  const left = await sql`SELECT full_name FROM clients WHERE tenant_id = ${A.id}`;
-  assert.deepEqual(left.map((c) => c.full_name), ["Cliente Real"]);
-  const pr = await sql`SELECT full_name FROM professionals WHERE tenant_id = ${A.id}`;
-  assert.deepEqual(pr.map((x) => x.full_name), ["Profissional Real"]);
-  assert.equal((await sql`SELECT count(*)::int n FROM appointments WHERE id = ${A.handAppt}`)[0].n, 1, "agendamento real fica");
+  const left = await sql`SELECT full_name FROM clients WHERE tenant_id = ${A.id} ORDER BY full_name`;
+  assert.deepEqual(left.map((c) => c.full_name), ["Bruno Santos", "Cliente Real"]);
+  const pr = await sql`SELECT full_name FROM professionals WHERE tenant_id = ${A.id} ORDER BY full_name`;
+  assert.deepEqual(pr.map((x) => x.full_name), ["Julia Costa", "Marina Demo Santos"]);
+  const sv = await sql`SELECT name FROM services WHERE tenant_id = ${A.id}`;
+  assert.deepEqual(sv.map((x) => x.name), ["Coloracao"]);
+  const ap = await sql`SELECT id::text FROM appointments WHERE tenant_id = ${A.id} ORDER BY id`;
+  assert.deepEqual(ap.map((x) => x.id).sort(), [A.handAppt, A.handAppt2].sort(), "só os feitos à mão ficam");
+  const [{ n: itens }] = await sql`SELECT count(*)::int n FROM appointment_services WHERE appointment_id = ${A.handAppt2}`;
+  assert.equal(itens, 1, "item do agendamento feito à mão fica");
+  const [{ n: avisos }] = await sql`SELECT count(*)::int n FROM notifications WHERE tenant_id = ${A.id}`;
+  assert.equal(avisos, 0, "aviso automático do agendamento do demo sai junto");
   const tx = await sql`SELECT description FROM financial_transactions WHERE tenant_id = ${A.id}`;
   assert.deepEqual(tx.map((x) => x.description), ["Venda real"]);
   for (const [tb, id] of Object.entries(A.protectedIds)) {

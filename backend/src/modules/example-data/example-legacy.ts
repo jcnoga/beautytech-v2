@@ -7,6 +7,9 @@
 //   itens dos agendamentos, serviços dos profissionais, fichas/sessões da clínica).
 // - extras: nomes exatos (aprovados na prévia) de profissionais/serviços renomeados sem "Demo"; cada um precisa
 //   achar exatamente 1 registro, senão nada é feito.
+// - FICA FORA da anotação (decisão de 08/10, opção B): cliente, profissional ou serviço do demo usado por algum
+//   agendamento SEM a nota 'demo' (criado à mão, inclusive de cliente real). Assim o "Remover" nunca leva esses
+//   agendamentos. A troca de contatos por fictícios vale para TODOS os clientes/interessados do demo, dentro ou fora.
 // - Sem `apply`, roda tudo e desfaz (ROLLBACK): é a prévia, nome por nome.
 import { sql } from "drizzle-orm";
 import { db } from "@db/connection";
@@ -25,6 +28,7 @@ export type LegacyReport = {
   tenantId: string; name: string; skipped?: string;
   counts: Record<string, number>;
   names: Record<string, string[]>;  // tabela -> nomes (clientes, profissionais, serviços...) para conferir
+  excluded: { table: string; name: string; reason: string }[]; // do demo, mas fora da anotação, e por quê
   contacts: { clients: number; leads: number };
   applied: boolean;
 };
@@ -43,7 +47,7 @@ export async function annotateLegacyDemo(acc: LegacyAccount, opts: { apply: bool
       const [t] = await q(sql`SELECT id::text AS id, name FROM tenants WHERE id = ${acc.id}`);
       if (!t) throw new Error(`Conta ${acc.id} não existe.`);
       if (t.name !== acc.name) throw new Error(`Conta ${acc.id} se chama "${t.name}", esperado "${acc.name}". Nada feito.`);
-      report = { tenantId: t.id, name: t.name, counts: {}, names: {}, contacts: { clients: 0, leads: 0 }, applied: false };
+      report = { tenantId: t.id, name: t.name, counts: {}, names: {}, excluded: [], contacts: { clients: 0, leads: 0 }, applied: false };
       if ((await repo.readyExampleBatches(tx as any, t.id)).length) { report.skipped = "já tem lote de exemplo"; return; }
 
       const T = t.id;
@@ -53,25 +57,57 @@ export async function annotateLegacyDemo(acc: LegacyAccount, opts: { apply: bool
         return r[0].id as string;
       };
 
-      const clients = await q(sql`SELECT id::text AS id, full_name AS n FROM clients WHERE tenant_id = ${T}
+      // Todos os clientes do demo (para a troca de contatos) e, deles, os que entram no lote.
+      const allClients = await q(sql`SELECT id::text AS id, full_name AS n FROM clients WHERE tenant_id = ${T}
         AND tags @> ARRAY['demo']::text[] ORDER BY created_at, full_name`);
-      const cl = ids(clients);
-      const profs = await q(sql`SELECT id::text AS id, full_name AS n FROM professionals WHERE tenant_id = ${T} AND full_name LIKE '%Demo%' ORDER BY full_name`);
-      for (const n of acc.extraProfessionals ?? []) profs.push({ id: await one("professionals", "full_name", n), n });
-      const pr = ids(profs);
+      const allCl = ids(allClients);
+      const allProfs = await q(sql`SELECT id::text AS id, full_name AS n FROM professionals WHERE tenant_id = ${T} AND full_name LIKE '%Demo%' ORDER BY full_name`);
+      for (const n of acc.extraProfessionals ?? []) allProfs.push({ id: await one("professionals", "full_name", n), n });
       const cats = await q(sql`SELECT id::text AS id, name AS n FROM service_categories WHERE tenant_id = ${T} AND name LIKE 'Demo %' ORDER BY name`);
-      const svcs = await q(sql`SELECT id::text AS id, name AS n FROM services WHERE tenant_id = ${T} AND name LIKE 'Demo %' ORDER BY name`);
-      for (const n of acc.extraServices ?? []) svcs.push({ id: await one("services", "name", n), n });
-      const sv = ids(svcs);
+      const allSvcs = await q(sql`SELECT id::text AS id, name AS n FROM services WHERE tenant_id = ${T} AND name LIKE 'Demo %' ORDER BY name`);
+      for (const n of acc.extraServices ?? []) allSvcs.push({ id: await one("services", "name", n), n });
+
+      // Usados por agendamento SEM a nota 'demo' (feito à mão, inclusive de cliente real; apagado ou não): ficam fora.
+      const hand = sql`SELECT id FROM appointments WHERE tenant_id = ${T} AND coalesce(internal_notes, '') <> 'demo'`;
+      const uses = async (s: any) => new Map((await q(s)).map((r: any) => [String(r.id), Number(r.n)]));
+      const usedC = await uses(sql`SELECT client_id::text AS id, count(*)::int AS n FROM appointments
+        WHERE id IN (${hand}) AND client_id IS NOT NULL GROUP BY 1`);
+      const usedP = await uses(sql`SELECT id, count(DISTINCT ap)::int AS n FROM (
+          SELECT professional_id::text AS id, id AS ap FROM appointments WHERE id IN (${hand}) AND professional_id IS NOT NULL
+          UNION ALL SELECT professional_id::text, appointment_id FROM appointment_services WHERE appointment_id IN (${hand}) AND professional_id IS NOT NULL
+        ) x GROUP BY 1`);
+      const usedS = await uses(sql`SELECT service_id::text AS id, count(DISTINCT appointment_id)::int AS n FROM appointment_services
+        WHERE appointment_id IN (${hand}) AND service_id IS NOT NULL GROUP BY 1`);
+      const keep = (list: any[], used: Map<string, number>, table: string) => list.filter((r) => {
+        const n = used.get(r.id);
+        if (n) report.excluded.push({ table, name: String(r.n), reason: `${n} agendamento(s) feito(s) à mão` });
+        return !n;
+      });
+      const clients = keep(allClients, usedC, "clients");
+      const profs = keep(allProfs, usedP, "professionals");
+      const svcs = keep(allSvcs, usedS, "services");
+      const pr = ids(profs), sv = ids(svcs), allPr = ids(allProfs), allSv = ids(allSvcs);
+      // Categoria Demo usada por serviço que não entra no lote (que ficou fora ou real) também fica fora.
+      const usedK = await uses(sql`SELECT category_id::text AS id, count(*)::int AS n FROM services WHERE tenant_id = ${T}
+        AND category_id IS NOT NULL AND id::text NOT IN (${inList(sv)}) GROUP BY 1`);
+      const catsIn = cats.filter((r) => {
+        const n = usedK.get(r.id);
+        if (n) report.excluded.push({ table: "service_categories", name: String(r.n), reason: `usada por ${n} serviço(s) fora do lote` });
+        return !n;
+      });
+      const cl = allCl; // fichas, pacotes e sessões do demo entram mesmo se o cliente ficar fora (só o cliente fica)
       const appts = await q(sql`SELECT id::text AS id FROM appointments WHERE tenant_id = ${T} AND internal_notes = 'demo'`);
       const ap = ids(appts);
 
       const sets: [string, any[]][] = [
-        ["clients", clients], ["professionals", profs], ["service_categories", cats], ["services", svcs], ["appointments", appts],
+        ["clients", clients], ["professionals", profs], ["service_categories", catsIn], ["services", svcs], ["appointments", appts],
         ["appointment_services", await q(sql`SELECT id::text AS id FROM appointment_services WHERE tenant_id = ${T} AND appointment_id::text IN (${inList(ap)})`)],
         ["professional_schedules", await q(sql`SELECT id::text AS id FROM professional_schedules WHERE tenant_id = ${T} AND professional_id::text IN (${inList(pr)})`)],
+        // vínculo entre profissional e serviço do demo, se ao menos um dos dois entra (o vínculo sai com ele;
+        // quem ficou fora continua)
         ["professional_services", await q(sql`SELECT id::text AS id FROM professional_services WHERE tenant_id = ${T}
-          AND professional_id::text IN (${inList(pr)}) AND service_id::text IN (${inList(sv)})`)],
+          AND professional_id::text IN (${inList(allPr)}) AND service_id::text IN (${inList(allSv)})
+          AND (professional_id::text IN (${inList(pr)}) OR service_id::text IN (${inList(sv)}))`)],
         ["financial_transactions", await q(sql`SELECT id::text AS id, description AS n FROM financial_transactions WHERE tenant_id = ${T} AND description LIKE 'Demo - %' ORDER BY description`)],
         ["leads", await q(sql`SELECT id::text AS id, name AS n FROM leads WHERE tenant_id = ${T} AND name LIKE 'Demo Lead %' ORDER BY name`)],
         ["packages", await q(sql`SELECT id::text AS id, name AS n FROM packages WHERE tenant_id = ${T} AND name LIKE 'Demo Pacote %' AND client_id::text IN (${inList(cl)}) ORDER BY name`)],

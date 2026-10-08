@@ -6,7 +6,8 @@
 //   prévia:  node --import tsx scripts/anotar-exemplo-antigo.ts
 //   aplicar: ZS_CONFIRMAR_EXEMPLO=sim node --import tsx scripts/anotar-exemplo-antigo.ts
 // Contas e extras aprovados pelo usuário em 08/10/2026 (prévia somente leitura da produção). Contas com o mesmo nome
-// são separadas pelo id; o nome é conferido. Agendamentos criados à mão sobre o exemplo NÃO entram (decisão de 08/10).
+// são separadas pelo id; o nome é conferido. Agendamentos criados à mão sobre o exemplo NÃO entram, nem o cliente,
+// profissional ou serviço do demo que eles usam (decisão de 08/10, opção B); os contatos de todos são trocados.
 import { sql } from "drizzle-orm";
 import { db, closeDatabaseConnection } from "../src/db/connection";
 import { rows } from "../src/modules/group-classes/rules";
@@ -34,6 +35,8 @@ async function rodar(apply: boolean, mostrar: boolean) {
       if (r.skipped) { console.log(`PULADA: ${r.skipped}`); continue; }
       console.log(`Registros no lote: ${Object.values(r.counts).reduce((a, n) => a + n, 0)}  ${JSON.stringify(r.counts)}`);
       for (const [t, ns] of Object.entries(r.names)) console.log(`  ${t}: ${ns.join(" | ")}`);
+      console.log(`Ficam FORA do lote: ${r.excluded.length}`);
+      for (const x of r.excluded) console.log(`  FORA: ${x.name} (${x.table}) — ${x.reason}`);
       console.log(`Contatos trocados por fictícios: ${r.contacts.clients} clientes, ${r.contacts.leads} interessados`);
       console.log(r.applied ? "GRAVADO." : "Nada gravado.");
     } catch (e: any) { console.log(`\n### ${c.name} (${c.id}): ERRO ${e.message}`); erros++; }
