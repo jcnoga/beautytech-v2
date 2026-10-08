@@ -1,6 +1,51 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 07/10/2026. Colar no início da próxima conversa.
+Atualizado em 07/10/2026 (noite). Colar no início da próxima conversa.
+
+## ONDE PARAMOS (07/10, noite) — "correções antes do primeiro cliente"
+**`ramo-pilates` 2 commits à frente do GitHub (SEM push, SEM deploy):** `f3f916d` (backend) e `0de8a43` (tela).
+Produção continua em `cfa1373` (código) / `681480a` (docs); `main` = `vps` = `681480a`.
+
+**Item 6 — dados de exemplo do cadastro (feito no local, testado 4 de 4):**
+- Migration **`0012_example_batches`**: `test_batches.kind` ('test' | 'example', padrão 'test'); só acrescenta coluna.
+  Reversão em `migrations-down/0012_example_batches.down.sql`. **Ainda NÃO aplicada na produção** (aplicada no local).
+- Cadastro (salão/barbearia/clínica): `modules/example-data/example-data.service.ts` cria o exemplo numa transação e
+  anota cada registro no lote 'example' NA CRIAÇÃO; contatos fictícios `(00) 90001-000N` e `exemplo.NN@zensalon-exemplo.invalid`.
+  Não anota conta, logins, configurações (modelos de mensagem, regras do studio) nem contas/categorias do Financeiro
+  (`PROTECTED_TABLES`, excluídas também do arrasto).
+- `GET/DELETE /demo/examples` (só o dono): prévia + "Remover dados de exemplo" (tudo ou nada; 409 LINKED_TO_REAL_DATA
+  se houver ligação com dado real). Saíram `/demo/seed` ("+ Demo") e `/demo/clear` ("Limpar Demo", que apagava pelo nome).
+- Lote 'example' não impede assinar e não aparece nos dados de teste do Super Admin.
+- Rotina: **179 testes** (6 novos em `tests/dados-exemplo.test.ts`), check base **12**, build ok.
+- Achado: o cadastro antigo mandava `specialization`, `category` e `transactionDate`, colunas que não existem (o Drizzle
+  descartava calado); o novo não manda.
+- **Decidir depois:** "Apagar agendamento" no app é só marcação (`deleted_at`); agendamento APAGADO de cliente real com
+  profissional de exemplo continua bloqueando o remover (mesma regra da inscrição cancelada do Pilates). Avaliar se
+  deve bloquear e, se sim, explicar na mensagem.
+
+**PRÓXIMO (nesta ordem):**
+1. Script retroativo das **6 contas da produção com 30 clientes demo**: prévia NOME POR NOME por conta (clientes,
+   profissionais, serviços; o critério "%Demo%" pode pegar nome real) → aprovação do usuário → backup → anotar lote
+   'example' + trocar contatos por fictícios. NÃO executar na produção sem aprovar a lista.
+2. Push + deploy + migration 0012 na produção (backup e ensaio antes, `scripts/migrar.ts`).
+3. Itens restantes, um commit cada, parando a cada 2: **3** Excluir conta sem preenchimento automático (`Inp` aceitar
+   `autoComplete`; nome "off", senha "new-password") → **5** `.catch(() => {})` em `PlansPage:57-58`,
+   `StudentsPage:105-106`, `PricingPage:91,109` com aviso + "Tentar de novo" (modelo em `StudioDashboardPage:35`) →
+   **2** 48 linhas com acento triplamente corrompido em `backend/src/modules/all-modules.ts` (reescrever à mão; login do
+   Super Admin usar `middleware/super-admin.ts`) → **1** ícones "Cal/Cli/R$/Tkt" e "?" no `App.tsx` (~40 linhas,
+   emojis perdidos; commit `30567ea` de 03/06) + ~18 textos sem acento → **4** Trial sem data: tela mostrar "sem data".
+
+**Ambiente local (dev-local):**
+- Conta nova **"Salao Exemplo Local"** (`dono.exemplo@local.test`, senha em `dev-local/.env.test-users` EXEMPLO_*),
+  exemplo já removido no teste; sobrou o "Cliente Real Teste".
+- "Studio Equilibrio Teste": `max_professionals = 5` (para caber lote de teste). Desfazer:
+  `docker exec zensalon-local-db-1 psql -U postgres -d zensalon_local -c "update tenants set max_professionals = NULL where id = '5e8e02cb-eed1-422f-acf7-d081b837260a'"`
+- "Conta Restauração Teste": `trial_ends_at` vazio (criada num teste de restauração em 06/10; produção tem 0 casos).
+- "Salao Teste Local" tem o demo ANTIGO (sem marcação): o botão "Remover dados de exemplo" só aparece depois do
+  script retroativo.
+
+**Senha do Super Admin da produção:** a que a API usa está em `/opt/apps/zensalon/.env.api` (SUPER_ADMIN_EMAIL /
+SUPER_ADMIN_PASSWORD); `/root/zensalon-superadmin.txt` está DESATUALIZADO (senha trocada em 02/10). Atualizar o arquivo.
 
 ## ONDE PARAMOS (07/10)
 **Produção = `origin/vps` = `origin/main` = `ramo-pilates` = `cfa1373`** (deploy 07/10 ~13h51 VPS): dados de teste no
