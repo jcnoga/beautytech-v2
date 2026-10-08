@@ -13,7 +13,8 @@ import { rows } from "../src/modules/group-classes/rules";
 import { annotateLegacyDemo, type LegacyAccount } from "../src/modules/example-data/example-legacy";
 
 const CONTAS: LegacyAccount[] = [
-  { id: "d664018e", name: "Salão Beleza Pura", extraProfessionals: ["Julia Costa", "Marina Santos"], extraServices: ["Coloracao"] },
+  // o nome desta conta no banco termina com espaço (conferido no ensaio de 08/10)
+  { id: "d664018e", name: "Salão Beleza Pura ", extraProfessionals: ["Julia Costa", "Marina Santos"], extraServices: ["Coloracao"] },
   { id: "59ded311", name: "Vitta Prime Estética" },
   { id: "4b19ce02", name: "Barbearia Zenon", extraProfessionals: ["Carlos Silva", "Pedro Barbosa"] },
   { id: "1fa81459", name: "The Gentleman Barber" },
