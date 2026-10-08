@@ -10,6 +10,13 @@ prune noturno).
 **Feito hoje (08/10):** furo das rotas públicas fechado e conferido (seção SEGURANÇA abaixo); 4.5 (retroativo do
 exemplo) e 4.6 (`main` = `vps`) concluídos; backup diário criptografado no R2 + restauração testada (ver abaixo).
 
+**Removidos da VPS em 08/10 (~19h50):** Pet Shop inteiro (containers `petshop-web/api/gotrue`, imagens, pasta
+`/opt/apps/petshop`, bancos `petshop` e `gotrue_petshop`, papéis `petshop_app`/`petshop_auth`) e a instância de
+WhatsApp `odontopro-…` no Evolution. Backup antes em `/opt/backups/removidos/2026-10-08_petshop` (dumps, papéis,
+pasta, inspect; SHA256SUMS; não é apagado sozinho). Demais sites conferidos iguais antes/depois;
+`petshop.99labpro.com.br` agora 404 (DNS pode ser removido). Código continua em `C:\projetos\PetShop`,
+`C:\projetos\OdontoPro` e no GitHub. Não confundir: `apps_production` e `/opt/apps/cade17bd-…` são do **AgroLab**.
+
 **Primeiro a fazer em 09/10:**
 1. **Conferir o Traefik:** a troca rodou sozinha às 21h05 de 08/10 (timer `traefik-accesslog`). Ler
    `/root/traefik-accesslog/resultado.txt` (última linha `RESULTADO: OK | VOLTOU | FALHOU`), conferir os 12 sites
