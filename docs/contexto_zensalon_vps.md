@@ -1,6 +1,32 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 07/10/2026 (noite). Colar no início da próxima conversa.
+Atualizado em 08/10/2026. Colar no início da próxima conversa.
+
+## ONDE PARAMOS (08/10) — dados de exemplo: retroativo da produção em andamento
+**Estado:** `origin/vps` = `origin/ramo-pilates` = `8009abc` (push feito, SEM deploy; produção roda `cfa1373`).
+Local à frente (sem push): `4e42f89`, `3b62b00`, `85b867c`, `484f2a4` + excluir agendamento + este docs.
+- Prévia somente leitura da produção (08/10): 6 contas com o "+ Demo" antigo, todas de teste/vitrine, nenhuma pagante
+  (duas se chamam "Salão Beleza Pura"; a d664018e tem espaço no fim do nome). Contatos do demo eram `(34) 98001-000N`
+  com ~90 tentativas de WhatsApp por conta (todas `failed`): a troca por fictícios é o principal ganho.
+- Decisões de 08/10: renomeados entram; agendamentos feitos à mão NÃO entram e (opção B) o cliente/profissional/serviço
+  do demo que eles usam fica fora; categoria Demo usada por serviço fora fica fora; contatos de todos são trocados.
+- "Remover dados de exemplo": registro arrastado não anotado = dado real → 409 (nada apagado), salvo histórico automático
+  (notifications, audit_logs) e agendamento APAGADO no app (deleted_at, com os itens); CANCELADO bloqueia.
+- Agenda ganhou "Excluir" (pendente/confirmado/cancelado; 409 nos outros; 404 outra conta/já apagado).
+- Ensaio na VPS (08/10, banco `zensalon_ensaio`, apagado depois): 0012 + script ok nas 6 contas; refazer com a opção B.
+- Backup de 08/10 12:53 UTC em `/opt/backups/diario/2026-10-08_1253`; imagens novas construídas na VPS (sem `up`).
+
+**Pendências (anotadas em 08/10):**
+- ANTES da VPS: "Nenhum profissional habilitado para este serviço nesta data" deixa agendar → validar no backend.
+  Ligado: `GET /professionals/:id/slots` lê `.rows` (o driver devolve lista) e por isso ignora jornada, bloqueios e
+  agendamentos (sempre 08:00–18:00 de 30 em 30).
+- Depois: horários dos agendamentos do exemplo (20:22, 01:22...: hora da criação + N horas).
+- Depois: limite mensal do plano grátis conta agendamentos apagados e cancelados.
+- Depois (segurança): `GET /public/my-appointments?whatsapp=` lista agendamentos de qualquer conta só pelo número,
+  sem login; e o `'\D'` no SQL vira `D` (só acha telefone gravado só com dígitos).
+
+**Passo 4 (produção), quando aprovado:** push → `git pull` + build API e web → backup novo → 0012 (`migrar.ts`) →
+`up -d --no-deps` API e web + conferências → prévia do script (parar e mostrar) → aplicar com OK → `main` = `vps`.
 
 ## ONDE PARAMOS (07/10, noite) — "correções antes do primeiro cliente"
 **`ramo-pilates` 2 commits à frente do GitHub (SEM push, SEM deploy):** `f3f916d` (backend) e `0de8a43` (tela).
