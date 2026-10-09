@@ -38,7 +38,8 @@ before(async () => {
   const { installFeatureGuard } = await import("../src/middleware/feature-guard");
   const { API_MODULES } = await import("../src/api-modules");
   app = Fastify();
-  await app.register(rateLimit, { max: 1000, timeWindow: "1 minute" }); // como no server.ts (geral alto)
+  const { rateLimitErrorResponse } = await import("../src/config/rate-limit");
+  await app.register(rateLimit, { max: 1000, timeWindow: "1 minute", errorResponseBuilder: rateLimitErrorResponse }); // como no server.ts (geral alto)
   installFeatureGuard(app, PREFIX);
   for (const mod of API_MODULES) await app.register(mod as any, { prefix: PREFIX });
   await app.ready();
@@ -90,9 +91,11 @@ test("limite por IP: 10 por minuto nas rotas públicas que gravam; o 11º recebe
   assert.equal(codes[10], 429);
   const appt = await app.inject({ method: "POST", url: `${PREFIX}/public/appointments`, payload: {}, remoteAddress: "10.8.8.8" });
   assert.equal(appt.statusCode, 400, "agendamento público também está sob o limite (aqui só valida o corpo)");
-  let last = 0;
-  for (let i = 0; i < 11; i++) last = (await app.inject({ method: "POST", url: `${PREFIX}/public/appointments`, payload: {}, remoteAddress: "10.8.8.8" })).statusCode;
-  assert.equal(last, 429);
+  let last: any;
+  for (let i = 0; i < 11; i++) last = await app.inject({ method: "POST", url: `${PREFIX}/public/appointments`, payload: {}, remoteAddress: "10.8.8.8" });
+  assert.equal(last.statusCode, 429);
+  assert.deepEqual([last.json().code, last.json().error], ["TOO_MANY_ATTEMPTS", "Muitas tentativas. Aguarde um minuto e tente de novo."]);
+  assert.ok(!/rate limit/i.test(last.body), "nada em inglês: " + last.body);
 });
 
 test("limite por telefone: o mesmo número de IPs diferentes, 11ª vez no minuto → 429", async () => {

@@ -2,6 +2,19 @@
 
 Atualizado em 08/10/2026. Colar no início da próxima conversa.
 
+## 09/10
+- Conferido: troca do Traefik `RESULTADO: OK` (12 sites iguais antes/depois; access.log crescendo; logrotate ok;
+  timer transitório já sumiu). Backup das 03h10 `R2: enviado e conferido` e `== OK`.
+- Site: menu com "Sou Cliente" (verde) e "Empresa (Entrar)" (dourado); novo título do topo com Pilates. No ar.
+- Item 3 feito: `POST /public/appointments` manda **1** WhatsApp (antes 3), e-mail e WhatsApp em blocos separados,
+  data do dia escolhido (antes `toLocaleDateString` em UTC trocava o dia depois das 21h). Teste
+  `tests/agendamento-publico-whatsapp.test.ts` (Evolution simulada, conta os envios).
+- Item 4 feito: 429 do rate limit em português (`src/config/rate-limit.ts`, `code: TOO_MANY_ATTEMPTS`).
+- Junto: confirmação da agenda interna (`sendAppointmentConfirmation`) saía sempre "Ola, Cliente!" (`client.fullName`
+  não existia no select); agora usa o nome.
+- Visto e NÃO mexido: o módulo do Resend registra "enviada" mesmo quando o envio falha (o SDK devolve `{ error }`
+  sem lançar). A mensagem do WhatsApp diz "foi confirmado" enquanto o agendamento público entra como `pending`.
+
 ## ONDE PARAMOS (08/10, ~18h) — continuar em 09/10
 **Estado:** produção = `vps` = `main` = `080f031` (código `2374e7e` + script de backup + docs); `ramo-pilates` = docs
 à frente (sem efeito na VPS). Tag de volta: `antes-2374e7e` (= `02f2685`; as imagens `:antes-2374e7e` somem com o

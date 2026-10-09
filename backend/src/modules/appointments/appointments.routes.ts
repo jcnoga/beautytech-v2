@@ -192,40 +192,42 @@ export async function publicBookingModule(fastify: FastifyInstance) {
     }
 
 
+    // Confirmação: no máximo 1 e-mail e 1 WhatsApp (antes saíam 3 WhatsApps); uma falha não impede a outra.
     // Dados de teste: cliente de teste não recebe confirmação (nem e-mail nem WhatsApp).
-    const isTestBooking = await isTestClient(db, clientId);
-// Dispara e-mail de confirmaÃ§Ã£o (fire and forget)
-    try {
-      const clientData = await db.select({ email: clients.email, fullName: clients.fullName, whatsapp: clients.whatsapp })
+    if (!(await isTestClient(db, clientId))) {
+      const [clientData] = await db.select({ email: clients.email, fullName: clients.fullName, whatsapp: clients.whatsapp })
         .from(clients).where(eq(clients.id, clientId));
-      const tenantData = await db.select({ name: tenants.name })
-        .from(tenants).where(eq(tenants.id, tenant.id));
-      const proData = await db.select({ fullName: professionals.fullName })
+      const [tenantData] = await db.select({ name: tenants.name }).from(tenants).where(eq(tenants.id, tenant.id));
+      const [proData] = await db.select({ fullName: professionals.fullName })
         .from(professionals).where(eq(professionals.id, professionalId));
+      // Data do dia escolhido (Brasília); scheduledAt está em UTC e mudaria de dia depois das 21h.
+      const dateStr = String(date).split("-").reverse().join("/");
 
-const emailToUse = clientData[0]?.email;
-      if (emailToUse && !isTestBooking) {
-        const { sendAppointmentReminderEmail } = await import("../resend.module.js");
-        await sendAppointmentReminderEmail({
-          to: clientData[0].email,
-          clientName: clientData[0].fullName ?? "Cliente",
-          tenantName: tenantData[0]?.name ?? "Salao",
-          serviceName: service.name,
-          date: new Date(scheduledAt).toLocaleDateString("pt-BR"),
-          time: time,
-          professionalName: proData[0]?.fullName ?? undefined,
-        });
+      if (clientData?.email) {
+        try {
+          const { sendAppointmentReminderEmail } = await import("../resend.module.js");
+          await sendAppointmentReminderEmail({
+            to: clientData.email,
+            clientName: clientData.fullName ?? "Cliente",
+            tenantName: tenantData?.name ?? "Salao",
+            serviceName: service.name,
+            date: dateStr,
+            time: time,
+            professionalName: proData?.fullName ?? undefined,
+          });
+        } catch (emailErr: any) {
+          console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", emailErr.message);
+        }
       }
-      // Dispara confirmacao via WhatsApp (fire and forget)
-      if (clientData[0]?.whatsapp && !isTestBooking) {
+      if (clientData?.whatsapp) {
         try {
           const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
-          let waNumber = clientData[0].whatsapp.replace(/\D/g, "");
+          let waNumber = clientData.whatsapp.replace(/\D/g, "");
           if (waNumber.length === 10 || waNumber.length === 11) waNumber = "55" + waNumber;
-          const waMsg = "Ola " + (clientData[0].fullName ?? "Cliente") + "! Seu agendamento na " + (tenantData[0]?.name ?? "Salao") + " foi confirmado.\n\n" +
+          const waMsg = "Ola " + (clientData.fullName ?? "Cliente") + "! Seu agendamento na " + (tenantData?.name ?? "Salao") + " foi confirmado.\n\n" +
             "Servico: " + service.name + "\n" +
-            "Profissional: " + (proData[0]?.fullName ?? "A definir") + "\n" +
-            "Data: " + new Date(scheduledAt).toLocaleDateString("pt-BR") + "\n" +
+            "Profissional: " + (proData?.fullName ?? "A definir") + "\n" +
+            "Data: " + dateStr + "\n" +
             "Horario: " + time + "\n\n" +
             "Ate breve!";
           await sendTextMessage(waNumber, waMsg, tenant.id);
@@ -233,32 +235,6 @@ const emailToUse = clientData[0]?.email;
           console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
         }
       }
-    } catch (emailErr: any) {
-      console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", emailErr.message);
-    }
-    // Dispara WhatsApp de confirmacao (fire and forget)
-    try {
-      const clientWa = await db.select({ whatsapp: clients.whatsapp, fullName: clients.fullName })
-        .from(clients).where(eq(clients.id, clientId));
-      if (clientWa[0]?.whatsapp && !isTestBooking) {
-        const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
-        const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR");
-        await sendTextMessage(clientWa[0].whatsapp, "Ola " + (clientWa[0].fullName ?? "") + "! Seu agendamento esta confirmado para " + dateStr + " as " + time + ". Ate la!", tenant.id);
-      }
-    } catch (waErr: any) {
-      console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
-    }
-    // Dispara WhatsApp de confirmacao (fire and forget)
-    try {
-      const clientWa = await db.select({ whatsapp: clients.whatsapp, fullName: clients.fullName })
-        .from(clients).where(eq(clients.id, clientId));
-      if (clientWa[0]?.whatsapp && !isTestBooking) {
-        const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
-        const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR");
-        await sendTextMessage(clientWa[0].whatsapp, "Ola " + (clientWa[0].fullName ?? "") + "! Seu agendamento esta confirmado para " + dateStr + " as " + time + ". Ate la!", tenant.id);
-      }
-    } catch (waErr: any) {
-      console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
     }
 
     return reply.status(201).send({

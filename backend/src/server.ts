@@ -7,6 +7,7 @@ import { sendWelcomeEmail } from "./modules/email.module.js";
 import { loadPlansFromDb } from "./modules/billing/billing.service.js";
 
 import { env } from "./config/env.js";
+import { rateLimitErrorResponse } from "./config/rate-limit.js";
 import { checkDatabaseHealth, closeDatabaseConnection } from "./db/connection.js";
 import { startScheduler } from "./jobs/scheduler.js";
 import { authenticate } from "./middleware/auth.js";
@@ -33,7 +34,7 @@ async function bootstrap() {
     if (!body || (body as string).length === 0) { done(null, {}); return; }
     try { done(null, JSON.parse(body as string)); } catch(e: any) { done(e, undefined); }
   });
-  await server.register(rateLimit, { max: env.RATE_LIMIT_MAX, timeWindow: env.RATE_LIMIT_WINDOW });
+  await server.register(rateLimit, { max: env.RATE_LIMIT_MAX, timeWindow: env.RATE_LIMIT_WINDOW, errorResponseBuilder: rateLimitErrorResponse });
 
   server.decorate("authenticate", authenticate);
 
