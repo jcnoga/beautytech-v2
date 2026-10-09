@@ -436,6 +436,14 @@ API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO 
     `.gitignore` (conferir antes do primeiro push que nenhum segredo entra). Decidido em 09/10; não feito ainda.
 13. **n8n:** "lanchonete" e "💜 ZenSalon — Atendimento WhatsApp" desativados no banco em 09/10 (`n8n unpublish:workflow`,
     não apagados; os 7 workflows com active=0). O processo no ar só larga os 2 webhooks quando o n8n reiniciar.
+    Desligar pela tela (09/10) não bastou: o banco já estava inativo e os webhooks seguiram registrados.
+14. **Rota de saúde acessível de fora** para monitor externo (UptimeRobot): hoje `/health` só responde dentro do
+    container (de fora, `/api/v1/health` = 404). Responder só "ok"/status (e talvez banco ok/não ok), sem versão,
+    variáveis, nomes de serviço ou erros internos; sem login; com limite de requisições.
+- Dados de exemplo (09/10): removido só na Vitta Prime Estética (teste do botão em produção; 63 registros; dump antes em
+  `/opt/backups/antes-remover-exemplo-2026-10-09/`). Mantidos nas outras 5 (vitrine de salão: Salão Beleza Pura
+  `sal-o-beleza-pura-a81fz`). Telefones de exemplo nas 5: 34 preenchidos, todos `(00) 90001-NNNN`, 0 que possam existir.
+  Fora do exemplo há 3 clientes de teste com o número do dono (`34 99782…`).
 
 ## Depois
 - Pet Shop como nicho, usando o mesmo mecanismo de nichos. PetShop antigo (repo `jcnoga/petshop`, petshop.99labpro.com.br): decidir se desliga.
