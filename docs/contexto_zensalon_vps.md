@@ -432,6 +432,10 @@ API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO 
     apps_production, vps_migrator, postgres) e `ALTER DATABASE ... REFRESH COLLATION VERSION` em cada um, conferência
     com amcheck antes/depois. Base fixada pelo digest em 09/10 (`/opt/apps/vps-migrator/Dockerfile.postgres`, que NÃO
     está em git; original em `Dockerfile.postgres.bak-20261009`).
+12. **Versionar `/opt/apps/vps-migrator`** num repositório git PRIVADO próprio no GitHub, com `.env` e segredos no
+    `.gitignore` (conferir antes do primeiro push que nenhum segredo entra). Decidido em 09/10; não feito ainda.
+13. **n8n:** "lanchonete" e "💜 ZenSalon — Atendimento WhatsApp" desativados no banco em 09/10 (`n8n unpublish:workflow`,
+    não apagados; os 7 workflows com active=0). O processo no ar só larga os 2 webhooks quando o n8n reiniciar.
 
 ## Depois
 - Pet Shop como nicho, usando o mesmo mecanismo de nichos. PetShop antigo (repo `jcnoga/petshop`, petshop.99labpro.com.br): decidir se desliga.
