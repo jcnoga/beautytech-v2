@@ -237,6 +237,18 @@ export async function deleteInstanceWith(cfg: Awaited<ReturnType<typeof getTenan
   return evolutionRequest(apiUrl, apiKey, "/instance/delete/" + encodeURIComponent(existing.name), "DELETE");
 }
 
+/** Telefone brasileiro para envio: só dígitos, com 55. Aceita "(34) 99999-0001", "+55 34 99999-0001" e o formato
+ *  antigo sem o 9 (10 dígitos, que também é o de fixo; não inventa o 9). Devolve null se não for um número válido
+ *  (tamanho errado, DDD com 0, celular de 11 dígitos sem o 9). */
+export function normalizeWhatsappNumber(raw: unknown): string | null {
+  const d = String(raw ?? "").replace(/\D/g, "");
+  const local = (d.length === 12 || d.length === 13) && d.startsWith("55") ? d.slice(2) : d;
+  if (local.length !== 10 && local.length !== 11) return null;
+  if (!/^[1-9]{2}/.test(local)) return null;
+  if (local.length === 11 && local[2] !== "9") return null;
+  return "55" + local;
+}
+
 export async function sendTextMessage(number: string, text: string, tenantId: string) {
   // Dados de teste: telefone fictício (DDD 00) nunca recebe mensagem, de nenhum ponto do sistema.
   if (isFakePhone(number)) throw new TestContactBlockedError("telefone");
