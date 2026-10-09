@@ -1,6 +1,6 @@
 # Contexto — ZenSalon na VPS + nicho Pilates ("Aulas em turma")
 
-Atualizado em 08/10/2026. Colar no início da próxima conversa.
+Atualizado em 09/10/2026. Colar no início da próxima conversa.
 
 ## 09/10
 - Conferido: troca do Traefik `RESULTADO: OK` (12 sites iguais antes/depois; access.log crescendo; logrotate ok;
@@ -14,6 +14,17 @@ Atualizado em 08/10/2026. Colar no início da próxima conversa.
   não existia no select); agora usa o nome.
 - Visto e NÃO mexido: o módulo do Resend registra "enviada" mesmo quando o envio falha (o SDK devolve `{ error }`
   sem lançar). A mensagem do WhatsApp diz "foi confirmado" enquanto o agendamento público entra como `pending`.
+  (Os dois corrigidos depois: A `254ad3f`, B `1afbca2`.)
+- C `99dda4d`: fila do WhatsApp limpa o telefone (`normalizeWhatsappNumber`); inválido = `failed` com o motivo. A+B+C no
+  ar (só a API; volta: imagem `zensalon-api:antes-99dda4d`).
+- Backup diário (`1bab70a`) inclui o Evolution (bancos `evo_*` + pasta de instâncias; a sessão do WhatsApp fica na
+  tabela `evolution_api."Session"`) e o n8n (cópia online do SQLite + volume, com o `config` que guarda a chave de
+  criptografia; a chave NÃO está no `.env`). Restauração testada do R2: Evolution 37 tabelas/55.371 linhas iguais;
+  n8n 7 workflows (2 ativos + 5 arquivados), 3 de 3 credenciais abrem.
+- Collation: `vps_migrator` e `postgres` com REINDEX CONCURRENTLY + REFRESH (2.41 → 2.31); amcheck ok antes e depois;
+  aviso sumiu. Backup antes em `/opt/backups/antes-collation-2026-10-09/`.
+- `evolution-postgres`: troca `postgres:15` → `postgres:15.18-trixie` (mesmo PG e glibc 2.41) agendada para 21:05 de
+  09/10 (timer `evolution-pin`); resultado em `/root/evolution-pin/resultado.txt`; compose antigo e dump antes ficam lá.
 
 ## ONDE PARAMOS (08/10, ~18h) — continuar em 09/10
 **Estado:** produção = `vps` = `main` = `080f031` (código `2374e7e` + script de backup + docs); `ramo-pilates` = docs
@@ -414,6 +425,13 @@ API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO 
 8. Registro.br (zona 99labpro.com.br), falta você apagar: `agronexo`, `api-agronexo`, `gotrue-agronexo`, `api.odontopro`, `gotrue-odontopro`. DNS do 99labpro conferido e OK; única dúvida é o MX (contato@/suporte@).
 9. **Porta do n8n (32768)** publicada: fechar numa próxima rodada.
 10. Melhorias opcionais: painel mostrar "conta sem salão vinculado" em vez de zeros; exclusão de salão pelo super admin apagar os logins; evento `SUBSCRIPTION_INACTIVATED` do Asaas nunca funciona.
+11. **Sair do Debian 11 (bullseye) no Postgres compartilhado** (`vps-migrator-postgres`, base `postgis/postgis:15-3.4`,
+    glibc 2.31). O Debian 11 perdeu o suporte gratuito (LTS) em **31/08/2026**; só há o ELTS pago da Freexian. Planejar
+    ANTES de qualquer rebuild forçado (o `apt-get` do Dockerfile pode falhar sem o repositório do bullseye): nova base
+    com Debian/glibc explícitos, backup, troca, `REINDEX` de todos os bancos (zensalon, gotrue_*, agroconsult,
+    apps_production, vps_migrator, postgres) e `ALTER DATABASE ... REFRESH COLLATION VERSION` em cada um, conferência
+    com amcheck antes/depois. Base fixada pelo digest em 09/10 (`/opt/apps/vps-migrator/Dockerfile.postgres`, que NÃO
+    está em git; original em `Dockerfile.postgres.bak-20261009`).
 
 ## Depois
 - Pet Shop como nicho, usando o mesmo mecanismo de nichos. PetShop antigo (repo `jcnoga/petshop`, petshop.99labpro.com.br): decidir se desliga.
