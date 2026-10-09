@@ -184,6 +184,10 @@ export default function HomePage() {
         * { box-sizing: border-box; }
         .zs-nav-link { color: ${COLORS.muted}; text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s; cursor: pointer; }
         .zs-nav-link:hover { color: ${COLORS.text}; }
+        .zs-nav-cliente { background: ${COLORS.sage}; color: #0A0A0A; text-decoration: none; font-size: 14px; font-weight: 700; padding: 9px 18px; border-radius: 999px; transition: transform .15s, box-shadow .15s; white-space: nowrap; }
+        .zs-nav-cliente:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(126,184,160,0.35); }
+        .zs-nav-empresa { background: transparent; color: ${COLORS.gold}; text-decoration: none; font-size: 14px; font-weight: 700; padding: 8px 16px; border: 1.5px solid ${COLORS.gold}; border-radius: 10px; transition: background .2s, color .2s; white-space: nowrap; }
+        .zs-nav-empresa:hover { background: ${COLORS.gold}; color: #0A0A0A; }
         .zs-btn-primary { background: ${COLORS.rose}; color: #0A0A0A; border: none; border-radius: 10px; padding: 14px 28px; font-weight: 700; font-size: 15px; cursor: pointer; transition: transform .15s, box-shadow .15s; }
         .zs-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,132,122,0.35); }
         .zs-btn-ghost { background: transparent; color: ${COLORS.text}; border: 1px solid ${COLORS.border}; border-radius: 10px; padding: 13px 28px; font-weight: 600; font-size: 15px; cursor: pointer; transition: border-color .2s; }
@@ -233,8 +237,8 @@ export default function HomePage() {
             <span className="zs-nav-link" onClick={() => scrollTo("funcionalidades")}>Funcionalidades</span>
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
             <span className="zs-nav-link" onClick={() => scrollTo("faq")}>Dúvidas</span>
-            <a className="zs-nav-link" href="/buscar">Sou Cliente</a>  
-            <a className="zs-nav-link" href="/app">Entrar</a>
+            <a className="zs-nav-cliente" href="/buscar">Sou Cliente</a>
+            <a className="zs-nav-empresa" href="/app">Empresa (Entrar)</a>
             <a className="zs-btn-primary" href="/app?tela=cadastro" style={{ textDecoration: "none" }}>Teste Grátis</a>
           </nav>
 
@@ -255,8 +259,8 @@ export default function HomePage() {
             <span className="zs-nav-link" onClick={() => scrollTo("funcionalidades")}>Funcionalidades</span>
             <span className="zs-nav-link" onClick={() => scrollTo("precos")}>Preços</span>
             <span className="zs-nav-link" onClick={() => scrollTo("faq")}>Dúvidas</span>
-            <a className="zs-nav-link" href="/buscar">Sou Cliente</a>
-            <a className="zs-nav-link" href="/app">Entrar</a>
+            <a className="zs-nav-cliente" href="/buscar" style={{ textAlign: "center", fontSize: 16, padding: "12px 0" }}>Sou Cliente</a>
+            <a className="zs-nav-empresa" href="/app" style={{ textAlign: "center", fontSize: 16, padding: "11px 0" }}>Empresa (Entrar)</a>
             <a className="zs-btn-primary" href="/app?tela=cadastro" style={{ textDecoration: "none", textAlign: "center", padding: "10px 0", borderRadius: 8 }}>Teste Grátis</a>
           </div>
         )}
