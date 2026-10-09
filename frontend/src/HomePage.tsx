@@ -287,7 +287,7 @@ export default function HomePage() {
           fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 52, lineHeight: 1.1,
           letterSpacing: -1, margin: "0 auto 20px", maxWidth: 780,
         }}>
-          Salão, barbearia e estética com gestão de sucesso.
+          Salões, Barbearias, Estética e Pilates: gestão inteligente para crescer.
         </h1>
         <p style={{ color: COLORS.muted, fontSize: 18, maxWidth: 560, margin: "0 auto 36px", lineHeight: 1.6 }}>
           Agenda, financeiro, clientes e WhatsApp em um só lugar.
