@@ -279,7 +279,7 @@ export async function sendAppointmentConfirmation(tenantId: string, appt: any) {
     const dt = new Date(appt.scheduledAt);
     const dataF = dt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
     const horaF = dt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
-    const msg = "Ola, " + (client.name ?? "Cliente") + "! Agendamento confirmado.\n\nData: " + dataF + "\nHorario: " + horaF + "\nServico: " + (apptSvc?.name ?? "Servico") + (profName ? "\nProfissional: " + profName : "") + "\n\nZenSalon";
+    const msg = "Olá, " + (client.name ?? "Cliente") + "! Agendamento confirmado.\n\nData: " + dataF + "\nHorário: " + horaF + "\nServiço: " + (apptSvc?.name ?? "Serviço") + (profName ? "\nProfissional: " + profName : "") + "\n\nZenSalon";
     await sendTextMessage(fullNumber, msg, tenantId);
     console.log("[WP-CONFIRM] Enviado para:", fullNumber);
   } catch (e: any) { console.error("[WP-CONFIRM] Erro:", e.message); throw e; }

@@ -200,22 +200,23 @@ export async function sendOwnerNotificationEmail(salonName: string, phone: strin
 }
 
 // -- Confirmacao de agendamento --------------------------------
-export async function sendAppointmentReminderEmail({ to, clientName, tenantName, serviceName, date, time, professionalName }: {
-  to: string; clientName: string; tenantName: string; serviceName: string; date: string; time: string; professionalName?: string;
+// pending: pedido recebido, ainda não confirmado pela conta (agendamento público).
+export async function sendAppointmentReminderEmail({ to, clientName, tenantName, serviceName, date, time, professionalName, pending = false }: {
+  to: string; clientName: string; tenantName: string; serviceName: string; date: string; time: string; professionalName?: string; pending?: boolean;
 }) {
   try {
     await resend.emails.send({
       from: FROM, to,
-      subject: "Agendamento confirmado - " + tenantName,
+      subject: (pending ? "Pedido de agendamento recebido - " : "Agendamento confirmado - ") + tenantName,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
         <h1 style="color:#1a0a2e;">${tenantName}</h1>
-        <h2 style="color:#166534;">Agendamento Confirmado!</h2>
+        <h2 style="color:${pending ? "#b45309" : "#166534"};">${pending ? "Recebemos seu pedido de agendamento" : "Agendamento Confirmado!"}</h2>
         <p><strong>Cliente:</strong> ${clientName}</p>
-        <p><strong>Servico:</strong> ${serviceName}</p>
+        <p><strong>Serviço:</strong> ${serviceName}</p>
         ${professionalName ? `<p><strong>Profissional:</strong> ${professionalName}</p>` : ""}
         <p><strong>Data:</strong> ${date}</p>
-        <p><strong>Horario:</strong> ${time}</p>
-        <p style="color:#6b5e8a;font-size:12px;">Voce recebera um lembrete 24h antes do horario.</p>
+        <p><strong>Horário:</strong> ${time}</p>
+        <p style="color:#6b5e8a;font-size:12px;">${pending ? "Assim que confirmarmos o horário, avisaremos você." : "Você receberá um lembrete 24h antes do horário."}</p>
       </div>`,
     });
     console.log("[RESEND] Confirmacao agendamento enviada para " + to);

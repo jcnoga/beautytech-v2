@@ -1,6 +1,7 @@
 // Agendamento pela página pública (09/10/2026): a confirmação por WhatsApp sai UMA vez (antes saíam 3),
 // com a data do dia escolhido (Brasília, mesmo depois das 21h), também para quem tem e-mail.
-// A Evolution é simulada: o fetch só conta as chamadas a /message/sendText.
+// Pedido pendente diz "Recebemos seu pedido", não "confirmado" (WhatsApp e e-mail).
+// Evolution e Resend simulados: o fetch registra as chamadas a /message/sendText e a api.resend.com/emails.
 // Uso: sh scripts/test-db.sh   (o banco de teste é APAGADO a cada execução)
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
@@ -17,13 +18,19 @@ Object.assign(process.env, {
 });
 const EVO = "http://evolution.teste";
 let enviados: { url: string; body: any }[] = [];
+let emails: any[] = [];
+const json = (b: any, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
 globalThis.fetch = (async (url: any, init?: any) => {
   const u = String(url);
   if (u.startsWith(EVO + "/message/sendText/")) {
     enviados.push({ url: u, body: JSON.parse(init?.body ?? "{}") });
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    return json({ ok: true });
   }
-  throw new Error(`rede desligada no teste: ${u}`); // e-mail (Resend) não sai
+  if (u.startsWith("https://api.resend.com/emails")) {
+    emails.push(JSON.parse(init?.body ?? "{}"));
+    return json({ id: "email-teste" });
+  }
+  throw new Error(`rede desligada no teste: ${u}`);
 }) as any;
 
 const PREFIX = "/api/v1";
@@ -57,7 +64,7 @@ before(async () => {
   C_EMAIL = (await sql`INSERT INTO clients (tenant_id, full_name, whatsapp, email) VALUES (${t.id}, 'Bia', '34999990002', 'bia@exemplo.com') RETURNING id`)[0].id;
 });
 
-beforeEach(() => { enviados = []; });
+beforeEach(() => { enviados = []; emails = []; });
 
 after(async () => {
   await app?.close();
@@ -73,15 +80,30 @@ test("agendamento público: exatamente 1 WhatsApp, para o número com 55, com a 
   assert.equal(enviados.length, 1, "uma confirmação só");
   assert.equal(enviados[0].url, `${EVO}/message/sendText/inst-teste`);
   assert.equal(enviados[0].body.number, "5534999990001");
-  assert.match(enviados[0].body.text, /Ola Ana! Seu agendamento na Salão Zap/);
-  assert.match(enviados[0].body.text, /Data: 03\/01\/2030\nHorario: 10:00/);
+  assert.equal(enviados[0].body.text,
+    "Olá Ana! Recebemos seu pedido de agendamento para 03/01/2030 às 10:00.\n" +
+    "Serviço: Corte\nProfissional: Marina\n" +
+    "Assim que confirmarmos o horário, avisaremos por aqui.\n— Salão Zap",
+    "agendamento público entra pendente: pedido recebido, não 'confirmado'");
+});
+
+test("texto: confirmado mantém 'confirmado'; nenhum dos dois fala em 'salão' fora da assinatura", async () => {
+  const { bookingMessage } = await import("../src/modules/appointments/appointments.routes");
+  const base = { clientName: "Ana", date: "03/01/2030", time: "10:00", serviceName: "Corte", professionalName: "Marina", tenantName: "Barbearia Zenon" };
+  const ok = bookingMessage({ ...base, pending: false });
+  assert.match(ok, /^Olá Ana! Seu agendamento para 03\/01\/2030 às 10:00 está confirmado\./);
+  assert.match(ok, /\n— Barbearia Zenon$/);
+  for (const m of [ok, bookingMessage({ ...base, pending: true })]) {
+    assert.ok(!/sal[aã]o/i.test(m.replace(/\n— .*$/, "")), m);
+    assert.ok(!/\bOla\b/.test(m), m);
+  }
 });
 
 test("depois das 21h de Brasília a data continua a do dia escolhido (não a do dia seguinte em UTC)", async () => {
   const r = await agendar(C_SEM_EMAIL, "22:30");
   assert.equal(r.statusCode, 201, r.body);
   assert.equal(enviados.length, 1);
-  assert.match(enviados[0].body.text, /Data: 03\/01\/2030\nHorario: 22:30/);
+  assert.match(enviados[0].body.text, /para 03\/01\/2030 às 22:30\./);
 });
 
 test("cliente com e-mail: o e-mail não impede o WhatsApp (e continua 1 só)", async () => {
@@ -89,6 +111,10 @@ test("cliente com e-mail: o e-mail não impede o WhatsApp (e continua 1 só)", a
   assert.equal(r.statusCode, 201, r.body);
   assert.equal(enviados.length, 1);
   assert.equal(enviados[0].body.number, "5534999990002");
+  assert.equal(emails.length, 1);
+  assert.equal(emails[0].subject, "Pedido de agendamento recebido - Salão Zap");
+  assert.match(emails[0].html, /Recebemos seu pedido de agendamento/);
+  assert.ok(!/Confirmado/i.test(emails[0].html), "e-mail do pedido pendente não diz 'confirmado'");
 });
 
 test("horário ocupado: nada é enviado", async () => {

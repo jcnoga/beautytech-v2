@@ -22,6 +22,20 @@ export function publicPhoneLimited(phone: string, now = Date.now()): boolean {
   return recent.length > PUBLIC_LIMIT;
 }
 
+/** WhatsApp do agendamento público. Pendente = pedido recebido; confirmado = horário garantido. Primeira pessoa,
+ *  com o nome da conta só na assinatura (nada de "o salão"/"na Barbearia": o artigo muda de um nicho para outro). */
+export function bookingMessage(p: { pending: boolean; clientName?: string | null; date: string; time: string;
+  serviceName: string; professionalName?: string | null; tenantName?: string | null }) {
+  const head = p.pending
+    ? "Recebemos seu pedido de agendamento para " + p.date + " às " + p.time + "."
+    : "Seu agendamento para " + p.date + " às " + p.time + " está confirmado.";
+  const tail = p.pending ? "Assim que confirmarmos o horário, avisaremos por aqui." : "Até breve!";
+  return "Olá " + (p.clientName || "Cliente") + "! " + head + "\n" +
+    "Serviço: " + p.serviceName + "\n" +
+    "Profissional: " + (p.professionalName || "A definir") + "\n" +
+    tail + (p.tenantName ? "\n— " + p.tenantName : "");
+}
+
 export async function publicBookingModule(fastify: FastifyInstance) {
 
   fastify.get("/public/tenants", async (req: any, reply) => {
@@ -214,6 +228,7 @@ export async function publicBookingModule(fastify: FastifyInstance) {
             date: dateStr,
             time: time,
             professionalName: proData?.fullName ?? undefined,
+            pending: appointment.status === "pending",
           });
         } catch (emailErr: any) {
           console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", emailErr.message);
@@ -224,13 +239,10 @@ export async function publicBookingModule(fastify: FastifyInstance) {
           const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
           let waNumber = clientData.whatsapp.replace(/\D/g, "");
           if (waNumber.length === 10 || waNumber.length === 11) waNumber = "55" + waNumber;
-          const waMsg = "Ola " + (clientData.fullName ?? "Cliente") + "! Seu agendamento na " + (tenantData?.name ?? "Salao") + " foi confirmado.\n\n" +
-            "Servico: " + service.name + "\n" +
-            "Profissional: " + (proData?.fullName ?? "A definir") + "\n" +
-            "Data: " + dateStr + "\n" +
-            "Horario: " + time + "\n\n" +
-            "Ate breve!";
-          await sendTextMessage(waNumber, waMsg, tenant.id);
+          await sendTextMessage(waNumber, bookingMessage({
+            pending: appointment.status === "pending", clientName: clientData.fullName, date: dateStr, time,
+            serviceName: service.name, professionalName: proData?.fullName, tenantName: tenantData?.name,
+          }), tenant.id);
         } catch (waErr: any) {
           console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
         }
