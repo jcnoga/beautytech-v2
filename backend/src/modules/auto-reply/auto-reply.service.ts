@@ -1,4 +1,5 @@
 import { autoReplyRepository } from "./auto-reply.repository";
+import { firstNameFrom, fillAutoReply } from "./auto-reply.text";
 
 const DEFAULT_FRONTEND_URL = "https://www.zensalon.com.br";
 
@@ -16,7 +17,8 @@ function randomDelayMs(minSeconds: number, maxSeconds: number): number {
 }
 
 export const autoReplyService = {
-  async handleIncomingMessage(instanceName: string, fromPhone: string) {
+  /** pushName = nome do WhatsApp de quem escreveu (vem da Evolution); usado no {nome} quando não há cadastro. */
+  async handleIncomingMessage(instanceName: string, fromPhone: string, pushName?: string) {
     const tenant = await autoReplyRepository.findTenantByInstance(instanceName);
     if (!tenant) return { skipped: true, reason: "tenant_not_found" };
 
@@ -42,9 +44,9 @@ export const autoReplyService = {
 
     const bookingLink = `${process.env.FRONTEND_URL ?? DEFAULT_FRONTEND_URL}/agendar/${tenant.slug}/booking`;
 
-    const finalText = chosen.message
-      .replace(/{nome}/g, client?.fullName?.split(" ")[0] ?? "")
-      .replace(/{link}/g, bookingLink);
+    // Nome do cadastro; sem cadastro (ou nome inválido), o nome do WhatsApp; sem nenhum, o {nome} some do texto.
+    const name = firstNameFrom(client?.fullName) || firstNameFrom(pushName);
+    const finalText = fillAutoReply(chosen.message, name, bookingLink);
 
     const delayMs = randomDelayMs(settings.replyDelayMinSeconds ?? 5, settings.replyDelayMaxSeconds ?? 8);
     await new Promise((resolve) => setTimeout(resolve, delayMs));

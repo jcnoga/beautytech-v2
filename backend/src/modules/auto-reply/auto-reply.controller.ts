@@ -39,7 +39,7 @@ export async function autoReplyController(fastify: FastifyInstance) {
       if (!phone) return;
 
       try {
-        await autoReplyService.handleIncomingMessage(instanceName, phone);
+        await autoReplyService.handleIncomingMessage(instanceName, phone, body?.data?.pushName);
       } catch (err) {
         console.error("[AUTO-REPLY] Erro ao processar webhook:", err);
       }

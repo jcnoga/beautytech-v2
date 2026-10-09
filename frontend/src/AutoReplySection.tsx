@@ -144,7 +144,7 @@ export function AutoReplySection({ C, FD, FB }: any) {
   ) => (
     <div style={{ flex: 1, minWidth: 280 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: C.text, fontFamily: FB, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        {audience === "existing_client" ? "Mensagens para clientes ({nome} disponivel)" : "Mensagens para contatos novos"}
+        {audience === "existing_client" ? "Mensagens para clientes ({nome} = nome do cadastro)" : "Mensagens para contatos novos ({nome} = nome do WhatsApp)"}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
         {list.length === 0 && (
@@ -262,7 +262,7 @@ export function AutoReplySection({ C, FD, FB }: any) {
       {settings?.isEnabled && (
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 20, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
           {renderMessageList(existingMsgs, "existing_client", "Ex: Ola {nome}! Bom te ver por aqui de novo. Quer agendar? {link}")}
-          {renderMessageList(newContactMsgs, "new_contact", "Ex: Ola! Que bom que voce chegou ate aqui. Conheca nossos horarios: {link}")}
+          {renderMessageList(newContactMsgs, "new_contact", "Ex: Oi, {nome}! Que bom que voce chegou ate aqui. Conheca nossos horarios: {link}")}
         </div>
       )}
     </div>

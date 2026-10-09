@@ -13,7 +13,7 @@ docker run -d --rm --name "$NAME" -e POSTGRES_PASSWORD=test -e POSTGRES_DB=zensa
 trap 'docker rm -f "$NAME" >/dev/null 2>&1 || true' EXIT
 
 i=0
-until docker exec "$NAME" pg_isready -U postgres -d zensalon_test >/dev/null 2>&1; do
+until docker exec "$NAME" pg_isready -h 127.0.0.1 -U postgres -d zensalon_test >/dev/null 2>&1; do
   i=$((i + 1)); [ "$i" -gt 60 ] && { echo "Postgres de teste não subiu" >&2; exit 1; }
   sleep 1
 done

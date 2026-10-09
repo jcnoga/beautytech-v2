@@ -1,6 +1,7 @@
 import { db } from "../../db/connection.js";
 import { autoReplySettings, autoReplyMessages, autoReplyConversations, tenants, clients } from "../../db/schema/index.js";
 import { eq, and, sql } from "drizzle-orm";
+import { NEW_CONTACT_DEFAULTS, phoneVariants } from "./auto-reply.text.js";
 
 export const autoReplyRepository = {
   async findTenantByInstance(instanceName: string) {
@@ -71,11 +72,16 @@ export const autoReplyRepository = {
       .where(and(eq(autoReplyMessages.id, id), eq(autoReplyMessages.tenantId, tenantId)));
   },
 
+  /** phone vem do WhatsApp (só dígitos, com 55; às vezes sem o 9 do celular). O cadastro costuma ter "(34) 9xxxx-xxxx":
+   *  compara com e sem 55 e com e sem o 9. */
   async findClientByPhone(tenantId: string, phone: string) {
+    const variants = phoneVariants(phone);
+    if (!variants.length) return null;
     const [client] = await db
       .select({ id: clients.id, fullName: clients.fullName })
       .from(clients)
-      .where(and(eq(clients.tenantId, tenantId), sql`regexp_replace(${clients.whatsapp}, '\\D', '', 'g') = ${phone}`))
+      .where(and(eq(clients.tenantId, tenantId),
+        sql`regexp_replace(${clients.whatsapp}, '\\D', '', 'g') IN (${sql.join(variants.map((v) => sql`${v}`), sql`, `)})`))
       .limit(1);
     return client ?? null;
   },
@@ -97,18 +103,8 @@ export const autoReplyRepository = {
       "Oi {nome}! Que ótimo falar com você de novo. Agende seu horário quando quiser: {link}",
     ];
 
-    const defaultNewContact = [
-      "Olá! Que bom que você chegou até aqui. Conheça nossos horários disponíveis: {link}",
-      "Oi! Obrigado por entrar em contato. Você pode ver nossos serviços e agendar direto por aqui: {link}",
-      "Olá! Seja bem-vindo(a). Pra conhecer nossos horários e agendar, acesse: {link}",
-      "Oi, tudo bem? Recebemos sua mensagem! Dá uma olhada nos nossos horários disponíveis: {link}",
-      "Olá! Ficamos felizes com seu contato. Você já pode agendar seu horário por aqui: {link}",
-      "Oi! Obrigado por chegar até a gente. Confira nossos serviços e horários: {link}",
-      "Olá! Prazer em te atender. Pra agendar seu primeiro horário, acesse: {link}",
-      "Oi, tudo certo? Deixei o link com nossos horários disponíveis pra você: {link}",
-      "Olá! Que bom ter você por aqui. Veja nossos horários e agende quando quiser: {link}",
-      "Oi! Seja bem-vindo(a) ao nosso salão. Agende seu horário por aqui: {link}",
-    ];
+    // {nome} = nome do WhatsApp de quem escreveu (some do texto quando não há nome utilizável).
+    const defaultNewContact = NEW_CONTACT_DEFAULTS;
 
     let insertedExisting = 0;
     let insertedNewContact = 0;
