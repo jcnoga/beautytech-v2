@@ -440,6 +440,10 @@ API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO 
 14. **Rota de saúde acessível de fora** para monitor externo (UptimeRobot): hoje `/health` só responde dentro do
     container (de fora, `/api/v1/health` = 404). Responder só "ok"/status (e talvez banco ok/não ok), sem versão,
     variáveis, nomes de serviço ou erros internos; sem login; com limite de requisições.
+- Recepção Automática (09/10, `9037862`, API + web no ar; volta: imagens `:antes-9037862`): `{nome}` de contato novo =
+  primeiro nome do WhatsApp (pushName, limpo); sem nome, some sem buraco. Cliente cadastrado agora é reconhecido
+  (WhatsApp manda com 55 e às vezes sem o 9). 10 mensagens padrão da `beautytech` trocadas pelo script
+  `scripts/boas-vindas-com-nome.ts` (só as idênticas ao padrão antigo). Sem teste de envio real (nenhuma instância open).
 - Dados de exemplo (09/10): removido só na Vitta Prime Estética (teste do botão em produção; 63 registros; dump antes em
   `/opt/backups/antes-remover-exemplo-2026-10-09/`). Mantidos nas outras 5 (vitrine de salão: Salão Beleza Pura
   `sal-o-beleza-pura-a81fz`). Telefones de exemplo nas 5: 34 preenchidos, todos `(00) 90001-NNNN`, 0 que possam existir.
