@@ -217,36 +217,35 @@ export async function publicBookingModule(fastify: FastifyInstance) {
       // Data do dia escolhido (Brasília); scheduledAt está em UTC e mudaria de dia depois das 21h.
       const dateStr = String(date).split("-").reverse().join("/");
 
-      if (clientData?.email) {
-        try {
-          const { sendAppointmentReminderEmail } = await import("../resend.module.js");
-          await sendAppointmentReminderEmail({
-            to: clientData.email,
-            clientName: clientData.fullName ?? "Cliente",
-            tenantName: tenantData?.name ?? "Salao",
-            serviceName: service.name,
-            date: dateStr,
-            time: time,
-            professionalName: proData?.fullName ?? undefined,
-            pending: appointment.status === "pending",
-          });
-        } catch (emailErr: any) {
-          console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", emailErr.message);
-        }
-      }
-      if (clientData?.whatsapp) {
-        try {
-          const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
-          let waNumber = clientData.whatsapp.replace(/\D/g, "");
-          if (waNumber.length === 10 || waNumber.length === 11) waNumber = "55" + waNumber;
-          await sendTextMessage(waNumber, bookingMessage({
-            pending: appointment.status === "pending", clientName: clientData.fullName, date: dateStr, time,
-            serviceName: service.name, professionalName: proData?.fullName, tenantName: tenantData?.name,
-          }), tenant.id);
-        } catch (waErr: any) {
-          console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", waErr.message);
-        }
-      }
+      // E-mail e WhatsApp em paralelo e independentes: erro ou demora de um não segura o outro.
+      const envioEmail = async () => {
+        if (!clientData?.email) return;
+        const { sendAppointmentReminderEmail } = await import("../resend.module.js");
+        await sendAppointmentReminderEmail({
+          to: clientData.email,
+          clientName: clientData.fullName ?? "Cliente",
+          tenantName: tenantData?.name ?? "Salao",
+          serviceName: service.name,
+          date: dateStr,
+          time: time,
+          professionalName: proData?.fullName ?? undefined,
+          pending: appointment.status === "pending",
+          ref: { tenantId: tenant.id, clientId: client.id, referenceId: appointment.id },
+        });
+      };
+      const envioWhatsapp = async () => {
+        if (!clientData?.whatsapp) return;
+        const { sendTextMessage } = await import("../whatsapp/whatsapp.service.js");
+        let waNumber = clientData.whatsapp.replace(/\D/g, "");
+        if (waNumber.length === 10 || waNumber.length === 11) waNumber = "55" + waNumber;
+        await sendTextMessage(waNumber, bookingMessage({
+          pending: appointment.status === "pending", clientName: clientData.fullName, date: dateStr, time,
+          serviceName: service.name, professionalName: proData?.fullName, tenantName: tenantData?.name,
+        }), tenant.id);
+      };
+      const [email, whatsapp] = await Promise.allSettled([envioEmail(), envioWhatsapp()]);
+      if (email.status === "rejected") console.error("[BOOKING] Erro ao enviar e-mail de confirmacao:", email.reason?.message);
+      if (whatsapp.status === "rejected") console.error("[BOOKING] Erro ao enviar WhatsApp de confirmacao:", whatsapp.reason?.message);
     }
 
     return reply.status(201).send({

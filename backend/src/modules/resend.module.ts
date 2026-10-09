@@ -1,16 +1,40 @@
 import { Resend } from "resend";
 import { EMAIL_FROM } from "../config/env.js";
 import { guardResend } from "./super-admin/test-data.guard.js";
+import { db } from "../db/connection.js";
+import { notifications } from "../db/schema/index.js";
 
 // guardResend: e-mail de dados de teste (.invalid) nunca é enviado.
 const resend = guardResend(new Resend(process.env.RESEND_API_KEY));
 const FROM = EMAIL_FROM;
 const FRONTEND = process.env.FRONTEND_URL ?? "https://zensalon.com.br";
 
+/** Envia e confere: o SDK do Resend devolve { error } em vez de lançar. Lança com o motivo quando falha.
+ *  `skipped`: destinatário de dados de teste (nada foi enviado). */
+async function send(payload: Parameters<typeof resend.emails.send>[0]): Promise<{ id?: string; skipped?: string }> {
+  const r: any = await resend.emails.send(payload);
+  if (r?.error) throw new Error([r.error.name, r.error.message].filter(Boolean).join(": ") || String(r.error));
+  if (r?.skipped) return { skipped: r.skipped };
+  return { id: r?.data?.id };
+}
+
+/** Registro do e-mail em notifications (canal email): sent, ou failed com o motivo. Nunca lança. */
+async function logEmail(ref: EmailRef | undefined, subject: string, status: "sent" | "failed", errorMsg?: string) {
+  if (!ref) return;
+  try {
+    await db.insert(notifications).values({
+      tenantId: ref.tenantId, clientId: ref.clientId ?? null, referenceId: ref.referenceId ?? null,
+      channel: "email", subject, message: subject, status,
+      sentAt: status === "sent" ? new Date() : null, errorMsg: errorMsg ?? null,
+    });
+  } catch (e: any) { console.error("[RESEND] Erro ao registrar e-mail:", e.message); }
+}
+export type EmailRef = { tenantId: string; clientId?: string | null; referenceId?: string | null };
+
 // -- Boas-vindas -----------------------------------------------
 export async function sendWelcomeEmail(to: string, salonName: string) {
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to,
       subject: `Bem-vindo ao ZenSalon, ${salonName}!`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -38,7 +62,7 @@ export async function sendPlanActivatedEmail(to: string, salonName: string, plan
   const periodLabel: Record<string, string> = { monthly: "Mensal", semiannual: "Semestral", annual: "Anual" };
   const expiry = expiresAt.toLocaleDateString("pt-BR");
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to,
       subject: `Plano ${planName} ativado - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -71,7 +95,7 @@ export async function sendPlanActivatedEmail(to: string, salonName: string, plan
 export async function sendPaymentConfirmedEmail(to: string, salonName: string, value: number, expiresAt: Date) {
   const expiry = expiresAt.toLocaleDateString("pt-BR");
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to,
       subject: `Pagamento confirmado - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -92,7 +116,7 @@ export async function sendPaymentConfirmedEmail(to: string, salonName: string, v
 // -- Pagamento vencido -----------------------------------------
 export async function sendPaymentOverdueEmail(to: string, salonName: string) {
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to,
       subject: `Pagamento pendente - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -117,7 +141,7 @@ export async function sendPlanExpiringEmail(to: string, salonName: string, daysL
     ? `Seu plano foi cancelado e expira em <strong>${daysLeft} dia(s)</strong> (${expiry}). Apos essa data, sua conta sera rebaixada para o plano Free.`
     : `Seu plano renova automaticamente em <strong>${daysLeft} dia(s)</strong> (${expiry}). Certifique-se de que seu metodo de pagamento esta atualizado.`;
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to,
       subject: `Seu plano vence em ${daysLeft} dia(s) - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -138,7 +162,7 @@ export async function sendPlanExpiringEmail(to: string, salonName: string, daysL
 // -- Plano expirado --------------------------------------------
 export async function sendPlanExpiredEmail(to: string, salonName: string) {
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to,
       subject: `Seu plano expirou - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -160,7 +184,7 @@ export async function sendPlanExpiredEmail(to: string, salonName: string) {
 export async function sendPlanCanceledEmail(to: string, salonName: string, expiresAt: any) {
   const expiry = expiresAt ? new Date(expiresAt).toLocaleDateString("pt-BR") : "em breve";
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to,
       subject: `Assinatura cancelada - ZenSalon`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -184,7 +208,7 @@ export async function sendOwnerNotificationEmail(salonName: string, phone: strin
   const ownerEmail = process.env["NOTIFY_OWNER_EMAIL"];
   if (!ownerEmail) return;
   try {
-    await resend.emails.send({
+    await send({
       from: FROM, to: ownerEmail,
       subject: "Novo salao conectou o WhatsApp - " + salonName,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
@@ -201,13 +225,15 @@ export async function sendOwnerNotificationEmail(salonName: string, phone: strin
 
 // -- Confirmacao de agendamento --------------------------------
 // pending: pedido recebido, ainda não confirmado pela conta (agendamento público).
-export async function sendAppointmentReminderEmail({ to, clientName, tenantName, serviceName, date, time, professionalName, pending = false }: {
+// ref: grava o resultado em notifications (sent/failed). Nunca lança: falha de e-mail não pode travar o WhatsApp.
+export async function sendAppointmentReminderEmail({ to, clientName, tenantName, serviceName, date, time, professionalName, pending = false, ref }: {
   to: string; clientName: string; tenantName: string; serviceName: string; date: string; time: string; professionalName?: string; pending?: boolean;
+  ref?: EmailRef;
 }) {
+  const subject = (pending ? "Pedido de agendamento recebido - " : "Agendamento confirmado - ") + tenantName;
   try {
-    await resend.emails.send({
-      from: FROM, to,
-      subject: (pending ? "Pedido de agendamento recebido - " : "Agendamento confirmado - ") + tenantName,
+    const r = await send({
+      from: FROM, to, subject,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;">
         <h1 style="color:#1a0a2e;">${tenantName}</h1>
         <h2 style="color:${pending ? "#b45309" : "#166534"};">${pending ? "Recebemos seu pedido de agendamento" : "Agendamento Confirmado!"}</h2>
@@ -219,8 +245,13 @@ export async function sendAppointmentReminderEmail({ to, clientName, tenantName,
         <p style="color:#6b5e8a;font-size:12px;">${pending ? "Assim que confirmarmos o horário, avisaremos você." : "Você receberá um lembrete 24h antes do horário."}</p>
       </div>`,
     });
+    if (r.skipped) { console.log("[RESEND] Confirmacao agendamento NAO enviada (" + r.skipped + ")"); return; }
     console.log("[RESEND] Confirmacao agendamento enviada para " + to);
-  } catch (e: any) { console.error("[RESEND] Erro confirmacao agendamento:", e.message); }
+    await logEmail(ref, subject, "sent");
+  } catch (e: any) {
+    console.error("[RESEND] Erro confirmacao agendamento:", e.message);
+    await logEmail(ref, subject, "failed", e.message);
+  }
 }
 
 // -- Pro ativado (legado) --------------------------------------

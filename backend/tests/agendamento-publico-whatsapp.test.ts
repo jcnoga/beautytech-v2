@@ -19,6 +19,7 @@ Object.assign(process.env, {
 const EVO = "http://evolution.teste";
 let enviados: { url: string; body: any }[] = [];
 let emails: any[] = [];
+let resend: "ok" | "erro" | "rede" = "ok";
 const json = (b: any, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
 globalThis.fetch = (async (url: any, init?: any) => {
   const u = String(url);
@@ -28,6 +29,8 @@ globalThis.fetch = (async (url: any, init?: any) => {
   }
   if (u.startsWith("https://api.resend.com/emails")) {
     emails.push(JSON.parse(init?.body ?? "{}"));
+    if (resend === "erro") return json({ statusCode: 422, name: "validation_error", message: "Invalid `to` field" }, 422);
+    if (resend === "rede") throw new Error("getaddrinfo ENOTFOUND api.resend.com");
     return json({ id: "email-teste" });
   }
   throw new Error(`rede desligada no teste: ${u}`);
@@ -64,7 +67,10 @@ before(async () => {
   C_EMAIL = (await sql`INSERT INTO clients (tenant_id, full_name, whatsapp, email) VALUES (${t.id}, 'Bia', '34999990002', 'bia@exemplo.com') RETURNING id`)[0].id;
 });
 
-beforeEach(() => { enviados = []; emails = []; });
+beforeEach(() => { enviados = []; emails = []; resend = "ok"; });
+const registroEmail = (apptId: string) =>
+  sql`SELECT channel, status, error_msg, sent_at IS NOT NULL AS tem_envio, client_id, subject FROM notifications
+      WHERE reference_id = ${apptId} AND channel = 'email'`;
 
 after(async () => {
   await app?.close();
@@ -115,6 +121,40 @@ test("cliente com e-mail: o e-mail não impede o WhatsApp (e continua 1 só)", a
   assert.equal(emails[0].subject, "Pedido de agendamento recebido - Salão Zap");
   assert.match(emails[0].html, /Recebemos seu pedido de agendamento/);
   assert.ok(!/Confirmado/i.test(emails[0].html), "e-mail do pedido pendente não diz 'confirmado'");
+});
+
+test("e-mail enviado: registrado em notifications como sent", async () => {
+  const r = await agendar(C_EMAIL, "08:00");
+  assert.equal(r.statusCode, 201, r.body);
+  const rows = await registroEmail(r.json().data.id);
+  assert.equal(rows.length, 1);
+  assert.deepEqual({ ...rows[0] }, { channel: "email", status: "sent", error_msg: null, tem_envio: true, client_id: C_EMAIL,
+    subject: "Pedido de agendamento recebido - Salão Zap" });
+});
+
+for (const [modo, motivo] of [["erro", /validation_error: Invalid `to` field/], ["rede", /application_error: Unable to fetch data/]] as const) {
+  test(`e-mail falha (${modo}): registrado como failed com o motivo, nunca "sent"; o WhatsApp sai mesmo assim`, async () => {
+    resend = modo;
+    const hora = modo === "erro" ? "08:30" : "09:00";
+    const r = await agendar(C_EMAIL, hora);
+    assert.equal(r.statusCode, 201, r.body);
+    assert.equal(emails.length, 1, "tentou o e-mail");
+    assert.equal(enviados.length, 1, "WhatsApp saiu");
+    const rows = await registroEmail(r.json().data.id);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].status, "failed");
+    assert.equal(rows[0].tem_envio, false);
+    assert.match(rows[0].error_msg, motivo);
+  });
+}
+
+test("e-mail de dados de teste (.invalid): nada sai e nada é registrado como enviado", async () => {
+  const c = (await sql`INSERT INTO clients (tenant_id, full_name, whatsapp, email)
+    SELECT tenant_id, 'Teste', '34999990003', 'x@exemplo.invalid' FROM clients WHERE id = ${C_EMAIL} RETURNING id`)[0].id;
+  const r = await agendar(c, "09:30");
+  assert.equal(r.statusCode, 201, r.body);
+  assert.equal(emails.length, 0);
+  assert.equal((await registroEmail(r.json().data.id)).length, 0);
 });
 
 test("horário ocupado: nada é enviado", async () => {
