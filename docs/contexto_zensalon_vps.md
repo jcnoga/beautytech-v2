@@ -440,6 +440,10 @@ API foi reconstruída) + `backend/scripts/consertar-plan-settings.sql` APLICADO 
 14. **Rota de saúde acessível de fora** para monitor externo (UptimeRobot): hoje `/health` só responde dentro do
     container (de fora, `/api/v1/health` = 404). Responder só "ok"/status (e talvez banco ok/não ok), sem versão,
     variáveis, nomes de serviço ou erros internos; sem login; com limite de requisições.
+- Evolution: troca para `postgres:15.18-trixie` às 21:05 = `RESULTADO: OK` (sessões e API conferidas, 0 avisos).
+- **Para 10/10:** (1) Super Admin: 401 (token de 8 h vencido) aparece como "Nenhum salão encontrado" — proposta:
+  401 volta para o login com "Sua sessão expirou" (`saFetch` em `App.tsx`; precisa deploy do web; aguardando OK).
+  (2) n8n: o usuário liga/desliga os 2 workflows pela tela (ou autoriza reiniciar) e conferir os webhooks.
 - Recepção Automática (09/10, `9037862`, API + web no ar; volta: imagens `:antes-9037862`): `{nome}` de contato novo =
   primeiro nome do WhatsApp (pushName, limpo); sem nome, some sem buraco. Cliente cadastrado agora é reconhecido
   (WhatsApp manda com 55 e às vezes sem o 9). 10 mensagens padrão da `beautytech` trocadas pelo script
